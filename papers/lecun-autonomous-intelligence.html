@@ -106,6 +106,7 @@
           <li><a href="#modules">六大模块精读</a></li>
           <li><a href="#mode1">Mode-1：感知-动作片段</a></li>
           <li><a href="#cost">代价模块与驱动设计</a></li>
+          <li><a href="#jepa">JEPA 深入：能量模型与非生成式预测</a></li>
           <li><a href="#vla-connection">与 VLA 的联系</a></li>
           <li><a href="#critique">批判与局限</a></li>
         </ol>
@@ -445,9 +446,166 @@
         </p>
       </div>
 
-      <!-- §7 VLA Connection -->
-      <div class="section" id="vla-connection">
+      <!-- §7 JEPA Deep Dive -->
+      <div class="section" id="jepa">
         <div class="section-num">§ 07</div>
+        <h2>JEPA 深入：能量模型与非生成式预测</h2>
+
+        <p>
+          这是论文最具技术含量、也最常被单独引用的部分。LeCun 在这里给出了 World Model 的具体形式：
+          <strong>JEPA</strong>（Joint-Embedding Predictive Architecture，联合嵌入预测架构）。
+          它是后续 I-JEPA（图像，2023）、V-JEPA（视频，2024）一系列工作的<strong>奠基蓝图</strong>。
+        </p>
+
+        <div class="callout">
+          <div class="callout-label">一句话定义</div>
+          <p>
+            JEPA = 不在<strong>像素空间</strong>预测未来，而是把输入 x 和未来 y 各自编码成<strong>抽象表示</strong> s_x、s_y，
+            然后训练一个预测器 Pred 让 <code>Pred(s_x, z) ≈ s_y</code>，其中 z 是<strong>潜变量</strong>，吸收所有不可预测的细节。
+          </p>
+        </div>
+
+        <h3 style="font-family:var(--font-serif); font-size:17px; margin:24px 0 10px; color:var(--text);">7.1 能量模型（EBM）：统一框架</h3>
+        <p>
+          LeCun 把整个学习问题套进 <strong>EBM</strong>（Energy-Based Model）框架。EBM 不直接输出概率，而是给每对 (x, y) 一个标量"能量" <code>F(x, y)</code>：
+          兼容的对能量低，不兼容的对能量高。预测就是找让能量最小的 y。
+        </p>
+        <table class="kv-table">
+          <tr><td>概率模型</td><td>必须归一化（partition function 难算），强迫给所有 y 配概率</td></tr>
+          <tr><td>EBM</td><td>只需要相对能量：低能量 = "对的"，高能量 = "错的"，无需归一化</td></tr>
+          <tr><td>类比</td><td>不要求"打分总和=100"，只要求"对的方案分数低、错的方案分数高"</td></tr>
+        </table>
+
+        <h3 style="font-family:var(--font-serif); font-size:17px; margin:24px 0 10px; color:var(--text);">7.2 三种架构对比</h3>
+        <p>
+          在能量模型框架下，"如何根据 x 预测 y" 有三种可能的架构。LeCun 力推第三种。
+        </p>
+        <div class="module-grid">
+          <div class="module-card">
+            <div class="module-card-name">① GENERATIVE · 生成式</div>
+            <div class="module-card-title">Decoder 从 x 直接生成 y</div>
+            <div class="module-card-desc">
+              在像素/原始空间预测 ŷ = Dec(x, z)，能量 = ‖y − ŷ‖。<br>
+              <span style="color:var(--accent3)">问题：</span>逼 decoder 去精确画出树叶的每一根脉络、人脸的每一根头发——浪费容量在不可预测细节上。
+            </div>
+          </div>
+          <div class="module-card">
+            <div class="module-card-name">② CONTRASTIVE · 对比式</div>
+            <div class="module-card-title">把正样本拉近、负样本推开</div>
+            <div class="module-card-desc">
+              SimCLR、MoCo 等。<br>
+              <span style="color:var(--accent3)">问题：</span>需要构造大量负样本（negative samples），高维空间下负样本数随维度指数增长，难 scale。
+            </div>
+          </div>
+          <div class="module-card">
+            <div class="module-card-name">③ JEPA · 联合嵌入预测 ⭐</div>
+            <div class="module-card-title">在抽象空间预测，无需重建</div>
+            <div class="module-card-desc">
+              s_x = Enc(x), s_y = Enc(y), 训练 <code>Pred(s_x, z) ≈ s_y</code>。<br>
+              <span style="color:var(--accent)">优势：</span>encoder 自动学会丢弃不可预测的低层细节；不需要负样本，靠正则项防坍缩。
+            </div>
+          </div>
+        </div>
+
+        <h3 style="font-family:var(--font-serif); font-size:17px; margin:24px 0 10px; color:var(--text);">7.3 JEPA 数据流</h3>
+        <div class="arch-svg-wrap">
+          <svg width="100%" viewBox="0 0 680 240" role="img">
+            <title>JEPA 数据流示意</title>
+            <defs>
+              <marker id="arr2" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+                <path d="M2 1L8 5L2 9" fill="none" stroke="context-stroke" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+              </marker>
+            </defs>
+
+            <!-- x branch -->
+            <rect x="20" y="40" width="80" height="40" rx="6" fill="rgba(167,139,250,0.1)" stroke="rgba(167,139,250,0.4)"/>
+            <text x="60" y="65" text-anchor="middle" font-family="'JetBrains Mono',monospace" font-size="13" fill="#a78bfa">x</text>
+            <text x="60" y="100" text-anchor="middle" font-family="'Inter',sans-serif" font-size="10" fill="#5c5a56">观测 / 当前帧</text>
+
+            <rect x="150" y="40" width="100" height="40" rx="6" fill="rgba(46,196,182,0.1)" stroke="rgba(46,196,182,0.4)"/>
+            <text x="200" y="65" text-anchor="middle" font-family="'JetBrains Mono',monospace" font-size="12" fill="#2ec4b6">Enc_x</text>
+
+            <rect x="300" y="40" width="80" height="40" rx="6" fill="rgba(74,222,154,0.1)" stroke="rgba(74,222,154,0.4)"/>
+            <text x="340" y="65" text-anchor="middle" font-family="'JetBrains Mono',monospace" font-size="13" fill="#4ade9a">s_x</text>
+
+            <!-- y branch -->
+            <rect x="20" y="160" width="80" height="40" rx="6" fill="rgba(167,139,250,0.1)" stroke="rgba(167,139,250,0.4)"/>
+            <text x="60" y="185" text-anchor="middle" font-family="'JetBrains Mono',monospace" font-size="13" fill="#a78bfa">y</text>
+            <text x="60" y="220" text-anchor="middle" font-family="'Inter',sans-serif" font-size="10" fill="#5c5a56">未来 / 目标帧</text>
+
+            <rect x="150" y="160" width="100" height="40" rx="6" fill="rgba(46,196,182,0.1)" stroke="rgba(46,196,182,0.4)" stroke-dasharray="4 3"/>
+            <text x="200" y="185" text-anchor="middle" font-family="'JetBrains Mono',monospace" font-size="12" fill="#2ec4b6">Enc_y</text>
+            <text x="200" y="220" text-anchor="middle" font-family="'Inter',sans-serif" font-size="9" fill="#5c5a56">(EMA / stop-grad)</text>
+
+            <rect x="300" y="160" width="80" height="40" rx="6" fill="rgba(74,222,154,0.1)" stroke="rgba(74,222,154,0.4)"/>
+            <text x="340" y="185" text-anchor="middle" font-family="'JetBrains Mono',monospace" font-size="13" fill="#4ade9a">s_y</text>
+
+            <!-- predictor + latent -->
+            <rect x="430" y="40" width="100" height="40" rx="6" fill="rgba(245,158,11,0.1)" stroke="rgba(245,158,11,0.4)"/>
+            <text x="480" y="65" text-anchor="middle" font-family="'JetBrains Mono',monospace" font-size="12" fill="#f59e0b">Pred</text>
+
+            <rect x="430" y="100" width="100" height="32" rx="6" fill="rgba(96,165,250,0.1)" stroke="rgba(96,165,250,0.4)"/>
+            <text x="480" y="120" text-anchor="middle" font-family="'JetBrains Mono',monospace" font-size="11" fill="#60a5fa">z (latent)</text>
+
+            <rect x="580" y="100" width="80" height="40" rx="6" fill="rgba(255,107,107,0.1)" stroke="rgba(255,107,107,0.4)"/>
+            <text x="620" y="120" text-anchor="middle" font-family="'JetBrains Mono',monospace" font-size="12" fill="#ff6b6b">Energy</text>
+            <text x="620" y="135" text-anchor="middle" font-family="'JetBrains Mono',monospace" font-size="10" fill="#ff6b6b">D(ŝ_y, s_y)</text>
+
+            <!-- arrows -->
+            <line x1="100" y1="60" x2="148" y2="60" stroke="#5c5a56" stroke-width="1" marker-end="url(#arr2)"/>
+            <line x1="250" y1="60" x2="298" y2="60" stroke="#5c5a56" stroke-width="1" marker-end="url(#arr2)"/>
+            <line x1="100" y1="180" x2="148" y2="180" stroke="#5c5a56" stroke-width="1" marker-end="url(#arr2)"/>
+            <line x1="250" y1="180" x2="298" y2="180" stroke="#5c5a56" stroke-width="1" marker-end="url(#arr2)"/>
+            <line x1="380" y1="60" x2="428" y2="60" stroke="rgba(74,222,154,0.5)" stroke-width="1" marker-end="url(#arr2)"/>
+            <line x1="480" y1="100" x2="480" y2="82" stroke="rgba(96,165,250,0.5)" stroke-width="1" marker-end="url(#arr2)"/>
+            <path d="M530 60 Q560 60 580 110" fill="none" stroke="rgba(245,158,11,0.5)" stroke-width="1" marker-end="url(#arr2)"/>
+            <path d="M380 180 Q500 180 580 140" fill="none" stroke="rgba(74,222,154,0.5)" stroke-width="1" marker-end="url(#arr2)"/>
+          </svg>
+          <div class="diagram-caption">图：JEPA 双塔结构。预测发生在抽象表示空间，潜变量 z 吸收不可预测的细节。</div>
+        </div>
+
+        <h3 style="font-family:var(--font-serif); font-size:17px; margin:24px 0 10px; color:var(--text);">7.4 防坍缩：VICReg 系正则</h3>
+        <p>
+          JEPA 的最大风险是<strong>表示坍缩</strong>（representational collapse）——
+          encoder 偷懒，输出常数向量，使 Pred 永远=s_y，loss=0 但什么也没学到。LeCun 提出三个方向的正则：
+        </p>
+        <table class="kv-table">
+          <tr><td>V · Variance</td><td>每个嵌入维度方差 ≥ 阈值，强迫表示"撑开"</td></tr>
+          <tr><td>I · Invariance</td><td>预测 s_y 与真实 s_y 距离最小化（主任务）</td></tr>
+          <tr><td>C · Covariance</td><td>不同维度去相关，避免冗余</td></tr>
+        </table>
+        <p style="margin-top:10px;">
+          对应论文 §8 的 VICReg 训练目标，是 I-JEPA / V-JEPA 实现时的关键工程细节。另一类做法是
+          <strong>非对称结构</strong>（asymmetric）：给 Enc_y 加 stop-gradient 或用 EMA 目标网络（类似 BYOL）。
+        </p>
+
+        <h3 style="font-family:var(--font-serif); font-size:17px; margin:24px 0 10px; color:var(--text);">7.5 Hierarchical JEPA（H-JEPA）</h3>
+        <p>
+          单层 JEPA 只能做一步预测。要支持<strong>长时程规划</strong>（long-horizon planning），
+          LeCun 提议堆叠多层 JEPA：底层做短时间高细节的预测，高层在更抽象的表示上做长时间预测。
+        </p>
+        <div class="callout blue">
+          <div class="callout-label">类比</div>
+          <p>
+            做饭的规划：底层 JEPA 预测"下一秒手会到哪"，中层预测"切完菜后开火"，高层预测"30 分钟后端上桌"。
+            每往上一层，时间步长更大、细节更少、表示更抽象——这正是人类规划的层级结构。
+          </p>
+        </div>
+
+        <h3 style="font-family:var(--font-serif); font-size:17px; margin:24px 0 10px; color:var(--text);">7.6 为什么 LeCun 反对生成式 World Model</h3>
+        <div class="callout red">
+          <div class="callout-label">核心论点</div>
+          <p>
+            像 Sora、DreamerV3 这类<strong>像素级生成</strong>世界模型，必须把容量花在头发、纹理、噪点这些
+            <strong>本质上不可预测</strong>的细节上。JEPA 的赌注是：智能体根本不需要在脑中"画出"未来，
+            只需要预测"未来在抽象层面会怎样"——这才是规划真正需要的信息。
+          </p>
+        </div>
+      </div>
+
+      <!-- §8 VLA Connection -->
+      <div class="section" id="vla-connection">
+        <div class="section-num">§ 08</div>
         <h2>与 VLA 的联系</h2>
         <table class="kv-table">
           <tr><td>LeCun 模块</td><td>VLA 中的对应</td></tr>
@@ -470,7 +628,7 @@
 
       <!-- §8 Critique -->
       <div class="section" id="critique">
-        <div class="section-num">§ 08</div>
+        <div class="section-num">§ 09</div>
         <h2>批判与局限</h2>
         <div class="callout amber">
           <div class="callout-label">争议</div>
