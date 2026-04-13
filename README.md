@@ -2,7 +2,7 @@
 
 面向具身智能（Embodied AI）方向的中文论文解析网站。每篇笔记包含：核心贡献、架构拆解、关键公式、与工程实践的联系。
 
-**[→ 在线访问](https://your-username.github.io/paper-notes)**
+**[→ 在线访问](https://www.siyuanluoembodied.xin/)**
 
 ## 已收录
 
