@@ -165,6 +165,21 @@
           </div>
         </div>
 
+        <div class="fig-explain">
+          <div class="fe-label">🔍 怎么看这张图</div>
+          <p><strong>先看颜色分组</strong>：图里画在大脑剪影上是有意的——LeCun 想让你联想到这是"一个统一的认知系统"，不是松散的工具堆。</p>
+          <p><strong>从输入开始追：</strong></p>
+          <ol>
+            <li>右下角地球 = 环境，传感器信号叫 <code>percept</code>，进入紫色的 <strong>Perception</strong>（感知）</li>
+            <li>感知的输出送到中间的 <strong>World Model</strong>（绿色，最大块——它是"最复杂的模块"）和 <strong>Actor</strong>（黄色）</li>
+            <li>Actor 输出 <code>action</code> → 黄色箭头回到地球（影响环境）</li>
+            <li>Cost 模块（右下红色，包含 <strong>Intrinsic cost</strong> 内禀代价 + <strong>Critic</strong> 评论家）算出能量，反过来约束 Actor 选什么动作</li>
+            <li>顶上蓝色 <strong>Configurator</strong> 像总指挥，紫色细箭头连到所有模块——它根据当前任务"调台"，决定每个模块怎么工作</li>
+            <li>橙色 <strong>Short-term memory</strong> 跟 World Model 之间是双向紫色箭头——读写都有，存"过去/预测"的状态-代价对</li>
+          </ol>
+          <p><strong>关键点：</strong>所有箭头都<strong>可微分</strong>。意思是 Cost 算出的"不爽程度"，梯度可以一路反传穿过 Actor、World Model、Perception，把整套系统当一个大网络一起训练。这是和经典认知架构（如 SOAR、ACT-R）最大的区别。</p>
+        </div>
+
         <h3 id="arch-modules">2.1 六大模块定义</h3>
 
         <p>点下面的 tab 切换查看每个模块：</p>
@@ -290,6 +305,17 @@
           </div>
         </div>
 
+        <div class="fig-explain">
+          <div class="fe-label">🔍 怎么看这张图</div>
+          <p><strong>从最左边的小圆 x 开始横着读</strong>，这张图就是 Fig 2 拍扁成"信号流水线"：</p>
+          <ol>
+            <li><code>x</code>（环境观测）→ <strong>Enc(x)</strong>（紫色，感知编码器）→ <code>s[0]</code>（当前状态表示）</li>
+            <li><code>s[0]</code> 直接进 <strong>Actor</strong>（黄色矩形里的 <code>A(s)</code>）→ 输出 <code>a[0]</code> → 黄色粗箭头打回地球</li>
+            <li><strong>注意 World Model 和 Cost 在哪？</strong>右上角小红块 <code>C(s[0])</code> 算了当前状态的代价，存到记忆里；右边淡色 <code>Pred(s,a)</code> 算了下一状态 <code>s[1]</code> 和它的代价 <code>C(s[1])</code>——但<strong>颜色淡是有意的</strong>，意思是"这一步可选，不参与决策"</li>
+          </ol>
+          <p><strong>关键差异 vs Fig 4 (Mode-2)：</strong>这里 World Model 的预测<strong>不影响动作选择</strong>，只是为了"等下次真观测来了，校正一下 World Model 的预测准不准"。Actor 完全靠当前感知一步出动作——这就是 System 1。</p>
+        </div>
+
         <details class="en-quote">
           <summary>展开原文 · Mode-1 描述</summary>
           <div class="quote-body">
@@ -322,6 +348,19 @@
               横向展开：编码器只用一次，预测器 Pred 沿时间链式滚动，每一步都喂给 Cost。整个图就是一张计算图，能对动作变量求导。
             </span>
           </div>
+        </div>
+
+        <div class="fig-explain">
+          <div class="fe-label">🔍 怎么看这张图</div>
+          <p><strong>关键观察：和 Fig 3 比，World Model 现在被"复制"了 T 份沿着时间排开。</strong>这不是真的有 T 个网络，而是<strong>同一个 Pred 在时间步 0, 1, ..., T 上展开</strong>（unroll），就像 RNN 的 BPTT 那样。</p>
+          <ol>
+            <li>左边：<code>x</code> → <code>Enc(x)</code> → <code>s[0]</code>，编码器只用一次</li>
+            <li>底部：Actor 提议<strong>整条动作序列</strong> <code>a[0], a[1], ..., a[T−1]</code>（注意每个 a[t] 都是一个独立的可优化变量）</li>
+            <li>中间链条：<code>Pred(s[t], a[t]) → s[t+1]</code>，递归往前推，预测出整条状态轨迹</li>
+            <li>顶部红块：每一步算 <code>C(s[t])</code>，加起来 <code>F(x) = ∑ C(s[t])</code>——这就是这条动作序列的<strong>总能量</strong></li>
+          </ol>
+          <p><strong>整张图就是一张可导的计算图。</strong>沿着图反向传播 ∂F/∂a[t]，就能用梯度下降<strong>在动作空间里做优化</strong>，找到让总能量最小的那条动作序列。这就是"反向传播来规划"——和 BP 训练神经网络是同一种数学操作，只不过这次更新的不是权重，而是<strong>动作变量本身</strong>。</p>
+          <p><strong>为什么叫 receding horizon：</strong>找到最优 <code>â[0…T]</code> 后只执行 <code>â[0]</code>，下一时刻重新感知重新规划。永远只看未来 T 步，但每步都重新算。</p>
         </div>
 
         <h4>Mode-2 七步流程（论文原文）</h4>
@@ -359,7 +398,7 @@
         </div>
 
         <div class="fig-block">
-          <img src="../assets/figures/lecun/page-13.png" alt="Figure 5: Training a reactive policy from Mode-2 results">
+          <img src="../assets/figures/lecun/page-12.png" alt="Figure 5: Training a reactive policy from Mode-2 results">
           <div class="fig-cap">
             <span class="fig-num">Fig 5 · p.12</span>
             Training a reactive policy module A(s) from Mode-2 reasoning results. Minimize divergence D(â[t], A(s[t])).
@@ -367,6 +406,19 @@
               先跑 Mode-2 拿到最优动作 â[0…T]，再训练 policy A(s[t]) 让它的输出尽量接近 â[t]。训练好之后 A 可以单独用，跳过整个规划过程。
             </span>
           </div>
+        </div>
+
+        <div class="fig-explain">
+          <div class="fe-label">🔍 怎么看这张图</div>
+          <p>这张图比 Fig 4 多了一行：<strong>底部黄色 Actor 框里现在出现了 <code>A(s[t])</code> 模块和橙色的 <code>D</code> 块</strong>。先看上半部分——它和 Fig 4 完全一样（Mode-2 在跑：World Model 链 + Cost 链）。</p>
+          <ol>
+            <li><strong>上半部分</strong>：Mode-2 正常跑完，得到<strong>最优动作序列</strong> <code>â[0], â[1], ..., â[T]</code>（这是"老师"）</li>
+            <li><strong>底部新加的 <code>A(s[t])</code></strong>：一个 policy 网络，吃当前状态 <code>s[t]</code>，预测一个动作（这是"学生"）</li>
+            <li><strong>橙色 D</strong>：divergence（差异度量），算"学生输出 <code>A(s[t])</code>"和"老师 <code>â[t]</code>"的距离</li>
+            <li>把 D 当 loss 训练 A 的参数 → A 学会模仿 Mode-2 的最优解</li>
+          </ol>
+          <p><strong>训练好之后</strong>，下次遇到类似 <code>s</code>，A 一步给出近似 <code>â</code>，整套 Mode-2 计算图就不用跑了——这就是"<strong>把规划编译成反应</strong>"。论文用 <span class="term" data-en="amortized inference">摊销推理</span> 这个术语：把一次性的、昂贵的 Mode-2 推理结果"摊销"到一个快速的 policy 网络上。</p>
+          <p><strong>类比：</strong>新手开车每个路口都要想"先打灯再变道还是先变道再打灯"（Mode-2），开了几年后变成肌肉记忆（Mode-1）——本质上就是大脑把 Mode-2 的解蒸馏到了一个直觉策略里。</p>
         </div>
 
         <!-- ═════════════════════════════════════════════════ -->
@@ -390,6 +442,18 @@
               左边是不可训练的内禀代价子模块（疼、饿、跌倒...），右边是可训练的评论家子模块。Configurator 通过调权重 u, v 让智能体在不同时刻关注不同子目标。
             </span>
           </div>
+        </div>
+
+        <div class="fig-explain">
+          <div class="fe-label">🔍 怎么看这张图</div>
+          <p><strong>底部那个 <code>s</code> 是输入</strong>（当前状态），扇形分发给上面所有的子模块。整张图说的就是一件事：<strong>"代价"不是单一标量，而是一堆子代价的加权和</strong>。</p>
+          <ul>
+            <li><strong>左半（IC）</strong>：内禀代价子模块 <code>IC₁, IC₂, ..., IC_k</code>，<strong>每个对应一种"先天本能"</strong>——疼、饿、跌倒、靠近危险、好奇心⋯ <strong>权重 <code>uᵢ</code></strong> 把它们线性组合成 <code>IC(s) = Σ uᵢ·ICᵢ(s)</code></li>
+            <li><strong>右半（TC）</strong>：可训练的评论家子模块 <code>TC₁, ..., TC_l</code>，每个学着预测某种"未来代价"，权重 <code>vⱼ</code> 组合成 <code>TC(s) = Σ vⱼ·TCⱼ(s)</code></li>
+            <li><strong>顶上的总和</strong>：<code>C(s) = IC(s) + TC(s)</code> 就是最终的总能量</li>
+          </ul>
+          <p><strong>关键设计：u 和 v 由 Configurator 动态设置。</strong>这就解释了为什么"同一个智能体"能在不同任务下行为完全不同——任务 A 时 Configurator 把"找食物"的权重调高，任务 B 时把"避开人群"的权重调高。<strong>智能体本身没变，权重在变。</strong></p>
+          <p><strong>类比生物学：</strong>IC 类似杏仁核（amygdala）固化的本能反应（看到蛇就怕），TC 类似学习而来的情感联想（被某品牌坑过下次见到就警惕）。两者加起来构成行为驱动力。</p>
         </div>
 
         <h4>Intrinsic Cost 设计举例（论文给的 use case）</h4>
@@ -439,6 +503,30 @@
             存到短期记忆里。训练 Critic 时从记忆里抽一个 s_τ，让 Critic 预测出 δ 步之后的 IC(s_{τ+δ})——
             最小化预测值和真实值的差异。论文说这跟 RL 里 A2C 训练 critic 的思路相同。
           </p>
+        </div>
+
+        <div class="fig-block">
+          <img src="../assets/figures/lecun/page-15.png" alt="Figure 7: Training the critic">
+          <div class="fig-cap">
+            <span class="fig-num">Fig 7 · p.15</span>
+            Training the critic. IC stores triplets (τ, s_τ, IC(s_τ)) into the associative short-term memory; critic retrieves a past s_τ together with IC(s_{τ+δ}) and minimizes ‖IC(s_{τ+δ}) − TC(s_τ)‖².
+            <span class="fig-cn">
+              训练 Critic（评论家）：内禀代价模块往关联记忆里塞"时刻-状态-代价"三元组；训练时检索一个过去的状态，让 Critic 预测未来的内禀代价值，最小化预测误差。
+            </span>
+          </div>
+        </div>
+
+        <div class="fig-explain">
+          <div class="fe-label">🔍 怎么看这张图</div>
+          <p><strong>三层从下往上看：</strong></p>
+          <ol>
+            <li><strong>最底层 State Sequence</strong>：智能体经历的状态时序 <code>s₁, ..., s_τ, ..., s_{τ+δ}</code></li>
+            <li><strong>中间橙色 Intrinsic Cost</strong>：每经过一个状态就算它的 IC 值（"当时多不爽"）</li>
+            <li><strong>大橙色框 Short-Term Associative Memory</strong>：把"时刻 t、状态 s_t、IC(s_t)"打包成三元组存进去——<strong>注意 write 箭头是从 IC 模块往上的</strong>，意思是<strong>真实经历的代价被写入</strong>记忆</li>
+            <li><strong>顶部红色 C(s_τ) → Loss ← IC(s_{τ+δ})</strong>：训练时<strong>从记忆里读两个三元组</strong>——拿出 s_τ 让 Critic 预测出 <code>C(s_τ)</code>（它是 TC 的输出，预测的是未来 δ 步后的代价），同时从记忆里读出真实发生的 <code>IC(s_{τ+δ})</code>，两者算 loss</li>
+          </ol>
+          <p><strong>核心思想：</strong>Critic 是个"<strong>未来代价预测器</strong>"。它学到了"看到 s_τ 这种状态，δ 步之后我大概率会有多不爽"，这样规划时就<strong>不需要真的把 World Model 跑 δ 步</strong>，直接用 Critic 估个未来代价就行——大大减少 Mode-2 的计算量。</p>
+          <p><strong>和 RL 的关系：</strong>论文明说"At a general level, this is similar to critic training methods used in such reinforcement learning approaches as A2C"——本质上就是 actor-critic RL 里的 critic，只不过这里的"奖励信号"是<strong>内禀代价</strong>而不是外部 reward。</p>
         </div>
 
         <details class="en-quote">

@@ -554,3 +554,25 @@ code {
   }
   .docs-content { padding: 28px 20px 60px; }
 }
+
+/* ── 图后讲解块 ── */
+.fig-explain {
+  margin: 14px 0 24px;
+  padding: 16px 20px;
+  background: var(--bg2);
+  border: 1px solid var(--border);
+  border-left: 3px solid var(--blue);
+  border-radius: 0 6px 6px 0;
+}
+.fig-explain .fe-label {
+  font-family: var(--font-mono); font-size: 10px; color: var(--blue);
+  letter-spacing: 0.1em; text-transform: uppercase; margin-bottom: 10px;
+}
+.fig-explain p { font-size: 14px; color: var(--text); margin-bottom: 8px; line-height: 1.8; }
+.fig-explain p:last-child { margin-bottom: 0; }
+.fig-explain ol, .fig-explain ul { margin: 8px 0 8px 22px; }
+.fig-explain li { font-size: 14px; color: var(--text); line-height: 1.8; margin-bottom: 4px; }
+.fig-explain code {
+  background: var(--bg3); padding: 1px 5px; border-radius: 3px;
+  font-family: var(--font-mono); font-size: 12px; color: var(--accent);
+}
