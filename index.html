@@ -8,31 +8,106 @@
   <script src="assets/js/theme.js"></script>
   <style>
     .intro-grid {
-      display: grid; grid-template-columns: 1fr 1fr 1fr;
+      display: grid; grid-template-columns: repeat(3, 1fr);
       gap: 1px; background: var(--border);
       border: 1px solid var(--border);
-      margin: 0 32px 60px;
+      margin: 0 32px 48px;
     }
-    @media (max-width: 700px) {
-      .intro-grid { grid-template-columns: 1fr; margin: 0 20px 40px; }
-    }
-    .intro-cell {
-      background: var(--bg); padding: 24px 28px;
-    }
+    @media (max-width: 700px) { .intro-grid { grid-template-columns: 1fr; margin: 0 20px 32px; } }
+    .intro-cell { background: var(--bg); padding: 24px 28px; }
     .intro-cell-num {
       font-family: var(--font-mono); font-size: 28px; font-weight: 500;
       color: var(--accent); margin-bottom: 6px;
     }
     .intro-cell-label { font-size: 13px; color: var(--text3); }
+
     .section-header {
-      padding: 32px 32px 16px;
+      padding: 36px 32px 14px;
       font-family: var(--font-mono); font-size: 11px;
       color: var(--text3); letter-spacing: 0.12em; text-transform: uppercase;
       border-top: 1px solid var(--border);
+      display: flex; justify-content: space-between; align-items: baseline;
     }
-    @media (max-width: 640px) {
-      .section-header { padding: 24px 20px 12px; }
+    .section-header .sh-hint { font-size: 10px; color: var(--text3); text-transform: none; letter-spacing: 0; }
+    @media (max-width: 640px) { .section-header { padding: 24px 20px 12px; } }
+
+    /* 最近更新 */
+    .recent-wrap {
+      margin: 0; border-top: 1px solid var(--border); border-bottom: 1px solid var(--border);
+      background: var(--border);
+      display: grid; grid-template-columns: 1fr 1fr; gap: 1px;
     }
+    @media (max-width: 800px) { .recent-wrap { grid-template-columns: 1fr; } }
+    .recent-card {
+      background: var(--bg); padding: 32px 32px 28px;
+      text-decoration: none; color: inherit;
+      display: flex; flex-direction: column; gap: 10px;
+      position: relative; transition: background .2s;
+    }
+    .recent-card:hover { background: var(--bg2); }
+    .recent-card::before {
+      content: ''; position: absolute; top: 0; left: 0; right: 0;
+      height: 2px; background: var(--accent); transform: scaleX(0);
+      transform-origin: left; transition: transform .25s;
+    }
+    .recent-card:hover::before { transform: scaleX(1); }
+    .recent-date { font-family: var(--font-mono); font-size: 11px; color: var(--accent); letter-spacing: 0.05em; }
+    .recent-title { font-family: var(--font-serif); font-size: 20px; font-weight: 600; color: var(--text); line-height: 1.35; }
+    .recent-sub { font-size: 13px; color: var(--text2); line-height: 1.7; }
+    .recent-tags { display: flex; gap: 8px; flex-wrap: wrap; margin-top: auto; padding-top: 10px; }
+
+    /* 状态徽章 */
+    .status-badge {
+      display: inline-block; font-family: var(--font-mono); font-size: 10px;
+      letter-spacing: 0.08em; padding: 2px 6px; border-radius: 2px;
+      text-transform: uppercase; white-space: nowrap;
+    }
+    .status-done { background: var(--accent); color: var(--bg); }
+    .status-plan { background: transparent; color: var(--text3); border: 1px solid var(--border); }
+
+    /* ─── 方向列布局 ─── */
+    .dir-grid {
+      display: grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+      gap: 1px; background: var(--border);
+      border-top: 1px solid var(--border); border-bottom: 1px solid var(--border);
+    }
+    .dir-col {
+      background: var(--bg); padding: 30px 28px 32px;
+      display: flex; flex-direction: column; gap: 22px;
+      position: relative;
+    }
+    .dir-col::before {
+      content: ''; position: absolute; top: 0; left: 0; right: 0; height: 2px;
+      background: var(--accent); opacity: 0.7;
+    }
+    .dc-head { display: flex; flex-direction: column; gap: 4px; padding-bottom: 6px; }
+    .dc-title-cn { font-family: var(--font-serif); font-size: 19px; font-weight: 600; color: var(--text); }
+    .dc-title-en { font-family: var(--font-mono); font-size: 10px; letter-spacing: 0.1em; color: var(--text3); text-transform: uppercase; }
+    .dc-desc { font-size: 12px; color: var(--text2); line-height: 1.7; }
+
+    .dc-group { display: flex; flex-direction: column; gap: 8px; }
+    .dc-group-label {
+      font-family: var(--font-mono); font-size: 10px; letter-spacing: 0.08em;
+      color: var(--amber); text-transform: uppercase;
+      padding-bottom: 4px; border-bottom: 1px dashed var(--border);
+    }
+    .dc-group-label.label-core { color: var(--accent); }
+    .dc-group-label.label-expand { color: var(--blue); }
+    .dc-group-label.label-improve { color: var(--purple); }
+
+    .dc-item {
+      display: flex; justify-content: space-between; align-items: center;
+      gap: 10px; padding: 7px 0;
+      text-decoration: none; color: inherit;
+      font-size: 13px; line-height: 1.4;
+      border-bottom: 1px solid transparent;
+      transition: background .15s, padding .15s;
+    }
+    .dc-item:hover { background: var(--bg2); padding-left: 6px; padding-right: 6px; }
+    .dc-item-main { color: var(--text); font-weight: 500; }
+    .dc-item-en { font-family: var(--font-mono); font-size: 11px; color: var(--text3); margin-left: 2px; }
+    .dc-item.disabled { color: var(--text3); cursor: default; pointer-events: none; }
+    .dc-item.disabled .dc-item-main { color: var(--text2); font-weight: 400; }
   </style>
 </head>
 <body>
@@ -50,84 +125,267 @@
       <h1>论文精读笔记</h1>
       <p>
         面向具身智能（Embodied AI）方向的中文论文解析。聚焦 VLA（视觉-语言-动作）模型、
-        世界模型、持续学习等领域，每篇包含架构精读、核心公式、以及与工程实践的连接。
+        世界模型、控制策略、认知科学等方向，每篇包含架构精读、核心公式、以及与工程实践的连接。
       </p>
     </div>
 
     <div class="intro-grid">
       <div class="intro-cell">
-        <div class="intro-cell-num" id="count-papers">2</div>
-        <div class="intro-cell-label">篇论文笔记</div>
+        <div class="intro-cell-num">2</div>
+        <div class="intro-cell-label">已精读</div>
       </div>
       <div class="intro-cell">
-        <div class="intro-cell-num">∞</div>
-        <div class="intro-cell-label">持续更新中</div>
+        <div class="intro-cell-num">14+</div>
+        <div class="intro-cell-label">计划中</div>
       </div>
       <div class="intro-cell">
-        <div class="intro-cell-num">中</div>
-        <div class="intro-cell-label">中文 + 英文术语对照</div>
+        <div class="intro-cell-num">4</div>
+        <div class="intro-cell-label">覆盖方向</div>
       </div>
     </div>
 
-    <div class="section-header">VLA · Vision-Language-Action</div>
-    <div class="papers-grid">
-      <a class="paper-card" href="#" style="opacity:0.4; pointer-events:none;">
-        <div class="card-tag">VLA · 即将收录</div>
-        <div class="card-title">π₀: A Vision-Language-Action Flow Model</div>
-        <div class="card-subtitle">
-          Physical Intelligence 提出的 VLA 基础模型，基于 PaliGemma + Action Expert + Flow Matching。
+    <!-- ───────────────────────────────────────── -->
+    <div class="section-header">
+      <span>// Recent · 最近更新</span>
+      <span class="sh-hint">按更新时间排序</span>
+    </div>
+    <div class="recent-wrap">
+      <a class="recent-card" href="papers/lecun-autonomous-intelligence.html">
+        <div class="recent-date">2026-04 · 更新中</div>
+        <div class="recent-title">A Path Towards Autonomous Machine Intelligence</div>
+        <div class="recent-sub">
+          LeCun 的 position paper：模块化自主智能架构 + JEPA 非生成式世界模型 + 分层规划。
+          含 §2 六模块、§3 JEPA 完整推导（Fig 8-16 交互讲解）、§4 设计动机与局限。
         </div>
-        <div class="card-meta">
-          <span class="card-pill">Black et al. 2024</span>
-          <span class="card-pill">待更新</span>
+        <div class="recent-tags">
+          <span class="status-badge status-done">✓ 已精读</span>
+          <span class="card-pill">Yann LeCun · 2022</span>
+          <span class="card-pill">世界模型 · JEPA</span>
         </div>
       </a>
-    </div>
 
-    <div class="section-header">世界模型 · World Model</div>
-    <div class="papers-grid">
-      <a class="paper-card" href="papers/lecun-autonomous-intelligence.html">
-        <div class="card-tag">世界模型 · World Model</div>
-        <div class="card-title">A Path Towards Autonomous Machine Intelligence</div>
-        <div class="card-subtitle">
-          LeCun 提出的模块化自主智能架构：Configurator、World Model、Actor、Cost 模块的完整解析，
-          以及 Mode-1 感知-动作片段的数学展开。
+      <a class="recent-card" href="papers/infant-cognition-timeline.html">
+        <div class="recent-date">2026-03</div>
+        <div class="recent-title">婴儿认知发育时间线</div>
+        <div class="recent-sub">
+          Dupoux 整理的 0–14 月认知能力获取图谱：感知、物理、社会沟通、动作产出。
+          对 embodied AI "什么能力应该什么时候出现" 提供认知科学参考。
         </div>
-        <div class="card-meta">
-          <span class="card-pill">Yann LeCun</span>
-          <span class="card-pill">2022</span>
-          <span class="card-pill">架构设计</span>
-        </div>
-      </a>
-    </div>
-
-    <div class="section-header">认知科学 · Cognitive Science</div>
-    <div class="papers-grid">
-      <a class="paper-card" href="papers/infant-cognition-timeline.html">
-        <div class="card-tag">认知发育 · Cognitive Development</div>
-        <div class="card-title">婴儿认知发育时间线</div>
-        <div class="card-subtitle">
-          Emmanuel Dupoux 整理的婴儿 0–14 月认知能力获取图谱：感知、物理、社会沟通、动作产出，
-          与 embodied AI 数据驱动学习的关联分析。
-        </div>
-        <div class="card-meta">
+        <div class="recent-tags">
+          <span class="status-badge status-done">✓ 已精读</span>
           <span class="card-pill">Dupoux</span>
           <span class="card-pill">发育心理学</span>
-          <span class="card-pill">参考背景</span>
         </div>
       </a>
     </div>
 
-    <div class="section-header">基础组件 · Components</div>
-    <div class="papers-grid">
-      <a class="paper-card" href="#" style="opacity:0.4; pointer-events:none;">
-        <div class="card-tag">组件 · 即将收录</div>
-        <div class="card-title">PaliGemma / Flow Matching</div>
-        <div class="card-subtitle">VLA 拆解出的基础组件笔记（SigLIP+Gemma、Flow Matching 训练目标）。</div>
-        <div class="card-meta"><span class="card-pill">待更新</span></div>
-      </a>
+    <!-- ───────────────────────────────────────── -->
+    <div class="section-header">
+      <span>// By Direction · 按方向浏览</span>
+      <span class="sh-hint">✓ 已精读 · ○ 计划中</span>
     </div>
 
+    <div class="dir-grid">
+
+      <!-- ═══════ 世界模型 · JEPA 路线 ═══════ -->
+      <div class="dir-col">
+        <div class="dc-head">
+          <div class="dc-title-cn">世界模型 · JEPA 路线</div>
+          <div class="dc-title-en">World Model · JEPA Lineage</div>
+          <div class="dc-desc">LeCun 倡导的非生成式联合嵌入预测架构。按 "开山→横向扩展→原理改进" 组织。</div>
+        </div>
+
+        <div class="dc-group">
+          <div class="dc-group-label label-core">① 开山之作</div>
+          <a class="dc-item" href="papers/lecun-autonomous-intelligence.html">
+            <span class="dc-item-main">JEPA / H-JEPA<span class="dc-item-en">LeCun 2022</span></span>
+            <span class="status-badge status-done">✓</span>
+          </a>
+        </div>
+
+        <div class="dc-group">
+          <div class="dc-group-label label-expand">② 横向扩展（模态/场景/规模）</div>
+          <a class="dc-item disabled">
+            <span class="dc-item-main">I-JEPA<span class="dc-item-en">图像 · Meta 2023</span></span>
+            <span class="status-badge status-plan">○</span>
+          </a>
+          <a class="dc-item disabled">
+            <span class="dc-item-main">MC-JEPA<span class="dc-item-en">多任务 · Meta 2023</span></span>
+            <span class="status-badge status-plan">○</span>
+          </a>
+          <a class="dc-item disabled">
+            <span class="dc-item-main">V-JEPA<span class="dc-item-en">视频 · Meta 2024</span></span>
+            <span class="status-badge status-plan">○</span>
+          </a>
+          <a class="dc-item disabled">
+            <span class="dc-item-main">Audio-JEPA<span class="dc-item-en">音频</span></span>
+            <span class="status-badge status-plan">○</span>
+          </a>
+          <a class="dc-item disabled">
+            <span class="dc-item-main">Point-JEPA · 3D-JEPA<span class="dc-item-en">点云 / 3D</span></span>
+            <span class="status-badge status-plan">○</span>
+          </a>
+          <a class="dc-item disabled">
+            <span class="dc-item-main">ACT-JEPA<span class="dc-item-en">动作预测</span></span>
+            <span class="status-badge status-plan">○</span>
+          </a>
+          <a class="dc-item disabled">
+            <span class="dc-item-main">V-JEPA 2<span class="dc-item-en">Meta 2025</span></span>
+            <span class="status-badge status-plan">○</span>
+          </a>
+        </div>
+
+        <div class="dc-group">
+          <div class="dc-group-label label-improve">③ 原理/架构改进</div>
+          <a class="dc-item disabled">
+            <span class="dc-item-main">LeJEPA<span class="dc-item-en">理论简化</span></span>
+            <span class="status-badge status-plan">○</span>
+          </a>
+          <a class="dc-item disabled">
+            <span class="dc-item-main">Causal-JEPA<span class="dc-item-en">因果结构</span></span>
+            <span class="status-badge status-plan">○</span>
+          </a>
+          <a class="dc-item disabled">
+            <span class="dc-item-main">V-JEPA 2.1</span>
+            <span class="status-badge status-plan">○</span>
+          </a>
+          <a class="dc-item disabled">
+            <span class="dc-item-main">LeWorldModel</span>
+            <span class="status-badge status-plan">○</span>
+          </a>
+          <a class="dc-item disabled">
+            <span class="dc-item-main">ThinkJEPA<span class="dc-item-en">推理型</span></span>
+            <span class="status-badge status-plan">○</span>
+          </a>
+        </div>
+      </div>
+
+      <!-- ═══════ VLA ═══════ -->
+      <div class="dir-col">
+        <div class="dc-head">
+          <div class="dc-title-cn">VLA · 视觉-语言-动作</div>
+          <div class="dc-title-en">Vision-Language-Action</div>
+          <div class="dc-desc">把 VLM 作为 backbone，直接从感知+指令映射到机器人动作。当前 embodied 主流路线。</div>
+        </div>
+
+        <div class="dc-group">
+          <div class="dc-group-label label-core">① 主模型</div>
+          <a class="dc-item disabled">
+            <span class="dc-item-main">π₀<span class="dc-item-en">Physical Intelligence 2024</span></span>
+            <span class="status-badge status-plan">○</span>
+          </a>
+          <a class="dc-item disabled">
+            <span class="dc-item-main">RT-2<span class="dc-item-en">Google DeepMind 2023</span></span>
+            <span class="status-badge status-plan">○</span>
+          </a>
+          <a class="dc-item disabled">
+            <span class="dc-item-main">OpenVLA<span class="dc-item-en">Kim et al. 2024</span></span>
+            <span class="status-badge status-plan">○</span>
+          </a>
+        </div>
+
+        <div class="dc-group">
+          <div class="dc-group-label label-expand">② 基础组件</div>
+          <a class="dc-item disabled">
+            <span class="dc-item-main">PaliGemma<span class="dc-item-en">SigLIP + Gemma</span></span>
+            <span class="status-badge status-plan">○</span>
+          </a>
+          <a class="dc-item disabled">
+            <span class="dc-item-main">Flow Matching<span class="dc-item-en">Lipman 2023</span></span>
+            <span class="status-badge status-plan">○</span>
+          </a>
+          <a class="dc-item disabled">
+            <span class="dc-item-main">SigLIP<span class="dc-item-en">视觉编码器</span></span>
+            <span class="status-badge status-plan">○</span>
+          </a>
+        </div>
+
+        <div class="dc-group">
+          <div class="dc-group-label label-improve">③ 延伸方向</div>
+          <a class="dc-item disabled">
+            <span class="dc-item-main">SayCan<span class="dc-item-en">LLM 任务分解</span></span>
+            <span class="status-badge status-plan">○</span>
+          </a>
+          <a class="dc-item disabled">
+            <span class="dc-item-main">Helix / Figure AI</span>
+            <span class="status-badge status-plan">○</span>
+          </a>
+        </div>
+      </div>
+
+      <!-- ═══════ 控制 · Control ═══════ -->
+      <div class="dir-col">
+        <div class="dc-head">
+          <div class="dc-title-cn">控制 · Policy & Planning</div>
+          <div class="dc-title-en">Control · Policy / Planning</div>
+          <div class="dc-desc">底层策略网络与经典控制方法。常作为 VLA / 世界模型的下游输出。</div>
+        </div>
+
+        <div class="dc-group">
+          <div class="dc-group-label label-core">① 生成式策略</div>
+          <a class="dc-item disabled">
+            <span class="dc-item-main">Diffusion Policy<span class="dc-item-en">Chi et al. 2023</span></span>
+            <span class="status-badge status-plan">○</span>
+          </a>
+          <a class="dc-item disabled">
+            <span class="dc-item-main">ACT<span class="dc-item-en">Action Chunking Transformer</span></span>
+            <span class="status-badge status-plan">○</span>
+          </a>
+        </div>
+
+        <div class="dc-group">
+          <div class="dc-group-label label-expand">② 模型预测控制</div>
+          <a class="dc-item disabled">
+            <span class="dc-item-main">MPC / MPPI<span class="dc-item-en">经典最优控制</span></span>
+            <span class="status-badge status-plan">○</span>
+          </a>
+          <a class="dc-item disabled">
+            <span class="dc-item-main">TD-MPC2<span class="dc-item-en">学习型 MPC</span></span>
+            <span class="status-badge status-plan">○</span>
+          </a>
+        </div>
+
+        <div class="dc-group">
+          <div class="dc-group-label label-improve">③ 层次化规划</div>
+          <a class="dc-item disabled">
+            <span class="dc-item-main">Director<span class="dc-item-en">Hafner et al. 2022</span></span>
+            <span class="status-badge status-plan">○</span>
+          </a>
+        </div>
+      </div>
+
+      <!-- ═══════ 认知科学 ═══════ -->
+      <div class="dir-col">
+        <div class="dc-head">
+          <div class="dc-title-cn">认知科学 · 参考背景</div>
+          <div class="dc-title-en">Cognitive Science</div>
+          <div class="dc-desc">从婴幼儿认知、动物智能借鉴经验，指导 embodied AI 的数据/课程/评测设计。</div>
+        </div>
+
+        <div class="dc-group">
+          <div class="dc-group-label label-core">① 发育心理学</div>
+          <a class="dc-item" href="papers/infant-cognition-timeline.html">
+            <span class="dc-item-main">婴儿认知发育时间线<span class="dc-item-en">Dupoux</span></span>
+            <span class="status-badge status-done">✓</span>
+          </a>
+        </div>
+
+        <div class="dc-group">
+          <div class="dc-group-label label-expand">② 核心概念</div>
+          <a class="dc-item disabled">
+            <span class="dc-item-main">Core Knowledge<span class="dc-item-en">Spelke & Kinzler</span></span>
+            <span class="status-badge status-plan">○</span>
+          </a>
+          <a class="dc-item disabled">
+            <span class="dc-item-main">Intuitive Physics Benchmark<span class="dc-item-en">IntPhys</span></span>
+            <span class="status-badge status-plan">○</span>
+          </a>
+        </div>
+      </div>
+
+    </div>
+
+    <!-- ───────────────────────────────────────── -->
     <div id="about" style="max-width:780px; margin:0 auto; padding:60px 32px;">
       <div class="section-num">// ABOUT</div>
       <h2 style="font-family:var(--font-serif); font-size:20px; font-weight:700; margin:8px 0 16px; color:var(--text);">关于本项目</h2>

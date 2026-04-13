@@ -47,12 +47,19 @@
           <a class="ds-leaf" href="#wm-collapse">3.3 坍缩问题（Fig 10）</a>
           <a class="ds-leaf" href="#wm-contrastive">3.4 对比 vs 正则（Fig 11）</a>
           <a class="ds-leaf" href="#wm-jepa">3.5 JEPA 主架构（Fig 12）</a>
-          <a class="ds-leaf" href="#wm-todo">3.6+ 待写</a>
+          <a class="ds-leaf" href="#wm-noncontrastive">3.6 非对比训练 4 准则（Fig 13）</a>
+          <a class="ds-leaf" href="#wm-vicreg">3.7 VICReg 实现（Fig 14）</a>
+          <a class="ds-leaf" href="#wm-hjepa">3.8 H-JEPA 分层（Fig 15）</a>
+          <a class="ds-leaf" href="#wm-hplan">3.9 分层规划（Fig 16）</a>
         </details>
 
         <details>
           <summary>§4 设计动机与局限</summary>
-          <a class="ds-leaf" href="#critique-todo">（待写）</a>
+          <a class="ds-leaf" href="#crit-uncertainty">4.1 不确定性处理（Fig 17）</a>
+          <a class="ds-leaf" href="#crit-actor">4.2 Actor 三重角色</a>
+          <a class="ds-leaf" href="#crit-configurator">4.3 Configurator：最神秘的模块</a>
+          <a class="ds-leaf" href="#crit-debates">4.4 Scaling / Reward / Symbols 三个辩论</a>
+          <a class="ds-leaf" href="#crit-open">4.5 未解决问题 + VLA 对照</a>
         </details>
       </aside>
 
@@ -161,10 +168,10 @@
           </p>
         </div>
 
+        <div class="fig-interactive">
         <div class="fig-block">
           <div class="hotspot-wrap" data-hotspot-group="fig2">
             <img src="../assets/figures/lecun/fig-2.png" alt="Figure 2: System architecture for autonomous intelligence">
-            <!-- 热点位置按图中模块大致坐标（百分比） -->
             <div class="hotspot" data-id="conf"  style="left:49%; top:15%;"
                  data-title="Configurator · 配置器"
                  data-body="位于顶端，蓝色椭圆。是整个系统的总指挥——根据当前任务调制其他所有模块的参数和注意力回路。当前 VLA 中基本缺失这个模块。"></div>
@@ -174,7 +181,7 @@
             <div class="hotspot" data-id="wm"    style="left:65%; top:23%;"
                  data-title="World Model · 世界模型"
                  data-body="绿色大椭圆，画得最大是有意的——'最复杂的模块'。功能：补全感知缺失的信息 + 给定动作序列预测未来状态。后面整个 §3 都在讲它。"></div>
-            <div class="hotspot" data-id="perc"  style="left:27%; top:35%;"
+            <div class="hotspot" data-id="perc"  style="left:20%; top:33%;"
                  data-title="Perception · 感知"
                  data-body="左侧紫红色大椭圆。从右下角地球（环境）接收 percept（传感信号），输出当前世界状态 s[0]。可分层表示。"></div>
             <div class="hotspot" data-id="actor" style="left:45%; top:38%;"
@@ -183,7 +190,7 @@
             <div class="hotspot" data-id="cost"  style="left:60%; top:42%;"
                  data-title="Cost · 代价"
                  data-body="右侧红色块，包含两个子模块：Intrinsic Cost（先天硬编码，疼/饿/跌倒）+ Critic（学着预测未来代价）。输出标量'能量'，目标是最小化长期平均能量。"></div>
-            <div class="hotspot" data-id="env"   style="left:70%; top:58%;"
+            <div class="hotspot" data-id="env"   style="left:80%; top:60%;"
                  data-title="Environment · 环境"
                  data-body="右下角地球。Actor 的动作（黄色粗箭头）影响环境；环境的 percept（紫色粗箭头）回到 Perception。这是闭环。"></div>
           </div>
@@ -196,6 +203,7 @@
           </div>
         </div>
         <div class="hotspot-panel"></div>
+        </div>
 
         <div class="step-walker" data-hotspot-group="fig2">
           <div class="sw-header">
@@ -692,16 +700,17 @@ flowchart LR
           </p>
         </div>
 
+        <div class="fig-interactive">
         <div class="fig-block">
           <div class="hotspot-wrap" data-hotspot-group="fig8">
             <img src="../assets/figures/lecun/fig-8.png" alt="Figure 8: SSL and EBM">
-            <div class="hotspot" data-id="split" style="left:22%; top:30%;"
+            <div class="hotspot" data-id="split" style="left:18%; top:38%;"
                  data-title="输入切分 x / y"
                  data-body="紫色是 x（观测到的部分），蓝色是 y（被预测的部分）。在视频预测中，x = 过去，y = 未来；在图像补全中，x = 已知区域，y = 缺失区域。SSL 的本质就是'用已知预测未知'。"></div>
-            <div class="hotspot" data-id="energy" style="left:50%; top:15%;"
+            <div class="hotspot" data-id="energy" style="left:38%; top:12%;"
                  data-title="能量函数 F(x, y)"
                  data-body="输出一个标量：x 和 y 兼容 → 低能量；不兼容 → 高能量。整个训练过程就是在塑造这个 F 函数的形状。"></div>
-            <div class="hotspot" data-id="landscape" style="left:80%; top:45%;"
+            <div class="hotspot" data-id="landscape" style="left:78%; top:35%;"
                  data-title="能量地形（Energy Landscape）"
                  data-body="右边这张图是二维示意：黑点是训练数据（低能量区），等高线代表能量等级。训练的目标是让数据点周围能量低、远离数据的地方能量高——就像在地形上挖出一条'山谷'。"></div>
           </div>
@@ -714,6 +723,7 @@ flowchart LR
           </div>
         </div>
         <div class="hotspot-panel"></div>
+        </div>
 
         <details class="en-quote">
           <summary>展开原文 · 为什么不用概率模型</summary>
@@ -745,16 +755,17 @@ flowchart LR
           </p>
         </div>
 
+        <div class="fig-interactive">
         <div class="fig-block">
           <div class="hotspot-wrap" data-hotspot-group="fig9">
             <img src="../assets/figures/lecun/fig-9.png" alt="Figure 9: Latent-Variable EBM">
-            <div class="hotspot" data-id="left" style="left:28%; top:35%;"
+            <div class="hotspot" data-id="left" style="left:30%; top:18%;"
                  data-title="有潜变量的 EBM (LVEBM)"
                  data-body="E_w(x, y, z)：能量函数多了一个输入 z。z 被圈起来，顶部标 min_{z∈Z}，意思是推理时在 z 的集合 Z 里找让能量最低的那个 z。"></div>
-            <div class="hotspot" data-id="right" style="left:72%; top:35%;"
+            <div class="hotspot" data-id="right" style="left:72%; top:18%;"
                  data-title="等效的无潜变量形式"
                  data-body="F_w(x, y) = min_z E_w(x, y, z)。把 z 消掉后，得到一个只依赖 x, y 的能量函数。论文把它叫 'zero-temperature free energy'（零温度自由能）。"></div>
-            <div class="hotspot" data-id="z" style="left:34%; top:60%;"
+            <div class="hotspot" data-id="z" style="left:33%; top:38%;"
                  data-title="z 是什么"
                  data-body="z 代表'从 x 推不出来，但决定了 y 的信息'。对车在岔路的例子，z ∈ {左转, 右转}（2 值离散潜变量）。对视角预测，z 可能是摄像机位移（连续潜变量）。"></div>
           </div>
@@ -767,6 +778,7 @@ flowchart LR
           </div>
         </div>
         <div class="hotspot-panel"></div>
+        </div>
 
         <!-- ════════════ §3.3 Collapse ════════════ -->
         <h3 id="wm-collapse">3.3 四种架构与坍缩问题（Fig 10）</h3>
@@ -782,19 +794,20 @@ flowchart LR
           </p>
         </div>
 
+        <div class="fig-interactive">
         <div class="fig-block">
           <div class="hotspot-wrap" data-hotspot-group="fig10">
             <img src="../assets/figures/lecun/fig-10.png" alt="Figure 10: Four standard architectures">
-            <div class="hotspot" data-id="a" style="left:12%; top:55%;"
+            <div class="hotspot" data-id="a" style="left:12%; top:47%;"
                  data-title="(a) 预测/回归 · NO COLLAPSE"
                  data-body="最朴素的 Pred(s_x) → ŷ，直接预测 y。x 经过 Enc，输出 ŷ，能量 = D(y, ŷ)。不会坍缩——因为只有真实 y 附近能量低。但缺点：只能处理'一对一'关系，不适合不确定的未来。"></div>
-            <div class="hotspot" data-id="b" style="left:37%; top:55%;"
+            <div class="hotspot" data-id="b" style="left:37%; top:47%;"
                  data-title="(b) 生成式潜变量 · CAN COLLAPSE"
                  data-body="Pred(s_x, z) → ŷ，z 吸收不确定性。会坍缩：如果 z 的信息容量太大（比如 dim(z) ≥ dim(y)），模型可以用 z 覆盖整个 y 空间，让所有 y 能量都=0。"></div>
-            <div class="hotspot" data-id="c" style="left:62%; top:55%;"
+            <div class="hotspot" data-id="c" style="left:62%; top:47%;"
                  data-title="(c) 自编码器 · CAN COLLAPSE"
                  data-body="Enc(y) → s_y → Dec(s_y) → ŷ。会坍缩：如果 s_y 容量太大，编码器可能学到恒等函数（identity），能重建任何 y，能量永远=0。"></div>
-            <div class="hotspot" data-id="d" style="left:87%; top:55%;"
+            <div class="hotspot" data-id="d" style="left:87%; top:47%;"
                  data-title="(d) 联合嵌入 · CAN COLLAPSE"
                  data-body="x 和 y 分别编码成 s_x 和 s_y，能量 = D(s_x, s_y)。会坍缩：如果两个 encoder 输出常数（s_x = s_y = constant），D=0 永远满足。这就是 JEPA 的原型，关键挑战就是防止这种坍缩。"></div>
           </div>
@@ -807,6 +820,7 @@ flowchart LR
           </div>
         </div>
         <div class="hotspot-panel"></div>
+        </div>
 
         <div class="step-walker" data-hotspot-group="fig10">
           <div class="sw-header">
@@ -854,28 +868,30 @@ flowchart LR
           </ul>
         </div>
 
+        <div class="fig-interactive">
         <div class="fig-block">
           <div class="hotspot-wrap" data-hotspot-group="fig11">
             <img src="../assets/figures/lecun/fig-11.png" alt="Figure 11: Contrastive vs Regularized">
-            <div class="hotspot" data-id="init" style="left:22%; top:45%;"
+            <div class="hotspot" data-id="init" style="left:25%; top:55%;"
                  data-title="初始能量地形"
-                 data-body="蓝点 = 训练样本。橙色区域 = 低能量区。目标是让橙色紧贴数据点、其他地方能量高。"></div>
-            <div class="hotspot" data-id="cont" style="left:75%; top:25%;"
-                 data-title="对比方法（上）"
-                 data-body="绿色点 = 主动生成的'反面教材'（contrastive samples）。训练时推高这些点的能量（绿色箭头向上），同时压低真实数据点。<strong>缺点：</strong>在高维空间里需要指数级多的反例才能覆盖所有'坏 y'。"></div>
-            <div class="hotspot" data-id="reg" style="left:75%; top:72%;"
-                 data-title="正则方法（下）"
-                 data-body="没有反例。用一个正则项直接'压缩'低能量区的体积（绿色箭头向内收紧），让它 shrink-wrap 到真数据点上。<strong>优点：</strong>不受维度灾难困扰，更适合高维 y。LeCun 押注这条路。"></div>
+                 data-body="蓝点 = 训练样本（Training samples）。橙色区域 = 低能量区（Low energy region）。目标是让橙色紧贴数据点、其他地方能量高。"></div>
+            <div class="hotspot" data-id="cont" style="left:38%; top:22%;"
+                 data-title="对比方法（左）"
+                 data-body="橙色点 = 主动生成的'反面教材'（contrastive samples）。训练时推高这些点的能量（箭头向上），同时压低真实数据点。<strong>缺点：</strong>在高维空间里需要指数级多的反例才能覆盖所有'坏 y'。"></div>
+            <div class="hotspot" data-id="reg" style="left:72%; top:30%;"
+                 data-title="正则方法（右）"
+                 data-body="没有反例。用一个正则项直接'压缩'低能量区的体积（箭头向内收紧），让它 shrink-wrap 到真数据点上。<strong>优点：</strong>不受维度灾难困扰，更适合高维 y。LeCun 押注这条路。"></div>
           </div>
           <div class="fig-cap">
             <span class="fig-num">Fig 11 · p.22</span>
             Contrastive and regularized methods for EBM training.
             <span class="fig-cn">
-              上：对比方法用反例把错的 y 能量推高；下：正则方法不用反例，直接用正则项压缩低能量区的体积。
+              左：对比方法用反例把错的 y 能量推高；右：正则方法不用反例，直接用正则项压缩低能量区的体积。
             </span>
           </div>
         </div>
         <div class="hotspot-panel"></div>
+        </div>
 
         <details class="en-quote">
           <summary>展开原文 · LeCun 为什么反对对比方法</summary>
@@ -914,22 +930,23 @@ flowchart LR
           </p>
         </div>
 
+        <div class="fig-interactive">
         <div class="fig-block">
           <div class="hotspot-wrap" data-hotspot-group="fig12">
             <img src="../assets/figures/lecun/fig-12.png" alt="Figure 12: JEPA">
-            <div class="hotspot" data-id="encx" style="left:22%; top:62%;"
+            <div class="hotspot" data-id="encx" style="left:30%; top:40%;"
                  data-title="Enc(x) · x 的编码器"
                  data-body="把观测 x 编码成抽象表示 s_x。注意论文说：'Enc_x 和 Enc_y 不需要同架构也不需要共享参数'——这让 x, y 可以是完全不同的模态（如视频 vs 音频）。"></div>
-            <div class="hotspot" data-id="ency" style="left:78%; top:62%;"
+            <div class="hotspot" data-id="ency" style="left:70%; top:40%;"
                  data-title="Enc(y) · y 的编码器"
                  data-body="把未观测部分 y 编码成 s_y。这是 JEPA 的关键：y 也被编码，而不是在原始像素空间被预测。这让 encoder 有权'忽略不可预测的细节'。"></div>
-            <div class="hotspot" data-id="pred" style="left:52%; top:22%;"
+            <div class="hotspot" data-id="pred" style="left:38%; top:8%;"
                  data-title="Pred(s_x, z) · 预测器"
                  data-body="吃 s_x 和潜变量 z，预测 ŝ_y。注意它的输出在<strong>抽象空间</strong>，不是像素空间。这是 JEPA 和生成式架构最本质的区别。"></div>
-            <div class="hotspot" data-id="z" style="left:44%; top:48%;"
+            <div class="hotspot" data-id="z" style="left:42%; top:28%;"
                  data-title="潜变量 z"
                  data-body="吸收'从 x 推不出、但决定 y 的信息'。z 在集合 Z 上变化时，Pred(s_x, Z) 给出<strong>一组可能的预测</strong>——这就是 JEPA 表达多模态未来的方式。z 的信息容量必须被限制（后面 §3.6 讲）。"></div>
-            <div class="hotspot" data-id="d" style="left:66%; top:35%;"
+            <div class="hotspot" data-id="d" style="left:65%; top:18%;"
                  data-title="D(s_y, ŝ_y) · 距离"
                  data-body="能量就是预测的 ŝ_y 和真实 s_y 在抽象空间的距离。训练目标：最小化这个距离（对 z 取 min 之后）。"></div>
           </div>
@@ -942,6 +959,7 @@ flowchart LR
           </div>
         </div>
         <div class="hotspot-panel"></div>
+        </div>
 
         <div class="step-walker" data-hotspot-group="fig12">
           <div class="sw-header">
@@ -1018,25 +1036,632 @@ flowchart LR
         </div>
 
         <!-- ═════════════════════════════════════════════════ -->
-        <h2 id="wm-todo">§3.6+ 待写</h2>
+        <h3 id="wm-noncontrastive">3.6 非对比训练：四个防坍缩准则（Fig 13）</h3>
+
         <div class="cn-read">
-          <div class="cn-label">下一轮</div>
-          <p>§3.6 非对比训练 + 4 个防坍缩准则（Fig 13）→ §3.7 VICReg 训练（Fig 14）→ §3.8 H-JEPA 分层（Fig 15）→ §3.9 分层规划（Fig 16）。</p>
+          <div class="cn-label">这一节解决什么</div>
+          <p>§3.5 把 JEPA 的架构讲完了，但没讲<strong>怎么训</strong>。对比方法在高维 y 下样本数量会指数爆炸（§3.4 的结论）。LeCun 主张 <strong>非对比正则化</strong>：不找负样本，而是给训练目标加几条"信息量约束"，直接防止编码器把所有输入压成同一个常数向量（坍缩）。Fig 13 给出四条准则。</p>
         </div>
 
-        <h2 id="critique-todo">§4 设计动机与局限</h2>
+        <div class="fig-interactive">
+          <div class="fig-block">
+            <div class="hotspot-wrap" data-hotspot-group="fig13">
+              <img src="../assets/figures/lecun/fig-13.png" alt="Figure 13: Non-contrastive training of JEPA">
+              <div class="hotspot" data-id="c1" style="left:18%; top:28%;"
+                   data-title="准则 1：-I(sₓ)"
+                   data-body="最大化 sₓ 对 x 的信息量。防止 Enc(x) 把所有 x 都映到同一个常量 sₓ。没这条，能量函数在很大范围内恒为零——坍缩。"></div>
+              <div class="hotspot" data-id="c2" style="left:82%; top:28%;"
+                   data-title="准则 2：-I(s_y)"
+                   data-body="最大化 s_y 对 y 的信息量。对称的：防止 Enc(y) 坍缩到常量。准则 1+2 合起来叫防止 informational collapse。"></div>
+              <div class="hotspot" data-id="c3" style="left:66%; top:22%;"
+                   data-title="准则 3：最小化 D(s_y, s̃_y)"
+                   data-body="就是原本 JEPA 的能量项——让 x 能预测 y 的表示。这条如果没有，预测器学不到任何关联。"></div>
+              <div class="hotspot" data-id="c4" style="left:52%; top:38%;"
+                   data-title="准则 4：R(z) 最小化 z 的信息量"
+                   data-body="潜变量 z 的信息容量必须被限制（离散化、低维、稀疏、加噪），否则预测器会直接把 z 原样拷贝到输出 s̃_y = z，让 D 恒为零——这是另一种坍缩（见 p.27 思想实验）。"></div>
+              <div class="hotspot" data-id="pred" style="left:48%; top:10%;"
+                   data-title="Pred(sₓ, z)"
+                   data-body="预测器：从 x 的表示 sₓ + 潜变量 z 产生 s̃_y，去匹配 y 的真实表示 s_y。"></div>
+            </div>
+            <div class="fig-cap">
+              <span class="fig-num">Fig 13 · p.26</span>
+              Non-contrastive training of JEPA. Criteria 1, 2, 4 collectively prevent a collapse of the energy function.
+              <span class="fig-cn">
+                四条准则合力防坍缩：(1)(2) 让两个 encoder 的表示信息量足够大；(3) 预测误差 D 要低；(4) 潜变量 z 的信息量要被限制。例子：VICReg、Barlow Twins。
+              </span>
+            </div>
+          </div>
+          <div class="hotspot-panel"></div>
+        </div>
+
+        <div class="step-walker" data-hotspot-group="fig13">
+          <div class="sw-header">
+            <div class="sw-title">🪜 四条准则为什么缺一不可</div>
+            <div class="sw-controls">
+              <button class="sw-btn prev">◀</button>
+              <span class="sw-counter">1 / 4</span>
+              <button class="sw-btn next">▶</button>
+            </div>
+          </div>
+          <div class="sw-progress">
+            <div class="sw-dot"></div><div class="sw-dot"></div><div class="sw-dot"></div><div class="sw-dot"></div>
+          </div>
+          <div class="sw-body">
+            <div class="sw-step active" data-hotspot="c1">
+              <h4>第 1 步 · 如果去掉准则 1</h4>
+              <p>Enc(x) 可以直接把任意 x 映成常数 sₓ=0。那么 Pred(0, z) 对任意输入都输出同一个值，D(s_y, s̃_y) 对某一个 y 可以变得很低——但整个能量函数变成平的，模型啥也没学到。</p>
+            </div>
+            <div class="sw-step" data-hotspot="c2">
+              <h4>第 2 步 · 如果去掉准则 2</h4>
+              <p>对称：Enc(y) 可以把所有 y 都映成常数 s_y=0，预测器只要学会输出 0 就行。同样是 informational collapse。</p>
+            </div>
+            <div class="sw-step" data-hotspot="c3">
+              <h4>第 3 步 · 准则 3 是"唯一积极"的那条</h4>
+              <p>这条不是防坍缩，它是<strong>真正让模型学东西</strong>的训练信号：逼着预测器从 sₓ 和 z 推出正确的 s_y。没它，两个 encoder 各自学各自，互不相关。</p>
+            </div>
+            <div class="sw-step" data-hotspot="c4">
+              <h4>第 4 步 · 如果 z 信息量不限制</h4>
+              <p>论文 p.27 的思想实验：假设 z 和 s_y 同维。预测器完全可以学成 Pred(sₓ, z) = z，完全忽略 sₓ。选 z = s_y 就能让 D=0——坍缩。所以 z 必须被压窄：离散、低维、稀疏、或加噪。</p>
+            </div>
+          </div>
+        </div>
+
+        <details class="en-quote">
+          <summary>展开原文 · 四条准则合力防坍缩</summary>
+          <div class="quote-body">
+            <p>"Criteria 1, 2, and 4 collectively prevent a collapse of the energy function."</p>
+            <p>"This type of collapse can be understood with the following thought experiment. Imagine that z has the same dimension as s_y. [...] For any s_y it is possible to set ẑ = s_y, which would make the energy D(s_y, s̃_y) zero. This corresponds to a totally flat and collapsed energy surface."</p>
+            <div class="quote-cite">— §4.5, p.26–27</div>
+          </div>
+        </details>
+
+        <div class="callout blue">
+          <div class="callout-label">💡 类比</div>
+          <p>想象你在教两个人 A 和 B 用暗语沟通：A 看原图，B 看裁剪过的图。(1)(2) 说"每个人的暗语必须真的反映各自看到的内容"（不能都说"收到"糊弄）；(3) 说"B 得能从 A 的暗语猜出 B 自己看到啥"；(4) 说"A 传给 B 的补丁信号 z 得尽量少——别塞太多线索，否则 B 直接抄 z 就行"。</p>
+        </div>
+
+        <div class="quiz"
+             data-correct="c"
+             data-explain="准则 4 限制 z 的信息量。论文 p.27 思想实验：如果 z 和 s_y 同维且不约束，预测器可以学 Pred(sₓ, z) = z，完全忽略 sₓ，取 z = s_y 让 D=0——另一种坍缩。所以 z 必须离散/低维/稀疏/加噪。"
+             data-explain-wrong="别的选项都只防 encoder 那一侧，防不住预测器通过 z 偷懒。">
+          <div class="q-label">🧠 理解检查</div>
+          <div class="q-text">如果只用准则 1+2+3（信息量 + 预测误差），但 z 不受限制，会发生什么？</div>
+          <div class="q-options">
+            <button class="q-opt" data-k="a">没问题，已经足够防坍缩</button>
+            <button class="q-opt" data-k="b">Encoder 会学出常数表示</button>
+            <button class="q-opt" data-k="c">预测器会直接抄 z 到输出，让 D=0——另一种坍缩</button>
+            <button class="q-opt" data-k="d">训练不收敛</button>
+          </div>
+          <div class="q-feedback"></div>
+        </div>
+
+        <!-- ═════════════════════════════════════════════════ -->
+        <h3 id="wm-vicreg">3.7 VICReg：把"最大化信息量"落成可微损失（Fig 14）</h3>
+
         <div class="cn-read">
-          <div class="cn-label">待写</div>
-          <p>论文 §5+ 的设计 rationale 和未解决问题。</p>
+          <div class="cn-label">这一节解决什么</div>
+          <p>§3.6 说了"最大化 sₓ、s_y 的信息量"，但信息量 I(·) 没法直接求导。VICReg（Bardes et al. 2021）给出一套可微的替代：<strong>先把表示映到更高维的 v</strong>，然后用两条简单损失——方差要足够大（Variance）+ 各维度之间要不相关（Covariance）——近似"信息量最大化"。第三条就是普通的预测误差（Invariance）。三个字母合起来：VIC。</p>
+        </div>
+
+        <div class="fig-interactive">
+          <div class="fig-block">
+            <div class="hotspot-wrap" data-hotspot-group="fig14">
+              <img src="../assets/figures/lecun/fig-14.png" alt="Figure 14: Training a JEPA with VICReg">
+              <div class="hotspot" data-id="expx" style="left:18%; top:42%;"
+                   data-title="Expander Exp(sₓ) → vₓ"
+                   data-body="把表示 sₓ 映射到更高维的 vₓ（"Expander"是几层 MLP）。为啥要升维？在高维空间里谈"方差"和"协方差"更有意义，直接在 sₓ 上算会受表示维度束缚。"></div>
+              <div class="hotspot" data-id="covx" style="left:15%; top:15%;"
+                   data-title="Cov(vₓ) → I"
+                   data-body="协方差损失：推动 vₓ 的协方差矩阵朝单位阵靠。对角线 = 每维方差（≥阈值）；非对角线 = 维度间协方差（→0，即各维去相关）。"></div>
+              <div class="hotspot" data-id="expy" style="left:82%; top:42%;"
+                   data-title="Expander Exp(s_y) → v_y"
+                   data-body="对称操作：s_y 也升维到 v_y。注意 x 侧和 y 侧用同样的两条损失（V + C）独立施加。"></div>
+              <div class="hotspot" data-id="covy" style="left:85%; top:15%;"
+                   data-title="Cov(v_y) → I"
+                   data-body="同上，作用在 y 侧。"></div>
+              <div class="hotspot" data-id="inv" style="left:66%; top:30%;"
+                   data-title="||s_y - s̃_y||²"
+                   data-body="Invariance（不变性）项：普通的 MSE 预测误差，等价于 §3.6 的准则 3。最简单的 VICReg 甚至让预测器就是恒等函数——x 和 y 是同一个图片的两种扰动，模型被迫学出对扰动不变的表示。"></div>
+              <div class="hotspot" data-id="rz" style="left:50%; top:38%;"
+                   data-title="R(z)"
+                   data-body="准则 4 的 z 信息量限制。基础版 VICReg 一般不用 z（预测器恒等即可）；复杂版才引入 z。"></div>
+            </div>
+            <div class="fig-cap">
+              <span class="fig-num">Fig 14 · p.28</span>
+              Training a JEPA with VICReg. VICReg can be seen as a <em>dimension-contrastive</em> method as opposed to sample-contrastive methods.
+              <span class="fig-cn">
+                VICReg 把 §3.6 的准则 1+2（最大化信息量）落实成：方差（每维别退化成常数）+ 协方差（各维别冗余）两条可微正则。它是"维度之间做对比"而不是"样本之间做对比"。
+              </span>
+            </div>
+          </div>
+          <div class="hotspot-panel"></div>
+        </div>
+
+        <div class="callout">
+          <div class="callout-label">VIC 三个字母</div>
+          <ul>
+            <li><strong>V · Variance</strong>：每维 v 的标准差 ≥ 一个阈值（hinge loss）。防止某维退化成常数。</li>
+            <li><strong>I · Invariance</strong>：‖s_y − s̃_y‖²。x、y 通常是同一图的两种扰动，这一项逼表示对扰动不变。</li>
+            <li><strong>C · Covariance</strong>：v 的非对角协方差压到 0。防止多维冗余（n 维表示只编码了 1 个方向的信息）。</li>
+          </ul>
+        </div>
+
+        <details class="en-quote">
+          <summary>展开原文 · dimension-contrastive vs sample-contrastive</summary>
+          <div class="quote-body">
+            <p>"While contrastive methods ensure that representations of different inputs in a batch are different, VICReg ensures that different components of representations over a batch are different. VICReg is contrastive over components, while traditional contrastive methods are contrastive over vectors, which requires a large number of contrastive samples."</p>
+            <div class="quote-cite">— §4.5.1, p.29</div>
+          </div>
+        </details>
+
+        <div class="callout amber">
+          <div class="callout-label">⚠️ 实现细节</div>
+          <p>Expander 必须<strong>升维</strong>而非降维。直觉：你要约束"信息量足够大"，得在一个足够宽的空间里谈；在窄表示上算协方差，本身就被维度卡死了。论文 §4.5.1 强调 Expander 是 trainable（和主网络一起学），不是固定的。</p>
+        </div>
+
+        <div class="quiz"
+             data-correct="b"
+             data-explain="VICReg 是维度间对比（dimension-contrastive）：它不找负样本，而是要求一个 batch 里表示的各维度彼此不相关。这等价于把"高信息量"近似成"协方差 → 单位阵"。所以只需要一个 batch 的正样本对，就能避开高维负样本爆炸问题。"
+             data-explain-wrong="InfoNCE 等样本级对比要大量负样本，VICReg 正是为了绕开这个限制。">
+          <div class="q-label">🧠 理解检查</div>
+          <div class="q-text">VICReg 相对 InfoNCE 等样本级对比方法的最大优势是什么？</div>
+          <div class="q-options">
+            <button class="q-opt" data-k="a">模型参数更少</button>
+            <button class="q-opt" data-k="b">不需要负样本——用维度间去相关代替样本间对比，避开高维负样本爆炸</button>
+            <button class="q-opt" data-k="c">可以处理离散输入</button>
+            <button class="q-opt" data-k="d">收敛速度是 InfoNCE 的 10 倍</button>
+          </div>
+          <div class="q-feedback"></div>
+        </div>
+
+        <!-- ═════════════════════════════════════════════════ -->
+        <h3 id="wm-hjepa">3.8 H-JEPA：把 JEPA 堆起来学多尺度抽象（Fig 15）</h3>
+
+        <div class="cn-read">
+          <div class="cn-label">这一节解决什么</div>
+          <p>单个 JEPA 只能在一个抽象层次上做预测。但真实世界需要<strong>多尺度</strong>：短期看得清（毫秒级肌肉控制），长期看不清但要能大致规划（几小时后到达目的地）。LeCun 的主张：把 JEPA 堆叠，下层 JEPA-1 做短期细节预测，上层 JEPA-2 吃 JEPA-1 的表示做长期粗粒度预测——就是 <strong>H-JEPA</strong>（Hierarchical JEPA）。</p>
+        </div>
+
+        <div class="fig-interactive">
+          <div class="fig-block">
+            <div class="hotspot-wrap" data-hotspot-group="fig15">
+              <img src="../assets/figures/lecun/fig-15.png" alt="Figure 15: Hierarchical JEPA (H-JEPA)">
+              <div class="hotspot" data-id="j1" style="left:50%; top:72%;"
+                   data-title="JEPA-1（底层，短期 + 细节）"
+                   data-body="低层 JEPA，直接从原始输入 x₀/x₁/x₂ 用 Enc1 编码出 s1[0]/s1[1]/s1[2]。Pred1 从 s1[0] + z1 预测 s1[1]。适合短时间窗 + 细节丰富的预测。"></div>
+              <div class="hotspot" data-id="j2" style="left:50%; top:22%;"
+                   data-title="JEPA-2（高层，长期 + 抽象）"
+                   data-body="高层 JEPA，<strong>输入是 JEPA-1 的编码</strong>（s2[0] = Enc2(s1[0])），而不是原始 x。Pred2 从 s2[0] + z2 预测 s2[2]。抽象程度更高，时间跨度更长。"></div>
+              <div class="hotspot" data-id="skip" style="left:28%; top:48%;"
+                   data-title="时间跨度跳跃"
+                   data-body="注意上下层的时间步不对齐：JEPA-1 处理连续步 x₀→x₁→x₂，JEPA-2 只看 x₀ 和 x₂（中间跳过 x₁）。因为高层抽象允许更粗的时间颗粒。"></div>
+              <div class="hotspot" data-id="z1" style="left:42%; top:68%;"
+                   data-title="z1 / R1：底层潜变量"
+                   data-body="底层 z1 编码「x₀→x₁ 这一步无法从 x₀ 推出的信息」（细节级不确定性，比如车稍微偏左还是偏右）。"></div>
+              <div class="hotspot" data-id="z2" style="left:50%; top:18%;"
+                   data-title="z2 / R2：高层潜变量"
+                   data-body="高层 z2 编码更抽象的分叉（比如「是否要左转」这种离散选择）。高层 z 信息量通常比低层更少——因为抽象表示本来就忽略了细节。"></div>
+              <div class="hotspot" data-id="split" style="left:55%; top:42%;"
+                   data-title="虚线分界"
+                   data-body="两层可以独立训练（level-wise），也可以联合训练（globally），都用非对比方法。Enc2 只需要在 s1 空间里学，不再碰原始像素。"></div>
+            </div>
+            <div class="fig-cap">
+              <span class="fig-num">Fig 15 · p.30</span>
+              Hierarchical JEPA (H-JEPA). JEPA-1 extracts low-level representations and performs short-term predictions. JEPA-2 takes the representations extracted by JEPA-1 as inputs and extracts higher-level representations with which longer-term predictions can be performed.
+              <span class="fig-cn">
+                高层 JEPA 的输入不是原始像素，而是低层 JEPA 的表示——抽象被自动压缩，长时间窗预测才变得可行。
+              </span>
+            </div>
+          </div>
+          <div class="hotspot-panel"></div>
+        </div>
+
+        <details class="en-quote">
+          <summary>展开原文 · 为什么抽象表示能做长期预测</summary>
+          <div class="quote-body">
+            <p>"More abstract representations ignore details of the inputs that are difficult to predict in the long term, enabling them to perform longer-term predictions with coarser descriptions of the world state."</p>
+            <p>"A JEPA will learn abstract representations that make the world predictable. Unpredictable details will be eliminated by the invariance properties of the encoder, or will be pushed into the predictor's latent variable."</p>
+            <div class="quote-cite">— §4.6, p.30</div>
+          </div>
+        </details>
+
+        <div class="callout blue">
+          <div class="callout-label">💡 类比 · 开车去上班</div>
+          <p>底层 JEPA-1：毫秒级方向盘角度、油门力度。高层 JEPA-2："出门→到地铁站→换乘→到公司"这一串路径点。你没法在毫秒层做一小时的预测（路上行人、红绿灯都没法预估），但在路径层面可以相当精确。关键是：<strong>高层之所以能长期预测，是因为它主动丢弃了短期的不可预测细节</strong>。</p>
+        </div>
+
+        <div class="callout red">
+          <div class="callout-label">🗡 对生成式架构的再一次打击</div>
+          <p>生成式潜变量架构（Fig 10b/c）没法消除无关细节——它们必须重建原始 y，所有像素都得解释。这就是为什么 LeCun 强烈反对用生成式架构做世界模型：<em>"generative latent-variable models are not capable of eliminating irrelevant details, other than by pushing them into a latent variable."</em>（§4.6, p.30）</p>
+        </div>
+
+        <div class="quiz"
+             data-correct="c"
+             data-explain="H-JEPA 的关键设计是：JEPA-2 的输入不是原始 x，而是 JEPA-1 已经编码抽象过的 s1。这让高层不必碰像素级细节，只在更抽象的空间里做预测，所以才能覆盖更长的时间窗。"
+             data-explain-wrong="用更大模型、更多 z、更高 D 只是扩容，不改变"抽象层次"这件事。">
+          <div class="q-label">🧠 理解检查</div>
+          <div class="q-text">H-JEPA 为什么能做比 JEPA 更长期的预测？</div>
+          <div class="q-options">
+            <button class="q-opt" data-k="a">高层 JEPA-2 用了更大的神经网络</button>
+            <button class="q-opt" data-k="b">高层潜变量 z2 的维度比 z1 更高，装得下更多信息</button>
+            <button class="q-opt" data-k="c">高层以底层表示为输入，自动丢弃像素级细节，因此能用更粗的时间颗粒</button>
+            <button class="q-opt" data-k="d">高层使用了更大的预测误差阈值</button>
+          </div>
+          <div class="q-feedback"></div>
+        </div>
+
+        <!-- ═════════════════════════════════════════════════ -->
+        <h3 id="wm-hplan">3.9 H-JEPA 做分层规划：Mode-2 推理的可扩展版（Fig 16）</h3>
+
+        <div class="cn-read">
+          <div class="cn-label">这一节解决什么</div>
+          <p>§2.3 讲过 Mode-2 推理是"在世界模型里 rollout 动作序列 + 最小化 cost"。但如果世界模型和动作序列都只在底层毫秒尺度展开，"想半天后的事"就要展开几万步——算不动。H-JEPA 提供了天然解法：<strong>高层先规划几个抽象动作，每个抽象动作作为子目标喂给底层细化</strong>——古典 HRL（分层强化学习）的思路，但分层结构是<strong>学出来的</strong>而不是人工定义的。</p>
+        </div>
+
+        <div class="fig-interactive">
+          <div class="fig-block">
+            <div class="hotspot-wrap" data-hotspot-group="fig16">
+              <img src="../assets/figures/lecun/fig-16.png" alt="Figure 16: Hierarchical JEPA for Mode-2 hierarchical planning">
+              <div class="hotspot" data-id="topcost" style="left:92%; top:10%;"
+                   data-title="高层目标 C(s2[4])"
+                   data-body="整个任务的最终代价，定义在高层抽象状态上（例如”30 分钟后我人在办公室“）。规划从这里反向推导。"></div>
+              <div class="hotspot" data-id="actor2" style="left:50%; top:30%;"
+                   data-title="Actor2：高层动作序列 a2[2], a2[4]"
+                   data-body="高层 Actor 推出 2 个抽象「动作」（其实是高层子目标，比如「到达地铁站」→「到办公室」）。由 Pred2 用 H-JEPA 的高层在 s2 空间里 rollout。"></div>
+              <div class="hotspot" data-id="subcost" style="left:48%; top:48%;"
+                   data-title="子目标代价 C(s[2]) / C(s[4])"
+                   data-body="关键 trick：高层的“动作“ a2[2] 并不是真动作，而是下层状态要满足的条件。cost 模块 C(s[k]) 衡量低层状态 s[k] 在多大程度上满足高层子目标 a2[k]。"></div>
+              <div class="hotspot" data-id="actor1" style="left:45%; top:72%;"
+                   data-title="Actor1：低层动作序列 a[0]..a[3]"
+                   data-body="低层 Actor 输出真实可执行动作（方向盘/油门/脚步）。目标函数是子目标代价 C(s[2]) + C(s[4]) 之和——不是最终任务代价。"></div>
+              <div class="hotspot" data-id="pred1" style="left:55%; top:58%;"
+                   data-title="Pred1 链：低层短期 rollout"
+                   data-body="Pred1(s,a) 在底层 JEPA-1 的表示空间逐步 rollout：s[0]→s[1]→s[2]→s[3]→s[4]。时间颗粒更细、步数更多。"></div>
+              <div class="hotspot" data-id="pred2" style="left:30%; top:22%;"
+                   data-title="Pred2 链：高层长期 rollout"
+                   data-body="Pred2(s,a) 在高层 s2 空间 rollout：s2[0]→s2[2]→s2[4]。步数少但跨越时间长。注意索引跳着走（s2[2]、s2[4]），因为每一高层步对应多个低层步。"></div>
+              <div class="hotspot" data-id="encs" style="left:18%; top:40%;"
+                   data-title="Enc1(x) → s[0], Enc2(s[0]) → s2[0]"
+                   data-body="起点：观测 x 经 Enc1 得到低层初始状态 s[0]；再经 Enc2 得到高层初始状态 s2[0]。从这里开始双层 rollout。"></div>
+            </div>
+            <div class="fig-cap">
+              <span class="fig-num">Fig 16 · p.32</span>
+              Hierarchical JEPA for Mode-2 hierarchical planning. High-level abstract actions are inferred to minimize the top-level cost; these serve as subgoals for the lower level, which finds an action sequence minimizing the subgoal costs.
+              <span class="fig-cn">
+                两层规划：先在高层求一串抽象动作让 C(s2[4]) 最小；这串抽象动作当成<strong>子目标</strong>下发给低层；低层再求真实动作序列让子目标代价最小。
+              </span>
+            </div>
+          </div>
+          <div class="hotspot-panel"></div>
+        </div>
+
+        <div class="step-walker" data-hotspot-group="fig16">
+          <div class="sw-header">
+            <div class="sw-title">🪜 一次完整的分层规划</div>
+            <div class="sw-controls">
+              <button class="sw-btn prev">◀</button>
+              <span class="sw-counter">1 / 5</span>
+              <button class="sw-btn next">▶</button>
+            </div>
+          </div>
+          <div class="sw-progress">
+            <div class="sw-dot"></div><div class="sw-dot"></div><div class="sw-dot"></div><div class="sw-dot"></div><div class="sw-dot"></div>
+          </div>
+          <div class="sw-body">
+            <div class="sw-step active" data-hotspot="encs">
+              <h4>第 1 步 · 感知双编码</h4>
+              <p>观测 x 进来，先 Enc1 编成低层状态 s[0]，再 Enc2 抽象成高层状态 s2[0]。两个起点备好。</p>
+            </div>
+            <div class="sw-step" data-hotspot="topcost">
+              <h4>第 2 步 · 定义高层目标</h4>
+              <p>最终代价 C(s2[4]) 写下来，比如"30 分钟后到公司"对应的高层状态特征。</p>
+            </div>
+            <div class="sw-step" data-hotspot="actor2">
+              <h4>第 3 步 · 高层规划</h4>
+              <p>Actor2 提出一串抽象动作 a2[2], a2[4]（例如"到地铁站"→"到公司"），Pred2 在高层空间 rollout 出 s2[2], s2[4]。调整 a2 直到 C(s2[4]) 最小。</p>
+            </div>
+            <div class="sw-step" data-hotspot="subcost">
+              <h4>第 4 步 · 子目标下发</h4>
+              <p>高层动作 a2[k] <em>不是</em>真动作，它是给下层的<strong>条件</strong>：下层状态 s[k] 必须满足这个条件，cost 模块 C(s[k]) 度量满足程度。</p>
+            </div>
+            <div class="sw-step" data-hotspot="actor1">
+              <h4>第 5 步 · 低层细化</h4>
+              <p>Actor1 在低层动作空间求一串具体动作 a[0]..a[3]，Pred1 逐步 rollout s[1]..s[4]。目标是让 C(s[2]) + C(s[4]) 之和最小。找到后只<strong>执行 a[0]</strong>，环境更新，回第 1 步（MPC 式滚动优化）。</p>
+            </div>
+          </div>
+        </div>
+
+        <details class="en-quote">
+          <summary>展开原文 · "动作"是对下层的条件</summary>
+          <div class="quote-body">
+            <p>"These high-level 'actions' are not real actions but targets for the lower level predicted states. One can think of them as conditions that the lower-level state must satisfy in order for the high-level predictions to be accurate."</p>
+            <p>"The idea that an action is merely a condition to be satisfied by the level below is actually an old one in control theory. For example, a classical proportional servomechanism can be seen as being given a target state."</p>
+            <div class="quote-cite">— §4.7, p.32</div>
+          </div>
+        </details>
+
+        <div class="callout amber">
+          <div class="callout-label">⚠️ 这只画了 2 层 + top-down 顺序</div>
+          <p>论文明确说："process described here is sequential top-down, but a better approach would be to perform a joint optimization of the actions in all the layers."（§4.7, p.32）也就是说，生产级系统应该让高层和低层<strong>联合优化</strong>，而不是先规划高层再把子目标往下丢。层数也可以更多（3 层、4 层、更多）。</p>
+        </div>
+
+        <div class="callout purple">
+          <div class="callout-label">🔗 和 VLA / Embodied AI 的联系</div>
+          <p>π₀ 等 VLA 模型目前基本只做 <strong>单层</strong>、从 vision+language 直接到 low-level action chunk（~50Hz 控制）。"高层任务规划"一般外挂给 VLM（例如 SayCan 用 LLM 产 subgoal 字符串）。H-JEPA 的愿景是<strong>整条分层都是学出来的、连续表示、可联合优化</strong>——subgoal 不是文本，而是高层状态空间里的条件。这条路离落地还远（§3 里全是"能这么设计"，没有像 π₀ 那样的大规模实验），但方向上明显比"LLM+低层策略"更一体化。</p>
+        </div>
+
+        <div class="quiz"
+             data-correct="b"
+             data-explain="这是 §4.7 p.32 的核心声明：高层“动作” a2[k] 不是真动作，而是给低层的状态目标。低层自己再求真实动作序列去满足这个目标。所以分层规划本质上是一串嵌套子目标。"
+             data-explain-wrong="高层动作不会直接作用到环境，也不是强化学习的 reward 或控制信号。">
+          <div class="q-label">🧠 理解检查</div>
+          <div class="q-text">Fig 16 中，高层 Actor2 输出的"动作" a2[k] 到底是什么？</div>
+          <div class="q-options">
+            <button class="q-opt" data-k="a">直接发给环境执行的真实动作</button>
+            <button class="q-opt" data-k="b">给低层的子目标——低层状态 s[k] 必须满足的条件</button>
+            <button class="q-opt" data-k="c">强化学习里的 reward 信号</button>
+            <button class="q-opt" data-k="d">低层 Actor 网络的参数</button>
+          </div>
+          <div class="q-feedback"></div>
+        </div>
+
+        <!-- ═════════════════════════════════════════════════════════ -->
+        <!-- §4 设计动机与局限 -->
+        <!-- ═════════════════════════════════════════════════════════ -->
+
+        <h2 id="crit-intro">§4 设计动机与局限</h2>
+
+        <div class="cn-read">
+          <div class="cn-label">这一章解决什么</div>
+          <p>前三章讲的是"LeCun 想要什么"。这一章讲"为什么是这些、哪些没想清楚、和当下的 LLM/RL/VLA 路线怎么对话"。素材主要来自论文 §4.8、§5、§6、§7、§8——其中 §8 是最诚实的部分：LeCun 自己列了一串"我也不知道怎么办"的问题。</p>
+        </div>
+
+        <!-- ───────────────────────────────────────── -->
+        <h3 id="crit-uncertainty">4.1 不确定性怎么进入规划：Fig 17</h3>
+
+        <div class="cn-read">
+          <div class="cn-label">这一节解决什么</div>
+          <p>真实环境不可能被完全预测（§4.8 列了 5 类不确定性：内在随机、混沌、部分可观、感知不全、世界模型能力有限）。Fig 17 就是把 Fig 16 的分层规划再升级：每一层的 Pred 都可以吃一个<strong>潜变量 z</strong>，每次采样不同的 z 就得到一条不同的预测轨迹；规划变成在<strong>多条可能未来</strong>里找鲁棒动作。</p>
+        </div>
+
+        <div class="fig-interactive">
+          <div class="fig-block">
+            <div class="hotspot-wrap" data-hotspot-group="fig17">
+              <img src="../assets/figures/lecun/fig-17.png" alt="Figure 17: Hierarchical planning under uncertainty">
+              <div class="hotspot" data-id="z1" style="left:30%; top:80%;"
+                   data-title="底层潜变量 z1[0], z1[1]"
+                   data-body="底层 Pred1 每步都吃一个 z1。z1 编码这一步里「从过去推不出来」的信息（比如对手突然变向、行人从盲区冒出）。每次采样不同 z1 得到不同的 s[t+1]。"></div>
+              <div class="hotspot" data-id="z2" style="left:55%; top:30%;"
+                   data-title="高层潜变量 z2[2], z2[4]"
+                   data-body="高层 Pred2 也有 z2。高层 z 通常更抽象、信息量更低（比如「这条路要不要绕行」这种离散分叉）。"></div>
+              <div class="hotspot" data-id="R" style="left:38%; top:30%;"
+                   data-title="Regularizer R1, R2"
+                   data-body="潜变量的正则器给出一个"先验分布"。规划时，agent 从 exp(-R(z)) 这个 Gibbs 分布里采样 z。不同 z 样本 → 不同轨迹。"></div>
+              <div class="hotspot" data-id="branch" style="left:78%; top:65%;"
+                   data-title="分支（淡色部分）"
+                   data-body="淡色的 Pred1/a[2]/a[3] 是"另一条可能轨迹"——不同的 z 采样走向不同分支。规划需要在多条轨迹上求期望 cost（或期望+方差，见下文）。"></div>
+              <div class="hotspot" data-id="growth" style="left:50%; top:60%;"
+                   data-title="组合爆炸"
+                   data-body="每层每步 z 有 k 种可能，t 步就是 k^t 条轨迹。论文明说"directed search and pruning strategies must be employed"——MCTS 式剪枝搜索是未来方向。"></div>
+              <div class="hotspot" data-id="risk" style="left:92%; top:10%;"
+                   data-title="C(s2[4])：期望 + 方差"
+                   data-body="多条轨迹下的最优动作不是简单最小化期望 cost，还可以加上方差项——"既低又稳"。对应 risk-averse planning。"></div>
+            </div>
+            <div class="fig-cap">
+              <span class="fig-num">Fig 17 · p.33</span>
+              Hierarchical JEPA for Mode-2 hierarchical planning in an uncertain environment.
+              <span class="fig-cn">
+                和 Fig 16 同结构，但每层 Pred 都显式吃一个潜变量 z；规划时对 z 采样得到多条可能未来，在它们上面求鲁棒动作。
+              </span>
+            </div>
+          </div>
+          <div class="hotspot-panel"></div>
+        </div>
+
+        <details class="en-quote">
+          <summary>展开原文 · 不确定性 ≠ 随机性</summary>
+          <div class="quote-body">
+            <p>"In the present work, we push the possible stochasticity of a predicted variable into a latent variable, which may be optimized, predicted, or sampled. This is what is often referred to in the ML literature as 'the reparameterization trick'. We do not need to use this trick here, since we view the latent-variable parameterization of the predictions as fundamental."</p>
+            <div class="quote-cite">— §4.8, p.34</div>
+          </div>
+        </details>
+
+        <div class="callout">
+          <div class="callout-label">🎯 5 种不确定性（§4.8 p.32–33）</div>
+          <ol>
+            <li><strong>Aleatoric 1</strong>：世界本身随机（量子、掷骰子）</li>
+            <li><strong>Aleatoric 2</strong>：确定性但混沌，感知精度跟不上（天气）</li>
+            <li><strong>Aleatoric 3</strong>：确定性但部分可观测（墙后面有没有人）</li>
+            <li><strong>Epistemic 1</strong>：传感器不全（摄像头看不到背后）</li>
+            <li><strong>Epistemic 2+3+4</strong>：感知表示不够、世界模型能力有限、训练数据不够</li>
+          </ol>
+          <p style="margin-top:8px;">所有这些都<strong>统一塞进 z</strong>——比 RL 传统的"随机策略+值函数"路线更通用。</p>
+        </div>
+
+        <!-- ───────────────────────────────────────── -->
+        <h3 id="crit-actor">4.2 Actor 的三重角色 + 动作就是潜变量</h3>
+
+        <div class="cn-read">
+          <div class="cn-label">这一节解决什么</div>
+          <p>§2.3 讲过 Actor 在 Mode-2 下做 rollout 搜索。§5 把 Actor 明确分成三种职责，并抛出一个核心观点：<strong>动作和潜变量没有本质区别</strong>，都是"未定但影响未来"的变量，只是动作最后会被真的执行，潜变量不会。</p>
+        </div>
+
+        <div class="callout blue">
+          <div class="callout-label">💡 Actor 的三重角色（§5, p.37）</div>
+          <ul>
+            <li><strong>推理时</strong>：在世界模型里做梯度（或 MCTS）搜索最优动作序列——典型 Mode-2</li>
+            <li><strong>采样潜变量</strong>：在高维多模态未来里系统性穷举 z 的可能取值</li>
+            <li><strong>蒸馏</strong>：把反复搜出来的 Mode-2 解训练成一个 Mode-1 策略网络（§2.4 学新技能）</li>
+          </ul>
+        </div>
+
+        <details class="en-quote">
+          <summary>展开原文 · 动作 = 潜变量</summary>
+          <div class="quote-body">
+            <p>"There is no conceptual difference between an action and a latent variable. The configurations of both sets of variables must be explored by the actor."</p>
+            <p>"For action variables, configurations must be explored to produce an optimal one that minimizes the cost. In adversarial scenarios (such as games), the latent configurations must be explored that <em>maximize</em> the cost. In effect, the actor plays the role of an optimizer and explorer."</p>
+            <div class="quote-cite">— §5, p.37</div>
+          </div>
+        </details>
+
+        <div class="callout amber">
+          <div class="callout-label">⚠️ 实务含义</div>
+          <p>这套三重角色意味着 actor 网络<strong>不是一个策略 π(a|s)</strong>，而更像"可微优化器 + 采样器 + 蒸馏管线"。当代 VLA（π₀ 等）只做了第三步——把专家示范蒸馏成策略网络；前两步目前普遍缺失，或被外挂给 LLM（SayCan 式）。这是 LeCun 蓝图和现实落地之间最大的距离之一。</p>
+        </div>
+
+        <!-- ───────────────────────────────────────── -->
+        <h3 id="crit-configurator">4.3 Configurator：论文自己说"最神秘"的模块</h3>
+
+        <div class="cn-read">
+          <div class="cn-label">这一节解决什么</div>
+          <p>前面 §2.1 介绍过 Configurator 是"任务调度器"——根据任务修改其它模块的参数/连接。§6 和 §8.1 把它翻出来再讲一遍，而且 LeCun 坦承：<strong>这是整个架构里最没想清楚的模块</strong>。尤其是"把复杂任务自动分解成子目标序列"这一步——完全没有方案。</p>
+        </div>
+
+        <div class="callout">
+          <div class="callout-label">🔧 Configurator 的三件事（§6）</div>
+          <ul>
+            <li>调制 <strong>Perception</strong>：任务切换时引导注意力（找钥匙 vs 找插座）</li>
+            <li>调制 <strong>World Model / Predictor</strong>：底层视觉预测用 gating 路由，高层对象推理用 Transformer 注入 extra tokens</li>
+            <li>调制 <strong>Cost</strong>：设置子目标（可训练 critic 这部分更灵活；immutable 的 intrinsic cost 不能太动，否则破坏 safety guardrails）</li>
+          </ul>
+        </div>
+
+        <details class="en-quote">
+          <summary>展开原文 · LeCun 自己承认不知道</summary>
+          <div class="quote-body">
+            <p>"One question that is left unanswered is how the configurator can learn to decompose a complex task into a sequence of subgoals that can individually be accomplished by the agent. I shall leave this question open for future investigation."</p>
+            <p>"Of all the least understood aspects of the current proposal, the configurator module is the most mysterious."</p>
+            <div class="quote-cite">— §6, p.38 & §8.1, p.44</div>
+          </div>
+        </details>
+
+        <div class="callout purple">
+          <div class="callout-label">🔗 VLA 现状映射</div>
+          <p>今天 VLA / Embodied 堆栈里，Configurator 的活儿实际上被<strong>大型 VLM/LLM</strong> 扛着：SayCan、RT-2、π₀ 的语言指令头、Figure AI 的 Helix——都是用一个大语言模型输出子目标字符串或调用脚本。LeCun 想要的是"一个统一、可微、学出来的 configurator"，但目前大家实用做法是"挂一个 LLM 上去"。两条路线的赌注不同。</p>
+        </div>
+
+        <!-- ───────────────────────────────────────── -->
+        <h3 id="crit-debates">4.4 三个辩论：Scaling、Reward、Symbols</h3>
+
+        <div class="cn-read">
+          <div class="cn-label">这一节解决什么</div>
+          <p>§8.3 是论文里火药味最浓的一节。LeCun 对当时（2022）AI 圈三大主流主张逐一回应：<em>"Scaling is all you need"、"Reward is enough"（Silver 2021）、"We need symbols"（Marcus & Davis 2019）</em>。他的立场基本是：<strong>三者都不够，都不对，都漏了"世界模型"这一块</strong>。</p>
+        </div>
+
+        <div class="tab-switcher">
+          <div class="tabs">
+            <button class="tab active" data-tab="scaling">Scaling 不够</button>
+            <button class="tab" data-tab="reward">Reward 不够</button>
+            <button class="tab" data-tab="symbols">不需要硬写符号</button>
+          </div>
+
+          <div class="panel active" data-panel="scaling">
+            <p><strong>LeCun 的核心反对</strong>（§8.3.1, p.45）：现有 LLM 只在"离散 token + 生成式"这种狭窄组合下 work：</p>
+            <ul>
+              <li>所有模态都得 tokenize（视频、触觉、本体感觉怎么 tokenize？）</li>
+              <li>LLM 式 masked 自监督本质上是"特殊形式的带 denoising auto-encoder 的对比方法"——对高维连续信号受<strong>维度诅咒</strong>制约</li>
+              <li>表示不确定性只能靠"每个 token 输出一个概率向量"——离散词典 OK，连续视频做不了</li>
+              <li>没有抽象潜变量 → 不能探索多种解释 → 无法真推理</li>
+            </ul>
+            <p>结论："scaling LLMs" 不是通往 AGI 的完整路径——只是沿着一条注定撞墙的路加速。</p>
+          </div>
+
+          <div class="panel" data-panel="reward">
+            <p><strong>LeCun 对 Silver et al. 2021 "Reward Is Enough" 的回应</strong>（§8.3.2, p.46）：</p>
+            <ul>
+              <li>模型无关 RL 极度样本低效——人和动物学东西比纯 RL 快几个数量级</li>
+              <li>标量 reward 信号太稀疏，喂不出世界模型</li>
+              <li>model-based RL 才有可能——但"如何训练世界模型"本身就不再是 RL 问题，是 SSL 问题</li>
+              <li>所以一个 autonomous agent 里，<strong>reward 只占极小份额</strong>；绝大多数参数是靠 SSL（预测世界）学的</li>
+            </ul>
+            <p>金句：<em>"reward is clearly not enough: most of the parameters in the systems are trained to predict large amounts of observations in the world."</em></p>
+          </div>
+
+          <div class="panel" data-panel="symbols">
+            <p><strong>LeCun 对 "需要硬写符号机制"（Marcus & Davis 2019）的回应</strong>（§8.3.3, p.47）：</p>
+            <ul>
+              <li>在这套架构里，推理 = "actor 在连续空间里搜动作+潜变量去最小化能量"，不需要离散符号</li>
+              <li>但他承认：有时候抽象选择<strong>确实是离散的</strong>（"左转 vs 右转"），此时 actor 不得不用 gradient-free 搜索（MCTS、DP）</li>
+              <li>解法不是引入符号，而是<strong>学出好的层级表示让离散问题变成近乎连续</strong>——H-JEPA 的又一个卖点</li>
+              <li>诚实承认："a remain question is whether the type of reasoning proposed here can encompass all forms of reasoning that humans and animals are capable of."</li>
+            </ul>
+          </div>
+        </div>
+
+        <!-- ───────────────────────────────────────── -->
+        <h3 id="crit-open">4.5 论文自己列的未解决问题 + 与 VLA 现状对照</h3>
+
+        <div class="cn-read">
+          <div class="cn-label">这一节解决什么</div>
+          <p>§8.1 "What is missing" 是一份很实在的 TODO 清单。我把它和 2024-2026 年 VLA 方向的真实进展对齐——哪些被推进了、哪些还是黑洞。</p>
+        </div>
+
+        <table class="kv-table">
+          <thead>
+            <tr><td style="width:40%;"><strong>论文列出的 open question</strong></td><td><strong>现状（2024-2026）</strong></td></tr>
+          </thead>
+          <tr>
+            <td>H-JEPA 能不能从视频真的学出概念层级？</td>
+            <td>I-JEPA (2023)、V-JEPA (2024)、V-JEPA 2 (2025) 在视觉/视频上有初步结果，但还远不是"学出抽象对象概念"；仍在刷 linear probe 级别的 benchmark。</td>
+          </tr>
+          <tr>
+            <td>Latent variable z 怎么正则化？离散/低维/稀疏/随机？</td>
+            <td>目前 VICReg 式方案主导，没有 z；需要 z 的场景（多模态未来预测）尚未工业级应用。</td>
+          </tr>
+          <tr>
+            <td>离散 action 空间下 Actor 怎么搜索？</td>
+            <td>大部分现实系统绕开了——要么连续动作（VLA 机器人）+ flow-matching 采样，要么外挂 LLM 出离散 plan。</td>
+          </tr>
+          <tr>
+            <td>Configurator 怎么学出子目标分解？</td>
+            <td>✗ 基本没进展（LeCun 自己都承认）。现实里全是 LLM 扛着。</td>
+          </tr>
+          <tr>
+            <td>Perception 里的 gating/routing 怎么设计？</td>
+            <td>被 Transformer 的全 attention 架构"暴力解"了——现代 VLA 不做显式路由，而是堆参数。</td>
+          </tr>
+          <tr>
+            <td>World Model 做 key-value memory（§4.9）</td>
+            <td>✗ 很少有人走这条。主流用 context window（长上下文）+ recurrent state 代替显式 memory。</td>
+          </tr>
+          <tr>
+            <td>Data stream：active agency 与 egomotion 怎么平衡？</td>
+            <td>◎ Ego4D、OXE 等数据集是 passive observation 路线；真实 active exploration 仍稀缺。</td>
+          </tr>
+        </table>
+
+        <div class="callout red">
+          <div class="callout-label">🗡 这篇论文的主要局限</div>
+          <ul>
+            <li><strong>零实验</strong>。整篇 position paper 没跑任何东西。所有断言都是"如果你按这个架构做，<em>应该</em>能 work"。</li>
+            <li><strong>H-JEPA / JEPA 只是框架，不是配方</strong>。真要训一个，encoder/predictor 的具体选型、batch 大小、损失权重全是空的。</li>
+            <li><strong>Configurator 是整个架构的单点故障</strong>。它失败，整个 Mode-2 搜索都无法展开——但它是"最神秘"的那一个。</li>
+            <li><strong>Intrinsic cost 的 safety 论调过于乐观</strong>。"immutable 子模块" 只是设计约束，不是保证——actor 仍可能通过配置 trainable critic 绕开。</li>
+            <li><strong>和 LLM 路线的对抗</strong>2022 时还成立；2024 后 LLM + VLM + VLA 的组合已经在真机实验里展示了不少 common-sense 能力——论文的"scaling is not enough"论断需要更新。</li>
+          </ul>
+        </div>
+
+        <div class="callout purple">
+          <div class="callout-label">🔗 给 embodied 实习生的一句话总结</div>
+          <p>这篇论文不是一份技术方案，是一份<strong>研究方向声明</strong>：LeCun 主张 "predictive world model via non-contrastive SSL" 是通往 autonomous machine intelligence 的主路径，而不是 "scale up LLM + RL"。今天 VLA 领域实际上是<strong>两条路线的混合体</strong>——底层靠 VLM 提供 common-sense（LLM 路线的成功），上层靠 flow-matching / diffusion 做 action 生成（某种意义上的 "learned world-model prior"）。判断这两种路线哪个更接近 AGI，就是你接下来几年要用项目经验和实验去回答的问题。</p>
+        </div>
+
+        <div class="quiz"
+             data-correct="d"
+             data-explain="§6 结尾和 §8.1 都明确说：Configurator 自动分解任务 → 子目标序列，这一步 LeCun 完全没有方案。其他三项虽然也不完美，但论文给出了候选方案（VICReg、H-JEPA、intrinsic cost）。"
+             data-explain-wrong="Latent 正则化有 VICReg 候选；JEPA 训练有非对比方案；intrinsic cost 设计有想法但未实现——但只有 Configurator 任务分解是 LeCun 自己说「open for future investigation」的。">
+          <div class="q-label">🧠 理解检查</div>
+          <div class="q-text">论文里 LeCun <strong>自己承认</strong>最没想清楚、完全 open for future 的是哪一块？</div>
+          <div class="q-options">
+            <button class="q-opt" data-k="a">JEPA 的非对比训练</button>
+            <button class="q-opt" data-k="b">潜变量 z 的正则化方式</button>
+            <button class="q-opt" data-k="c">Intrinsic cost 的具体设计</button>
+            <button class="q-opt" data-k="d">Configurator 怎么把复杂任务自动分解成子目标序列</button>
+          </div>
+          <div class="q-feedback"></div>
         </div>
 
       </main>
-
-      <!-- ─── 右：本页目录 ─── -->
-      <aside class="docs-sidebar-right">
-        <div class="ds-title">本页目录</div>
-        <ul id="page-toc"></ul>
-      </aside>
 
     </div>
   </div>
@@ -1053,28 +1678,13 @@ flowchart LR
       });
     });
 
-    // ── 自动生成右侧目录 + 滚动高亮 ──
-    const toc = document.getElementById('page-toc');
+    // ── 滚动高亮左侧章节树 ──
     const headings = document.querySelectorAll('.docs-content h2[id], .docs-content h3[id]');
-    headings.forEach(h => {
-      const li = document.createElement('li');
-      const a = document.createElement('a');
-      a.href = '#' + h.id;
-      a.textContent = h.textContent.replace(/^\d+(\.\d+)*\s*/, '');
-      if (h.tagName === 'H3') a.classList.add('toc-h3');
-      a.dataset.target = h.id;
-      li.appendChild(a);
-      toc.appendChild(li);
-    });
-
-    // 滚动时高亮当前 section（左右两边都高亮）
-    const tocLinks = toc.querySelectorAll('a');
     const leftLinks = document.querySelectorAll('.docs-sidebar-left a[href^="#"]');
     const obs = new IntersectionObserver((entries) => {
       entries.forEach(e => {
         if (e.isIntersecting) {
           const id = e.target.id;
-          tocLinks.forEach(a => a.classList.toggle('active', a.dataset.target === id));
           leftLinks.forEach(a => a.classList.toggle('active', a.getAttribute('href') === '#' + id));
         }
       });

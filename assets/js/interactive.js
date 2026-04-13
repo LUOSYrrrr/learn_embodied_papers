@@ -86,10 +86,43 @@
     });
   }
 
+  // ── Hotspot Edit Mode (?edit-hotspots=1) ──
+  // 点图片任意位置 → 右上角浮层显示 left:X.X%; top:Y.Y%;，自动复制到剪贴板
+  function initEditMode() {
+    if (!/[?&]edit-hotspots=1/.test(location.search)) return;
+    let toast = document.createElement('div');
+    toast.className = 'hs-edit-toast';
+    toast.innerHTML = '🎯 <b>Hotspot edit mode</b><br>点图片任一位置获取坐标<br><small style="opacity:.7">去掉 ?edit-hotspots=1 退出</small>';
+    document.body.appendChild(toast);
+    document.querySelectorAll('.hotspot-wrap').forEach(wrap => {
+      wrap.classList.add('edit-mode');
+      const marker = document.createElement('div');
+      marker.className = 'hs-edit-marker';
+      marker.style.display = 'none';
+      wrap.appendChild(marker);
+      wrap.addEventListener('click', e => {
+        const rect = wrap.getBoundingClientRect();
+        const x = ((e.clientX - rect.left) / rect.width) * 100;
+        const y = ((e.clientY - rect.top) / rect.height) * 100;
+        const coord = 'left:' + x.toFixed(1) + '%; top:' + y.toFixed(1) + '%;';
+        marker.style.left = x + '%';
+        marker.style.top = y + '%';
+        marker.style.display = 'block';
+        const group = wrap.dataset.hotspotGroup || '(no-group)';
+        toast.innerHTML =
+          '🎯 <b>' + group + '</b><br>' +
+          '<span style="color:#7ee">' + coord + '</span><br>' +
+          '<small style="opacity:.7">已复制到剪贴板</small>';
+        if (navigator.clipboard) navigator.clipboard.writeText(coord).catch(() => {});
+      });
+    });
+  }
+
   function init() {
     document.querySelectorAll('.step-walker').forEach(initStepWalker);
     document.querySelectorAll('.hotspot-wrap').forEach(initHotspotWrap);
     document.querySelectorAll('.quiz').forEach(initQuiz);
+    initEditMode();
   }
   if (document.readyState === 'loading') {
     document.addEventListener('DOMContentLoaded', init);
