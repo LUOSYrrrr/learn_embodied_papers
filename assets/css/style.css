@@ -20,7 +20,42 @@
   --font-mono: 'JetBrains Mono', monospace;
   --radius: 8px;
   --radius-lg: 14px;
+  --nav-bg: rgba(13,15,17,0.85);
 }
+
+/* ── Light theme override ── */
+:root[data-theme="light"] {
+  --bg: #faf9f6;
+  --bg2: #ffffff;
+  --bg3: #f0ede6;
+  --border: rgba(0,0,0,0.08);
+  --border2: rgba(0,0,0,0.16);
+  --text: #1a1814;
+  --text2: #4a4640;
+  --text3: #8a857c;
+  --accent: #16a34a;
+  --accent2: #0d9488;
+  --accent3: #dc2626;
+  --amber: #d97706;
+  --blue: #2563eb;
+  --purple: #7c3aed;
+  --nav-bg: rgba(250,249,246,0.85);
+}
+
+/* ── Theme toggle button ── */
+.theme-toggle {
+  background: transparent; border: 1px solid var(--border2);
+  color: var(--text2); cursor: pointer;
+  width: 30px; height: 30px; border-radius: 6px;
+  display: inline-flex; align-items: center; justify-content: center;
+  font-size: 14px; padding: 0; line-height: 1;
+  transition: color 0.2s, border-color 0.2s;
+}
+.theme-toggle:hover { color: var(--text); border-color: var(--text2); }
+:root[data-theme="light"] .theme-toggle .icon-sun { display: none; }
+:root[data-theme="light"] .theme-toggle .icon-moon { display: inline; }
+.theme-toggle .icon-sun { display: inline; }
+.theme-toggle .icon-moon { display: none; }
 
 *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
@@ -44,7 +79,7 @@ body {
   position: fixed; top: 0; left: 0; right: 0; z-index: 100;
   display: flex; align-items: center; justify-content: space-between;
   padding: 0 32px; height: 56px;
-  background: rgba(13,15,17,0.85);
+  background: var(--nav-bg);
   backdrop-filter: blur(16px);
   border-bottom: 1px solid var(--border);
 }
