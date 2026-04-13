@@ -57,7 +57,8 @@
       panel.dataset.init = '1';
       panel.innerHTML = '<div class="hp-empty">点击图上绿色数字查看讲解，或下方逐步导览</div>';
     }
-    wrap.querySelectorAll('.hotspot').forEach(h => {
+    wrap.querySelectorAll('.hotspot').forEach((h, i) => {
+      if (!h.textContent.trim()) h.textContent = String(i + 1);
       h.addEventListener('click', () => activateHotspot(wrap, h.dataset.id));
     });
   }

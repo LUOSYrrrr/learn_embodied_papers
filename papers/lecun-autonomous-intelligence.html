@@ -165,25 +165,25 @@
           <div class="hotspot-wrap" data-hotspot-group="fig2">
             <img src="../assets/figures/lecun/fig-2.png" alt="Figure 2: System architecture for autonomous intelligence">
             <!-- 热点位置按图中模块大致坐标（百分比） -->
-            <div class="hotspot" data-id="conf"  style="left:49%; top:23%;"
+            <div class="hotspot" data-id="conf"  style="left:49%; top:15%;"
                  data-title="Configurator · 配置器"
                  data-body="位于顶端，蓝色椭圆。是整个系统的总指挥——根据当前任务调制其他所有模块的参数和注意力回路。当前 VLA 中基本缺失这个模块。"></div>
-            <div class="hotspot" data-id="mem"   style="left:43%; top:33%;"
+            <div class="hotspot" data-id="mem"   style="left:44%; top:22%;"
                  data-title="Short-term Memory · 短期记忆"
                  data-body="橙色小块。存储过去/当前/预测的状态及对应代价值，Critic 训练时从这里检索数据。类比海马体（hippocampus）。"></div>
-            <div class="hotspot" data-id="wm"    style="left:62%; top:39%;"
+            <div class="hotspot" data-id="wm"    style="left:65%; top:23%;"
                  data-title="World Model · 世界模型"
                  data-body="绿色大椭圆，画得最大是有意的——'最复杂的模块'。功能：补全感知缺失的信息 + 给定动作序列预测未来状态。后面整个 §3 都在讲它。"></div>
-            <div class="hotspot" data-id="perc"  style="left:27%; top:49%;"
+            <div class="hotspot" data-id="perc"  style="left:27%; top:35%;"
                  data-title="Perception · 感知"
                  data-body="左侧紫红色大椭圆。从右下角地球（环境）接收 percept（传感信号），输出当前世界状态 s[0]。可分层表示。"></div>
-            <div class="hotspot" data-id="actor" style="left:44%; top:54%;"
+            <div class="hotspot" data-id="actor" style="left:45%; top:38%;"
                  data-title="Actor · 行动者"
                  data-body="中间黄色椭圆。两种模式：① 直接 a=A(s) 出动作（System 1）；② 提议动作序列让 World Model 预测未来再优化（System 2/MPC）。输出黄色箭头打到地球。"></div>
-            <div class="hotspot" data-id="cost"  style="left:58%; top:63%;"
+            <div class="hotspot" data-id="cost"  style="left:60%; top:42%;"
                  data-title="Cost · 代价"
                  data-body="右侧红色块，包含两个子模块：Intrinsic Cost（先天硬编码，疼/饿/跌倒）+ Critic（学着预测未来代价）。输出标量'能量'，目标是最小化长期平均能量。"></div>
-            <div class="hotspot" data-id="env"   style="left:67%; top:87%;"
+            <div class="hotspot" data-id="env"   style="left:70%; top:58%;"
                  data-title="Environment · 环境"
                  data-body="右下角地球。Actor 的动作（黄色粗箭头）影响环境；环境的 percept（紫色粗箭头）回到 Perception。这是闭环。"></div>
           </div>
