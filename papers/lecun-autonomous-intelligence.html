@@ -41,7 +41,13 @@
 
         <details>
           <summary>§3 世界模型与 JEPA</summary>
-          <a class="ds-leaf" href="#wm-todo">（待写）</a>
+          <a class="ds-leaf" href="#wm-intro">3.0 为什么需要新架构</a>
+          <a class="ds-leaf" href="#wm-ssl">3.1 SSL 与能量模型（Fig 8）</a>
+          <a class="ds-leaf" href="#wm-lvebm">3.2 潜变量 EBM（Fig 9）</a>
+          <a class="ds-leaf" href="#wm-collapse">3.3 坍缩问题（Fig 10）</a>
+          <a class="ds-leaf" href="#wm-contrastive">3.4 对比 vs 正则（Fig 11）</a>
+          <a class="ds-leaf" href="#wm-jepa">3.5 JEPA 主架构（Fig 12）</a>
+          <a class="ds-leaf" href="#wm-todo">3.6+ 待写</a>
         </details>
 
         <details>
@@ -157,27 +163,27 @@
 
         <div class="fig-block">
           <div class="hotspot-wrap" data-hotspot-group="fig2">
-            <img src="../assets/figures/lecun/page-06.png" alt="Figure 2: System architecture for autonomous intelligence">
+            <img src="../assets/figures/lecun/fig-2.png" alt="Figure 2: System architecture for autonomous intelligence">
             <!-- 热点位置按图中模块大致坐标（百分比） -->
-            <div class="hotspot" data-id="conf"  style="left:49%; top:18%;"
+            <div class="hotspot" data-id="conf"  style="left:49%; top:23%;"
                  data-title="Configurator · 配置器"
                  data-body="位于顶端，蓝色椭圆。是整个系统的总指挥——根据当前任务调制其他所有模块的参数和注意力回路。当前 VLA 中基本缺失这个模块。"></div>
-            <div class="hotspot" data-id="mem"   style="left:43%; top:24%;"
+            <div class="hotspot" data-id="mem"   style="left:43%; top:33%;"
                  data-title="Short-term Memory · 短期记忆"
                  data-body="橙色小块。存储过去/当前/预测的状态及对应代价值，Critic 训练时从这里检索数据。类比海马体（hippocampus）。"></div>
-            <div class="hotspot" data-id="wm"    style="left:62%; top:27%;"
+            <div class="hotspot" data-id="wm"    style="left:62%; top:39%;"
                  data-title="World Model · 世界模型"
                  data-body="绿色大椭圆，画得最大是有意的——'最复杂的模块'。功能：补全感知缺失的信息 + 给定动作序列预测未来状态。后面整个 §3 都在讲它。"></div>
-            <div class="hotspot" data-id="perc"  style="left:27%; top:33%;"
+            <div class="hotspot" data-id="perc"  style="left:27%; top:49%;"
                  data-title="Perception · 感知"
                  data-body="左侧紫红色大椭圆。从右下角地球（环境）接收 percept（传感信号），输出当前世界状态 s[0]。可分层表示。"></div>
-            <div class="hotspot" data-id="actor" style="left:44%; top:36%;"
+            <div class="hotspot" data-id="actor" style="left:44%; top:54%;"
                  data-title="Actor · 行动者"
                  data-body="中间黄色椭圆。两种模式：① 直接 a=A(s) 出动作（System 1）；② 提议动作序列让 World Model 预测未来再优化（System 2/MPC）。输出黄色箭头打到地球。"></div>
-            <div class="hotspot" data-id="cost"  style="left:58%; top:41%;"
+            <div class="hotspot" data-id="cost"  style="left:58%; top:63%;"
                  data-title="Cost · 代价"
                  data-body="右侧红色块，包含两个子模块：Intrinsic Cost（先天硬编码，疼/饿/跌倒）+ Critic（学着预测未来代价）。输出标量'能量'，目标是最小化长期平均能量。"></div>
-            <div class="hotspot" data-id="env"   style="left:67%; top:55%;"
+            <div class="hotspot" data-id="env"   style="left:67%; top:87%;"
                  data-title="Environment · 环境"
                  data-body="右下角地球。Actor 的动作（黄色粗箭头）影响环境；环境的 percept（紫色粗箭头）回到 Perception。这是闭环。"></div>
           </div>
@@ -375,7 +381,7 @@
         </div>
 
         <div class="fig-block">
-          <img src="../assets/figures/lecun/page-09.png" alt="Figure 3: Mode-1 perception-action episode">
+          <img src="../assets/figures/lecun/fig-3.png" alt="Figure 3: Mode-1 perception-action episode">
           <div class="fig-cap">
             <span class="fig-num">Fig 3 · p.9</span>
             Mode-1 perception-action episode. Perception estimates s[0]=Enc(x); Actor directly computes a[0]=A(s[0]).
@@ -420,7 +426,7 @@
         </div>
 
         <div class="fig-block">
-          <img src="../assets/figures/lecun/page-11.png" alt="Figure 4: Mode-2 perception-action episode">
+          <img src="../assets/figures/lecun/fig-4.png" alt="Figure 4: Mode-2 perception-action episode">
           <div class="fig-cap">
             <span class="fig-num">Fig 4 · p.11</span>
             Mode-2 perception-action episode. World model recursively predicts s[t+1]=Pred(s[t], a[t]); Cost C(s[t]) at each step; total energy F(x)=∑C(s[t]); gradient-based optimization over action sequence.
@@ -478,7 +484,7 @@
         </div>
 
         <div class="fig-block">
-          <img src="../assets/figures/lecun/page-12.png" alt="Figure 5: Training a reactive policy from Mode-2 results">
+          <img src="../assets/figures/lecun/fig-5.png" alt="Figure 5: Training a reactive policy from Mode-2 results">
           <div class="fig-cap">
             <span class="fig-num">Fig 5 · p.12</span>
             Training a reactive policy module A(s) from Mode-2 reasoning results. Minimize divergence D(â[t], A(s[t])).
@@ -514,7 +520,7 @@
         </div>
 
         <div class="fig-block">
-          <img src="../assets/figures/lecun/page-13.png" alt="Figure 6: Cost module architecture">
+          <img src="../assets/figures/lecun/fig-6.png" alt="Figure 6: Cost module architecture">
           <div class="fig-cap">
             <span class="fig-num">Fig 6 · p.13</span>
             C(s) = IC(s) + TC(s); IC(s) = Σ uᵢ·ICᵢ(s); TC(s) = Σ vⱼ·TCⱼ(s). Weights u,v set by configurator.
@@ -586,7 +592,7 @@
         </div>
 
         <div class="fig-block">
-          <img src="../assets/figures/lecun/page-15.png" alt="Figure 7: Training the critic">
+          <img src="../assets/figures/lecun/fig-7.png" alt="Figure 7: Training the critic">
           <div class="fig-cap">
             <span class="fig-num">Fig 7 · p.15</span>
             Training the critic. IC stores triplets (τ, s_τ, IC(s_τ)) into the associative short-term memory; critic retrieves a past s_τ together with IC(s_{τ+δ}) and minimizes ‖IC(s_{τ+δ}) − TC(s_τ)‖².
@@ -644,10 +650,378 @@ flowchart LR
         </div>
 
         <!-- ═════════════════════════════════════════════════ -->
-        <h2 id="wm-todo">§3 世界模型与 JEPA</h2>
+        <h2 id="wm-intro">§3 世界模型与 JEPA</h2>
+
         <div class="cn-read">
-          <div class="cn-label">待写</div>
-          <p>下一轮会把论文 §4 整章（SSL → EBM → LVEBM → JEPA → 非对比 SSL → H-JEPA → 规划）按同样格式重写，附 Fig 8/9/10/12/13/15/16/17 原图。</p>
+          <div class="cn-label">这一章解决什么</div>
+          <p>
+            §2 建好了智能体的架构骨架，但留了一个最大的坑：<strong>World Model 到底怎么设计和训练？</strong>
+            §3（对应论文 §4）就是填这个坑，也是全文的<strong>核心贡献</strong>。
+            LeCun 一步步带你：从自监督学习（SSL）→ 能量模型（EBM）→ 潜变量 EBM → 坍缩问题 → JEPA。
+            每一步都在解决上一步冒出来的新问题。
+          </p>
+        </div>
+
+        <details class="en-quote">
+          <summary>展开原文 · §4 开头总纲</summary>
+          <div class="quote-body">
+            "Arguably, designing architectures and training paradigms for the world model constitute the main obstacles towards real progress in AI over the next decades."
+            <div class="quote-cite">— §4, p.16</div>
+          </div>
+        </details>
+
+        <h4>§3 路线图（按论文顺序走）</h4>
+        <ol>
+          <li><strong>§3.1</strong> 自监督学习 + 能量模型 = 统一视角</li>
+          <li><strong>§3.2</strong> 光有 x 和 y 不够——需要<strong>潜变量 z</strong> 来表示"多种可能的未来"</li>
+          <li><strong>§3.3</strong> 有四种候选架构，其中三种都会<strong>坍缩</strong>（学出一个没用的常数解）</li>
+          <li><strong>§3.4</strong> 防坍缩有两派：对比方法 vs 正则方法——LeCun 押注正则</li>
+          <li><strong>§3.5</strong> 最终方案：<strong>JEPA</strong> —— 不在像素空间预测，在抽象表示空间预测</li>
+        </ol>
+
+        <!-- ════════════ §3.1 SSL/EBM ════════════ -->
+        <h3 id="wm-ssl">3.1 SSL 与能量模型（Fig 8）</h3>
+
+        <div class="cn-read">
+          <div class="cn-label">直觉理解</div>
+          <p>
+            <strong>自监督学习（SSL）</strong>的核心思想：把输入切成两半 <code>x</code> 和 <code>y</code>，训练模型判断"给定 x，这个 y 合不合理"。
+            比如视频预测里，x = 过去几帧，y = 未来几帧——模型学着判断"这段未来是不是 x 的合理延续"。
+            问题来了：同一个 x 可能对应<strong>无数种合理的 y</strong>（未来不确定）。怎么表达这种"一对多"？
+            <strong>答案：能量模型（EBM）</strong>——不输出单一 y，而是给每一对 (x, y) 打一个"能量"分数：合理=低能量，不合理=高能量。
+          </p>
+        </div>
+
+        <div class="fig-block">
+          <div class="hotspot-wrap" data-hotspot-group="fig8">
+            <img src="../assets/figures/lecun/fig-8.png" alt="Figure 8: SSL and EBM">
+            <div class="hotspot" data-id="split" style="left:22%; top:30%;"
+                 data-title="输入切分 x / y"
+                 data-body="紫色是 x（观测到的部分），蓝色是 y（被预测的部分）。在视频预测中，x = 过去，y = 未来；在图像补全中，x = 已知区域，y = 缺失区域。SSL 的本质就是'用已知预测未知'。"></div>
+            <div class="hotspot" data-id="energy" style="left:50%; top:15%;"
+                 data-title="能量函数 F(x, y)"
+                 data-body="输出一个标量：x 和 y 兼容 → 低能量；不兼容 → 高能量。整个训练过程就是在塑造这个 F 函数的形状。"></div>
+            <div class="hotspot" data-id="landscape" style="left:80%; top:45%;"
+                 data-title="能量地形（Energy Landscape）"
+                 data-body="右边这张图是二维示意：黑点是训练数据（低能量区），等高线代表能量等级。训练的目标是让数据点周围能量低、远离数据的地方能量高——就像在地形上挖出一条'山谷'。"></div>
+          </div>
+          <div class="fig-cap">
+            <span class="fig-num">Fig 8 · p.18</span>
+            Self-Supervised Learning (SSL) and Energy-Based Models (EBM).
+            <span class="fig-cn">
+              左：SSL 的基本设定——x（紫）是已观测，y（蓝）是未观测/待预测。右：能量地形示意，数据点构成低能量区（橙色），远离数据的地方能量高。
+            </span>
+          </div>
+        </div>
+        <div class="hotspot-panel"></div>
+
+        <details class="en-quote">
+          <summary>展开原文 · 为什么不用概率模型</summary>
+          <div class="quote-body">
+            "It is important to note that the definition of EBM does not make any reference to probabilistic modeling. Although many EBMs can easily be turned into probabilistic models ... this is not at all a necessity. Hence the energy function is viewed as the fundamental object and is not assumed to implicitly represent the unnormalized logarithm of a probability distribution."
+            <div class="quote-cite">— §4.3, p.20</div>
+          </div>
+        </details>
+
+        <div class="fig-explain">
+          <div class="fe-label">🔑 EBM vs 概率模型的关键差别</div>
+          <p>概率模型必须归一化（sum 所有可能 y 的概率 = 1），这在高维空间里几乎不可能计算。EBM 不归一化——<strong>只关心相对能量</strong>：训练数据能量要低，其他 y 的能量要高。这就避开了归一化的难题。</p>
+        </div>
+
+        <!-- ════════════ §3.2 LVEBM ════════════ -->
+        <h3 id="wm-lvebm">3.2 潜变量 EBM（Fig 9）</h3>
+
+        <div class="cn-read">
+          <div class="cn-label">为什么需要潜变量</div>
+          <p>
+            EBM 解决了"一个 x 对应多个合理 y"的表达问题，但没解决一个<strong>更细的问题</strong>：
+            给定一对 (x, y)，<strong>x 和 y 之间的关系不唯一</strong>。
+            举论文的例子：x 是一辆车接近岔路口的视频，y 是几秒后的视频。兼容性取决于一个<strong>没看到的信息</strong>——司机到底是左转还是右转？
+          </p>
+          <p>
+            这个"看不见但决定结果"的信息就叫<strong>潜变量 z</strong>（latent variable）。
+            引入 z 后能量变成 <code>E(x, y, z)</code>，推理时对 z 取最小：<code>F(x, y) = min_z E(x, y, z)</code>。
+            用白话讲：<strong>"对 (x, y) 打分时，先假设我们猜到了最合理的 z，然后算那个 z 下的能量"</strong>。
+          </p>
+        </div>
+
+        <div class="fig-block">
+          <div class="hotspot-wrap" data-hotspot-group="fig9">
+            <img src="../assets/figures/lecun/fig-9.png" alt="Figure 9: Latent-Variable EBM">
+            <div class="hotspot" data-id="left" style="left:28%; top:35%;"
+                 data-title="有潜变量的 EBM (LVEBM)"
+                 data-body="E_w(x, y, z)：能量函数多了一个输入 z。z 被圈起来，顶部标 min_{z∈Z}，意思是推理时在 z 的集合 Z 里找让能量最低的那个 z。"></div>
+            <div class="hotspot" data-id="right" style="left:72%; top:35%;"
+                 data-title="等效的无潜变量形式"
+                 data-body="F_w(x, y) = min_z E_w(x, y, z)。把 z 消掉后，得到一个只依赖 x, y 的能量函数。论文把它叫 'zero-temperature free energy'（零温度自由能）。"></div>
+            <div class="hotspot" data-id="z" style="left:34%; top:60%;"
+                 data-title="z 是什么"
+                 data-body="z 代表'从 x 推不出来，但决定了 y 的信息'。对车在岔路的例子，z ∈ {左转, 右转}（2 值离散潜变量）。对视角预测，z 可能是摄像机位移（连续潜变量）。"></div>
+          </div>
+          <div class="fig-cap">
+            <span class="fig-num">Fig 9 · p.19</span>
+            Latent-Variable Energy-Based Model (LVEBM).
+            <span class="fig-cn">
+              左：显式带 z 的能量函数 E_w(x, y, z)；右：对 z 取 min 之后得到的 F_w(x, y)，形式上等价于普通 EBM。
+            </span>
+          </div>
+        </div>
+        <div class="hotspot-panel"></div>
+
+        <!-- ════════════ §3.3 Collapse ════════════ -->
+        <h3 id="wm-collapse">3.3 四种架构与坍缩问题（Fig 10）</h3>
+
+        <div class="cn-read">
+          <div class="cn-label">坍缩是什么</div>
+          <p>
+            建完 EBM 框架后，具体<strong>用什么网络结构</strong>来计算 F(x, y)？论文列了 4 种候选架构，并指出<strong>其中 3 种都有一个致命问题：坍缩（collapse）</strong>。
+          </p>
+          <p>
+            <strong>坍缩的意思</strong>：模型学到一个"偷懒"的解，让<strong>整个 y 空间能量都一样低</strong>——loss 看起来很低，但模型什么信息都没学到。
+            就像考试时把所有题都答 "C"，错了要扣分但如果不扣也能拿分——学生就不学习了。
+          </p>
+        </div>
+
+        <div class="fig-block">
+          <div class="hotspot-wrap" data-hotspot-group="fig10">
+            <img src="../assets/figures/lecun/fig-10.png" alt="Figure 10: Four standard architectures">
+            <div class="hotspot" data-id="a" style="left:12%; top:55%;"
+                 data-title="(a) 预测/回归 · NO COLLAPSE"
+                 data-body="最朴素的 Pred(s_x) → ŷ，直接预测 y。x 经过 Enc，输出 ŷ，能量 = D(y, ŷ)。不会坍缩——因为只有真实 y 附近能量低。但缺点：只能处理'一对一'关系，不适合不确定的未来。"></div>
+            <div class="hotspot" data-id="b" style="left:37%; top:55%;"
+                 data-title="(b) 生成式潜变量 · CAN COLLAPSE"
+                 data-body="Pred(s_x, z) → ŷ，z 吸收不确定性。会坍缩：如果 z 的信息容量太大（比如 dim(z) ≥ dim(y)），模型可以用 z 覆盖整个 y 空间，让所有 y 能量都=0。"></div>
+            <div class="hotspot" data-id="c" style="left:62%; top:55%;"
+                 data-title="(c) 自编码器 · CAN COLLAPSE"
+                 data-body="Enc(y) → s_y → Dec(s_y) → ŷ。会坍缩：如果 s_y 容量太大，编码器可能学到恒等函数（identity），能重建任何 y，能量永远=0。"></div>
+            <div class="hotspot" data-id="d" style="left:87%; top:55%;"
+                 data-title="(d) 联合嵌入 · CAN COLLAPSE"
+                 data-body="x 和 y 分别编码成 s_x 和 s_y，能量 = D(s_x, s_y)。会坍缩：如果两个 encoder 输出常数（s_x = s_y = constant），D=0 永远满足。这就是 JEPA 的原型，关键挑战就是防止这种坍缩。"></div>
+          </div>
+          <div class="fig-cap">
+            <span class="fig-num">Fig 10 · p.21</span>
+            A few standard architectures and their capacity for collapse.
+            <span class="fig-cn">
+              四种候选架构：(a) 直接回归——不坍缩；(b) 生成式潜变量、(c) 自编码器、(d) 联合嵌入——都可能坍缩。LeCun 的路线是选 (d) + 解决坍缩。
+            </span>
+          </div>
+        </div>
+        <div class="hotspot-panel"></div>
+
+        <div class="step-walker" data-hotspot-group="fig10">
+          <div class="sw-header">
+            <div class="sw-title">🪜 四种架构逐个看</div>
+            <div class="sw-controls">
+              <button class="sw-btn prev">◀</button>
+              <span class="sw-counter">1 / 4</span>
+              <button class="sw-btn next">▶</button>
+            </div>
+          </div>
+          <div class="sw-progress">
+            <div class="sw-dot"></div><div class="sw-dot"></div><div class="sw-dot"></div><div class="sw-dot"></div>
+          </div>
+          <div class="sw-body">
+            <div class="sw-step active" data-hotspot="a">
+              <h4>(a) 预测/回归：最朴素但最受限</h4>
+              <p>x → Enc → Pred → ŷ，能量就是 ŷ 和真实 y 的距离。<strong>不会坍缩</strong>（因为 ŷ 只有一种输出，其他 y 能量都高），但<strong>只能处理确定性映射</strong>——不适合未来这种一对多场景。</p>
+            </div>
+            <div class="sw-step" data-hotspot="b">
+              <h4>(b) 生成式潜变量：灵活但危险</h4>
+              <p>加入 z 吸收不确定性，Pred(s_x, z) → ŷ。理论上能输出多种 y，<strong>但会坍缩</strong>：如果 z 维度 ≥ y 维度，模型可以用 z "记住" 任何 y，整个 y 空间能量=0。<strong>关键：必须限制 z 的信息容量。</strong></p>
+            </div>
+            <div class="sw-step" data-hotspot="c">
+              <h4>(c) 自编码器：y 自己重建自己</h4>
+              <p>y → Enc → s_y → Dec → ŷ。如果 s_y 容量过大，编码器直接学恒等函数，重建任何 y 都完美——<strong>能量函数变成全 0 的废物</strong>。经典 VAE 就要小心这个问题。</p>
+            </div>
+            <div class="sw-step" data-hotspot="d">
+              <h4>(d) 联合嵌入：JEPA 原型</h4>
+              <p>x 和 y 分别进各自的 encoder，能量 = s_x 和 s_y 在嵌入空间里的距离。<strong>最大风险</strong>：两个 encoder 都输出常数，s_x = s_y 永远成立，能量永远为 0。<strong>后面整个 §3.4-3.5 都在讲怎么防这种坍缩。</strong></p>
+            </div>
+          </div>
+        </div>
+
+        <!-- ════════════ §3.4 Contrastive vs Regularized ════════════ -->
+        <h3 id="wm-contrastive">3.4 对比方法 vs 正则方法（Fig 11）</h3>
+
+        <div class="cn-read">
+          <div class="cn-label">两条防坍缩的路</div>
+          <p>
+            解决坍缩有两大流派，对应 Fig 11 的上下两部分：
+          </p>
+          <ul>
+            <li><strong>对比方法（Contrastive）</strong>：找一些"反面教材"——不兼容的 (x, ŷ) 对（叫 contrastive samples），<strong>把它们的能量推高</strong>。SimCLR、MoCo、InfoNCE 都属于这一派。</li>
+            <li><strong>正则方法（Regularized / Non-contrastive）</strong>：不找反面教材，而是加一个<strong>正则项限制低能量区域的体积</strong>——让"能量低的 y 的集合"尽量小，迫使模型只在真数据附近低能量。VICReg、Barlow Twins 属于这一派。</li>
+          </ul>
+        </div>
+
+        <div class="fig-block">
+          <div class="hotspot-wrap" data-hotspot-group="fig11">
+            <img src="../assets/figures/lecun/fig-11.png" alt="Figure 11: Contrastive vs Regularized">
+            <div class="hotspot" data-id="init" style="left:22%; top:45%;"
+                 data-title="初始能量地形"
+                 data-body="蓝点 = 训练样本。橙色区域 = 低能量区。目标是让橙色紧贴数据点、其他地方能量高。"></div>
+            <div class="hotspot" data-id="cont" style="left:75%; top:25%;"
+                 data-title="对比方法（上）"
+                 data-body="绿色点 = 主动生成的'反面教材'（contrastive samples）。训练时推高这些点的能量（绿色箭头向上），同时压低真实数据点。<strong>缺点：</strong>在高维空间里需要指数级多的反例才能覆盖所有'坏 y'。"></div>
+            <div class="hotspot" data-id="reg" style="left:75%; top:72%;"
+                 data-title="正则方法（下）"
+                 data-body="没有反例。用一个正则项直接'压缩'低能量区的体积（绿色箭头向内收紧），让它 shrink-wrap 到真数据点上。<strong>优点：</strong>不受维度灾难困扰，更适合高维 y。LeCun 押注这条路。"></div>
+          </div>
+          <div class="fig-cap">
+            <span class="fig-num">Fig 11 · p.22</span>
+            Contrastive and regularized methods for EBM training.
+            <span class="fig-cn">
+              上：对比方法用反例把错的 y 能量推高；下：正则方法不用反例，直接用正则项压缩低能量区的体积。
+            </span>
+          </div>
+        </div>
+        <div class="hotspot-panel"></div>
+
+        <details class="en-quote">
+          <summary>展开原文 · LeCun 为什么反对对比方法</summary>
+          <div class="quote-body">
+            "In the worst case, the number of contrastive samples may grow exponentially with the dimension of the representation. This is the main reason why I will argue against contrastive methods."
+            <div class="quote-cite">— §4.3, p.23</div>
+          </div>
+        </details>
+
+        <div class="quiz"
+             data-correct="c"
+             data-explain="LeCun 的核心论点：对比方法需要'每个维度都有足够的反例'才能把该维度的能量地形塑造正确。在高维 y 空间里，这个数量指数爆炸。正则方法直接限制低能量区体积，不需要枚举反例，所以更适合高维。"
+             data-explain-wrong="不对。LeCun 反对对比方法的主要理由是维度灾难——需要的反例数量随维度指数增长。其他选项虽然听起来合理但不是论文的主要论点。">
+          <div class="q-label">🧠 理解检查</div>
+          <div class="q-text">LeCun 为什么长期看好正则方法（regularized）而反对对比方法（contrastive）？</div>
+          <div class="q-options">
+            <button class="q-opt" data-k="a">对比方法计算复杂度太高</button>
+            <button class="q-opt" data-k="b">对比方法无法用梯度下降训练</button>
+            <button class="q-opt" data-k="c">对比方法所需的反例数量随 y 维度指数增长（curse of dimensionality）</button>
+            <button class="q-opt" data-k="d">对比方法在图像任务上效果差</button>
+          </div>
+          <div class="q-feedback"></div>
+        </div>
+
+        <!-- ════════════ §3.5 JEPA ════════════ -->
+        <h3 id="wm-jepa">3.5 JEPA 主架构（Fig 12）</h3>
+
+        <div class="cn-read">
+          <div class="cn-label">全文核心</div>
+          <p>
+            铺垫这么多，终于到了。<strong>JEPA = Joint Embedding Predictive Architecture（联合嵌入预测架构）</strong>，是论文的<strong>"centerpiece"</strong>（LeCun 原话）。
+            一句话：<strong>不在像素空间预测 y，而是把 x 和 y 各自编码成抽象表示 s_x、s_y，然后训练一个预测器 Pred 让 Pred(s_x, z) ≈ s_y。能量 = 预测误差。</strong>
+          </p>
+          <p>
+            <strong>为什么这样做？</strong>Fig 10(b) 生成式架构必须精确画出 y 的每一像素（树叶、头发、噪点），浪费容量在"不可预测的细节"上。JEPA 让 encoder <strong>自己丢掉这些细节</strong>——因为预测发生在抽象空间，encoder 会自发学到"哪些信息可预测、哪些不可预测"。
+          </p>
+        </div>
+
+        <div class="fig-block">
+          <div class="hotspot-wrap" data-hotspot-group="fig12">
+            <img src="../assets/figures/lecun/fig-12.png" alt="Figure 12: JEPA">
+            <div class="hotspot" data-id="encx" style="left:22%; top:62%;"
+                 data-title="Enc(x) · x 的编码器"
+                 data-body="把观测 x 编码成抽象表示 s_x。注意论文说：'Enc_x 和 Enc_y 不需要同架构也不需要共享参数'——这让 x, y 可以是完全不同的模态（如视频 vs 音频）。"></div>
+            <div class="hotspot" data-id="ency" style="left:78%; top:62%;"
+                 data-title="Enc(y) · y 的编码器"
+                 data-body="把未观测部分 y 编码成 s_y。这是 JEPA 的关键：y 也被编码，而不是在原始像素空间被预测。这让 encoder 有权'忽略不可预测的细节'。"></div>
+            <div class="hotspot" data-id="pred" style="left:52%; top:22%;"
+                 data-title="Pred(s_x, z) · 预测器"
+                 data-body="吃 s_x 和潜变量 z，预测 ŝ_y。注意它的输出在<strong>抽象空间</strong>，不是像素空间。这是 JEPA 和生成式架构最本质的区别。"></div>
+            <div class="hotspot" data-id="z" style="left:44%; top:48%;"
+                 data-title="潜变量 z"
+                 data-body="吸收'从 x 推不出、但决定 y 的信息'。z 在集合 Z 上变化时，Pred(s_x, Z) 给出<strong>一组可能的预测</strong>——这就是 JEPA 表达多模态未来的方式。z 的信息容量必须被限制（后面 §3.6 讲）。"></div>
+            <div class="hotspot" data-id="d" style="left:66%; top:35%;"
+                 data-title="D(s_y, ŝ_y) · 距离"
+                 data-body="能量就是预测的 ŝ_y 和真实 s_y 在抽象空间的距离。训练目标：最小化这个距离（对 z 取 min 之后）。"></div>
+          </div>
+          <div class="fig-cap">
+            <span class="fig-num">Fig 12 · p.25</span>
+            The Joint-Embedding Predictive Architecture (JEPA).
+            <span class="fig-cn">
+              双塔结构：x 和 y 各走一条 encoder → 抽象表示 s_x, s_y。Pred 在抽象空间做预测，潜变量 z 表达多模态。能量 = 预测误差。
+            </span>
+          </div>
+        </div>
+        <div class="hotspot-panel"></div>
+
+        <div class="step-walker" data-hotspot-group="fig12">
+          <div class="sw-header">
+            <div class="sw-title">🪜 跟着信号在 JEPA 里走一遍</div>
+            <div class="sw-controls">
+              <button class="sw-btn prev">◀</button>
+              <span class="sw-counter">1 / 5</span>
+              <button class="sw-btn next">▶</button>
+            </div>
+          </div>
+          <div class="sw-progress">
+            <div class="sw-dot"></div><div class="sw-dot"></div><div class="sw-dot"></div><div class="sw-dot"></div><div class="sw-dot"></div>
+          </div>
+          <div class="sw-body">
+            <div class="sw-step active" data-hotspot="encx">
+              <h4>第 1 步：x 进入左塔</h4>
+              <p>比如 x = 过去几帧视频。左边 <strong>Enc(x)</strong> 把它编码成抽象表示 <code>s_x</code>——可能是一个几千维的向量，丢掉了像素级纹理，保留了"场景布局、物体位置、运动方向"等可预测的抽象信息。</p>
+            </div>
+            <div class="sw-step" data-hotspot="ency">
+              <h4>第 2 步：y 进入右塔</h4>
+              <p>y = 未来几帧视频。右边 <strong>Enc(y)</strong> 把它编码成 <code>s_y</code>。<strong>关键点</strong>：这一步把未来的所有像素压进抽象向量里，允许 encoder 主动丢掉不可预测的细节（树叶每一帧会不会动？算了，扔掉）。</p>
+            </div>
+            <div class="sw-step" data-hotspot="z">
+              <h4>第 3 步：潜变量 z 出场</h4>
+              <p>如果 x → y 是多对多（比如车在岔路口），引入 <code>z</code>。不同 z 值对应不同未来分支。<strong>z 的信息容量必须受限</strong>（离散/低维/稀疏/噪声化），否则 Fig 10(b) 的坍缩会发生。</p>
+            </div>
+            <div class="sw-step" data-hotspot="pred">
+              <h4>第 4 步：预测器出手</h4>
+              <p><strong>Pred(s_x, z)</strong> 吃左塔的 s_x 和 z，输出对 s_y 的预测 <code>ŝ_y</code>。注意它预测的是<strong>右塔的抽象表示</strong>，不是原始像素——这是 JEPA 跟生成式模型最本质的区别。</p>
+            </div>
+            <div class="sw-step" data-hotspot="d">
+              <h4>第 5 步：算能量</h4>
+              <p>能量 = <code>D(s_y, ŝ_y)</code>，两个向量在抽象空间里的距离。训练时对 z 取最小：<code>F(x, y) = min_z D(s_y, Pred(s_x, z))</code>。这个距离越小，说明 x 和 y 在抽象意义上越"兼容"。</p>
+            </div>
+          </div>
+        </div>
+
+        <div class="module-grid">
+          <div class="module-card">
+            <div class="module-card-name">VS (b) 生成式</div>
+            <div class="module-card-title">预测发生在哪？</div>
+            <div class="module-card-desc">生成式：像素空间（必须画出每根头发）。<br>JEPA：抽象空间（可丢弃不可预测细节）。</div>
+          </div>
+          <div class="module-card">
+            <div class="module-card-name">VS 对比 SSL</div>
+            <div class="module-card-title">怎么防坍缩？</div>
+            <div class="module-card-desc">对比：找反例把错 y 能量推高。<br>JEPA + 正则：限制 s_x/s_y 信息量 & z 容量。</div>
+          </div>
+          <div class="module-card">
+            <div class="module-card-name">多模态能力</div>
+            <div class="module-card-title">怎么表达"一对多"？</div>
+            <div class="module-card-desc">① Enc_y 的不变性（多个 y 映射同一 s_y）<br>② 潜变量 z 在 Z 上变化给出多种 ŝ_y</div>
+          </div>
+          <div class="module-card">
+            <div class="module-card-name">训练方式</div>
+            <div class="module-card-title">对比 or 正则？</div>
+            <div class="module-card-desc">两种都行。但 JEPA 的主要吸引力是<strong>可以用正则（非对比）</strong>——下一节 §3.6 VICReg。</div>
+          </div>
+        </div>
+
+        <div class="quiz"
+             data-correct="b"
+             data-explain="JEPA 的核心创新：预测发生在'编码后的抽象空间'而非原始像素。这让 encoder 可以主动丢掉不可预测的细节（树叶纹理、噪点），只保留可预测的抽象信息，避免了生成式模型浪费容量画细节的问题。"
+             data-explain-wrong="不对。JEPA 的核心是'在抽象空间预测'——不是省参数、不是处理文本、不是减 z。重新看 §3.5 导读那句话。">
+          <div class="q-label">🧠 理解检查</div>
+          <div class="q-text">JEPA 和 Fig 10(b) 生成式潜变量架构相比，最本质的区别是什么？</div>
+          <div class="q-options">
+            <button class="q-opt" data-k="a">JEPA 参数更少，训练更快</button>
+            <button class="q-opt" data-k="b">JEPA 的预测发生在抽象表示空间，而不是原始 y 空间——允许 encoder 丢弃不可预测的细节</button>
+            <button class="q-opt" data-k="c">JEPA 只能用于文本模态，生成式架构只能用于图像</button>
+            <button class="q-opt" data-k="d">JEPA 不需要潜变量 z</button>
+          </div>
+          <div class="q-feedback"></div>
+        </div>
+
+        <!-- ═════════════════════════════════════════════════ -->
+        <h2 id="wm-todo">§3.6+ 待写</h2>
+        <div class="cn-read">
+          <div class="cn-label">下一轮</div>
+          <p>§3.6 非对比训练 + 4 个防坍缩准则（Fig 13）→ §3.7 VICReg 训练（Fig 14）→ §3.8 H-JEPA 分层（Fig 15）→ §3.9 分层规划（Fig 16）。</p>
         </div>
 
         <h2 id="critique-todo">§4 设计动机与局限</h2>
