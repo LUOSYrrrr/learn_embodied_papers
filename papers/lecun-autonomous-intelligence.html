@@ -6,664 +6,559 @@
   <title>LeCun · A Path Towards Autonomous Machine Intelligence</title>
   <link rel="stylesheet" href="../assets/css/style.css">
   <script src="../assets/js/theme.js"></script>
-  <style>
-    .arch-svg-wrap {
-      background: var(--bg2); border: 1px solid var(--border);
-      border-radius: var(--radius-lg); padding: 20px;
-      margin: 24px 0; overflow-x: auto;
-    }
-    .flow-row {
-      display: flex; align-items: center; gap: 8px;
-      flex-wrap: wrap; margin: 16px 0;
-    }
-    .flow-node {
-      font-family: var(--font-mono); font-size: 12px;
-      padding: 5px 12px; border-radius: 4px;
-      border: 1px solid var(--border2); color: var(--text2);
-      background: var(--bg3);
-    }
-    .flow-node.active { border-color: rgba(74,222,154,0.4); color: var(--accent); }
-    .flow-arrow { color: var(--text3); font-size: 14px; }
-
-    /* Interactive module explorer */
-    .module-explorer { margin: 28px 0; }
-    .module-tabs {
-      display: flex; gap: 2px; flex-wrap: wrap; margin-bottom: 0;
-      border-bottom: 1px solid var(--border);
-    }
-    .module-tab {
-      font-family: var(--font-mono); font-size: 11px; letter-spacing: 0.06em;
-      padding: 8px 14px; cursor: pointer; color: var(--text3);
-      border-bottom: 2px solid transparent; margin-bottom: -1px;
-      transition: color 0.15s, border-color 0.15s;
-      user-select: none;
-    }
-    .module-tab:hover { color: var(--text2); }
-    .module-tab.active { color: var(--accent); border-color: var(--accent); }
-    .module-content {
-      display: none;
-      background: var(--bg2); border: 1px solid var(--border);
-      border-top: none; border-radius: 0 0 var(--radius) var(--radius);
-      padding: 20px 24px;
-    }
-    .module-content.active { display: block; }
-    .module-content h3 {
-      font-family: var(--font-serif); font-size: 17px; font-weight: 700;
-      color: var(--text); margin-bottom: 8px;
-    }
-    .module-content .en {
-      font-family: var(--font-mono); font-size: 11px; color: var(--text3);
-      margin-bottom: 12px; letter-spacing: 0.06em;
-    }
-    .module-content p { font-size: 14px; color: var(--text2); line-height: 1.8; margin-bottom: 10px; }
-    .module-content p strong { color: var(--text); font-weight: 500; }
-    .tag-row { display: flex; gap: 6px; flex-wrap: wrap; margin-top: 10px; }
-    .m-tag {
-      font-family: var(--font-mono); font-size: 10px;
-      padding: 3px 8px; border-radius: 3px; border: 1px solid var(--border2);
-      color: var(--text3);
-    }
-    .m-tag.green { border-color: rgba(74,222,154,0.3); color: var(--accent); }
-    .m-tag.amber { border-color: rgba(245,158,11,0.3); color: var(--amber); }
-    .m-tag.red { border-color: rgba(255,107,107,0.3); color: var(--accent3); }
-    .m-tag.blue { border-color: rgba(96,165,250,0.3); color: var(--blue); }
-  </style>
+  <script src="https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.min.js"></script>
 </head>
 <body>
   <nav class="nav">
     <a class="nav-logo" href="../index.html">~/paper-notes</a>
     <div class="nav-links">
       <a href="../index.html">← 返回首页</a>
+      <a href="../pdfs/world-model/lecun-autonomous-intelligence.pdf" target="_blank">📄 PDF</a>
     </div>
   </nav>
 
   <div class="page">
-    <div class="paper-page">
-      <a class="back-link" href="../index.html">← 所有笔记</a>
+    <div class="docs-layout">
 
-      <!-- Header -->
-      <div class="paper-header">
-        <div class="paper-venue">// 世界模型 · World Model · 2022</div>
-        <h1 class="paper-title">A Path Towards Autonomous Machine Intelligence</h1>
-        <div class="paper-authors">Yann LeCun · Meta AI Research</div>
-        <div class="paper-badges">
-          <span class="badge badge-green">架构提案</span>
-          <span class="badge badge-blue">可微分系统</span>
-          <span class="badge badge-amber">世界模型</span>
-          <span class="badge">非 peer-reviewed</span>
-        </div>
-        <div class="paper-pdf" style="margin-top:14px; font-family:var(--font-mono); font-size:12px;">
-          <a href="../pdfs/world-model/lecun-autonomous-intelligence.pdf" style="color:var(--accent); text-decoration:none; border-bottom:1px dashed var(--accent);">📄 原版 PDF</a>
-        </div>
-      </div>
+      <!-- ─── 左：章节树 ─── -->
+      <aside class="docs-sidebar-left">
+        <div class="ds-title">A Path Towards AMI</div>
 
-      <!-- TOC -->
-      <div class="toc">
-        <div class="toc-title">// 目录</div>
+        <a class="ds-leaf-top" href="#prologue">前言 · Prologue</a>
+        <a class="ds-leaf-top" href="#intro">§1 引言 · Introduction</a>
+
+        <details open>
+          <summary>§2 模型架构</summary>
+          <a class="ds-leaf" href="#arch-overview">2.0 总览（Fig 2）</a>
+          <a class="ds-leaf" href="#arch-modules">2.1 六大模块定义</a>
+          <a class="ds-leaf" href="#arch-mode1">2.2 Mode-1 反应式</a>
+          <a class="ds-leaf" href="#arch-mode2">2.3 Mode-2 推理规划</a>
+          <a class="ds-leaf" href="#arch-skill">2.4 Mode-2 → Mode-1 蒸馏</a>
+          <a class="ds-leaf" href="#arch-cost">2.5 Cost 模块结构</a>
+          <a class="ds-leaf" href="#arch-critic">2.6 训练 Critic</a>
+        </details>
+
+        <details>
+          <summary>§3 世界模型与 JEPA</summary>
+          <a class="ds-leaf" href="#wm-todo">（待写）</a>
+        </details>
+
+        <details>
+          <summary>§4 设计动机与局限</summary>
+          <a class="ds-leaf" href="#critique-todo">（待写）</a>
+        </details>
+      </aside>
+
+      <!-- ─── 中：正文 ─── -->
+      <main class="docs-content">
+
+        <div class="docs-breadcrumb">
+          <a href="../index.html">paper-notes</a>
+          <span class="sep">/</span>
+          <a href="../index.html">世界模型</a>
+          <span class="sep">/</span>
+          LeCun 2022
+        </div>
+
+        <h1>A Path Towards Autonomous Machine Intelligence</h1>
+        <p style="color:var(--text3); font-family:var(--font-mono); font-size:12px; margin-top:-12px;">
+          Yann LeCun · Meta AI / NYU · 2022-06-27 · Version 0.9.2
+        </p>
+
+        <div class="cn-read">
+          <div class="cn-label">这篇笔记怎么读</div>
+          <p>
+            按论文章节顺序走，每一节先给<strong>中文导读</strong>（小白先看这个），
+            再展开<strong>原文段落</strong>（点击折叠块），关键图直接用论文原图（Fig 2/3/4...），
+            互动元素帮你看清模块之间怎么传数据。
+          </p>
+        </div>
+
+        <!-- ═════════════════════════════════════════════════ -->
+        <h2 id="prologue">前言 · Prologue</h2>
+
+        <div class="cn-read">
+          <div class="cn-label">一句话</div>
+          <p>
+            这不是传统意义上的"技术论文"或"学术论文"，是 LeCun 写的一份
+            <strong>立场报告（position paper）</strong>——他对"机器怎么才能像人和动物一样学习"
+            这个问题给出的<strong>一个完整方案蓝图</strong>。所以你不会看到 SOTA 实验，
+            会看到一套架构、为什么这么设计、以及它解决了哪些公认难题。
+          </p>
+        </div>
+
+        <details class="en-quote">
+          <summary>展开原文 · Prologue</summary>
+          <div class="quote-body">
+            <p>
+              "This document is not a technical nor scholarly paper in the traditional sense,
+              but a position paper expressing my vision for a path towards intelligent machines
+              that learn more like animals and humans, that can reason and plan, and whose behavior
+              is driven by intrinsic objectives, rather than by hard-wired programs, external
+              supervision, or external rewards."
+            </p>
+            <div class="quote-cite">— §1 Prologue, p.1</div>
+          </div>
+        </details>
+
+        <p>
+          关键词：<span class="term" data-en="position paper">立场报告</span>、
+          <span class="term" data-en="intrinsic objectives">内在目标</span>、
+          反对"硬编码行为 + 外部奖励"的当前路线。
+        </p>
+
+        <!-- ═════════════════════════════════════════════════ -->
+        <h2 id="intro">§1 引言 · Introduction</h2>
+
+        <div class="cn-read">
+          <div class="cn-label">问题</div>
+          <p>
+            LeCun 开篇用两个数字甩出问题：青少年学开车大概 <strong>20 小时</strong>就上路了，
+            小孩学语言也只需要相对很少的接触量。可现在最好的 ML 系统呢？哪怕是稀有情况
+            都得在训练集里被反复刷过，才有可能可靠应对。
+            <strong>差距在哪？答案可能是：人和动物有"世界模型"（world model），机器没有。</strong>
+          </p>
+        </div>
+
+        <details class="en-quote">
+          <summary>展开原文 · 三大核心挑战</summary>
+          <div class="quote-body">
+            <p><strong>Three main challenges that AI research must address today:</strong></p>
+            <ol>
+              <li>How can machines learn to represent the world, learn to predict, and learn to act largely <em>by observation</em>?</li>
+              <li>How can machine reason and plan in ways that are <em>compatible with gradient-based learning</em>?</li>
+              <li>How can machines learn to represent percepts and action plans in a <em>hierarchical manner</em>, at multiple levels of abstraction, and multiple time scales?</li>
+            </ol>
+            <div class="quote-cite">— §2 Introduction, p.2</div>
+          </div>
+        </details>
+
+        <h4>论文的四项主要贡献</h4>
         <ol>
-          <li><a href="#tldr">一句话总结</a></li>
-          <li><a href="#motivation">为什么写这篇论文？</a></li>
-          <li><a href="#architecture">架构概览</a></li>
-          <li><a href="#modules">六大模块精读</a></li>
-          <li><a href="#mode1">Mode-1：感知-动作片段</a></li>
-          <li><a href="#cost">代价模块与驱动设计</a></li>
-          <li><a href="#jepa">JEPA 深入：能量模型与非生成式预测</a></li>
-          <li><a href="#vla-connection">与 VLA 的联系</a></li>
-          <li><a href="#critique">批判与局限</a></li>
+          <li>一套<strong>整体认知架构</strong>（cognitive architecture），所有模块都可微分（Fig 2，对应本笔记 §2）</li>
+          <li><strong>JEPA 与 Hierarchical JEPA</strong>：一种"非生成式"的预测式世界模型架构（对应本笔记 §3）</li>
+          <li>一种<strong>非对比（non-contrastive）</strong>自监督学习范式</li>
+          <li>用 H-JEPA 作为基础做<strong>分层规划</strong>（hierarchical planning under uncertainty）</li>
         </ol>
-      </div>
 
-      <!-- §1 TLDR -->
-      <div class="section" id="tldr">
-        <div class="section-num">§ 01</div>
-        <h2>一句话总结</h2>
-        <div class="callout">
-          <div class="callout-label">核心主张</div>
+        <!-- ═════════════════════════════════════════════════ -->
+        <h2 id="arch-overview">§2 模型架构 · 总览</h2>
+
+        <div class="cn-read">
+          <div class="cn-label">这一节解决什么</div>
           <p>
-            LeCun 认为走向自主机器智能的路径，是构建一个模块化、完全可微分（fully differentiable）的系统，
-            其核心是<strong>世界模型</strong>（World Model）——让 AI 能在脑中"想象"行动后果，
-            而不是像当前 LLM 那样单纯做序列预测。
+            LeCun 不直接讨论某个算法，先抛出<strong>整套智能体的脏腑图</strong>：哪些模块、谁连谁、信号怎么流。
+            这是 Figure 2，是后面所有讨论的"地图"。重点理解一件事：
+            <strong>所有模块之间的箭头都是可微分的</strong>——这意味着代价（cost）的梯度
+            可以反向穿越整个系统去训练每一个组件。
           </p>
         </div>
-        <p>
-          这篇技术报告并非在某个具体任务上取得 SOTA，而是提出了一套<strong>系统架构蓝图</strong>，
-          试图回答：机器要达到类人的常识推理和规划能力，缺少的是什么？
-        </p>
-      </div>
 
-      <!-- §2 Motivation -->
-      <div class="section" id="motivation">
-        <div class="section-num">§ 02</div>
-        <h2>为什么写这篇论文？</h2>
-        <p>
-          LeCun 的出发点是对当前深度学习路线的不满。他认为：
-        </p>
-        <div class="callout amber">
-          <div class="callout-label">LeCun 的核心批评</div>
+        <div class="fig-block">
+          <img src="../assets/figures/lecun/page-06.png" alt="Figure 2: System architecture for autonomous intelligence">
+          <div class="fig-cap">
+            <span class="fig-num">Fig 2 · p.6</span>
+            A system architecture for autonomous intelligence. All modules are assumed to be "differentiable".
+            <span class="fig-cn">
+              架构总图：六大模块（Configurator 配置器 / Perception 感知 / World Model 世界模型 / Cost 代价 / Short-term Memory 短期记忆 / Actor 行动者）+ 环境。所有箭头方向都可反向传播梯度。
+            </span>
+          </div>
+        </div>
+
+        <h3 id="arch-modules">2.1 六大模块定义</h3>
+
+        <p>点下面的 tab 切换查看每个模块：</p>
+
+        <div class="tab-switcher" id="modules-switcher">
+          <div class="tabs">
+            <div class="tab active" data-tab="conf">Configurator</div>
+            <div class="tab" data-tab="perc">Perception</div>
+            <div class="tab" data-tab="wm">World Model</div>
+            <div class="tab" data-tab="cost">Cost</div>
+            <div class="tab" data-tab="mem">Short-term Memory</div>
+            <div class="tab" data-tab="actor">Actor</div>
+          </div>
+
+          <div class="panel active" data-panel="conf">
+            <h4>配置器 · Configurator</h4>
+            <p>
+              接收所有其他模块的输入，根据"<strong>当前任务</strong>"（task at hand）去
+              <strong>调制（modulate）</strong>其他模块的参数和注意力回路。
+              通俗讲：上面下一个任务给智能体，配置器先去"调好"感知/世界模型/代价模块，让它们聚焦相关信息，然后才开始感知-行动循环。
+            </p>
+            <details class="en-quote">
+              <summary>原文</summary>
+              <div class="quote-body">
+                "The configurator module takes input from all other modules and configures them for
+                the task at hand by modulating their parameters and their attention circuits."
+                <div class="quote-cite">— §3, p.7</div>
+              </div>
+            </details>
+          </div>
+
+          <div class="panel" data-panel="perc">
+            <h4>感知 · Perception</h4>
+            <p>
+              从传感器原始信号估计<strong>世界当前状态</strong>。论文强调一点：
+              对任何任务，感知到的东西里只有一小部分是相关的——所以配置器会
+              <strong>引导感知系统只提取"任务相关"的信息</strong>。感知输出可以分层（hierarchical），
+              代表多个抽象层级。
+            </p>
+          </div>
+
+          <div class="panel" data-panel="wm">
+            <h4>世界模型 · World Model</h4>
+            <p>
+              整个架构里<strong>最复杂</strong>的模块。功能双重：
+            </p>
+            <ol>
+              <li><strong>补全</strong>感知没给的信息（estimate missing information）</li>
+              <li><strong>预测未来</strong>：给定 Actor 提议的动作序列，预测未来世界状态 s[1], s[2]…</li>
+            </ol>
+            <p>
+              它必须能表示<strong>多种可能的预测</strong>——因为现实不完全可预测。论文用
+              <span class="term" data-en="latent variables">潜变量</span> z 来吸收"不可预测的细节"。
+              这个模块是后续 §3 整章 JEPA 的主角。
+            </p>
+            <details class="en-quote">
+              <summary>原文 · 关键难题</summary>
+              <div class="quote-body">
+                "A key issue is that the world model must be able to represent multiple possible
+                predictions of the world state. The natural world is not entirely predictable. ...
+                There are two essential questions to answer when building the proposed architectures:
+                (1) How to allow the world model to make multiple plausible prediction and represent
+                uncertainty in the predictions, and (2) how to train the world model."
+                <div class="quote-cite">— §3, p.7</div>
+              </div>
+            </details>
+          </div>
+
+          <div class="panel" data-panel="cost">
+            <h4>代价 · Cost</h4>
+            <p>
+              输出一个标量"<strong>能量</strong>"（energy）衡量智能体此刻"不爽"的程度。
+              <strong>目标：让长期平均能量最低。</strong>由两个子模块构成：
+            </p>
+            <ul>
+              <li><strong>Intrinsic Cost（内禀代价）</strong>：硬编码、不可训练。痛苦=高能量，愉悦=低能量。这是基本驱动（drives）的来源。</li>
+              <li><strong>Trainable Critic（可训练评论家）</strong>：预测未来的内禀代价，类似 RL 的 value function。</li>
+            </ul>
+            <p>详细结构看 <a href="#arch-cost" style="color:var(--accent);">§2.5</a>（Fig 6）。</p>
+          </div>
+
+          <div class="panel" data-panel="mem">
+            <h4>短期记忆 · Short-term Memory</h4>
+            <p>
+              存储过去/当前/预测的世界状态和对应的内禀代价值。World Model 在做时序预测或空间补全时
+              读写它；Critic 从中检索历史"状态-代价"对来训练自身。
+              架构类似 <strong>Key-Value Memory Networks</strong>，可以视作脊椎动物海马体（hippocampus）的类比物。
+            </p>
+          </div>
+
+          <div class="panel" data-panel="actor">
+            <h4>行动者 · Actor</h4>
+            <p>
+              输出动作。两种工作方式：
+            </p>
+            <ul>
+              <li><strong>Policy 模式（System 1，直觉）</strong>：a[0] = A(s[0])，一步出动作，不调用 World Model。</li>
+              <li><strong>优化模式（System 2，慢思考）</strong>：提议动作序列 → World Model 预测未来 → Cost 评估 → 反向传播梯度优化动作 → 找到最优序列，执行第一个。这就是 <span class="term" data-en="model-predictive control">模型预测控制（MPC）</span>。</li>
+            </ul>
+          </div>
+        </div>
+
+        <!-- ═════════════════════════════════════════════════ -->
+        <h3 id="arch-mode1">2.2 Mode-1：反应式感知-动作</h3>
+
+        <div class="cn-read">
+          <div class="cn-label">直觉理解</div>
           <p>
-            纯粹的监督学习（supervised learning）和当前的大语言模型（LLM），
-            即使训练数据量无限扩大，也无法获得真正的<strong>因果推理</strong>和<strong>世界理解</strong>能力。
-            它们缺少对世界物理规律的内部模型。
+            最简单的工作模式：<strong>看到 → 编码 → 直接出动作</strong>，不调用世界模型，不规划。
+            类比 Kahneman《思考快与慢》的"<strong>系统一</strong>"：本能反应、不假思索。
+            训练好了的策略就长这样——你伸手接球时不会先在脑子里 simulate 球的轨迹再决定手放哪。
           </p>
         </div>
-        <p>
-          他提出，婴儿能够在数月内学会重力、物体永久性等物理概念，
-          主要通过<strong>观察</strong>而非显式监督——这启示我们需要不同的学习范式。
-        </p>
-        <table class="kv-table">
-          <tr><td>当前 LLM 范式</td><td>自回归预测下一个 token，无显式世界状态，推理靠记忆映射</td></tr>
-          <tr><td>LeCun 提议的范式</td><td>维护世界状态表示，用 World Model 模拟未来，用 Cost 评估行动</td></tr>
-          <tr><td>类比</td><td>LLM ≈ 只靠背书应试；LeCun 架构 ≈ 真正理解物理再做题</td></tr>
-        </table>
-      </div>
 
-      <!-- §3 Architecture -->
-      <div class="section" id="architecture">
-        <div class="section-num">§ 03</div>
-        <h2>架构概览</h2>
-        <p>
-          整个系统由六个模块组成，所有模块都被假设为<strong>可微分</strong>（differentiable），
-          这意味着代价（Cost）的梯度可以反向传播（backpropagate）穿越所有模块，驱动学习。
-        </p>
-
-        <div class="arch-svg-wrap">
-          <svg width="100%" viewBox="0 0 680 320" role="img">
-            <title>LeCun 架构信息流示意</title>
-            <defs>
-              <marker id="arr" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
-                <path d="M2 1L8 5L2 9" fill="none" stroke="context-stroke" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
-              </marker>
-            </defs>
-            <!-- Configurator -->
-            <rect x="240" y="20" width="200" height="40" rx="8" fill="rgba(96,165,250,0.1)" stroke="rgba(96,165,250,0.4)" stroke-width="1"/>
-            <text x="340" y="45" text-anchor="middle" font-family="'JetBrains Mono',monospace" font-size="13" fill="#60a5fa">Configurator 配置器</text>
-            <!-- Configurator → others -->
-            <line x1="240" y1="60" x2="110" y2="130" stroke="rgba(96,165,250,0.3)" stroke-width="1" marker-end="url(#arr)"/>
-            <line x1="300" y1="60" x2="290" y2="130" stroke="rgba(96,165,250,0.3)" stroke-width="1" marker-end="url(#arr)"/>
-            <line x1="380" y1="60" x2="460" y2="130" stroke="rgba(96,165,250,0.3)" stroke-width="1" marker-end="url(#arr)"/>
-            <line x1="420" y1="60" x2="570" y2="130" stroke="rgba(96,165,250,0.3)" stroke-width="1" marker-end="url(#arr)"/>
-
-            <!-- Perception -->
-            <rect x="40" y="130" width="140" height="40" rx="8" fill="rgba(167,139,250,0.1)" stroke="rgba(167,139,250,0.4)" stroke-width="1"/>
-            <text x="110" y="155" text-anchor="middle" font-family="'JetBrains Mono',monospace" font-size="12" fill="#a78bfa">Perception 感知</text>
-
-            <!-- Short-term Memory -->
-            <rect x="220" y="130" width="140" height="40" rx="8" fill="rgba(245,158,11,0.1)" stroke="rgba(245,158,11,0.4)" stroke-width="1"/>
-            <text x="290" y="151" text-anchor="middle" font-family="'JetBrains Mono',monospace" font-size="11" fill="#f59e0b">Short-term</text>
-            <text x="290" y="165" text-anchor="middle" font-family="'JetBrains Mono',monospace" font-size="11" fill="#f59e0b">Memory 短期记忆</text>
-
-            <!-- World Model -->
-            <rect x="400" y="130" width="140" height="40" rx="8" fill="rgba(46,196,182,0.1)" stroke="rgba(46,196,182,0.4)" stroke-width="1"/>
-            <text x="470" y="155" text-anchor="middle" font-family="'JetBrains Mono',monospace" font-size="12" fill="#2ec4b6">World Model 世界模型</text>
-
-            <!-- Cost -->
-            <rect x="570" y="130" width="100" height="40" rx="8" fill="rgba(255,107,107,0.1)" stroke="rgba(255,107,107,0.4)" stroke-width="1"/>
-            <text x="620" y="151" text-anchor="middle" font-family="'JetBrains Mono',monospace" font-size="11" fill="#ff6b6b">Cost</text>
-            <text x="620" y="165" text-anchor="middle" font-family="'JetBrains Mono',monospace" font-size="11" fill="#ff6b6b">代价</text>
-
-            <!-- Actor -->
-            <rect x="240" y="240" width="200" height="40" rx="8" fill="rgba(74,222,154,0.1)" stroke="rgba(74,222,154,0.4)" stroke-width="1"/>
-            <text x="340" y="265" text-anchor="middle" font-family="'JetBrains Mono',monospace" font-size="13" fill="#4ade9a">Actor 行动者</text>
-
-            <!-- Arrows -->
-            <line x1="180" y1="150" x2="218" y2="150" stroke="rgba(167,139,250,0.5)" stroke-width="1" marker-end="url(#arr)"/>
-            <line x1="360" y1="150" x2="398" y2="150" stroke="rgba(245,158,11,0.5)" stroke-width="1" marker-end="url(#arr)"/>
-            <line x1="540" y1="150" x2="568" y2="150" stroke="rgba(46,196,182,0.5)" stroke-width="1" marker-end="url(#arr)"/>
-            <!-- World Model → Actor -->
-            <path d="M470 170 Q470 210 440 238" fill="none" stroke="rgba(46,196,182,0.4)" stroke-width="1" marker-end="url(#arr)"/>
-            <!-- Actor → World Model (propose) -->
-            <path d="M380 252 Q420 225 398 172" fill="none" stroke="rgba(74,222,154,0.4)" stroke-width="1" stroke-dasharray="4 3" marker-end="url(#arr)"/>
-            <!-- Cost → Actor -->
-            <path d="M600 170 Q600 230 442 258" fill="none" stroke="rgba(255,107,107,0.4)" stroke-width="1" marker-end="url(#arr)"/>
-            <!-- Perception → Actor -->
-            <path d="M140 170 Q200 220 238 250" fill="none" stroke="rgba(167,139,250,0.4)" stroke-width="1" marker-end="url(#arr)"/>
-
-            <!-- Environment -->
-            <rect x="260" y="300" width="160" height="14" rx="4" fill="none" stroke="rgba(255,255,255,0.1)" stroke-width="1"/>
-            <text x="340" y="311" text-anchor="middle" font-family="'Inter',sans-serif" font-size="10" fill="rgba(255,255,255,0.3)">环境 Environment</text>
-            <line x1="340" y1="280" x2="340" y2="298" stroke="rgba(74,222,154,0.4)" stroke-width="1" marker-end="url(#arr)"/>
-            <path d="M260 307 Q80 307 80 170" fill="none" stroke="rgba(167,139,250,0.25)" stroke-width="1" marker-end="url(#arr)"/>
-          </svg>
-          <div class="diagram-caption">图：LeCun 自主智能架构信息流（蓝色虚线 = Configurator 配置信号；红色 = 梯度反向传播）</div>
-        </div>
-
-        <p>
-          所有模块之间通过箭头连接的方向，都可以反向传播梯度——这是这个架构的关键设计原则，
-          使得<strong>端到端可微分学习</strong>（end-to-end differentiable learning）成为可能。
-        </p>
-      </div>
-
-      <!-- §4 Modules -->
-      <div class="section" id="modules">
-        <div class="section-num">§ 04</div>
-        <h2>六大模块精读</h2>
-
-        <div class="module-explorer">
-          <div class="module-tabs">
-            <div class="module-tab active" onclick="switchTab('configurator')">Configurator</div>
-            <div class="module-tab" onclick="switchTab('perception')">Perception</div>
-            <div class="module-tab" onclick="switchTab('worldmodel')">World Model</div>
-            <div class="module-tab" onclick="switchTab('cost')">Cost</div>
-            <div class="module-tab" onclick="switchTab('memory')">Memory</div>
-            <div class="module-tab" onclick="switchTab('actor')">Actor</div>
-          </div>
-
-          <div id="tab-configurator" class="module-content active">
-            <h3>配置器</h3>
-            <div class="en">CONFIGURATOR MODULE</div>
-            <p>
-              接收所有其他模块的输入，根据当前任务（task at hand）对其他模块进行<strong>配置</strong>——调制（modulate）它们的参数和注意力回路（attention circuits）。
-            </p>
-            <p>
-              它可以"引导"（prime）感知、世界模型和代价模块去聚焦特定目标。
-              这是<strong>执行控制</strong>（executive control）的核心：接到任务后，先配置其他模块，系统才开始感知-行动循环。
-            </p>
-            <div class="callout blue">
-              <div class="callout-label">类比</div>
-              <p>前额叶皮层（prefrontal cortex）——负责任务切换、注意力分配、目标设定。这是当前 VLA 系统中<strong>基本缺失</strong>的模块。</p>
-            </div>
-            <div class="tag-row">
-              <span class="m-tag amber">所有模块的"总指挥"</span>
-              <span class="m-tag blue">调制参数 + 注意力</span>
-            </div>
-          </div>
-
-          <div id="tab-perception" class="module-content">
-            <h3>感知模块</h3>
-            <div class="en">PERCEPTION MODULE</div>
-            <p>
-              接收传感器原始信号，估计世界的<strong>当前状态</strong>（current state of the world）。
-              对于给定任务，只有感知到的一小部分是相关的——Configurator 会引导感知系统只提取当前任务所需的信息。
-            </p>
-            <p>
-              感知模块可以以<strong>分层</strong>（hierarchical）方式表示世界状态，具备多个抽象层次。
-            </p>
-            <div class="callout purple">
-              <div class="callout-label">对应 VLA</div>
-              <p>视觉编码器（SigLIP / ViT）+ 语言理解部分，输出状态表示 <code>s[0] = Enc(x)</code>。</p>
-            </div>
-            <div class="tag-row">
-              <span class="m-tag green">可训练</span>
-              <span class="m-tag">输出：状态表示 s[0]</span>
-            </div>
-          </div>
-
-          <div id="tab-worldmodel" class="module-content">
-            <h3>世界模型</h3>
-            <div class="en">WORLD MODEL MODULE</div>
-            <p>架构中<strong>最复杂</strong>的模块，功能双重：</p>
-            <p>
-              <strong>① 补全缺失信息</strong>：估计感知模块未能提供的世界状态信息。<br>
-              <strong>② 预测未来状态</strong>：给定 Actor 提议的动作序列，预测可能的未来世界状态 s[1], s[2]…
-            </p>
-            <p>
-              它用<strong>潜变量</strong>（latent variables）表示预测的不确定性，可输出多种可能的未来——
-              这是 LeCun 强调的关键难题：自然世界的不可完全预测性。
-            </p>
-            <div class="callout">
-              <div class="callout-label">关键难题</div>
-              <p>如何让 World Model 表示多种可能的预测？如何在高维连续空间中训练 World Model？这是 JEPA（Joint Embedding Predictive Architecture）试图回答的问题。</p>
-            </div>
-            <div class="tag-row">
-              <span class="m-tag green">可训练</span>
-              <span class="m-tag amber">核心模块</span>
-              <span class="m-tag red">当前 VLA 中隐式存在</span>
-            </div>
-          </div>
-
-          <div id="tab-cost" class="module-content">
-            <h3>代价模块</h3>
-            <div class="en">COST MODULE</div>
-            <p>
-              用一个标量"<strong>能量</strong>"（energy）衡量智能体的"不适程度"（discomfort）。
-              由两个子模块组成：
-            </p>
-            <p>
-              <strong>内禀代价（Intrinsic Cost）</strong>：<span class="m-tag red" style="display:inline">不可训练 / 硬编码</span><br>
-              计算即时不适感，如痛苦（高能量）、愉悦（低/负能量）、饥饿等。
-              这是基本行为驱动（drives）和内在动机（intrinsic motivations）的来源。
-            </p>
-            <p>
-              <strong>可训练评论家（Trainable Critic）</strong>：<span class="m-tag green" style="display:inline">可训练</span><br>
-              预测未来的内禀代价，类似 RL 中的 value function / critic network。
-            </p>
-            <div class="callout amber">
-              <div class="callout-label">类比</div>
-              <p>Intrinsic Cost ≈ 生物本能（痛觉、饥饿）；Critic ≈ 学习得来的价值判断。两者都可以反向传播梯度。</p>
-            </div>
-            <div class="tag-row">
-              <span class="m-tag">目标：最小化长期平均能量</span>
-              <span class="m-tag green">可反向传播梯度</span>
-            </div>
-          </div>
-
-          <div id="tab-memory" class="module-content">
-            <h3>短期记忆</h3>
-            <div class="en">SHORT-TERM MEMORY MODULE</div>
-            <p>
-              存储过去、当前和预测的世界状态，以及对应的内禀代价值。
-              World Model 在做时序预测或空间补全时会读写此模块；
-              Critic 从中检索历史状态-代价对来训练自身。
-            </p>
-            <p>
-              架构类似 <strong>Key-Value Memory Networks</strong>，
-              可以视为海马体（hippocampus）在脊椎动物中的类比物。
-            </p>
-            <div class="tag-row">
-              <span class="m-tag">读 / 写</span>
-              <span class="m-tag blue">类比：海马体</span>
-            </div>
-          </div>
-
-          <div id="tab-actor" class="module-content">
-            <h3>行动者模块</h3>
-            <div class="en">ACTOR MODULE</div>
-            <p>计算并输出动作序列提议。Actor 有两种工作模式：</p>
-            <p>
-              <strong>① Policy 模式（System 1，直觉）</strong>：直接从 s[0] 计算 a[0] = A(s)，快速反应，不调用 World Model。
-            </p>
-            <p>
-              <strong>② 优化模式（System 2，慢思考）</strong>：提议动作序列 → World Model 预测未来状态 → Cost 评估能量 → 梯度优化动作序列（<strong>model-predictive control</strong>），找到最优动作，执行第一个。
-            </p>
-            <div class="callout">
-              <div class="callout-label">对应 VLA</div>
-              <p>Action Expert / Flow Matching 输出头。π₀ 的 flow matching 可以视为 Policy 模式（System 1）的一种实现，但没有显式的 World Model 推演。</p>
-            </div>
-            <div class="tag-row">
-              <span class="m-tag green">可训练</span>
-              <span class="m-tag">输出：action → 环境</span>
-            </div>
+        <div class="fig-block">
+          <img src="../assets/figures/lecun/page-09.png" alt="Figure 3: Mode-1 perception-action episode">
+          <div class="fig-cap">
+            <span class="fig-num">Fig 3 · p.9</span>
+            Mode-1 perception-action episode. Perception estimates s[0]=Enc(x); Actor directly computes a[0]=A(s[0]).
+            <span class="fig-cn">
+              环境 x → 编码 Enc(x) → 状态 s[0] → 策略 A(s) → 动作 a[0] → 环境。可选地用 Pred(s[0],a[0]) 预测下一状态 s[1] 存进记忆，下次观测来了校正世界模型。
+            </span>
           </div>
         </div>
-      </div>
 
-      <!-- §5 Mode-1 -->
-      <div class="section" id="mode1">
-        <div class="section-num">§ 05</div>
-        <h2>Mode-1：感知-动作片段</h2>
-        <p>
-          论文 Figure 3 展示了最简单的工作模式——<strong>反应式感知-动作片段</strong>（reactive perception-action episode），
-          不调用 World Model，直接从感知输出动作：
-        </p>
-        <div class="flow-row">
-          <span class="flow-node">x <span style="color:var(--text3); font-size:10px">原始观测</span></span>
-          <span class="flow-arrow">→</span>
-          <span class="flow-node active">Enc(x) <span style="color:var(--text3); font-size:10px">感知编码</span></span>
-          <span class="flow-arrow">→</span>
-          <span class="flow-node">s[0] <span style="color:var(--text3); font-size:10px">世界状态</span></span>
-          <span class="flow-arrow">→</span>
-          <span class="flow-node active">A(s) <span style="color:var(--text3); font-size:10px">Policy</span></span>
-          <span class="flow-arrow">→</span>
-          <span class="flow-node">a[0] <span style="color:var(--text3); font-size:10px">动作</span></span>
-          <span class="flow-arrow">→</span>
-          <span class="flow-node">环境</span>
-        </div>
-        <p>
-          可选地，系统会用 <code>Pred(s[0], a[0])</code> 预测下一状态 s[1]，
-          并用代价模块计算 C(s[0])，存入短期记忆。这样在下一次观测到来时，
-          World Model 可以对齐校正自身。
-        </p>
-        <div class="callout amber">
-          <div class="callout-label">System 1 vs System 2</div>
+        <details class="en-quote">
+          <summary>展开原文 · Mode-1 描述</summary>
+          <div class="quote-body">
+            "The first one involves no complex reasoning, and produces an action directly from the
+            output of the perception and a possible short-term memory access. We will call it 'Mode-1',
+            by analogy with Kahneman's 'System 1'."
+            <div class="quote-cite">— §3.1, p.9</div>
+          </div>
+        </details>
+
+        <!-- ═════════════════════════════════════════════════ -->
+        <h3 id="arch-mode2">2.3 Mode-2：推理与规划</h3>
+
+        <div class="cn-read">
+          <div class="cn-label">直觉理解</div>
           <p>
-            Mode-1 对应 Kahneman 的"系统一"（System 1）——快速、直觉式、无需深度规划。
-            当 Actor 使用梯度优化找最优动作序列时，则对应"系统二"（System 2）。
+            慢思考。Actor 提议一整个动作序列 a[0…T] → 世界模型递归预测每一步状态
+            s[1], s[2]…s[T] → Cost 在每一步算能量 → 总能量 F(x)=∑C(s[t]) → <strong>用梯度反向传播去优化整个动作序列</strong>，找到最低代价的那条 → 执行第一个动作 → 重新感知 → 再来一遍。
+            这就是控制论里的 <strong>Model-Predictive Control（MPC）+ receding horizon</strong>，
+            只不过这里世界模型和代价都是<strong>学到的、可微分的</strong>，不是手写的。
           </p>
         </div>
-      </div>
 
-      <!-- §6 Cost design -->
-      <div class="section" id="cost">
-        <div class="section-num">§ 06</div>
-        <h2>代价模块与驱动设计</h2>
-        <p>
-          LeCun 在论文中给出了一些 Intrinsic Cost 的设计例子，说明如何通过硬编码驱动来塑造行为：
-        </p>
+        <div class="fig-block">
+          <img src="../assets/figures/lecun/page-11.png" alt="Figure 4: Mode-2 perception-action episode">
+          <div class="fig-cap">
+            <span class="fig-num">Fig 4 · p.11</span>
+            Mode-2 perception-action episode. World model recursively predicts s[t+1]=Pred(s[t], a[t]); Cost C(s[t]) at each step; total energy F(x)=∑C(s[t]); gradient-based optimization over action sequence.
+            <span class="fig-cn">
+              横向展开：编码器只用一次，预测器 Pred 沿时间链式滚动，每一步都喂给 Cost。整个图就是一张计算图，能对动作变量求导。
+            </span>
+          </div>
+        </div>
+
+        <h4>Mode-2 七步流程（论文原文）</h4>
+        <ol>
+          <li><strong>perception</strong>：s[0] = P(x)，Cost 算并存当前状态的代价</li>
+          <li><strong>action proposal</strong>：Actor 提议初始动作序列 (a[0],...,a[T])</li>
+          <li><strong>simulation</strong>：World Model 预测出 (s[1],...,s[T])</li>
+          <li><strong>evaluation</strong>：Cost 算总能量 F(x) = ∑C(s[t])</li>
+          <li><strong>planning</strong>：反传梯度，更新动作 → 得到最优序列 (â[0],...,â[T])</li>
+          <li><strong>acting</strong>：执行 â[0]（或前几步）</li>
+          <li><strong>memory</strong>：状态-代价对存入短期记忆，用于以后训练 Critic</li>
+        </ol>
+
+        <div class="cn-read">
+          <div class="cn-label">关键洞察</div>
+          <p>
+            Mode-2 等价于<strong>"推理 = 能量最小化"</strong>（reasoning as energy minimization）。
+            这是 LeCun 反复强调的统一视角：经典 AI 里很多形式的推理（约束满足、概率推断等）
+            都可以套进"找让某个能量最小的变量赋值"这个模子。
+          </p>
+        </div>
+
+        <!-- ═════════════════════════════════════════════════ -->
+        <h3 id="arch-skill">2.4 学新技能：Mode-2 → Mode-1 蒸馏</h3>
+
+        <div class="cn-read">
+          <div class="cn-label">直觉理解</div>
+          <p>
+            Mode-2 太累——每个动作要在脑子里 rollout + 优化一遍。论文给了一个很优雅的解决方案：
+            <strong>把 Mode-2 找出来的最优动作，拿去训练一个 policy 网络去模仿它</strong>。
+            训练好之后，下次遇到类似情况，policy 一步就给出近似最优动作（Mode-1 模式）。
+            这本质上就是<strong>把"思考"编译成"直觉"</strong>——人类学技能的过程：第一次开车要想每一步，
+            练熟了就完全不过脑了。论文管这个叫 <span class="term" data-en="amortized inference">摊销推理（amortized inference）</span>。
+          </p>
+        </div>
+
+        <div class="fig-block">
+          <img src="../assets/figures/lecun/page-13.png" alt="Figure 5: Training a reactive policy from Mode-2 results">
+          <div class="fig-cap">
+            <span class="fig-num">Fig 5 · p.12</span>
+            Training a reactive policy module A(s) from Mode-2 reasoning results. Minimize divergence D(â[t], A(s[t])).
+            <span class="fig-cn">
+              先跑 Mode-2 拿到最优动作 â[0…T]，再训练 policy A(s[t]) 让它的输出尽量接近 â[t]。训练好之后 A 可以单独用，跳过整个规划过程。
+            </span>
+          </div>
+        </div>
+
+        <!-- ═════════════════════════════════════════════════ -->
+        <h3 id="arch-cost">2.5 Cost 模块的内部结构</h3>
+
+        <div class="cn-read">
+          <div class="cn-label">这一节讲什么</div>
+          <p>
+            前面知道 Cost = Intrinsic Cost (IC) + Trainable Critic (TC)，这一节给出更细的结构：
+            <strong>每一类都由多个子模块组成，输出按权重线性组合</strong>，权重由 Configurator 设置——
+            这就是为什么"同一个智能体在不同任务下行为不同"：配置器把不同子代价的权重调高调低。
+          </p>
+        </div>
+
+        <div class="fig-block">
+          <img src="../assets/figures/lecun/page-13.png" alt="Figure 6: Cost module architecture">
+          <div class="fig-cap">
+            <span class="fig-num">Fig 6 · p.13</span>
+            C(s) = IC(s) + TC(s); IC(s) = Σ uᵢ·ICᵢ(s); TC(s) = Σ vⱼ·TCⱼ(s). Weights u,v set by configurator.
+            <span class="fig-cn">
+              左边是不可训练的内禀代价子模块（疼、饿、跌倒...），右边是可训练的评论家子模块。Configurator 通过调权重 u, v 让智能体在不同时刻关注不同子目标。
+            </span>
+          </div>
+        </div>
+
+        <h4>Intrinsic Cost 设计举例（论文给的 use case）</h4>
         <div class="module-grid">
           <div class="module-card">
-            <div class="module-card-name">低能量驱动（奖励）</div>
-            <div class="module-card-title">保持直立 → 驱使机器人行走</div>
-            <div class="module-card-desc">当腿式机器人站立时能量低；跌倒时能量高。无需显式编程"学走路"。</div>
+            <div class="module-card-name">低能量驱动</div>
+            <div class="module-card-title">站立 → 学走路</div>
+            <div class="module-card-desc">站立时能量低，跌倒时能量高。腿式机器人会自然学到走路。</div>
           </div>
           <div class="module-card">
-            <div class="module-card-name">低能量驱动（奖励）</div>
-            <div class="module-card-title">感知他人喜悦 → 驱使共情行为</div>
-            <div class="module-card-desc">当附近人表现出快乐时能量低，驱使 agent 主动促进他人快乐。</div>
+            <div class="module-card-name">低能量驱动</div>
+            <div class="module-card-title">人类喜悦 → 共情</div>
+            <div class="module-card-desc">附近人开心时能量低 → 推动智能体促进他人快乐。</div>
           </div>
           <div class="module-card">
-            <div class="module-card-name">低能量驱动（奖励）</div>
-            <div class="module-card-title">遭遇新情境 → 驱使好奇心探索</div>
-            <div class="module-card-desc">新颖情境触发低能量，驱动探索，对应内在动机（intrinsic motivation）研究。</div>
+            <div class="module-card-name">低能量驱动</div>
+            <div class="module-card-title">新情境 → 好奇心</div>
+            <div class="module-card-desc">新颖触发低能量 → 探索行为，对应内在动机研究。</div>
           </div>
           <div class="module-card">
-            <div class="module-card-name">高能量（惩罚）</div>
-            <div class="module-card-title">靠近危险 → 回避行为</div>
-            <div class="module-card-desc">靠近极端高温、火源等立即触发高能量，无需强化学习反复试错。</div>
+            <div class="module-card-name">高能量惩罚</div>
+            <div class="module-card-title">靠近危险 → 回避</div>
+            <div class="module-card-desc">极端高温/火源立即触发高能量，无需 RL 反复试错。</div>
           </div>
         </div>
-        <p>
-          这种设计的优雅之处在于：<strong>不需要为每个任务单独设计奖励函数</strong>——
-          只需设计底层驱动，具体的行为策略通过 Actor + World Model 的规划自然涌现。
-        </p>
-      </div>
 
-      <!-- §7 JEPA Deep Dive -->
-      <div class="section" id="jepa">
-        <div class="section-num">§ 07</div>
-        <h2>JEPA 深入：能量模型与非生成式预测</h2>
+        <details class="en-quote">
+          <summary>展开原文 · 行为指定的四种方式</summary>
+          <div class="quote-body">
+            "In general, the behavioral nature of an AI agent can be specified in four ways:
+            (1) by explicitly programming a specific behavior;
+            (2) by defining an objective function such that minimizing it produces the behavior;
+            (3) by training the agent to behave a certain way through direct supervision;
+            (4) by training through imitation learning (inverse reinforcement learning)."
+            <div class="quote-cite">— §3.2, p.14</div>
+          </div>
+        </details>
 
-        <p>
-          这是论文最具技术含量、也最常被单独引用的部分。LeCun 在这里给出了 World Model 的具体形式：
-          <strong>JEPA</strong>（Joint-Embedding Predictive Architecture，联合嵌入预测架构）。
-          它是后续 I-JEPA（图像，2023）、V-JEPA（视频，2024）一系列工作的<strong>奠基蓝图</strong>。
-        </p>
+        <!-- ═════════════════════════════════════════════════ -->
+        <h3 id="arch-critic">2.6 训练 Critic（可训练评论家）</h3>
 
-        <div class="callout">
-          <div class="callout-label">一句话定义</div>
+        <div class="cn-read">
+          <div class="cn-label">直觉理解</div>
           <p>
-            JEPA = 不在<strong>像素空间</strong>预测未来，而是把输入 x 和未来 y 各自编码成<strong>抽象表示</strong> s_x、s_y，
-            然后训练一个预测器 Pred 让 <code>Pred(s_x, z) ≈ s_y</code>，其中 z 是<strong>潜变量</strong>，吸收所有不可预测的细节。
+            Critic 的作用：<strong>不用真的把 World Model 跑很多步，就能预测未来的内禀代价</strong>。
+            训练方法：在做 Mode-2 规划的时候，把每一步的 (时刻 τ, 状态 s_τ, 内禀代价 IC(s_τ)) 这种三元组
+            存到短期记忆里。训练 Critic 时从记忆里抽一个 s_τ，让 Critic 预测出 δ 步之后的 IC(s_{τ+δ})——
+            最小化预测值和真实值的差异。论文说这跟 RL 里 A2C 训练 critic 的思路相同。
           </p>
         </div>
 
-        <h3 style="font-family:var(--font-serif); font-size:17px; margin:24px 0 10px; color:var(--text);">7.1 能量模型（EBM）：统一框架</h3>
-        <p>
-          LeCun 把整个学习问题套进 <strong>EBM</strong>（Energy-Based Model）框架。EBM 不直接输出概率，而是给每对 (x, y) 一个标量"能量" <code>F(x, y)</code>：
-          兼容的对能量低，不兼容的对能量高。预测就是找让能量最小的 y。
-        </p>
-        <table class="kv-table">
-          <tr><td>概率模型</td><td>必须归一化（partition function 难算），强迫给所有 y 配概率</td></tr>
-          <tr><td>EBM</td><td>只需要相对能量：低能量 = "对的"，高能量 = "错的"，无需归一化</td></tr>
-          <tr><td>类比</td><td>不要求"打分总和=100"，只要求"对的方案分数低、错的方案分数高"</td></tr>
-        </table>
-
-        <h3 style="font-family:var(--font-serif); font-size:17px; margin:24px 0 10px; color:var(--text);">7.2 三种架构对比</h3>
-        <p>
-          在能量模型框架下，"如何根据 x 预测 y" 有三种可能的架构。LeCun 力推第三种。
-        </p>
-        <div class="module-grid">
-          <div class="module-card">
-            <div class="module-card-name">① GENERATIVE · 生成式</div>
-            <div class="module-card-title">Decoder 从 x 直接生成 y</div>
-            <div class="module-card-desc">
-              在像素/原始空间预测 ŷ = Dec(x, z)，能量 = ‖y − ŷ‖。<br>
-              <span style="color:var(--accent3)">问题：</span>逼 decoder 去精确画出树叶的每一根脉络、人脸的每一根头发——浪费容量在不可预测细节上。
-            </div>
+        <details class="en-quote">
+          <summary>展开原文 · Critic 训练目标</summary>
+          <div class="quote-body">
+            "The parameters of the critic can be optimized to minimize a prediction loss, for example
+            ‖IC(s_{τ+δ}) − TC(s_τ)‖². This is a simple scenario. ... At a general level, this is
+            similar to critic training methods used in such reinforcement learning approaches as A2C."
+            <div class="quote-cite">— §3.3, p.15</div>
           </div>
-          <div class="module-card">
-            <div class="module-card-name">② CONTRASTIVE · 对比式</div>
-            <div class="module-card-title">把正样本拉近、负样本推开</div>
-            <div class="module-card-desc">
-              SimCLR、MoCo 等。<br>
-              <span style="color:var(--accent3)">问题：</span>需要构造大量负样本（negative samples），高维空间下负样本数随维度指数增长，难 scale。
-            </div>
-          </div>
-          <div class="module-card">
-            <div class="module-card-name">③ JEPA · 联合嵌入预测 ⭐</div>
-            <div class="module-card-title">在抽象空间预测，无需重建</div>
-            <div class="module-card-desc">
-              s_x = Enc(x), s_y = Enc(y), 训练 <code>Pred(s_x, z) ≈ s_y</code>。<br>
-              <span style="color:var(--accent)">优势：</span>encoder 自动学会丢弃不可预测的低层细节；不需要负样本，靠正则项防坍缩。
-            </div>
-          </div>
+        </details>
+
+        <!-- ═════════════════════════════════════════════════ -->
+        <h2 id="arch-mermaid">本节小结：信号流图</h2>
+
+        <p>用 Mermaid 把 Mode-2 的一次完整 cycle 画成数据流（你可以对照 Fig 4 看）：</p>
+
+        <div class="fig-block" style="background:var(--bg2);">
+          <pre class="mermaid">
+flowchart LR
+    ENV[环境 x] --> ENC[Perception<br/>Enc x]
+    ENC --> S0[s 0]
+    S0 --> ACT{Actor<br/>提议 a_0..T}
+    ACT -- 动作序列 --> WM[World Model<br/>Pred s,a]
+    WM -- 预测状态 --> COST[Cost<br/>C s_t]
+    COST -- 总能量 F --> OPT[反传梯度<br/>优化 a_0..T]
+    OPT -. 更新 .-> ACT
+    ACT -- 最优 a_0 --> ENV
+    COST -. 写入 .-> MEM[Short-term Memory]
+    MEM -. 训练 .-> CRITIC[Critic TC]
+    CONF[Configurator] -. 调制权重 .-> ENC
+    CONF -. 调制 .-> WM
+    CONF -. 调制 .-> COST
+          </pre>
         </div>
 
-        <h3 style="font-family:var(--font-serif); font-size:17px; margin:24px 0 10px; color:var(--text);">7.3 JEPA 数据流</h3>
-        <div class="arch-svg-wrap">
-          <svg width="100%" viewBox="0 0 680 240" role="img">
-            <title>JEPA 数据流示意</title>
-            <defs>
-              <marker id="arr2" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
-                <path d="M2 1L8 5L2 9" fill="none" stroke="context-stroke" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
-              </marker>
-            </defs>
-
-            <!-- x branch -->
-            <rect x="20" y="40" width="80" height="40" rx="6" fill="rgba(167,139,250,0.1)" stroke="rgba(167,139,250,0.4)"/>
-            <text x="60" y="65" text-anchor="middle" font-family="'JetBrains Mono',monospace" font-size="13" fill="#a78bfa">x</text>
-            <text x="60" y="100" text-anchor="middle" font-family="'Inter',sans-serif" font-size="10" fill="#5c5a56">观测 / 当前帧</text>
-
-            <rect x="150" y="40" width="100" height="40" rx="6" fill="rgba(46,196,182,0.1)" stroke="rgba(46,196,182,0.4)"/>
-            <text x="200" y="65" text-anchor="middle" font-family="'JetBrains Mono',monospace" font-size="12" fill="#2ec4b6">Enc_x</text>
-
-            <rect x="300" y="40" width="80" height="40" rx="6" fill="rgba(74,222,154,0.1)" stroke="rgba(74,222,154,0.4)"/>
-            <text x="340" y="65" text-anchor="middle" font-family="'JetBrains Mono',monospace" font-size="13" fill="#4ade9a">s_x</text>
-
-            <!-- y branch -->
-            <rect x="20" y="160" width="80" height="40" rx="6" fill="rgba(167,139,250,0.1)" stroke="rgba(167,139,250,0.4)"/>
-            <text x="60" y="185" text-anchor="middle" font-family="'JetBrains Mono',monospace" font-size="13" fill="#a78bfa">y</text>
-            <text x="60" y="220" text-anchor="middle" font-family="'Inter',sans-serif" font-size="10" fill="#5c5a56">未来 / 目标帧</text>
-
-            <rect x="150" y="160" width="100" height="40" rx="6" fill="rgba(46,196,182,0.1)" stroke="rgba(46,196,182,0.4)" stroke-dasharray="4 3"/>
-            <text x="200" y="185" text-anchor="middle" font-family="'JetBrains Mono',monospace" font-size="12" fill="#2ec4b6">Enc_y</text>
-            <text x="200" y="220" text-anchor="middle" font-family="'Inter',sans-serif" font-size="9" fill="#5c5a56">(EMA / stop-grad)</text>
-
-            <rect x="300" y="160" width="80" height="40" rx="6" fill="rgba(74,222,154,0.1)" stroke="rgba(74,222,154,0.4)"/>
-            <text x="340" y="185" text-anchor="middle" font-family="'JetBrains Mono',monospace" font-size="13" fill="#4ade9a">s_y</text>
-
-            <!-- predictor + latent -->
-            <rect x="430" y="40" width="100" height="40" rx="6" fill="rgba(245,158,11,0.1)" stroke="rgba(245,158,11,0.4)"/>
-            <text x="480" y="65" text-anchor="middle" font-family="'JetBrains Mono',monospace" font-size="12" fill="#f59e0b">Pred</text>
-
-            <rect x="430" y="100" width="100" height="32" rx="6" fill="rgba(96,165,250,0.1)" stroke="rgba(96,165,250,0.4)"/>
-            <text x="480" y="120" text-anchor="middle" font-family="'JetBrains Mono',monospace" font-size="11" fill="#60a5fa">z (latent)</text>
-
-            <rect x="580" y="100" width="80" height="40" rx="6" fill="rgba(255,107,107,0.1)" stroke="rgba(255,107,107,0.4)"/>
-            <text x="620" y="120" text-anchor="middle" font-family="'JetBrains Mono',monospace" font-size="12" fill="#ff6b6b">Energy</text>
-            <text x="620" y="135" text-anchor="middle" font-family="'JetBrains Mono',monospace" font-size="10" fill="#ff6b6b">D(ŝ_y, s_y)</text>
-
-            <!-- arrows -->
-            <line x1="100" y1="60" x2="148" y2="60" stroke="#5c5a56" stroke-width="1" marker-end="url(#arr2)"/>
-            <line x1="250" y1="60" x2="298" y2="60" stroke="#5c5a56" stroke-width="1" marker-end="url(#arr2)"/>
-            <line x1="100" y1="180" x2="148" y2="180" stroke="#5c5a56" stroke-width="1" marker-end="url(#arr2)"/>
-            <line x1="250" y1="180" x2="298" y2="180" stroke="#5c5a56" stroke-width="1" marker-end="url(#arr2)"/>
-            <line x1="380" y1="60" x2="428" y2="60" stroke="rgba(74,222,154,0.5)" stroke-width="1" marker-end="url(#arr2)"/>
-            <line x1="480" y1="100" x2="480" y2="82" stroke="rgba(96,165,250,0.5)" stroke-width="1" marker-end="url(#arr2)"/>
-            <path d="M530 60 Q560 60 580 110" fill="none" stroke="rgba(245,158,11,0.5)" stroke-width="1" marker-end="url(#arr2)"/>
-            <path d="M380 180 Q500 180 580 140" fill="none" stroke="rgba(74,222,154,0.5)" stroke-width="1" marker-end="url(#arr2)"/>
-          </svg>
-          <div class="diagram-caption">图：JEPA 双塔结构。预测发生在抽象表示空间，潜变量 z 吸收不可预测的细节。</div>
+        <!-- ═════════════════════════════════════════════════ -->
+        <h2 id="wm-todo">§3 世界模型与 JEPA</h2>
+        <div class="cn-read">
+          <div class="cn-label">待写</div>
+          <p>下一轮会把论文 §4 整章（SSL → EBM → LVEBM → JEPA → 非对比 SSL → H-JEPA → 规划）按同样格式重写，附 Fig 8/9/10/12/13/15/16/17 原图。</p>
         </div>
 
-        <h3 style="font-family:var(--font-serif); font-size:17px; margin:24px 0 10px; color:var(--text);">7.4 防坍缩：VICReg 系正则</h3>
-        <p>
-          JEPA 的最大风险是<strong>表示坍缩</strong>（representational collapse）——
-          encoder 偷懒，输出常数向量，使 Pred 永远=s_y，loss=0 但什么也没学到。LeCun 提出三个方向的正则：
-        </p>
-        <table class="kv-table">
-          <tr><td>V · Variance</td><td>每个嵌入维度方差 ≥ 阈值，强迫表示"撑开"</td></tr>
-          <tr><td>I · Invariance</td><td>预测 s_y 与真实 s_y 距离最小化（主任务）</td></tr>
-          <tr><td>C · Covariance</td><td>不同维度去相关，避免冗余</td></tr>
-        </table>
-        <p style="margin-top:10px;">
-          对应论文 §8 的 VICReg 训练目标，是 I-JEPA / V-JEPA 实现时的关键工程细节。另一类做法是
-          <strong>非对称结构</strong>（asymmetric）：给 Enc_y 加 stop-gradient 或用 EMA 目标网络（类似 BYOL）。
-        </p>
-
-        <h3 style="font-family:var(--font-serif); font-size:17px; margin:24px 0 10px; color:var(--text);">7.5 Hierarchical JEPA（H-JEPA）</h3>
-        <p>
-          单层 JEPA 只能做一步预测。要支持<strong>长时程规划</strong>（long-horizon planning），
-          LeCun 提议堆叠多层 JEPA：底层做短时间高细节的预测，高层在更抽象的表示上做长时间预测。
-        </p>
-        <div class="callout blue">
-          <div class="callout-label">类比</div>
-          <p>
-            做饭的规划：底层 JEPA 预测"下一秒手会到哪"，中层预测"切完菜后开火"，高层预测"30 分钟后端上桌"。
-            每往上一层，时间步长更大、细节更少、表示更抽象——这正是人类规划的层级结构。
-          </p>
+        <h2 id="critique-todo">§4 设计动机与局限</h2>
+        <div class="cn-read">
+          <div class="cn-label">待写</div>
+          <p>论文 §5+ 的设计 rationale 和未解决问题。</p>
         </div>
 
-        <h3 style="font-family:var(--font-serif); font-size:17px; margin:24px 0 10px; color:var(--text);">7.6 为什么 LeCun 反对生成式 World Model</h3>
-        <div class="callout red">
-          <div class="callout-label">核心论点</div>
-          <p>
-            像 Sora、DreamerV3 这类<strong>像素级生成</strong>世界模型，必须把容量花在头发、纹理、噪点这些
-            <strong>本质上不可预测</strong>的细节上。JEPA 的赌注是：智能体根本不需要在脑中"画出"未来，
-            只需要预测"未来在抽象层面会怎样"——这才是规划真正需要的信息。
-          </p>
-        </div>
-      </div>
+      </main>
 
-      <!-- §8 VLA Connection -->
-      <div class="section" id="vla-connection">
-        <div class="section-num">§ 08</div>
-        <h2>与 VLA 的联系</h2>
-        <table class="kv-table">
-          <tr><td>LeCun 模块</td><td>VLA 中的对应</td></tr>
-          <tr><td>Perception</td><td>视觉编码器（SigLIP / ViT）+ 语言理解</td></tr>
-          <tr><td>World Model</td><td>隐式存在于 VLM 预训练知识中；π₀.5 的 world state prediction 是显式尝试</td></tr>
-          <tr><td>Actor</td><td>Action Expert + Flow Matching 输出头</td></tr>
-          <tr><td>Cost / Critic</td><td>RLHF 中的 reward model；flow matching 的训练目标</td></tr>
-          <tr><td>Configurator</td><td>目前基本缺失；是 embodied AI 重要的开放研究方向</td></tr>
-          <tr><td>Short-term Memory</td><td>部分由 context window 承担；缺乏显式结构</td></tr>
-        </table>
-        <div class="callout red">
-          <div class="callout-label">LeCun 的批评</div>
-          <p>
-            包括大多数 VLA 在内，当前的 LLM-based AI 缺乏<strong>显式的 World Model 和 Cost 模块</strong>。
-            π₀ 的 flow matching 在某种程度上隐式模拟了"多种可能动作的分布"，但并不是真正的 World Model 推演。
-            这是通往真正自主智能的关键差距。
-          </p>
-        </div>
-      </div>
+      <!-- ─── 右：本页目录 ─── -->
+      <aside class="docs-sidebar-right">
+        <div class="ds-title">本页目录</div>
+        <ul id="page-toc"></ul>
+      </aside>
 
-      <!-- §8 Critique -->
-      <div class="section" id="critique">
-        <div class="section-num">§ 09</div>
-        <h2>批判与局限</h2>
-        <div class="callout amber">
-          <div class="callout-label">争议</div>
-          <p>
-            这篇报告没有实验验证，是纯粹的架构提案。批评者指出：<br>
-            ① 如何训练高维连续空间的 World Model 仍是开放问题；<br>
-            ② Intrinsic Cost 的设计本质上仍是人工，只是换了一层抽象；<br>
-            ③ 与当前基于 transformer + 大数据 scaling 的路线没有实质冲突，更像是不同抽象层级的描述。
-          </p>
-        </div>
-        <p>
-          尽管如此，这篇报告作为<strong>思考框架</strong>（conceptual framework）极有价值——
-          它提供了一套语言来描述当前 AI 系统缺少什么，以及下一步研究的方向。
-        </p>
-      </div>
-
-    </div><!-- /paper-page -->
-
-    <footer class="footer">
-      <a href="../index.html">← 返回首页</a>
-      &nbsp;·&nbsp;
-      <a href="https://openreview.net/forum?id=BZ5a1r-kVsf" target="_blank">原文链接 ↗</a>
-    </footer>
+    </div>
   </div>
 
   <script>
-    function switchTab(id) {
-      document.querySelectorAll('.module-tab').forEach((t, i) => {
-        const tabs = ['configurator','perception','worldmodel','cost','memory','actor'];
-        t.classList.toggle('active', tabs[i] === id);
+    // ── Tab 切换 ──
+    document.querySelectorAll('.tab-switcher').forEach(sw => {
+      sw.querySelectorAll('.tab').forEach(tab => {
+        tab.addEventListener('click', () => {
+          const id = tab.dataset.tab;
+          sw.querySelectorAll('.tab').forEach(t => t.classList.toggle('active', t === tab));
+          sw.querySelectorAll('.panel').forEach(p => p.classList.toggle('active', p.dataset.panel === id));
+        });
       });
-      document.querySelectorAll('.module-content').forEach(c => c.classList.remove('active'));
-      document.getElementById('tab-' + id).classList.add('active');
+    });
+
+    // ── 自动生成右侧目录 + 滚动高亮 ──
+    const toc = document.getElementById('page-toc');
+    const headings = document.querySelectorAll('.docs-content h2[id], .docs-content h3[id]');
+    headings.forEach(h => {
+      const li = document.createElement('li');
+      const a = document.createElement('a');
+      a.href = '#' + h.id;
+      a.textContent = h.textContent.replace(/^\d+(\.\d+)*\s*/, '');
+      if (h.tagName === 'H3') a.classList.add('toc-h3');
+      a.dataset.target = h.id;
+      li.appendChild(a);
+      toc.appendChild(li);
+    });
+
+    // 滚动时高亮当前 section（左右两边都高亮）
+    const tocLinks = toc.querySelectorAll('a');
+    const leftLinks = document.querySelectorAll('.docs-sidebar-left a[href^="#"]');
+    const obs = new IntersectionObserver((entries) => {
+      entries.forEach(e => {
+        if (e.isIntersecting) {
+          const id = e.target.id;
+          tocLinks.forEach(a => a.classList.toggle('active', a.dataset.target === id));
+          leftLinks.forEach(a => a.classList.toggle('active', a.getAttribute('href') === '#' + id));
+        }
+      });
+    }, { rootMargin: '-80px 0px -70% 0px' });
+    headings.forEach(h => obs.observe(h));
+
+    // ── Mermaid 主题跟随 ──
+    function initMermaid() {
+      const dark = document.documentElement.getAttribute('data-theme') !== 'light';
+      mermaid.initialize({
+        startOnLoad: true,
+        theme: dark ? 'dark' : 'default',
+        securityLevel: 'loose',
+      });
     }
+    initMermaid();
+    // 主题切换时重新渲染
+    new MutationObserver(() => {
+      document.querySelectorAll('.mermaid').forEach(el => {
+        if (el.dataset.original) el.textContent = el.dataset.original;
+        else el.dataset.original = el.textContent;
+        el.removeAttribute('data-processed');
+      });
+      initMermaid();
+      mermaid.run();
+    }).observe(document.documentElement, { attributes: true, attributeFilter: ['data-theme'] });
   </script>
 </body>
 </html>
