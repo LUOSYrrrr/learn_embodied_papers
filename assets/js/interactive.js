@@ -21,8 +21,8 @@
       next.disabled = i === steps.length - 1;
       // 若步骤里有关联的 hotspot，激活之
       const hsTarget = steps[i].dataset.hotspot;
-      if (hsTarget) {
-        const wrap = root.closest('.docs-content').querySelector('[data-hotspot-group="' + root.dataset.hotspotGroup + '"]');
+      if (hsTarget && root.dataset.hotspotGroup) {
+        const wrap = document.querySelector('.hotspot-wrap[data-hotspot-group="' + root.dataset.hotspotGroup + '"]');
         if (wrap) activateHotspot(wrap, hsTarget);
       }
     }
@@ -33,9 +33,16 @@
   }
 
   // ── Image Hotspot ──
+  function findPanel(wrap) {
+    // panel 在 .fig-block 之后作为兄弟元素
+    let el = wrap.closest('.fig-block') || wrap;
+    let sib = el.nextElementSibling;
+    while (sib && !sib.classList.contains('hotspot-panel')) sib = sib.nextElementSibling;
+    return sib;
+  }
   function activateHotspot(wrap, id) {
     const hotspots = wrap.querySelectorAll('.hotspot');
-    const panel = wrap.parentElement.querySelector('.hotspot-panel');
+    const panel = findPanel(wrap);
     hotspots.forEach(h => h.classList.toggle('active', h.dataset.id === id));
     const target = wrap.querySelector('.hotspot[data-id="' + id + '"]');
     if (target && panel) {
@@ -45,10 +52,10 @@
     }
   }
   function initHotspotWrap(wrap) {
-    const panel = wrap.parentElement.querySelector('.hotspot-panel');
+    const panel = findPanel(wrap);
     if (panel && !panel.dataset.init) {
       panel.dataset.init = '1';
-      panel.innerHTML = '<div class="hp-empty">点击图上绿色数字查看讲解</div>';
+      panel.innerHTML = '<div class="hp-empty">点击图上绿色数字查看讲解，或下方逐步导览</div>';
     }
     wrap.querySelectorAll('.hotspot').forEach(h => {
       h.addEventListener('click', () => activateHotspot(wrap, h.dataset.id));
