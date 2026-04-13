@@ -6,6 +6,7 @@
   <title>LeCun · A Path Towards Autonomous Machine Intelligence</title>
   <link rel="stylesheet" href="../assets/css/style.css">
   <script src="../assets/js/theme.js"></script>
+  <script src="../assets/js/interactive.js" defer></script>
   <script src="https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.min.js"></script>
 </head>
 <body>
@@ -155,29 +156,108 @@
         </div>
 
         <div class="fig-block">
-          <img src="../assets/figures/lecun/page-06.png" alt="Figure 2: System architecture for autonomous intelligence">
+          <div class="hotspot-wrap" data-hotspot-group="fig2">
+            <img src="../assets/figures/lecun/page-06.png" alt="Figure 2: System architecture for autonomous intelligence">
+            <!-- 热点位置按图中模块大致坐标（百分比） -->
+            <div class="hotspot" data-id="conf"  style="left:50%; top:23%;"
+                 data-title="Configurator · 配置器"
+                 data-body="位于顶端，蓝色椭圆。是整个系统的总指挥——根据当前任务调制其他所有模块的参数和注意力回路。当前 VLA 中基本缺失这个模块。"></div>
+            <div class="hotspot" data-id="mem"   style="left:46%; top:30%;"
+                 data-title="Short-term Memory · 短期记忆"
+                 data-body="橙色小块。存储过去/当前/预测的状态及对应代价值，Critic 训练时从这里检索数据。类比海马体（hippocampus）。"></div>
+            <div class="hotspot" data-id="wm"    style="left:65%; top:31%;"
+                 data-title="World Model · 世界模型"
+                 data-body="绿色大椭圆，画得最大是有意的——'最复杂的模块'。功能：补全感知缺失的信息 + 给定动作序列预测未来状态。后面整个 §3 都在讲它。"></div>
+            <div class="hotspot" data-id="perc"  style="left:28%; top:40%;"
+                 data-title="Perception · 感知"
+                 data-body="左侧紫红色大椭圆。从右下角地球（环境）接收 percept（传感信号），输出当前世界状态 s[0]。可分层表示。"></div>
+            <div class="hotspot" data-id="actor" style="left:48%; top:42%;"
+                 data-title="Actor · 行动者"
+                 data-body="中间黄色椭圆。两种模式：① 直接 a=A(s) 出动作（System 1）；② 提议动作序列让 World Model 预测未来再优化（System 2/MPC）。输出黄色箭头打到地球。"></div>
+            <div class="hotspot" data-id="cost"  style="left:67%; top:46%;"
+                 data-title="Cost · 代价"
+                 data-body="右侧红色块，包含两个子模块：Intrinsic Cost（先天硬编码，疼/饿/跌倒）+ Critic（学着预测未来代价）。输出标量'能量'，目标是最小化长期平均能量。"></div>
+            <div class="hotspot" data-id="env"   style="left:73%; top:55%;"
+                 data-title="Environment · 环境"
+                 data-body="右下角地球。Actor 的动作（黄色粗箭头）影响环境；环境的 percept（紫色粗箭头）回到 Perception。这是闭环。"></div>
+          </div>
           <div class="fig-cap">
             <span class="fig-num">Fig 2 · p.6</span>
             A system architecture for autonomous intelligence. All modules are assumed to be "differentiable".
             <span class="fig-cn">
-              架构总图：六大模块（Configurator 配置器 / Perception 感知 / World Model 世界模型 / Cost 代价 / Short-term Memory 短期记忆 / Actor 行动者）+ 环境。所有箭头方向都可反向传播梯度。
+              架构总图：六大模块 + 环境。所有箭头方向都可反向传播梯度——这是和经典认知架构（SOAR/ACT-R）最大的区别。
             </span>
           </div>
         </div>
+        <div class="hotspot-panel"></div>
 
-        <div class="fig-explain">
-          <div class="fe-label">🔍 怎么看这张图</div>
-          <p><strong>先看颜色分组</strong>：图里画在大脑剪影上是有意的——LeCun 想让你联想到这是"一个统一的认知系统"，不是松散的工具堆。</p>
-          <p><strong>从输入开始追：</strong></p>
-          <ol>
-            <li>右下角地球 = 环境，传感器信号叫 <code>percept</code>，进入紫色的 <strong>Perception</strong>（感知）</li>
-            <li>感知的输出送到中间的 <strong>World Model</strong>（绿色，最大块——它是"最复杂的模块"）和 <strong>Actor</strong>（黄色）</li>
-            <li>Actor 输出 <code>action</code> → 黄色箭头回到地球（影响环境）</li>
-            <li>Cost 模块（右下红色，包含 <strong>Intrinsic cost</strong> 内禀代价 + <strong>Critic</strong> 评论家）算出能量，反过来约束 Actor 选什么动作</li>
-            <li>顶上蓝色 <strong>Configurator</strong> 像总指挥，紫色细箭头连到所有模块——它根据当前任务"调台"，决定每个模块怎么工作</li>
-            <li>橙色 <strong>Short-term memory</strong> 跟 World Model 之间是双向紫色箭头——读写都有，存"过去/预测"的状态-代价对</li>
-          </ol>
-          <p><strong>关键点：</strong>所有箭头都<strong>可微分</strong>。意思是 Cost 算出的"不爽程度"，梯度可以一路反传穿过 Actor、World Model、Perception，把整套系统当一个大网络一起训练。这是和经典认知架构（如 SOAR、ACT-R）最大的区别。</p>
+        <div class="step-walker" data-hotspot-group="fig2">
+          <div class="sw-header">
+            <div class="sw-title">🪜 跟着信号走一遍</div>
+            <div class="sw-controls">
+              <button class="sw-btn prev" aria-label="上一步">◀</button>
+              <span class="sw-counter">1 / 7</span>
+              <button class="sw-btn next" aria-label="下一步">▶</button>
+            </div>
+          </div>
+          <div class="sw-progress">
+            <div class="sw-dot"></div><div class="sw-dot"></div><div class="sw-dot"></div>
+            <div class="sw-dot"></div><div class="sw-dot"></div><div class="sw-dot"></div><div class="sw-dot"></div>
+          </div>
+          <div class="sw-body">
+            <div class="sw-step active" data-hotspot="env">
+              <h4>第 1 步：环境给出观测</h4>
+              <p>右下角地球代表<strong>环境</strong>。传感器信号（论文叫 <code>percept</code>）通过<strong>紫色粗箭头</strong>送到 Perception 模块。这就是智能体的"看 / 听 / 摸"。</p>
+            </div>
+            <div class="sw-step" data-hotspot="perc">
+              <h4>第 2 步：感知编码当前状态</h4>
+              <p><strong>Perception</strong>（紫红色大椭圆）把原始 percept 编码成"当前世界状态" <code>s[0]</code>。注意它是大椭圆——感知本身可能有多层抽象（边缘 → 物体 → 场景）。</p>
+              <p>而且<strong>Configurator 会引导它</strong>：同一个画面，做"找钥匙"任务时只关注小物体，做"过马路"任务时只关注车——不是把所有像素都编码下来。</p>
+            </div>
+            <div class="sw-step" data-hotspot="wm">
+              <h4>第 3 步：世界模型介入</h4>
+              <p><strong>World Model</strong>（绿色，画得最大）拿到 <code>s[0]</code> 后做两件事：</p>
+              <ol><li>补全感知没看到的信息（比如被遮挡的物体）</li><li>预测：如果 Actor 选动作 a，下一刻状态 s[1] 会变成什么</li></ol>
+              <p>这是整个架构最难训练、也最关键的模块——后面整章 §3 都在讲怎么设计和训练它。</p>
+            </div>
+            <div class="sw-step" data-hotspot="mem">
+              <h4>第 4 步：短期记忆参与读写</h4>
+              <p><strong>Short-term Memory</strong>（橙色小块）和 World Model 之间是<strong>双向紫色箭头</strong>。意思：World Model 在做时序预测时把中间状态<strong>写</strong>进去，等真观测到来了又<strong>读</strong>出来对照——发现预测不准就调整自己。</p>
+            </div>
+            <div class="sw-step" data-hotspot="actor">
+              <h4>第 5 步：Actor 决定做什么</h4>
+              <p><strong>Actor</strong>（黄色椭圆）有两种工作方式：</p>
+              <ul>
+                <li><strong>简单模式</strong>：直接 <code>a = A(s[0])</code> 一步出动作（System 1，靠直觉）</li>
+                <li><strong>规划模式</strong>：提议一整条动作序列 → 让 World Model 预测每步结果 → Cost 评估好坏 → 反传梯度优化动作（System 2，慢思考）</li>
+              </ul>
+            </div>
+            <div class="sw-step" data-hotspot="cost">
+              <h4>第 6 步：Cost 评估"好坏"</h4>
+              <p><strong>Cost</strong>（右侧红色，含 Intrinsic Cost + Critic）输出一个标量"能量"，衡量这一刻 / 这一动作有多"不爽"。</p>
+              <p><strong>关键：</strong>Cost 的梯度可以<strong>反向传播穿过 World Model 和 Actor</strong>——这就是为什么 Actor 能在脑中优化动作。这条反向路径在图里没画，但贯穿整个系统。</p>
+            </div>
+            <div class="sw-step" data-hotspot="conf">
+              <h4>第 7 步：Configurator 做总指挥</h4>
+              <p>顶上的 <strong>Configurator</strong>（蓝色椭圆）<strong>不在感知-行动主路径上</strong>。它接收所有模块的输入，根据"当前任务"调制其他模块的参数和注意力。</p>
+              <p>类比：你专注做菜时，听觉对厨房噪音变敏感、对客厅电视变迟钝——这就是 Configurator 在调感知模块的"权重"。当前 LLM/VLA 系统里基本没有这个模块，是开放研究方向。</p>
+            </div>
+          </div>
+        </div>
+
+        <div class="quiz"
+             data-correct="b"
+             data-explain="LeCun 反复强调：所有箭头都可微分意味着 Cost 的梯度能反传穿越 World Model 和 Actor，让 Actor 能用梯度下降在动作空间里做优化（这就是 Mode-2 推理）。这也是为什么这个架构和 SOAR/ACT-R 这种符号认知架构本质不同。"
+             data-explain-wrong="不对。'所有模块可微分'是论文反复强调的核心设计原则——它让代价的梯度能反传到任何模块，使得整个系统可以端到端用梯度方法训练和推理。可解释性、模块解耦、模仿大脑结构都不是这条假设的主要目的。">
+          <div class="q-label">🧠 理解检查</div>
+          <div class="q-text">论文为什么强调"所有模块都是可微分的"？</div>
+          <div class="q-options">
+            <button class="q-opt" data-k="a">为了让人类能解释每个模块的决策</button>
+            <button class="q-opt" data-k="b">为了让 Cost 的梯度能反向传播，使 Actor 可以在动作空间里做梯度优化（Mode-2 推理）</button>
+            <button class="q-opt" data-k="c">为了让模块之间松耦合，方便分别替换</button>
+            <button class="q-opt" data-k="d">为了模拟生物大脑的结构</button>
+          </div>
+          <div class="q-feedback"></div>
         </div>
 
         <h3 id="arch-modules">2.1 六大模块定义</h3>
