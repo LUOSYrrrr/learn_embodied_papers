@@ -1,0 +1,149 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Paper Notes · 具身智能论文精读</title>
+  <link rel="stylesheet" href="assets/css/style.css">
+  <style>
+    .intro-grid {
+      display: grid; grid-template-columns: 1fr 1fr 1fr;
+      gap: 1px; background: var(--border);
+      border: 1px solid var(--border);
+      margin: 0 32px 60px;
+    }
+    @media (max-width: 700px) {
+      .intro-grid { grid-template-columns: 1fr; margin: 0 20px 40px; }
+    }
+    .intro-cell {
+      background: var(--bg); padding: 24px 28px;
+    }
+    .intro-cell-num {
+      font-family: var(--font-mono); font-size: 28px; font-weight: 500;
+      color: var(--accent); margin-bottom: 6px;
+    }
+    .intro-cell-label { font-size: 13px; color: var(--text3); }
+    .section-header {
+      padding: 32px 32px 16px;
+      font-family: var(--font-mono); font-size: 11px;
+      color: var(--text3); letter-spacing: 0.12em; text-transform: uppercase;
+      border-top: 1px solid var(--border);
+    }
+    @media (max-width: 640px) {
+      .section-header { padding: 24px 20px 12px; }
+    }
+  </style>
+</head>
+<body>
+  <nav class="nav">
+    <a class="nav-logo" href="index.html">~/paper-notes</a>
+    <div class="nav-links">
+      <a href="https://github.com" target="_blank">GitHub</a>
+      <a href="#about">关于</a>
+    </div>
+  </nav>
+
+  <div class="page">
+    <div class="hero">
+      <div class="hero-tag">// Embodied AI · 具身智能</div>
+      <h1>论文精读笔记</h1>
+      <p>
+        面向具身智能（Embodied AI）方向的中文论文解析。聚焦 VLA（视觉-语言-动作）模型、
+        世界模型、持续学习等领域，每篇包含架构精读、核心公式、以及与工程实践的连接。
+      </p>
+    </div>
+
+    <div class="intro-grid">
+      <div class="intro-cell">
+        <div class="intro-cell-num" id="count-papers">2</div>
+        <div class="intro-cell-label">篇论文笔记</div>
+      </div>
+      <div class="intro-cell">
+        <div class="intro-cell-num">∞</div>
+        <div class="intro-cell-label">持续更新中</div>
+      </div>
+      <div class="intro-cell">
+        <div class="intro-cell-num">中</div>
+        <div class="intro-cell-label">中文 + 英文术语对照</div>
+      </div>
+    </div>
+
+    <div class="section-header">VLA · Vision-Language-Action</div>
+    <div class="papers-grid">
+      <a class="paper-card" href="#" style="opacity:0.4; pointer-events:none;">
+        <div class="card-tag">VLA · 即将收录</div>
+        <div class="card-title">π₀: A Vision-Language-Action Flow Model</div>
+        <div class="card-subtitle">
+          Physical Intelligence 提出的 VLA 基础模型，基于 PaliGemma + Action Expert + Flow Matching。
+        </div>
+        <div class="card-meta">
+          <span class="card-pill">Black et al. 2024</span>
+          <span class="card-pill">待更新</span>
+        </div>
+      </a>
+    </div>
+
+    <div class="section-header">世界模型 · World Model</div>
+    <div class="papers-grid">
+      <a class="paper-card" href="papers/lecun-autonomous-intelligence.html">
+        <div class="card-tag">世界模型 · World Model</div>
+        <div class="card-title">A Path Towards Autonomous Machine Intelligence</div>
+        <div class="card-subtitle">
+          LeCun 提出的模块化自主智能架构：Configurator、World Model、Actor、Cost 模块的完整解析，
+          以及 Mode-1 感知-动作片段的数学展开。
+        </div>
+        <div class="card-meta">
+          <span class="card-pill">Yann LeCun</span>
+          <span class="card-pill">2022</span>
+          <span class="card-pill">架构设计</span>
+        </div>
+      </a>
+    </div>
+
+    <div class="section-header">认知科学 · Cognitive Science</div>
+    <div class="papers-grid">
+      <a class="paper-card" href="papers/infant-cognition-timeline.html">
+        <div class="card-tag">认知发育 · Cognitive Development</div>
+        <div class="card-title">婴儿认知发育时间线</div>
+        <div class="card-subtitle">
+          Emmanuel Dupoux 整理的婴儿 0–14 月认知能力获取图谱：感知、物理、社会沟通、动作产出，
+          与 embodied AI 数据驱动学习的关联分析。
+        </div>
+        <div class="card-meta">
+          <span class="card-pill">Dupoux</span>
+          <span class="card-pill">发育心理学</span>
+          <span class="card-pill">参考背景</span>
+        </div>
+      </a>
+    </div>
+
+    <div class="section-header">基础组件 · Components</div>
+    <div class="papers-grid">
+      <a class="paper-card" href="#" style="opacity:0.4; pointer-events:none;">
+        <div class="card-tag">组件 · 即将收录</div>
+        <div class="card-title">PaliGemma / Flow Matching</div>
+        <div class="card-subtitle">VLA 拆解出的基础组件笔记（SigLIP+Gemma、Flow Matching 训练目标）。</div>
+        <div class="card-meta"><span class="card-pill">待更新</span></div>
+      </a>
+    </div>
+
+    <div id="about" style="max-width:780px; margin:0 auto; padding:60px 32px;">
+      <div class="section-num">// ABOUT</div>
+      <h2 style="font-family:var(--font-serif); font-size:20px; font-weight:700; margin:8px 0 16px; color:var(--text);">关于本项目</h2>
+      <p style="font-size:14px; color:var(--text2); line-height:1.85;">
+        这是一个个人学习笔记仓库，记录具身智能（Embodied AI）方向的论文精读过程。
+        每篇笔记包含：论文核心贡献、架构拆解、关键公式推导、以及与实际工程/研究的联系。
+        使用中文写作，英文专业术语保留对照，方便查阅原文。
+      </p>
+      <p style="font-size:14px; color:var(--text2); line-height:1.85; margin-top:10px;">
+        如有错误或建议，欢迎通过 GitHub Issues 指出。
+      </p>
+    </div>
+
+    <footer class="footer">
+      <span>paper-notes · MIT License · </span>
+      <a href="https://github.com" target="_blank">GitHub</a>
+    </footer>
+  </div>
+</body>
+</html>

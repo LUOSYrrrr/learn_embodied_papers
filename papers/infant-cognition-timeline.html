@@ -1,0 +1,388 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>婴儿认知发育时间线 · Paper Notes</title>
+  <link rel="stylesheet" href="../assets/css/style.css">
+  <style>
+    .timeline-wrap {
+      margin: 28px 0; overflow-x: auto;
+    }
+    .timeline-svg { min-width: 600px; }
+    .concept-grid {
+      display: grid; grid-template-columns: 1fr 1fr;
+      gap: 10px; margin: 16px 0;
+    }
+    @media (max-width: 560px) { .concept-grid { grid-template-columns: 1fr; } }
+    .concept-item {
+      background: var(--bg2); border: 1px solid var(--border);
+      border-radius: var(--radius); padding: 14px 16px;
+    }
+    .concept-en {
+      font-family: var(--font-mono); font-size: 11px; color: var(--text3);
+      margin-bottom: 4px; letter-spacing: 0.05em;
+    }
+    .concept-zh {
+      font-size: 14px; font-weight: 500; color: var(--text); margin-bottom: 4px;
+    }
+    .concept-desc { font-size: 13px; color: var(--text2); line-height: 1.6; }
+    .concept-age {
+      font-family: var(--font-mono); font-size: 10px;
+      color: var(--accent); margin-bottom: 6px;
+    }
+  </style>
+</head>
+<body>
+  <nav class="nav">
+    <a class="nav-logo" href="../index.html">~/paper-notes</a>
+    <div class="nav-links">
+      <a href="../index.html">← 返回首页</a>
+    </div>
+  </nav>
+
+  <div class="page">
+    <div class="paper-page">
+      <a class="back-link" href="../index.html">← 所有笔记</a>
+
+      <div class="paper-header">
+        <div class="paper-venue">// 认知发育 · Cognitive Development · 参考背景</div>
+        <h1 class="paper-title">婴儿认知发育时间线</h1>
+        <div class="paper-authors">整理自 Emmanuel Dupoux（EHESS/Meta AI）的研究综述</div>
+        <div class="paper-badges">
+          <span class="badge badge-blue">发育心理学</span>
+          <span class="badge badge-amber">认知科学</span>
+          <span class="badge">0–14 月图谱</span>
+        </div>
+        <div class="paper-pdf" style="margin-top:14px; font-family:var(--font-mono); font-size:12px;">
+          <a href="../pdfs/cognition/infant-cognition-timeline.pdf" style="color:var(--accent); text-decoration:none; border-bottom:1px dashed var(--accent);">📄 原版 PDF</a>
+        </div>
+      </div>
+
+      <div class="toc">
+        <div class="toc-title">// 目录</div>
+        <ol>
+          <li><a href="#why">为什么 AI 研究者关心婴儿认知？</a></li>
+          <li><a href="#timeline">时间线总览</a></li>
+          <li><a href="#perception">感知（Perception）</a></li>
+          <li><a href="#social">社会沟通（Social Communication）</a></li>
+          <li><a href="#production">行为产出（Production）</a></li>
+          <li><a href="#implications">对 Embodied AI 的启示</a></li>
+        </ol>
+      </div>
+
+      <!-- §1 -->
+      <div class="section" id="why">
+        <div class="section-num">§ 01</div>
+        <h2>为什么 AI 研究者关心婴儿认知？</h2>
+        <div class="callout">
+          <div class="callout-label">核心洞察</div>
+          <p>
+            婴儿在 14 个月内通过<strong>几乎纯粹的观察</strong>，
+            习得了物体永久性、重力、生物运动、社会意图等复杂概念——极少有人直接教导。
+            这正是 LeCun 等人认为 AI 应该效仿的学习方式。
+          </p>
+        </div>
+        <p>
+          这张图来自 Dupoux 整理的研究综述，
+          与 LeCun 的自主智能架构报告一起，构成了"<strong>以认知科学为参照系来思考 AI</strong>"这一研究路线的基础。
+        </p>
+        <table class="kv-table">
+          <tr><td>关键观察</td><td>抽象概念（重力、惯性）建立在具体概念（物体永久性）之上，符合层次化学习的直觉</td></tr>
+          <tr><td>数据效率</td><td>婴儿用远少于大模型训练所需的"数据"完成学习，提示 sample efficiency 是关键问题</td></tr>
+          <tr><td>学习方式</td><td>大量知识通过观察习得，几乎不需要直接干预——对应自监督学习（self-supervised learning）</td></tr>
+        </table>
+      </div>
+
+      <!-- §2 Timeline -->
+      <div class="section" id="timeline">
+        <div class="section-num">§ 02</div>
+        <h2>时间线总览</h2>
+        <div class="timeline-wrap">
+          <svg class="timeline-svg" width="100%" viewBox="0 0 680 380" role="img">
+            <title>婴儿认知发育时间线（0–14月）</title>
+            <defs>
+              <marker id="ta" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="5" markerHeight="5" orient="auto-start-reverse">
+                <path d="M2 1L8 5L2 9" fill="none" stroke="context-stroke" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+              </marker>
+            </defs>
+
+            <!-- Axis -->
+            <line x1="40" y1="340" x2="650" y2="340" stroke="rgba(255,255,255,0.15)" stroke-width="1" marker-end="url(#ta)"/>
+            <text x="655" y="344" font-family="'Inter',sans-serif" font-size="11" fill="rgba(255,255,255,0.4)">月龄</text>
+
+            <!-- Tick marks & labels -->
+            <g font-family="'JetBrains Mono',monospace" font-size="11" fill="rgba(255,255,255,0.35)" text-anchor="middle">
+              <line x1="40" y1="335" x2="40" y2="345" stroke="rgba(255,255,255,0.2)" stroke-width="1"/>
+              <text x="40" y="358">0</text>
+              <line x1="83" y1="335" x2="83" y2="345" stroke="rgba(255,255,255,0.2)" stroke-width="1"/>
+              <text x="83" y="358">1</text>
+              <line x1="126" y1="335" x2="126" y2="345" stroke="rgba(255,255,255,0.2)" stroke-width="1"/>
+              <text x="126" y="358">2</text>
+              <line x1="169" y1="335" x2="169" y2="345" stroke="rgba(255,255,255,0.2)" stroke-width="1"/>
+              <text x="169" y="358">3</text>
+              <line x1="212" y1="335" x2="212" y2="345" stroke="rgba(255,255,255,0.2)" stroke-width="1"/>
+              <text x="212" y="358">4</text>
+              <line x1="255" y1="335" x2="255" y2="345" stroke="rgba(255,255,255,0.2)" stroke-width="1"/>
+              <text x="255" y="358">5</text>
+              <line x1="298" y1="335" x2="298" y2="345" stroke="rgba(255,255,255,0.2)" stroke-width="1"/>
+              <text x="298" y="358">6</text>
+              <line x1="341" y1="335" x2="341" y2="345" stroke="rgba(255,255,255,0.2)" stroke-width="1"/>
+              <text x="341" y="358">7</text>
+              <line x1="384" y1="335" x2="384" y2="345" stroke="rgba(255,255,255,0.2)" stroke-width="1"/>
+              <text x="384" y="358">8</text>
+              <line x1="427" y1="335" x2="427" y2="345" stroke="rgba(255,255,255,0.2)" stroke-width="1"/>
+              <text x="427" y="358">9</text>
+              <line x1="470" y1="335" x2="470" y2="345" stroke="rgba(255,255,255,0.2)" stroke-width="1"/>
+              <text x="470" y="358">10</text>
+              <line x1="513" y1="335" x2="513" y2="345" stroke="rgba(255,255,255,0.2)" stroke-width="1"/>
+              <text x="513" y="358">11</text>
+              <line x1="556" y1="335" x2="556" y2="345" stroke="rgba(255,255,255,0.2)" stroke-width="1"/>
+              <text x="556" y="358">12</text>
+              <line x1="599" y1="335" x2="599" y2="345" stroke="rgba(255,255,255,0.2)" stroke-width="1"/>
+              <text x="599" y="358">13</text>
+              <line x1="642" y1="335" x2="642" y2="345" stroke="rgba(255,255,255,0.2)" stroke-width="1"/>
+              <text x="642" y="358">14</text>
+            </g>
+
+            <!-- Category labels -->
+            <text x="28" y="75" font-family="'Inter',sans-serif" font-size="12" fill="rgba(167,139,250,0.8)" text-anchor="middle" transform="rotate(-90,28,75)">感知</text>
+            <text x="28" y="240" font-family="'Inter',sans-serif" font-size="12" fill="rgba(74,222,154,0.8)" text-anchor="middle" transform="rotate(-90,28,240)">社会</text>
+            <text x="28" y="310" font-family="'Inter',sans-serif" font-size="12" fill="rgba(245,158,11,0.8)" text-anchor="middle" transform="rotate(-90,28,310)">产出</text>
+
+            <!-- Separator lines -->
+            <line x1="38" y1="190" x2="645" y2="190" stroke="rgba(255,255,255,0.06)" stroke-width="1"/>
+            <line x1="38" y1="270" x2="645" y2="270" stroke="rgba(255,255,255,0.06)" stroke-width="1"/>
+
+            <!-- PERCEPTION bars -->
+            <!-- Face tracking: 0~3 -->
+            <rect x="40" y="24" width="129" height="18" rx="4" fill="rgba(167,139,250,0.3)" stroke="rgba(167,139,250,0.5)" stroke-width="0.5"/>
+            <text x="44" y="36" font-family="'Inter',sans-serif" font-size="10" fill="rgba(167,139,250,0.9)">face tracking 面孔追踪</text>
+
+            <!-- Biological motion: 3~5 -->
+            <rect x="169" y="46" width="86" height="18" rx="4" fill="rgba(167,139,250,0.25)" stroke="rgba(167,139,250,0.4)" stroke-width="0.5"/>
+            <text x="173" y="58" font-family="'Inter',sans-serif" font-size="10" fill="rgba(167,139,250,0.9)">生物运动感知</text>
+
+            <!-- Object permanence: 3~5 -->
+            <rect x="169" y="68" width="86" height="18" rx="4" fill="rgba(96,165,250,0.25)" stroke="rgba(96,165,250,0.4)" stroke-width="0.5"/>
+            <text x="173" y="80" font-family="'Inter',sans-serif" font-size="10" fill="rgba(96,165,250,0.9)">客体永久性</text>
+
+            <!-- Solidity rigidity: 4~5 -->
+            <rect x="212" y="90" width="43" height="18" rx="4" fill="rgba(96,165,250,0.2)" stroke="rgba(96,165,250,0.35)" stroke-width="0.5"/>
+            <text x="216" y="102" font-family="'Inter',sans-serif" font-size="9" fill="rgba(96,165,250,0.9)">固体性</text>
+
+            <!-- Natural kind: 5~8 -->
+            <rect x="255" y="110" width="129" height="18" rx="4" fill="rgba(96,165,250,0.2)" stroke="rgba(96,165,250,0.35)" stroke-width="0.5"/>
+            <text x="259" y="122" font-family="'Inter',sans-serif" font-size="10" fill="rgba(96,165,250,0.9)">自然类别范畴</text>
+
+            <!-- Stability support: 6~7 -->
+            <rect x="298" y="132" width="43" height="18" rx="4" fill="rgba(46,196,182,0.25)" stroke="rgba(46,196,182,0.4)" stroke-width="0.5"/>
+            <text x="302" y="144" font-family="'Inter',sans-serif" font-size="9" fill="rgba(46,196,182,0.9)">稳定/支撑</text>
+
+            <!-- Gravity inertia: 10~12 -->
+            <rect x="470" y="132" width="86" height="18" rx="4" fill="rgba(46,196,182,0.25)" stroke="rgba(46,196,182,0.4)" stroke-width="0.5"/>
+            <text x="474" y="144" font-family="'Inter',sans-serif" font-size="10" fill="rgba(46,196,182,0.9)">重力/惯性/动量</text>
+
+            <!-- Shape constancy: 12~13 -->
+            <rect x="556" y="154" width="43" height="18" rx="4" fill="rgba(96,165,250,0.2)" stroke="rgba(96,165,250,0.35)" stroke-width="0.5"/>
+            <text x="560" y="166" font-family="'Inter',sans-serif" font-size="9" fill="rgba(96,165,250,0.9)">形状恒常</text>
+
+            <!-- Rational goal-directed: 12~14 -->
+            <rect x="556" y="24" width="86" height="18" rx="4" fill="rgba(167,139,250,0.3)" stroke="rgba(167,139,250,0.5)" stroke-width="0.5"/>
+            <text x="560" y="36" font-family="'Inter',sans-serif" font-size="10" fill="rgba(167,139,250,0.9)">目标导向动作</text>
+
+            <!-- SOCIAL bars -->
+            <!-- Helping hindering: 6~7 -->
+            <rect x="298" y="200" width="43" height="18" rx="4" fill="rgba(74,222,154,0.25)" stroke="rgba(74,222,154,0.4)" stroke-width="0.5"/>
+            <text x="302" y="212" font-family="'Inter',sans-serif" font-size="9" fill="rgba(74,222,154,0.9)">帮/阻感知</text>
+
+            <!-- Pointing: 12 -->
+            <rect x="556" y="200" width="43" height="18" rx="4" fill="rgba(74,222,154,0.3)" stroke="rgba(74,222,154,0.5)" stroke-width="0.5"/>
+            <text x="560" y="212" font-family="'Inter',sans-serif" font-size="9" fill="rgba(74,222,154,0.9)">指点手势</text>
+
+            <!-- False beliefs: 13~14 -->
+            <rect x="599" y="222" width="43" height="18" rx="4" fill="rgba(74,222,154,0.2)" stroke="rgba(74,222,154,0.35)" stroke-width="0.5"/>
+            <text x="603" y="234" font-family="'Inter',sans-serif" font-size="9" fill="rgba(74,222,154,0.9)">错误信念</text>
+
+            <!-- PRODUCTION bars -->
+            <!-- Proto-imitation: 0~2 -->
+            <rect x="40" y="278" width="86" height="18" rx="4" fill="rgba(245,158,11,0.25)" stroke="rgba(245,158,11,0.4)" stroke-width="0.5"/>
+            <text x="44" y="290" font-family="'Inter',sans-serif" font-size="10" fill="rgba(245,158,11,0.9)">原始模仿</text>
+
+            <!-- Emotional contagion: 0~3 -->
+            <rect x="40" y="300" width="129" height="18" rx="4" fill="rgba(245,158,11,0.2)" stroke="rgba(245,158,11,0.35)" stroke-width="0.5"/>
+            <text x="44" y="312" font-family="'Inter',sans-serif" font-size="10" fill="rgba(245,158,11,0.9)">情绪感染</text>
+
+            <!-- Crawling: 10 -->
+            <rect x="470" y="278" width="43" height="18" rx="4" fill="rgba(245,158,11,0.25)" stroke="rgba(245,158,11,0.4)" stroke-width="0.5"/>
+            <text x="474" y="290" font-family="'Inter',sans-serif" font-size="10" fill="rgba(245,158,11,0.9)">爬行</text>
+
+            <!-- Walking: 12 -->
+            <rect x="556" y="278" width="43" height="18" rx="4" fill="rgba(245,158,11,0.3)" stroke="rgba(245,158,11,0.5)" stroke-width="0.5"/>
+            <text x="560" y="290" font-family="'Inter',sans-serif" font-size="10" fill="rgba(245,158,11,0.9)">行走</text>
+          </svg>
+        </div>
+        <div class="diagram-caption">紫色 = 动作/感知  蓝色 = 物体认知  青色 = 物理认知  绿色 = 社会沟通  橙色 = 行为产出</div>
+      </div>
+
+      <!-- §3 Perception -->
+      <div class="section" id="perception">
+        <div class="section-num">§ 03</div>
+        <h2>感知（Perception）</h2>
+        <h3>动作感知 · Actions</h3>
+        <div class="concept-grid">
+          <div class="concept-item">
+            <div class="concept-age">~ 0–3 月</div>
+            <div class="concept-en">face tracking</div>
+            <div class="concept-zh">面孔追踪</div>
+            <div class="concept-desc">用眼睛跟随人脸移动，是最早出现的社会性感知能力，也是注意力系统的早期形态。</div>
+          </div>
+          <div class="concept-item">
+            <div class="concept-age">~ 3–5 月</div>
+            <div class="concept-en">biological motion</div>
+            <div class="concept-zh">生物运动感知</div>
+            <div class="concept-desc">能区分"有生命的运动"（点光源行走动画）与机械运动，说明婴儿早期具备 animate/inanimate 的区分能力。</div>
+          </div>
+          <div class="concept-item">
+            <div class="concept-age">~ 12–14 月</div>
+            <div class="concept-en">rational, goal-directed actions</div>
+            <div class="concept-zh">理性的、目标导向的动作</div>
+            <div class="concept-desc">理解他人的行为是有意图的、朝向目标的。这是心智理论（Theory of Mind）的前驱能力。</div>
+          </div>
+        </div>
+
+        <h3>物理认知 · Physics</h3>
+        <div class="concept-grid">
+          <div class="concept-item">
+            <div class="concept-age">~ 6–7 月</div>
+            <div class="concept-en">stability, support</div>
+            <div class="concept-zh">稳定性与支撑</div>
+            <div class="concept-desc">理解物体需要支撑才不会掉落。"违反预期"（违反此规律）会让婴儿凝视更长时间——这是研究范式 violation of expectation（VOE）的基础。</div>
+          </div>
+          <div class="concept-item">
+            <div class="concept-age">~ 10–12 月</div>
+            <div class="concept-en">gravity, inertia, conservation of momentum</div>
+            <div class="concept-zh">重力、惯性、动量守恒</div>
+            <div class="concept-desc">更抽象的物理规律，建立在前期具体物理概念之上，体现了认知的层次化发展。</div>
+          </div>
+        </div>
+
+        <h3>物体认知 · Objects</h3>
+        <div class="concept-grid">
+          <div class="concept-item">
+            <div class="concept-age">~ 3–5 月</div>
+            <div class="concept-en">object permanence</div>
+            <div class="concept-zh">客体永久性</div>
+            <div class="concept-desc">理解物体被遮挡后依然存在，而不是"眼不见即消失"。皮亚杰（Piaget）的经典概念，但近代研究证明比皮亚杰估计的早得多。</div>
+          </div>
+          <div class="concept-item">
+            <div class="concept-age">~ 4–5 月</div>
+            <div class="concept-en">solidity, rigidity</div>
+            <div class="concept-zh">固体性与刚性</div>
+            <div class="concept-desc">物体不能穿越另一个固体，且形状固定不变形。</div>
+          </div>
+          <div class="concept-item">
+            <div class="concept-age">~ 5–8 月</div>
+            <div class="concept-en">natural kind categories</div>
+            <div class="concept-zh">自然类别范畴</div>
+            <div class="concept-desc">将物体归类为"狗"、"椅子"等自然类别，而不只是识别个体。这是概念泛化（conceptual generalization）能力的早期形态。</div>
+          </div>
+          <div class="concept-item">
+            <div class="concept-age">~ 12–13 月</div>
+            <div class="concept-en">shape constancy</div>
+            <div class="concept-zh">形状恒常性</div>
+            <div class="concept-desc">即使从不同角度看，仍能识别物体形状不变——这正是计算机视觉中 3D shape understanding 问题的生物对应。</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- §4 Social -->
+      <div class="section" id="social">
+        <div class="section-num">§ 04</div>
+        <h2>社会沟通（Social Communication）</h2>
+        <div class="concept-grid">
+          <div class="concept-item">
+            <div class="concept-age">~ 6–7 月</div>
+            <div class="concept-en">helping vs hindering</div>
+            <div class="concept-zh">帮助 vs 阻碍</div>
+            <div class="concept-desc">能区分"帮助者"和"妨碍者"，倾向于亲近帮助者。Hamlin et al. (2007) 的著名婴儿道德感知实验基于此。</div>
+          </div>
+          <div class="concept-item">
+            <div class="concept-age">~ 12 月</div>
+            <div class="concept-en">pointing</div>
+            <div class="concept-zh">指点手势</div>
+            <div class="concept-desc">开始用手指向物体，是共同注意力（joint attention）的关键里程碑，也是语言发育的重要前驱。</div>
+          </div>
+          <div class="concept-item">
+            <div class="concept-age">~ 13–14 月</div>
+            <div class="concept-en">false perceptual beliefs</div>
+            <div class="concept-zh">错误知觉信念</div>
+            <div class="concept-desc">开始理解他人可能持有与现实不符的信念——心智理论（Theory of Mind）的早期形式。完整的 ToM 一般在 3–4 岁才成熟。</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- §5 Production -->
+      <div class="section" id="production">
+        <div class="section-num">§ 05</div>
+        <h2>行为产出（Production）</h2>
+        <div class="concept-grid">
+          <div class="concept-item">
+            <div class="concept-age">~ 0–2 月</div>
+            <div class="concept-en">proto-imitation</div>
+            <div class="concept-zh">原始模仿</div>
+            <div class="concept-desc">模仿简单的面部动作（如吐舌头），是学习型模仿行为的最早期形态，也与镜像神经元系统（mirror neuron system）研究相关。</div>
+          </div>
+          <div class="concept-item">
+            <div class="concept-age">~ 0–3 月</div>
+            <div class="concept-en">emotional contagion</div>
+            <div class="concept-zh">情绪感染</div>
+            <div class="concept-desc">听到别人哭自己也哭，是同理心（empathy）的最原始形式，也是 LeCun 架构中 Intrinsic Cost 设计"感知他人情绪"驱动的生物基础。</div>
+          </div>
+          <div class="concept-item">
+            <div class="concept-age">~ 10 月</div>
+            <div class="concept-en">crawling</div>
+            <div class="concept-zh">爬行</div>
+            <div class="concept-desc">主动移动能力的获得，显著扩展了婴儿的感知范围，反过来加速物理和空间概念的发育。</div>
+          </div>
+          <div class="concept-item">
+            <div class="concept-age">~ 12 月</div>
+            <div class="concept-en">walking</div>
+            <div class="concept-zh">行走</div>
+            <div class="concept-desc">直立行走，解放双手。对应机器人研究中 locomotion 是 manipulation 的前提的观察。</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- §6 Implications -->
+      <div class="section" id="implications">
+        <div class="section-num">§ 06</div>
+        <h2>对 Embodied AI 的启示</h2>
+        <div class="callout">
+          <div class="callout-label">层次化学习</div>
+          <p>抽象概念（重力、惯性）建立在具体概念（物体永久性、类别）之上。VLA 的课程学习（curriculum learning）设计应考虑这种层次结构。</p>
+        </div>
+        <div class="callout blue">
+          <div class="callout-label">观察式学习</div>
+          <p>大量知识通过观察而非直接干预习得，支持用大规模视频数据做自监督预训练（self-supervised pretraining），这正是 π₀ 等模型的预训练思路。</p>
+        </div>
+        <div class="callout amber">
+          <div class="callout-label">Embodiment 的重要性</div>
+          <p>爬行能力的获得（10月）显著加速了空间和物理概念的发育——这提示"身体与环境的交互"本身就是认知发育的加速器，支持 embodied learning 而非纯文本学习。</p>
+        </div>
+        <div class="callout purple">
+          <div class="callout-label">Sample efficiency 问题</div>
+          <p>婴儿用远少于大模型训练所需的"数据"完成学习。原因可能包括：先天结构偏置（inductive biases）、主动探索（active learning）、以及身体交互提供的丰富多模态信号。</p>
+        </div>
+      </div>
+
+    </div>
+
+    <footer class="footer">
+      <a href="../index.html">← 返回首页</a>
+      &nbsp;·&nbsp;
+      参考：Dupoux (2018), Spelke & Kinzler (2007), Hamlin et al. (2007)
+    </footer>
+  </div>
+</body>
+</html>

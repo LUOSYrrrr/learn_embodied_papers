@@ -1,0 +1,135 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>[论文标题] · Paper Notes</title>
+  <link rel="stylesheet" href="../assets/css/style.css">
+</head>
+<body>
+  <nav class="nav">
+    <a class="nav-logo" href="../index.html">~/paper-notes</a>
+    <div class="nav-links">
+      <a href="../index.html">← 返回首页</a>
+    </div>
+  </nav>
+
+  <div class="page">
+    <div class="paper-page">
+      <a class="back-link" href="../index.html">← 所有笔记</a>
+
+      <!-- ① 论文头部信息 -->
+      <div class="paper-header">
+        <div class="paper-venue">// [方向标签] · [年份]</div>
+        <h1 class="paper-title">[论文英文标题]</h1>
+        <div class="paper-authors">[作者] · [机构]</div>
+        <div class="paper-badges">
+          <span class="badge badge-green">[贡献类型]</span>
+          <span class="badge badge-blue">[技术标签]</span>
+          <span class="badge badge-amber">[任务]</span>
+        </div>
+        <div class="paper-pdf" style="margin-top:14px; font-family:var(--font-mono); font-size:12px;">
+          <a href="../../pdfs/[分类]/[文件名].pdf" style="color:var(--accent); text-decoration:none; border-bottom:1px dashed var(--accent);">📄 原版 PDF</a>
+        </div>
+      </div>
+
+      <!-- ② 目录 -->
+      <div class="toc">
+        <div class="toc-title">// 目录</div>
+        <ol>
+          <li><a href="#tldr">一句话总结</a></li>
+          <li><a href="#background">背景与动机</a></li>
+          <li><a href="#method">方法</a></li>
+          <li><a href="#results">实验结果</a></li>
+          <li><a href="#takeaway">关键收获</a></li>
+        </ol>
+      </div>
+
+      <!-- ③ 各节内容，复制下方 section 块 -->
+      <div class="section" id="tldr">
+        <div class="section-num">§ 01</div>
+        <h2>一句话总结</h2>
+
+        <!-- Callout 示例（绿色/默认） -->
+        <div class="callout">
+          <div class="callout-label">核心主张</div>
+          <p>在这里写论文最核心的一句话贡献。</p>
+        </div>
+
+        <p>正文段落……</p>
+      </div>
+
+      <div class="section" id="background">
+        <div class="section-num">§ 02</div>
+        <h2>背景与动机</h2>
+
+        <!-- KV 表格示例 -->
+        <table class="kv-table">
+          <tr><td>问题</td><td>描述这篇论文要解决什么问题</td></tr>
+          <tr><td>现有方法</td><td>现有方法的局限</td></tr>
+          <tr><td>本文方案</td><td>本文提出的解决思路</td></tr>
+        </table>
+
+        <!-- Callout 颜色变体 -->
+        <!-- amber: 警告/注意 -->
+        <!-- red:   局限/批评 -->
+        <!-- blue:  类比/联系 -->
+        <!-- purple: 对应 VLA -->
+        <div class="callout amber">
+          <div class="callout-label">注意</div>
+          <p>需要特别注意的点。</p>
+        </div>
+      </div>
+
+      <div class="section" id="method">
+        <div class="section-num">§ 03</div>
+        <h2>方法</h2>
+
+        <!-- 模块卡片网格 -->
+        <div class="module-grid">
+          <div class="module-card">
+            <div class="module-card-name">COMPONENT · 英文名</div>
+            <div class="module-card-title">中文名称</div>
+            <div class="module-card-desc">简短描述这个组件做什么。</div>
+          </div>
+          <div class="module-card">
+            <div class="module-card-name">COMPONENT · 英文名</div>
+            <div class="module-card-title">中文名称</div>
+            <div class="module-card-desc">简短描述这个组件做什么。</div>
+          </div>
+        </div>
+
+        <!-- 代码块示例 -->
+        <div class="code-block">
+          <code>x_t = alpha * x_0 + (1 - alpha) * noise  # flow matching 插值</code>
+        </div>
+
+        <h3>子标题</h3>
+        <p>更多正文内容……</p>
+      </div>
+
+      <div class="section" id="results">
+        <div class="section-num">§ 04</div>
+        <h2>实验结果</h2>
+        <p>实验结果分析……</p>
+      </div>
+
+      <div class="section" id="takeaway">
+        <div class="section-num">§ 05</div>
+        <h2>关键收获</h2>
+        <div class="callout blue">
+          <div class="callout-label">对 VLA 研究的启示</div>
+          <p>这篇论文对具身 AI 研究的具体启示。</p>
+        </div>
+      </div>
+
+    </div>
+
+    <footer class="footer">
+      <a href="../index.html">← 返回首页</a>
+      &nbsp;·&nbsp;
+      <a href="[论文链接]" target="_blank">原文链接 ↗</a>
+    </footer>
+  </div>
+</body>
+</html>
