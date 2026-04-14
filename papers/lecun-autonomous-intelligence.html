@@ -46,6 +46,7 @@
           <a class="ds-leaf" href="#wm-lvebm">3.2 潜变量 EBM（Fig 9）</a>
           <a class="ds-leaf" href="#wm-collapse">3.3 坍缩问题（Fig 10）</a>
           <a class="ds-leaf" href="#wm-contrastive">3.4 对比 vs 正则（Fig 11）</a>
+          <a class="ds-leaf" href="#wm-training">3.4b 训练协议 & loss 公式</a>
           <a class="ds-leaf" href="#wm-jepa">3.5 JEPA 主架构（Fig 12）</a>
           <a class="ds-leaf" href="#wm-noncontrastive">3.6 非对比训练 4 准则（Fig 13）</a>
           <a class="ds-leaf" href="#wm-vicreg">3.7 VICReg 实现（Fig 14）</a>
@@ -912,6 +913,153 @@ flowchart LR
             <button class="q-opt" data-k="b">对比方法无法用梯度下降训练</button>
             <button class="q-opt" data-k="c">对比方法所需的反例数量随 y 维度指数增长（curse of dimensionality）</button>
             <button class="q-opt" data-k="d">对比方法在图像任务上效果差</button>
+          </div>
+          <div class="q-feedback"></div>
+        </div>
+
+        <!-- ════════════ §3.4b 训练协议（桥） ════════════ -->
+        <h3 id="wm-training">3.4b 训练协议：从 collapse 类型到具体 loss</h3>
+
+        <div class="cn-read">
+          <div class="cn-label">这一节解决什么</div>
+          <p>§3.3 说了 Fig 10 四种架构<strong>哪些会坍缩</strong>，§3.4 说了<strong>防坍缩两大思路</strong>（contrastive / regularized）。但到这里为止，全是概念图——没告诉你<strong>真要训一个模型，loss 到底怎么写</strong>，以及每种架构对应哪条正则器。这一节把 paper §4.3 里的公式 + 架构对照补上，作为 §3.5 JEPA 之前的桥。</p>
+        </div>
+
+        <h4 style="margin-top:22px;">① EBM 训练的通用套路</h4>
+
+        <p>给定一个训练样本 (x, y)，目标是设计 loss L(x, y, F_w(x,y))，使得最小化它能让：</p>
+        <ul>
+          <li>F_w(x, y) <strong>变低</strong>（训练样本能量低）</li>
+          <li>F_w(x, ŷ) <strong>变高</strong>，对所有 ŷ ≠ y</li>
+        </ul>
+
+        <p>第一件事容易——loss 设成能量的递增函数，再给能量一个下界就行。<strong>第二件事难</strong>：怎么保证那些没在训练集里见过的 ŷ 能量真的高？如果什么都不做，能量地形可能变成"一马平川"——对任何 y 都给同样的能量值，这就是 <span class="term" data-en="energy landscape collapse">能量地形坍缩</span>。</p>
+
+        <details class="en-quote">
+          <summary>展开原文 · 训练 EBM 的核心难点</summary>
+          <div class="quote-body">
+            <p>"The difficult question is how to ensure that the energies of ŷ different from y are higher than the energy of y. Without a specific provision to ensure that F_w(x, y′) &gt; F_w(x, y) whenever ŷ ≠ y the energy landscape may suffer a collapse."</p>
+            <div class="quote-cite">— §4.3, p.20</div>
+          </div>
+        </details>
+
+        <h4 style="margin-top:22px;">② 对比式（contrastive）loss 的具体长相</h4>
+
+        <p>核心形式：<strong>H(F_w(x,y), F_w(x,ŷ), m(y,ŷ))</strong>——对第一项递增、对第二项递减（在 margin m 之内）。三个典型实例：</p>
+
+        <div class="callout" style="margin: 14px 0;">
+          <div class="callout-label">① 三元组 hinge loss（Eq 7）</div>
+          <pre style="font-family:var(--font-mono); font-size:14px; line-height:1.6; margin:8px 0 10px; white-space:pre-wrap;">L(w, x, y, ŷ)  =  [ F_w(x, y) − F_w(x, ŷ) + μ · ‖y − ŷ‖² ]₊</pre>
+          <ul style="margin:0; padding-left:18px;">
+            <li><code>[·]₊</code> = max(·, 0)</li>
+            <li><code>μ · ‖y − ŷ‖²</code> 是<strong>距离相关 margin</strong>——ŷ 离 y 越远，要求能量被拉得越高</li>
+            <li>效果：能量至少随 y 到数据流形的距离<strong>平方增长</strong></li>
+          </ul>
+        </div>
+
+        <div class="callout" style="margin: 14px 0;">
+          <div class="callout-label">② 多反例形式（Eq 8）</div>
+          <pre style="font-family:var(--font-mono); font-size:14px; line-height:1.6; margin:8px 0 10px; white-space:pre-wrap;">L(w, x, y, ŷ[1], …, ŷ[K])  =  H( F_w(x, y),  F_w(x, ŷ[1]),  …,  F_w(x, ŷ[K]) )</pre>
+          <ul style="margin:0; padding-left:18px;">
+            <li>对第 1 项<strong>递增</strong>（压低正样本能量）</li>
+            <li>对其余 K 项<strong>递减</strong>（抬高反例能量）</li>
+          </ul>
+        </div>
+
+        <div class="callout" style="margin: 14px 0;">
+          <div class="callout-label">③ InfoNCE（Eq 9）—— SimCLR / MoCo / CPC 的通用形式</div>
+          <pre style="font-family:var(--font-mono); font-size:14px; line-height:1.6; margin:8px 0 10px; white-space:pre-wrap;">L  =  F_w(x, y)  +  log[ exp(−F_w(x, y))  +  Σₖ exp(−F_w(x, ŷ[k])) ]</pre>
+          <ul style="margin:0; padding-left:18px;">
+            <li>等价于"在 {正样本 y, 反例 ŷ[1..K]} 里做 softmax 分类"，目标让正样本得分最高</li>
+            <li>K 越大、能量地形塑形越稳——但 K 也是对比方法算力瓶颈的来源</li>
+          </ul>
+        </div>
+
+        <div class="callout blue">
+          <div class="callout-label">💡 小红书级直觉</div>
+          <p>Hinge loss 像"推开一个近邻 + 拉近一个正样本"；InfoNCE 像"在一群候选里做 softmax 分类：正样本得分最高"。两者都要<strong>提供一批 ŷ</strong>——这批 ŷ 从哪里来、数量多少，就是对比方法的两大工程难点。</p>
+        </div>
+
+        <p>ŷ 的产生方式决定了方法名字：</p>
+        <ul>
+          <li><strong>DrLIM / Siamese / SimCLR / MoCo</strong>：ŷ = batch 里的其它样本（随机负样本）</li>
+          <li><strong>Contrastive Divergence / 概率 EBM</strong>：ŷ 用 MCMC 采样</li>
+          <li><strong>GAN</strong>：ŷ 由可学习生成器产生（对抗）</li>
+          <li><strong>DAE / MAE</strong>：ŷ 通过对 y 加噪或 mask 得到</li>
+        </ul>
+
+        <h4 style="margin-top:22px;">③ 正则式（regularized）loss：每种架构配什么正则器</h4>
+
+        <p>正则方法不找 ŷ，而是加一个"低能量区<strong>体积最小化</strong>"的正则项。关键问题：对 Fig 10 里不同的架构，"低能量区体积"对应模型里<strong>哪个量</strong>？paper §4.3 p.23 给出对照：</p>
+
+        <table class="kv-table">
+          <thead>
+            <tr>
+              <td style="width:22%;"><strong>架构（Fig 10）</strong></td>
+              <td style="width:25%;"><strong>会怎么坍缩</strong></td>
+              <td><strong>正则器 = 限制什么</strong></td>
+            </tr>
+          </thead>
+          <tr>
+            <td><strong>(a) 确定性预测</strong><br/>y = Pred(x)</td>
+            <td>✗ 不会坍缩</td>
+            <td>不需要。对任意 x 只产生一个 ỹ，能量零点唯一</td>
+          </tr>
+          <tr>
+            <td><strong>(b) 生成式潜变量</strong><br/>ỹ = Pred(x, z)</td>
+            <td>z 信息容量太大 → 任意 y 都能找到 z 使能量=0</td>
+            <td><strong>限制 z 的容量</strong>：离散 k 值 → 最多 k 个零能量点；d 维流形 → 零能量区最多 d 维</td>
+          </tr>
+          <tr>
+            <td><strong>(c) Auto-encoder</strong><br/>ỹ = Dec(Enc(y))</td>
+            <td>s_y 容量够大就学出恒等函数，整个 y 空间能量=0</td>
+            <td><strong>限制 s_y 的容量</strong>：稀疏、低维、加噪（VAE）</td>
+          </tr>
+          <tr>
+            <td><strong>(d) Joint Embedding</strong><br/>D(Enc_x(x), Enc_y(y))</td>
+            <td>两个 encoder 都学常数 → s_x = s_y = const，全空间 D=0</td>
+            <td><strong>最大化 s_x 对 x、s_y 对 y 的信息量</strong>（这就是 §3.6 要讲的 VICReg 方向）</td>
+          </tr>
+        </table>
+
+        <div class="callout">
+          <div class="callout-label">🔑 串起来看</div>
+          <p>每种架构的正则器都在干同一件事：<em>"限制那个容易让能量塌成零的自由度"</em>。(b) 是 z，(c) 是 s_y，(d) 是两个 encoder 的输出。JEPA（§3.5）同时是 (b)+(d) 的组合——所以它的正则器既要限制 z（criterion 4）也要限制 s_x / s_y（criterion 1+2）——这就是 §3.6 四条准则的<strong>来源</strong>。</p>
+        </div>
+
+        <h4 style="margin-top:22px;">④ Loss 设计的黄金准则</h4>
+
+        <p>两条 loss 设计的通用原则（贯穿全文）：</p>
+
+        <div class="module-grid">
+          <div class="module-card">
+            <div class="module-card-name">PUSH-DOWN · 压训练样本能量</div>
+            <div class="module-card-title">让 L 是 F_w(x, y) 的递增函数</div>
+            <div class="module-card-desc">简单。只要 F 有下界就行，比如 F ≥ 0。</div>
+          </div>
+          <div class="module-card">
+            <div class="module-card-name">PREVENT-FLAT · 防能量地形变平</div>
+            <div class="module-card-title">要么拉高 ŷ（contrastive），要么压低能量区体积（regularized）</div>
+            <div class="module-card-desc">难。选 contrastive 就要 ŷ 采样策略；选 regularized 就要针对架构设计体积度量。</div>
+          </div>
+        </div>
+
+        <div class="callout amber">
+          <div class="callout-label">⚠️ 两类方法可以并用</div>
+          <p>paper §4.3 p.23 明确说："contrastive and regularized methods are not incompatible with each other, and can be used simultaneously on the same model."——实践中 JEPA 的现代实现（如 I-JEPA）就是"主要靠 VICReg 风格正则 + 少量对比项"的混合。</p>
+        </div>
+
+        <div class="quiz"
+             data-correct="b"
+             data-explain="paper §4.3 p.23 明确讲：对 Joint Embedding 架构（图 10d），防坍缩的正则方向是"最大化 s_x 对 x、s_y 对 y 的信息量"。这直接引出 §3.6 VICReg 的前两条准则。其它选项分别对应 (b) 和 (c) 架构的正则器。"
+             data-explain-wrong="限制 z / 限制 s_y 是别的架构的正则——(d) Joint Embedding 里没有单独的 z 或重建目标，防坍缩的唯一抓手是 encoder 输出的信息量。">
+          <div class="q-label">🧠 理解检查</div>
+          <div class="q-text">对 Joint Embedding 架构（Fig 10d），防坍缩的正则器应该针对什么？</div>
+          <div class="q-options">
+            <button class="q-opt" data-k="a">限制潜变量 z 的容量（离散/低维）</button>
+            <button class="q-opt" data-k="b">最大化 s_x 对 x、s_y 对 y 的信息量</button>
+            <button class="q-opt" data-k="c">限制 s_y 的维度让 auto-encoder 无法恒等</button>
+            <button class="q-opt" data-k="d">给 encoder 加 L2 权重衰减</button>
           </div>
           <div class="q-feedback"></div>
         </div>
