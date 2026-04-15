@@ -597,18 +597,18 @@ flowchart TB
               <div class="hotspot" data-id="vlt" style="left:50%; top:45%;"
                    data-title="VLT block · 共享 Transformer 主干"
                    data-body="所有 18 层 transformer 都有两套并行权重：VLM 侧（处理图像/文本 token）和 action expert 侧（处理状态/动作 token）。同一层内两边互相注意力，但 FFN 各走各的。"></div>
-              <div class="hotspot" data-id="expert" style="left:71.6%; top:59.4%;"
+              <div class="hotspot" data-id="expert" style="left:75.1%; top:27.6%;"
                    data-title="Action Expert · 动作专家 300M"
                    data-body="从零初始化的小 transformer，权重独立于 PaliGemma。只处理 robot state q_t 和 noisy action A_τ 的 token；输出速度向量 v_θ。300M << 3B 方便推理时快速去噪。"></div>
-              <div class="hotspot" data-id="state" style="left:62.8%; top:58.8%;"
+              <div class="hotspot" data-id="state" style="left:63.1%; top:56.5%;"
                    data-title="Robot state q_t · 关节角"
                    data-body="当前机器人关节角（单臂 7 维 / 双臂 14 维 / 移动 18 维），pad 到 18 维后线性投影成 1 个 token，进 action expert。"></div>
-              <div class="hotspot" data-id="noisy" style="left:97.2%; top:18%;"
+              <div class="hotspot" data-id="noisy" style="left:72.1%; top:56.5%;"
                    data-title="Noisy action A_τ · 待去噪动作"
                    data-body="推理时从 N(0,I) 采样，训练时用 A_τ = τA + (1-τ)ε 合成。50 步 × 18 维 → 50 个 action token 送进 action expert。"></div>
-              <div class="hotspot" data-id="output" style="left:98.5%; top:52.6%;"
-                   data-title="Output v_θ · 速度场"
-                   data-body="action expert 最后一层输出 50 个速度向量，每个 18 维。训练时用 MSE 回归 ε-A；推理时用它做 Euler 积分前进一步。"></div>
+              <div class="hotspot" data-id="output" style="left:79.1%; top:0%;"
+                   data-title="Action chunk 输出 · 送到各机器人"
+                   data-body="经过 10 步去噪后的干净动作 chunk A = [a_t, ..., a_{t+49}]，shape [50, action_dim]，统一 pad 到 18 维再按机器人类型取相应维度，送到 14 DoF 双臂 / 16 DoF 移动 / 7 DoF 单臂等本体执行。注意：v_θ（内部速度场）是 action expert 层内中间量，Fig 3 里没显式画，图上这排箭头画的是最终 action 输出。"></div>
             </div>
             <div class="fig-cap">
               <span class="fig-num">Fig 3 · p.3</span>
