@@ -732,103 +732,302 @@ flowchart LR
           <div class="cn-label">承上 / 这一节解决什么</div>
           <p>
             §4 给了架构静态图，本节动起来：从<strong>"看到一帧图 + 听到指令"</strong>到
-            <strong>"输出 50 个动作执行"</strong>，中间 tensor 怎么流。重点是搞清
-            <strong>什么算 1 次、什么算 10 次</strong>——这是理解 π₀ 工程可行性的关键。
+            <strong>"输出 50 个动作执行"</strong>，中间每个 tensor 怎么流。重点是搞清
+            <strong>什么算 1 次、什么算 10 次、什么可以 KV-cache</strong>——
+            这是理解 π₀ 为什么能跑到实时频率的关键。
           </p>
         </div>
 
+        <h3>5.0 输入与输出</h3>
+        <table class="kv-table">
+          <tr><td><strong>输入 · 观测 o_t</strong></td><td>
+            ① 图像 <code>{I¹_t, I²_t, I³_t}</code>（最多 3 路多视角） ·
+            ② 语言指令 <code>ℓ</code>（例如 "fold the shirt"） ·
+            ③ 机器人本体状态 <code>q_t</code>（关节角等连续向量）
+          </td></tr>
+          <tr><td><strong>输出 · 动作 chunk</strong></td><td>
+            <code>A_t = [a_t, a_{t+1}, ..., a_{t+H-1}]</code>，<code>H = 50</code>
+          </td></tr>
+        </table>
+
         <pre class="mermaid">
 flowchart TB
-    O[["Stage 1 · 观测编码（只 1 次）<br/>图像→SigLIP→patch tokens<br/>指令→Gemma embed→text tokens"]]
-    S[["Stage 2 · 状态 token（只 1 次）<br/>q_t (18d) → linear proj → 1 state token"]]
-    INIT["Stage 3 初始化<br/>Â_0 ~ N(0,I) shape [50,18]<br/>τ=0"]
-    LOOP["Stage 3 去噪循环（10 次）<br/>forward: v_θ(Â_k, τ_k, o_t)<br/>update: Â_{k+1} = Â_k + 0.1 · v_θ<br/>τ_{k+1} = τ_k + 0.1"]
-    DONE{"τ=1.0 ?"}
-    EXEC[["Stage 4 · 执行前 N 步<br/>(receding horizon)<br/>N 步后回到 Stage 1 重新观测"]]
+    O[["Stage 1 · 观测编码（只 1 次，KV-cache）<br/>图像 → SigLIP → image tokens<br/>指令 → Gemma → language tokens<br/>→ PaliGemma 跑完所有层 → 保存 KV"]]
+    S[["Stage 2 · State token（只 1 次）<br/>q_t → state_proj(Linear) → 1 个 state token<br/>（走 action expert 权重）"]]
+    INIT["Stage 3 初始化<br/>A^τ_0 ~ N(0, I), shape [50, action_dim]<br/>τ_0 = 0"]
+    LOOP["Stage 3 去噪循环 · for k = 0..9<br/>(a) 构造 action tokens<br/>(b) action expert forward<br/>(c) Euler 积分 A^τ_{k+1} = A^τ_k + 0.1 · v_θ<br/>(d) τ_{k+1} = τ_k + 0.1"]
+    DONE{"τ = 1.0 ?"}
+    EXEC[["Stage 4 · 执行<br/>全部 50 步 or receding horizon"]]
     O --> S --> INIT --> LOOP --> DONE
     DONE -->|否| LOOP
     DONE -->|是| EXEC
         </pre>
 
-        <h3 id="infer-stage1-sec">5.1 Stage 1 · 观测编码（只跑 1 次）</h3>
+        <h3 id="infer-stage1-sec">5.1 Stage 1 · 观测编码（只做 1 次，可缓存）</h3>
 
-        <table class="kv-table">
-          <tr><td>输入</td><td><code>I = [I¹, ..., Iⁿ]</code>（2 或 3 个 RGB camera）+ 文本指令 <code>ℓ</code></td></tr>
-          <tr><td>图像</td><td>每个图像 → SigLIP → 若干 patch token（每个 token 768 维）</td></tr>
-          <tr><td>文本</td><td>指令 → Gemma tokenizer → embed 成 text token</td></tr>
-          <tr><td>输出</td><td>图像 token + 文本 token 拼起来走过 PaliGemma 前 18 层，拿到 <strong>KV cache</strong></td></tr>
-        </table>
+        <ol style="line-height:1.9;">
+          <li><strong>图像编码</strong>：每张图过 SigLIP ViT → 一组 image tokens（每 token 768 维），3 路拼接成 <code>[N_img, d]</code>。</li>
+          <li><strong>语言编码</strong>：<code>ℓ</code> 经 Gemma tokenizer → text embedding → <code>[N_text, d]</code>。</li>
+          <li><strong>VLM 前向</strong>：把 <code>[image tokens | language tokens]</code> 送进 PaliGemma backbone（2.6B），跑完所有层，<strong>保存每一层的 K、V 缓存</strong>。</li>
+        </ol>
 
         <div class="callout amber">
-          <div class="callout-label">工程重点</div>
+          <div class="callout-label">工程重点 · KV cache 的省法</div>
           <p>
-            这一步只在新观测到来时跑一次，之后 10 步去噪<strong>全部复用同一份 KV</strong>。
-            ——这正是 §4.1 块因果 mask 的直接收益。
+            这部分是整个推理里<strong>最贵的一步</strong>——完整走一遍 3B 的 VLM——但只跑 1 次。
+            之后的 10 步去噪循环里，观测不变，图像/语言部分的 K、V 直接复用，<strong>不再重算</strong>。
+            这是 §4.1 块因果 mask 设计的直接收益，也是 π₀ 能做到推理实时的最关键优化。
           </p>
         </div>
 
-        <h3 id="infer-stage2">5.2 Stage 2 · State token（只跑 1 次）</h3>
+        <h3 id="infer-stage2">5.2 Stage 2 · Robot State token 准备（只做 1 次）</h3>
 
         <div class="code-block">
-          <code>q_t ∈ R^18  (pad 过的关节角) → Linear(18 → d_model) → state_token  (shape [1, d_model])</code>
+          <code>q_t ∈ R^{action_dim}     # pad 过的关节角<br>state_token = state_proj(q_t)     # Linear, shape [1, d_model]</code>
         </div>
-        <p>进入 Action Expert 的第 1 层，之后它的 KV 也被缓存。观测+状态 = 块①②，以下 10 次循环里这两块不变。</p>
+        <p style="margin-top:8px;">
+          注意：state token <strong>走的是 action expert 的权重</strong>（和后面的 action token 共享），
+          不走 VLM。它的 KV 也会被缓存，之后 10 步循环只读不写。
+        </p>
 
-        <h3 id="infer-stage3">5.3 Stage 3 · 10 步去噪循环（热路径）</h3>
+        <h3 id="infer-stage3">5.3 Stage 3 · Flow Matching 去噪循环（10 次迭代）</h3>
 
+        <h4>① 初始化</h4>
         <div class="code-block">
-          <code>Â ← sample from N(0, I)     # shape [50, 18]<br>τ ← 0<br>for k in 0..9:<br>&nbsp;&nbsp;&nbsp;&nbsp;action_tokens ← Linear(τ · onehot + Â)  # [50, d_model]<br>&nbsp;&nbsp;&nbsp;&nbsp;v_θ ← ActionExpert(action_tokens, cache=KV_obs_state)  # [50, 18]<br>&nbsp;&nbsp;&nbsp;&nbsp;Â ← Â + 0.1 · v_θ     # Euler 积分<br>&nbsp;&nbsp;&nbsp;&nbsp;τ ← τ + 0.1</code>
+          <code>A^τ_0 ~ N(0, I)     # shape [50, action_dim]<br>τ_0 = 0</code>
+        </div>
+        <p style="margin-top:8px;">
+          <code>A^τ_0</code> 相当于 flow matching 里的 <strong>x_0（纯噪声端）</strong>；
+          真实干净动作 <code>A_clean</code>（训练时的 ground truth）对应 <strong>x_1</strong>。
+          下面循环要做的事就是 "从 <code>A^τ_0</code> 逐渐走向 <code>A_clean</code>"，沿着
+          flow matching 的那条直线路径，每步走 δ = 0.1。
+        </p>
+
+        <h4>② for k = 0, 1, ..., 9</h4>
+
+        <div class="callout">
+          <div class="callout-label">(a) Action token 构造</div>
+          <ul style="line-height:1.9; margin:4px 0;">
+            <li><code>A^τ_k</code>（noisy action）过 <code>action_in_proj</code>（Linear）→ 50 个初步 token</li>
+            <li><code>τ_k</code>（标量 0.0 / 0.1 / ... / 0.9，flow timestep）经<strong>正弦位置编码</strong> → 1 个 time embedding</li>
+            <li>每个 action token 与 time embedding <strong>concat</strong> → 过 <code>action_time_mlp</code>（Linear → Swish → Linear）→ 50 个最终 action tokens</li>
+          </ul>
+        </div>
+
+        <div class="callout">
+          <div class="callout-label">(b) Action expert forward · 一趟 transformer</div>
+          <p>
+            输入序列：<code>[Image/Lang tokens (KV cache) | state token | 50 个 action tokens]</code>
+          </p>
+          <p style="margin-top:8px;"><strong>每一层应用块因果 attention mask</strong>：</p>
+          <table class="kv-table" style="margin-top:6px;">
+            <tr><th style="padding:6px 10px; border-bottom:1px solid var(--border); text-align:left; color:var(--text3);">块 ↓ 看 →</th>
+                <th style="padding:6px 10px; border-bottom:1px solid var(--border); text-align:left; color:var(--text3);">Image/Lang</th>
+                <th style="padding:6px 10px; border-bottom:1px solid var(--border); text-align:left; color:var(--text3);">State</th>
+                <th style="padding:6px 10px; border-bottom:1px solid var(--border); text-align:left; color:var(--text3);">Action</th></tr>
+            <tr><td><strong>Image/Lang</strong></td><td>✅ 双向</td><td>❌</td><td>❌</td></tr>
+            <tr><td><strong>State</strong></td><td>✅</td><td>✅</td><td>❌</td></tr>
+            <tr><td><strong>Action</strong></td><td>✅</td><td>✅</td><td>✅ 双向</td></tr>
+          </table>
+          <ul style="line-height:1.9; margin-top:8px;">
+            <li>Image/Lang 部分<strong>不重算</strong>，直接用 Stage 1 的 KV cache</li>
+            <li>State + action tokens 走 action expert（300M）每一层</li>
+          </ul>
+          <p style="margin-top:8px;">
+            取最后一层的 50 个 action token 输出 → 过 <code>action_out_proj</code> → 得到向量场：
+          </p>
+          <div class="code-block" style="margin-top:4px;">
+            <code>v_θ(A^τ_k, τ_k, o_t)     # shape [50, action_dim]</code>
+          </div>
+        </div>
+
+        <div class="callout">
+          <div class="callout-label">(c) Euler 积分更新（等价于"更新 action token"）</div>
+          <div class="code-block">
+            <code>A^τ_{k+1} = A^τ_k + δ · v_θ(A^τ_k, τ_k, o_t)     # δ = 0.1</code>
+          </div>
+          <p style="margin-top:8px;">
+            新值 = 旧值 + 步长 × 当前位置的"速度"。这就是用 flow matching 预测的向量场
+            沿直线走一小步。
+          </p>
+        </div>
+
+        <div class="callout">
+          <div class="callout-label">(d) 推进时间</div>
+          <div class="code-block"><code>τ_{k+1} = τ_k + 0.1</code></div>
         </div>
 
         <div class="callout blue">
-          <div class="callout-label">两层嵌套循环</div>
+          <div class="callout-label">为什么写成 (t → t−1) 而不是 (τ → τ+δ)</div>
           <p>
-            <strong>外层</strong>：去噪 10 步（for k）。<strong>内层</strong>：每步 Action Expert 18 层 transformer。
-            总计算量 ≈ 10 × 18 = 180 层 forward 量级，但其中图像+语言部分只算 1 次——比全网络每步都重算便宜 10 倍。
+            有些图里标注是 <code>t → t−1</code>——这是从扩散模型借来的写法，
+            <code>t = T</code> 纯噪声、<code>t = 0</code> 干净样本，每次去噪一步 t 减 1。
+            在 π₀ 约定下 τ 是相反方向（0 噪声 / 1 干净），但含义一致：每轮都<strong>更像真实 action clean</strong>。
           </p>
         </div>
 
-        <h3 id="infer-stage4">5.4 Stage 4 · 执行（receding horizon）</h3>
+        <h3 id="infer-stage4">5.4 Stage 4 · 输出动作</h3>
 
         <p>
-          拿到 <code>Â ∈ R^{50×18}</code> 后，<strong>不一定</strong>真的执行 50 步再重规划。
-          实践中常 "执行前 N 步（e.g. 10 步 = 0.2 秒）→ 回 Stage 1 重新观测 → 再来一轮"。
-          这让策略对突发扰动（物体滑落、机械臂偏移）反应快，同时保留 chunk 预测的平滑性。
+          循环结束后 <code>A^τ_{10} = A^1.0</code> 即为干净动作 chunk <code>A_clean</code>。
         </p>
+        <ul style="line-height:1.9;">
+          <li><strong>全部执行</strong>：把 50 步动作发给机器人控制器（50 Hz → 1 秒）</li>
+          <li><strong>部分执行 + 重规划</strong>：执行前 k 步（如前 10 步）后，回到 Stage 1 用新观测重新推理——即 <span class="term" data-en="receding horizon control">滚动时域控制</span>。让策略对突发扰动（物体滑落、机械臂偏移）反应更快，同时保留 chunk 预测的平滑性。</li>
+        </ul>
+
+        <div class="callout blue">
+          <div class="callout-label">两层嵌套循环 · 总计算量</div>
+          <p>
+            <strong>外层</strong>：去噪 10 步（for k）。<strong>内层</strong>：每步 Action Expert 18 层 transformer。
+            总计算量 ≈ 10 × 18 = 180 层 forward 量级，但其中图像+语言部分只在 Stage 1 算了 1 次——
+            比"全网络每步都重算"便宜 10 倍。
+          </p>
+        </div>
 
         <div class="callout">
           <div class="callout-label">本节小结 / 启下</div>
           <p>
-            推理路径讲完了。但训练时<strong>没有 10 步循环</strong>——训练是"一次前向一次反传"。
-            下一节把训练路径写清。
+            推理路径讲完了。训练时<strong>没有 10 步循环</strong>——训练是"一次前向一次反传"。
+            下一节把训练的完整四步写清，重点在 <strong>loss 的物理含义</strong>和为什么
+            <code>u = ε − A</code> 是对的监督目标。
           </p>
         </div>
 
         <!-- ═════════════════════════════════════════════════ -->
-        <h2 id="train-sample">§6 训练 · Flow Matching Loss</h2>
+        <h2 id="train-sample">§6 训练 · Flow Matching Loss 的完整四步</h2>
 
         <div class="cn-read">
           <div class="cn-label">承上 / 这一节解决什么</div>
           <p>
-            §3.2 给了公式，§5 给了推理。训练是 flow matching 里最简单的一部分——一次前向就够了。
-            但<strong>采样细节</strong>决定最终表现：τ 怎么采、loss 怎么加权、监督信号从哪来。
+            §5 的推理有 10 步循环。训练<strong>正好相反</strong>：一条真实动作 chunk + 一次前向 + 一次反传就够了。
+            但"一次前向"里有不少细节决定成败——怎么采 τ 和 ε、怎么构造 noisy action、
+            <strong>监督目标到底是什么</strong>（<code>ε − A</code> 这个方向从哪来）。
+            本节按 4 步走完。
           </p>
         </div>
 
-        <h3 id="train-sample-sec">6.1 一步训练的完整流程</h3>
+        <h3 id="train-sample-sec">6.1 Step 1 · 取真实动作 chunk</h3>
 
+        <p>从机器人 demonstration 数据集 <code>D</code> 里采一段真实动作序列：</p>
         <div class="code-block">
-          <code># 从数据集抽一个样本<br>(o_t, A_t) ← sample from D     # o_t=观测, A_t=真实 50 步动作<br><br># 采 τ（偏小 β 分布，让模型多学"噪声多"的阶段）<br>τ ← Beta(1.5, 1.0).sample().clip(0, 1 - 0.001)     # shape [1]<br><br># 采 ε（各维独立标准高斯）<br>ε ← N(0, I)     # shape [50, 18]<br><br># 线性插值得 noisy action<br>A_τ ← τ · A_t + (1 - τ) · ε<br><br># 前向<br>v_θ ← π₀(o_t, q_t, A_τ, τ)     # shape [50, 18]<br><br># Loss 和反传<br>L ← ‖v_θ − (ε − A_t)‖²<br>L.backward(); opt.step()</code>
+          <code>A = [a_t, a_{t+1}, ..., a_{t+49}]     # shape [50, action_dim]</code>
+        </div>
+        <p style="margin-top:8px;">
+          这就是 flow matching 里的 <strong>x₁</strong>（目标分布的样本）。同一个样本还包含
+          <code>o_t</code>（当时的观测：图像 + 语言 + 状态）。
+        </p>
+
+        <h3 id="train-step2">6.2 Step 2 · 采样 τ、ε，构造 noisy action</h3>
+
+        <p>随机采两个东西：</p>
+        <ul style="line-height:1.9;">
+          <li><strong>噪声</strong> <code>ε ~ N(0, I)</code>，shape 和 A 一样 <code>[50, action_dim]</code></li>
+          <li><strong>时间</strong> <code>τ ∈ [0, 1]</code>（论文里用偏小的 <span class="term" data-en="shifted beta distribution">shifted β 分布</span>，让模型多学早期去噪）</li>
+        </ul>
+
+        <p>然后<strong>线性插值</strong>得到 noisy action：</p>
+        <div class="code-block">
+          <code>A^τ = τ · A + (1 − τ) · ε</code>
         </div>
 
-        <h3 id="train-loss">6.2 为什么 τ 用偏小的 β 分布</h3>
+        <div class="callout amber">
+          <div class="callout-label">一个常见误读</div>
+          <p>
+            <code>A^τ</code> 不是"第 τ 个时间步的动作"（不是 action sequence 里的某一步），
+            而是<strong>整段 50 步动作的"第 τ 个清洁度版本"</strong>——
+            可以理解为 A 被部分加噪后的样子。
+          </p>
+        </div>
+
+        <p>直观理解这条插值：</p>
+        <table class="kv-table">
+          <tr><td><code>τ = 0</code></td><td><code>A^τ = ε</code> → 纯噪声（起点）</td></tr>
+          <tr><td><code>τ = 0.5</code></td><td>一半噪声一半真实动作</td></tr>
+          <tr><td><code>τ = 1</code></td><td><code>A^τ = A</code> → 干净动作（终点）</td></tr>
+        </table>
+        <p>
+          这里 τ 约定是 <strong>τ=1 干净、τ=0 噪声</strong>，和推理时方向<strong>一致</strong>——
+          训练和推理 convention 对齐，模型学到的向量场直接拿来用。
+        </p>
+
+        <h3 id="train-step3">6.3 Step 3 · 把 A^τ 当成 action tokens 输入 transformer</h3>
+
+        <p>整个前向流程<strong>和推理时完全一样</strong>：</p>
+
+        <ol style="line-height:1.9;">
+          <li><code>A^τ</code> 过 <code>action_in_proj</code> → 拼上 τ 的 sinusoidal embedding → 过 <code>action_time_mlp</code> → 50 个 action tokens</li>
+          <li>拼成完整序列 <code>[image | lang | state | action]</code>，过整个网络（VLM + action expert）</li>
+          <li>取最后一层 50 个 action token 输出 → 过 <code>action_out_proj</code> → 得到向量场预测：
+            <div class="code-block" style="margin-top:6px;"><code>v_θ(A^τ, o_t)     # shape [50, action_dim]</code></div>
+          </li>
+        </ol>
+
+        <div class="callout blue">
+          <div class="callout-label">训练 vs 推理的关键差别 · KV cache</div>
+          <p>
+            训练时<strong>不需要 KV cache</strong>——每个 batch 样本的观测都是新的，
+            不存在"反复算同一个 o_t" 的场景，cache 没用武之地。
+            推理时才靠 KV cache 让 10 次循环里观测只算 1 次。
+          </p>
+        </div>
+
+        <h3 id="train-loss">6.4 Step 4 · Loss · 强制 v_θ 去预测目标向量场</h3>
+
+        <h4>① 目标向量场</h4>
+
+        <div class="code-block">
+          <code>u(A^τ | A) = ε − A</code>
+        </div>
+
+        <p>这是 flow matching 的核心定义。怎么推出来的：</p>
+        <ul style="line-height:1.9;">
+          <li>已知 <code>A^τ = τ · A + (1 − τ) · ε</code></li>
+          <li>对 τ 求导：<code>dA^τ / dτ = A − ε</code></li>
+          <li>论文把方向反过来写，定义 <code>u = ε − A</code>（去噪方向：从噪声"指向"干净动作的反方向，或等价地"从干净指向噪声"当作梯度方向）</li>
+        </ul>
+
+        <div class="callout blue">
+          <div class="callout-label">为什么这点漂亮</div>
+          <p>
+            <code>u = ε − A</code> 是<strong>从噪声端 ε 走到干净端 A 这条直线路径上的速度</strong>——
+            而这条速度<strong>对所有 τ 都是常数</strong>（直线路径嘛）。
+            对比扩散模型的曲线 + 随时间变化的目标，flow matching 目标平稳、模型好学——
+            这正是它比 diffusion 漂亮的地方。
+          </p>
+        </div>
+
+        <h4>② Loss</h4>
+
+        <div class="code-block">
+          <code>L(θ) = E_{p(A|o), q(A^τ|A)} [ ‖ v_θ(A^τ, o_t) − u(A^τ | A) ‖² ]<br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;= E [ ‖ v_θ(A^τ, o_t) − (ε − A) ‖² ]</code>
+        </div>
+
+        <p style="margin-top:8px;">翻译成人话：</p>
+
+        <div class="callout">
+          <div class="callout-label">loss 在说什么</div>
+          <p>
+            让模型预测的向量场 <code>v_θ</code>（<strong>模型输出</strong>）尽可能接近
+            目标向量场 <code>u = ε − A</code>（<strong>已知答案</strong>），用 MSE 衡量差距。
+          </p>
+        </div>
+
+        <p>期望 <code>E</code> 来自<strong>三个随机性</strong>上取平均：</p>
+        <ol style="line-height:1.9;">
+          <li><code>p(A_t | o_t)</code>：从数据集里随机采一条 <code>(观测, 动作)</code> pair</li>
+          <li><code>q(A^τ_t | A_t)</code>：随机采 τ 和 ε，构造 A^τ</li>
+          <li>（隐含）batch 内多个样本一起算，反传后更新 θ</li>
+        </ol>
+
+        <h3>6.5 为什么 τ 用偏小的 β 分布</h3>
 
         <div class="callout amber">
           <div class="callout-label">细节 but 关键</div>
           <p>
             均匀采 τ 的问题：τ 接近 1 时（样本快接近干净动作）<strong>任务简单</strong>——
             大部分网络容量被"浪费"在容易的样本上。π₀ 用偏小的 β 分布让 τ 更多落在 <strong>[0, 0.5]</strong>，
-            强迫模型多练"从很噪声的起点往回推"的困难情形——这直接对应推理时前几步（τ=0.0, 0.1, 0.2...）
+            强迫模型多练"从很噪声的起点往回推"的困难情形——这直接对应推理时前几步（τ=0.0, 0.1, 0.2 ...）
             最不稳定的阶段。
           </p>
         </div>
@@ -859,10 +1058,16 @@ flowchart TB
           <div class="q-feedback"></div>
         </div>
 
+        <h3>6.6 训练伪代码（一次 batch update）</h3>
+        <div class="code-block">
+          <code># 从数据集抽一个样本<br>(o_t, q_t, A) ← sample from D     # A = 真实 50 步动作 chunk<br><br># 采 τ（偏小 β 分布）<br>τ ← Beta(1.5, 1.0).sample().clip(0, 1 − 0.001)<br><br># 采 ε（各维独立标准高斯）<br>ε ← N(0, I)                       # shape [50, action_dim]<br><br># 构造 noisy action<br>A^τ ← τ · A + (1 − τ) · ε          # shape [50, action_dim]<br><br># 前向（和推理完全一样的网络路径，但没有 KV cache）<br>v_θ ← π₀(o_t, q_t, A^τ, τ)         # shape [50, action_dim]<br><br># Loss 和反传<br>L ← ‖v_θ − (ε − A)‖²<br>L.backward(); opt.step()</code>
+        </div>
+
         <div class="callout">
           <div class="callout-label">本节小结 / 启下</div>
           <p>
-            训练的数学部分到此为止。但论文真正的"秘密"在<strong>数据</strong>上——
+            训练的数学部分到此为止——4 步讲清了 loss 的来源和物理含义。
+            但论文真正的"秘密"在<strong>数据</strong>上——
             1 万小时怎么拼出来的、7 种机器人怎么共享一套动作空间？§7 讲数据和本体。
           </p>
         </div>
