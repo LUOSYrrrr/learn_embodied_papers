@@ -47,16 +47,21 @@
 
         <details>
           <summary>§5 推理 · 10 步去噪</summary>
-          <a class="ds-leaf" href="#infer-stage1">5.1 观测编码（只 1 次）</a>
-          <a class="ds-leaf" href="#infer-stage2">5.2 State 准备</a>
-          <a class="ds-leaf" href="#infer-stage3">5.3 去噪循环</a>
-          <a class="ds-leaf" href="#infer-stage4">5.4 执行动作</a>
+          <a class="ds-leaf" href="#infer-stage1">5.0 输入与输出</a>
+          <a class="ds-leaf" href="#infer-stage1-sec">5.1 Stage 1 · 观测编码</a>
+          <a class="ds-leaf" href="#infer-stage2">5.2 Stage 2 · State token</a>
+          <a class="ds-leaf" href="#infer-stage3">5.3 Stage 3 · 去噪循环</a>
+          <a class="ds-leaf" href="#infer-stage4">5.4 Stage 4 · 输出动作</a>
         </details>
 
         <details>
           <summary>§6 训练 · Flow Loss</summary>
-          <a class="ds-leaf" href="#train-sample">6.1 采样 τ ε 构造 noisy</a>
-          <a class="ds-leaf" href="#train-loss">6.2 Loss 与目标向量场</a>
+          <a class="ds-leaf" href="#train-sample">6.1 Step 1 · 取真实动作</a>
+          <a class="ds-leaf" href="#train-step2">6.2 Step 2 · 采 τ, ε 构造 A^τ</a>
+          <a class="ds-leaf" href="#train-step3">6.3 Step 3 · 前向</a>
+          <a class="ds-leaf" href="#train-loss">6.4 Step 4 · Loss 目标向量场</a>
+          <a class="ds-leaf" href="#train-beta">6.5 τ 为何用偏小 β</a>
+          <a class="ds-leaf" href="#train-pseudo">6.6 训练伪代码</a>
         </details>
 
         <details>
@@ -1020,7 +1025,7 @@ flowchart TB
           <li>（隐含）batch 内多个样本一起算，反传后更新 θ</li>
         </ol>
 
-        <h3>6.5 为什么 τ 用偏小的 β 分布</h3>
+        <h3 id="train-beta">6.5 为什么 τ 用偏小的 β 分布</h3>
 
         <div class="callout amber">
           <div class="callout-label">细节 but 关键</div>
@@ -1058,7 +1063,7 @@ flowchart TB
           <div class="q-feedback"></div>
         </div>
 
-        <h3>6.6 训练伪代码（一次 batch update）</h3>
+        <h3 id="train-pseudo">6.6 训练伪代码（一次 batch update）</h3>
         <div class="code-block">
           <code># 从数据集抽一个样本<br>(o_t, q_t, A) ← sample from D     # A = 真实 50 步动作 chunk<br><br># 采 τ（偏小 β 分布）<br>τ ← Beta(1.5, 1.0).sample().clip(0, 1 − 0.001)<br><br># 采 ε（各维独立标准高斯）<br>ε ← N(0, I)                       # shape [50, action_dim]<br><br># 构造 noisy action<br>A^τ ← τ · A + (1 − τ) · ε          # shape [50, action_dim]<br><br># 前向（和推理完全一样的网络路径，但没有 KV cache）<br>v_θ ← π₀(o_t, q_t, A^τ, τ)         # shape [50, action_dim]<br><br># Loss 和反传<br>L ← ‖v_θ − (ε − A)‖²<br>L.backward(); opt.step()</code>
         </div>
