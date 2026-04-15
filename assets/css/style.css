@@ -695,7 +695,12 @@ code {
 
 /* ── Hotspot dev mode (?edit-hotspots=1) ── */
 .hotspot-wrap.edit-mode { cursor: crosshair; }
-.hotspot-wrap.edit-mode .hotspot { opacity: 0.35; pointer-events: none; }
+.hotspot-wrap.edit-mode .hotspot {
+  opacity: 0.9; cursor: grab;
+  background: #ff3b6b; color: #fff; font-weight: 700;
+  outline: 2px solid #fff; box-shadow: 0 0 0 2px #ff3b6b;
+}
+.hotspot-wrap.edit-mode .hotspot.dragging { cursor: grabbing; z-index: 20; transform: translate(-50%, -50%) scale(1.3); }
 .hs-edit-marker {
   position: absolute; width: 14px; height: 14px;
   background: #ff3b6b; border: 2px solid #fff; border-radius: 50%;
@@ -710,6 +715,37 @@ code {
   box-shadow: 0 8px 24px rgba(0,0,0,0.5); max-width: 320px;
 }
 .hs-edit-toast b { color: #ff6b8a; }
+
+/* 汇总导出面板 */
+.hs-edit-panel {
+  position: fixed; bottom: 16px; right: 16px; z-index: 999;
+  width: 380px; max-height: 60vh; display: flex; flex-direction: column;
+  background: #0f1114; color: #e8e6e0; border: 1px solid #ff3b6b;
+  border-radius: 8px; font-family: var(--font-mono); font-size: 11px;
+  box-shadow: 0 8px 32px rgba(0,0,0,0.6);
+}
+.hs-edit-panel-head {
+  display: flex; justify-content: space-between; align-items: center;
+  padding: 10px 14px; border-bottom: 1px solid #333;
+  background: #171a1f; border-radius: 8px 8px 0 0;
+}
+.hs-edit-panel-head b { color: #ff6b8a; font-size: 12px; }
+.hs-edit-panel-head button {
+  background: #ff3b6b; color: #fff; border: none;
+  padding: 5px 10px; border-radius: 4px; cursor: pointer;
+  font-family: var(--font-mono); font-size: 11px; font-weight: 600;
+}
+.hs-edit-panel-head button:hover { background: #ff5c87; }
+.hs-edit-panel-head button.copied { background: #4ade9a; }
+.hs-edit-panel pre {
+  margin: 0; padding: 12px 14px; overflow: auto; flex: 1;
+  font-family: var(--font-mono); font-size: 11px; line-height: 1.65;
+  white-space: pre; color: #cfd3d8;
+}
+.hs-edit-panel pre .hs-group { color: #ff6b8a; display: block; margin-top: 6px; }
+.hs-edit-panel pre .hs-id { color: #ffcc66; }
+.hs-edit-panel pre .hs-coord { color: #7ee; }
+@media (max-width: 700px) { .hs-edit-panel { width: calc(100% - 32px); right: 16px; } }
 .hotspot-panel .hp-title {
   font-family: var(--font-mono); font-size: 11px; color: var(--amber);
   letter-spacing: 0.06em; margin-bottom: 8px;

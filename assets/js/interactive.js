@@ -87,35 +87,149 @@
   }
 
   // ── Hotspot Edit Mode (?edit-hotspots=1) ──
-  // 点图片任意位置 → 右上角浮层显示 left:X.X%; top:Y.Y%;，自动复制到剪贴板
+  // 两种用法：
+  //   1) 拖拽已有点：按住点圈直接拖 → 松手后坐标自动更新，汇总面板实时刷新
+  //   2) 取新点坐标：点图上空白区域 → 右上角 toast 显示坐标，复制到剪贴板
+  // 改完所有点后，点右下面板的 "Copy All" → 得到一个 data-id → style 映射，回 HTML 批量粘贴
   function initEditMode() {
     if (!/[?&]edit-hotspots=1/.test(location.search)) return;
-    let toast = document.createElement('div');
+
+    // 右上角 toast（单点取坐标用）
+    const toast = document.createElement('div');
     toast.className = 'hs-edit-toast';
-    toast.innerHTML = '🎯 <b>Hotspot edit mode</b><br>点图片任一位置获取坐标<br><small style="opacity:.7">去掉 ?edit-hotspots=1 退出</small>';
+    toast.innerHTML =
+      '🎯 <b>Hotspot edit mode</b><br>' +
+      '• 拖拽圆点 = 调整坐标<br>' +
+      '• 点空白处 = 取新坐标<br>' +
+      '<small style="opacity:.7">右下角面板支持全部导出</small>';
     document.body.appendChild(toast);
+
+    // 右下角汇总面板
+    const panel = document.createElement('div');
+    panel.className = 'hs-edit-panel';
+    panel.innerHTML =
+      '<div class="hs-edit-panel-head">' +
+        '<b>🎯 All Hotspots</b>' +
+        '<button class="hs-copy-btn" type="button">Copy All</button>' +
+      '</div>' +
+      '<pre class="hs-out"></pre>';
+    document.body.appendChild(panel);
+    const out = panel.querySelector('.hs-out');
+    const copyBtn = panel.querySelector('.hs-copy-btn');
+
+    function buildExport() {
+      const groups = {};
+      document.querySelectorAll('.hotspot-wrap').forEach(wrap => {
+        const g = wrap.dataset.hotspotGroup || '(no-group)';
+        if (!groups[g]) groups[g] = [];
+        wrap.querySelectorAll('.hotspot').forEach(h => {
+          groups[g].push({
+            id: h.dataset.id || '',
+            left: h.style.left || '',
+            top: h.style.top || ''
+          });
+        });
+      });
+      // HTML 着色版本（面板里显示）
+      let html = '';
+      // 纯文本版本（复制用）
+      let plain = '';
+      for (const g in groups) {
+        html  += '<span class="hs-group">── ' + g + ' ──</span>\n';
+        plain += '── ' + g + ' ──\n';
+        groups[g].forEach(h => {
+          const coord = 'left:' + h.left + '; top:' + h.top + ';';
+          html  += 'data-id="<span class="hs-id">' + h.id + '</span>" style="<span class="hs-coord">' + coord + '</span>"\n';
+          plain += 'data-id="' + h.id + '" style="' + coord + '"\n';
+        });
+        html  += '\n';
+        plain += '\n';
+      }
+      out.innerHTML = html;
+      out.dataset.plain = plain;
+    }
+
+    copyBtn.addEventListener('click', () => {
+      const text = out.dataset.plain || '';
+      if (navigator.clipboard) {
+        navigator.clipboard.writeText(text).then(() => {
+          copyBtn.textContent = '✓ Copied';
+          copyBtn.classList.add('copied');
+          setTimeout(() => {
+            copyBtn.textContent = 'Copy All';
+            copyBtn.classList.remove('copied');
+          }, 1500);
+        }).catch(() => {});
+      }
+    });
+
+    // 每个 wrap 挂 drag + click 双行为
     document.querySelectorAll('.hotspot-wrap').forEach(wrap => {
       wrap.classList.add('edit-mode');
+
+      // 阻止已有 click 激活逻辑（initHotspotWrap 里注册的）
+      wrap.querySelectorAll('.hotspot').forEach(hs => {
+        hs.addEventListener('click', e => { e.stopPropagation(); e.preventDefault(); }, true);
+      });
+
+      // toast 用 marker
       const marker = document.createElement('div');
       marker.className = 'hs-edit-marker';
       marker.style.display = 'none';
       wrap.appendChild(marker);
-      wrap.addEventListener('click', e => {
+
+      // drag 逻辑（mousedown 在 hotspot 上启动）
+      let dragging = null;
+      wrap.querySelectorAll('.hotspot').forEach(hs => {
+        hs.addEventListener('mousedown', e => {
+          e.preventDefault();
+          e.stopPropagation();
+          dragging = hs;
+          hs.classList.add('dragging');
+        });
+      });
+
+      function onMove(e) {
+        if (!dragging || !wrap.contains(dragging)) return;
         const rect = wrap.getBoundingClientRect();
         const x = ((e.clientX - rect.left) / rect.width) * 100;
-        const y = ((e.clientY - rect.top) / rect.height) * 100;
+        const y = ((e.clientY - rect.top)  / rect.height) * 100;
+        const clampedX = Math.max(0, Math.min(100, x));
+        const clampedY = Math.max(0, Math.min(100, y));
+        dragging.style.left = clampedX.toFixed(1) + '%';
+        dragging.style.top  = clampedY.toFixed(1) + '%';
+        buildExport();
+      }
+      function onUp() {
+        if (dragging) {
+          dragging.classList.remove('dragging');
+          dragging = null;
+          buildExport();
+        }
+      }
+      document.addEventListener('mousemove', onMove);
+      document.addEventListener('mouseup', onUp);
+
+      // 点空白（非 hotspot）= 取新坐标到 toast
+      wrap.addEventListener('click', e => {
+        if (e.target.classList.contains('hotspot')) return;
+        const rect = wrap.getBoundingClientRect();
+        const x = ((e.clientX - rect.left) / rect.width) * 100;
+        const y = ((e.clientY - rect.top)  / rect.height) * 100;
         const coord = 'left:' + x.toFixed(1) + '%; top:' + y.toFixed(1) + '%;';
         marker.style.left = x + '%';
-        marker.style.top = y + '%';
+        marker.style.top  = y + '%';
         marker.style.display = 'block';
         const group = wrap.dataset.hotspotGroup || '(no-group)';
         toast.innerHTML =
-          '🎯 <b>' + group + '</b><br>' +
+          '🎯 <b>' + group + '</b> · 新坐标<br>' +
           '<span style="color:#7ee">' + coord + '</span><br>' +
           '<small style="opacity:.7">已复制到剪贴板</small>';
         if (navigator.clipboard) navigator.clipboard.writeText(coord).catch(() => {});
       });
     });
+
+    buildExport();
   }
 
   function init() {

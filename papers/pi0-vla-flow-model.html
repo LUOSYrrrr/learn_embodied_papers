@@ -1,0 +1,1110 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>π₀ · A Vision-Language-Action Flow Model for General Robot Control</title>
+  <link rel="stylesheet" href="../assets/css/style.css">
+  <script src="../assets/js/theme.js"></script>
+  <script src="../assets/js/interactive.js" defer></script>
+  <script src="https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.min.js"></script>
+</head>
+<body>
+  <nav class="nav">
+    <a class="nav-logo" href="../index.html">~/paper-notes</a>
+    <div class="nav-links">
+      <a href="../index.html">← 返回首页</a>
+      <a href="../pdfs/vla/pi0.pdf" target="_blank">📄 PDF</a>
+    </div>
+  </nav>
+
+  <div class="page">
+    <div class="docs-layout">
+
+      <!-- ─── 左：章节树 ─── -->
+      <aside class="docs-sidebar-left">
+        <div class="ds-title">π₀ · VLA Flow Model</div>
+
+        <a class="ds-leaf-top" href="#motivation">§1 为什么要做 π₀</a>
+
+        <details>
+          <summary>§2 两阶段范式</summary>
+          <a class="ds-leaf" href="#paradigm">2.0 大 pre-train + 小 post-train</a>
+        </details>
+
+        <details>
+          <summary>§3 基础组件</summary>
+          <a class="ds-leaf" href="#chunking">3.1 Action Chunking</a>
+          <a class="ds-leaf" href="#flow">3.2 Flow Matching 基础</a>
+        </details>
+
+        <details>
+          <summary>§4 架构</summary>
+          <a class="ds-leaf" href="#arch">4.0 Overview（Fig 3）</a>
+          <a class="ds-leaf" href="#mask">4.1 Block-wise Causal Mask</a>
+          <a class="ds-leaf" href="#expert">4.2 为什么要 Action Expert</a>
+        </details>
+
+        <details>
+          <summary>§5 推理 · 10 步去噪</summary>
+          <a class="ds-leaf" href="#infer-stage1">5.1 观测编码（只 1 次）</a>
+          <a class="ds-leaf" href="#infer-stage2">5.2 State 准备</a>
+          <a class="ds-leaf" href="#infer-stage3">5.3 去噪循环</a>
+          <a class="ds-leaf" href="#infer-stage4">5.4 执行动作</a>
+        </details>
+
+        <details>
+          <summary>§6 训练 · Flow Loss</summary>
+          <a class="ds-leaf" href="#train-sample">6.1 采样 τ ε 构造 noisy</a>
+          <a class="ds-leaf" href="#train-loss">6.2 Loss 与目标向量场</a>
+        </details>
+
+        <details>
+          <summary>§7 数据与机器人</summary>
+          <a class="ds-leaf" href="#data">7.1 数据集（Fig 4）</a>
+          <a class="ds-leaf" href="#robots">7.2 7 种机器人（Fig 5）</a>
+        </details>
+
+        <details>
+          <summary>§8 实验</summary>
+          <a class="ds-leaf" href="#exp-a">A 对比 baseline</a>
+          <a class="ds-leaf" href="#exp-b">B 语言指令</a>
+          <a class="ds-leaf" href="#exp-c">C 新任务微调</a>
+          <a class="ds-leaf" href="#exp-d">D 复杂多步任务</a>
+        </details>
+
+        <a class="ds-leaf-top" href="#vla-link">§9 与 LeCun / VLA 的联系</a>
+      </aside>
+
+      <!-- ─── 中：正文 ─── -->
+      <main class="docs-content">
+
+        <div class="docs-breadcrumb">
+          <a href="../index.html">paper-notes</a>
+          <span class="sep">/</span>
+          VLA
+          <span class="sep">/</span>
+          π₀ · 2024
+        </div>
+
+        <h1>π₀: A Vision-Language-Action Flow Model for General Robot Control</h1>
+        <p style="color:var(--text3); font-family:var(--font-mono); font-size:12px; margin-top:-12px;">
+          Physical Intelligence · Black, Brown, Driess, Finn, Levine et al. · 2024-10 · v4 2026-01
+        </p>
+
+        <div class="cn-read">
+          <div class="cn-label">这篇笔记怎么读</div>
+          <p>
+            π₀ 是第一个把 <strong>flow matching</strong> 用进机器人动作生成的 VLA 模型，
+            也是把"LLM 范式（大 pre-train + 小 post-train）"搬到真实机器人上的代表作。
+            按章节顺序读：先讲<strong>为什么要这么做</strong>（§1-§2），再讲
+            <strong>基础组件</strong>（§3），然后是<strong>完整架构</strong>（§4），
+            接着用两节分别走完<strong>推理</strong>（§5）和<strong>训练</strong>（§6）流程，
+            最后是<strong>数据</strong>（§7）和<strong>实验</strong>（§8）。
+          </p>
+        </div>
+
+        <!-- ═════════════════════════════════════════════════ -->
+        <h2 id="motivation">§1 为什么要做 π₀</h2>
+
+        <div class="cn-read">
+          <div class="cn-label">这一节解决什么</div>
+          <p>
+            机器人学习的现状是：<strong>每个任务/机器人单独采一批数据、训一个小模型</strong>——
+            能做的事窄、换个新场景就垮。π₀ 想要的是把 NLP/CV 已经跑通的
+            <strong>"大规模预训练 + 少量下游微调"</strong>范式移植到机器人上——做出
+            一个<strong>通用机器人基础模型（robot foundation model）</strong>，
+            靠语言指令就能驱动它做从叠衣服到打包盒子的多步复杂操作。
+          </p>
+          <p>
+            读完本节你会知道：π₀ 想解决的<strong>三个现实难题</strong>（数据、通用性、灵巧度），
+            以及它的<strong>三条技术路线</strong>（VLM 初始化、flow matching、action expert）
+            各自在对应哪个问题。
+          </p>
+        </div>
+
+        <details class="en-quote">
+          <summary>展开原文 · 核心主张</summary>
+          <div class="quote-body">
+            <p>
+              "Robot learning holds tremendous promise to unlock the full potential of flexible,
+              general, and dexterous robot systems... bringing robot learning to the level of generality
+              required for effective real-world systems faces major obstacles in terms of data,
+              generalization, and robustness."
+            </p>
+            <div class="quote-cite">— Abstract, p.1</div>
+          </div>
+        </details>
+
+        <h3>1.1 三个现实难题</h3>
+
+        <table class="kv-table">
+          <tr><td><strong>数据</strong></td><td>机器人数据远比互联网文本/图像贵——没有"抓取数据的互联网"可用。必须从多种机器人、多种任务里<em>拼</em>出大语料库。</td></tr>
+          <tr><td><strong>通用性</strong></td><td>一个模型要能跨<em>任务</em>（叠衣服 / 收拾桌子 / 装盒子）、跨<em>机器人本体</em>（单臂 / 双臂 / 移动底盘）、跨<em>场景</em>（新物体、新环境）。</td></tr>
+          <tr><td><strong>灵巧度</strong></td><td>上面两条还要在<em>复杂灵巧操作</em>上成立——像叠 T 恤、整理零碎物品这种需要精确连续控制的任务，不能只做"推积木"。</td></tr>
+        </table>
+
+        <h3>1.2 对应的三条技术选择</h3>
+
+        <div class="module-grid">
+          <div class="module-card">
+            <div class="module-card-name">VLM INIT · PaliGemma 3B</div>
+            <div class="module-card-title">从预训练 VLM 出发</div>
+            <div class="module-card-desc">
+              用互联网规模 VLM 的权重当 backbone，直接继承语义理解（认得"衬衫"、"毛巾"、"抽屉"）。
+              <strong>不新鲜</strong>，但是和下面 flow matching 一起走<strong>是头一份</strong>。
+            </div>
+          </div>
+          <div class="module-card">
+            <div class="module-card-name">FLOW MATCHING · action head</div>
+            <div class="module-card-title">连续动作生成</div>
+            <div class="module-card-desc">
+              抛弃 autoregressive 的动作离散化（精度差、易抖动），用
+              <span class="term" data-en="flow matching">流匹配</span> 在连续空间建模——
+              <strong>第一个把 flow matching 用进机器人</strong>的工作。
+            </div>
+          </div>
+          <div class="module-card">
+            <div class="module-card-name">ACTION EXPERT · 300M</div>
+            <div class="module-card-title">动作专用子网络</div>
+            <div class="module-card-desc">
+              把处理动作/状态 token 的权重<strong>从 VLM 里切出来</strong>独立训——
+              语义表征和连续控制差异大，共享一套权重效率不高。
+            </div>
+          </div>
+          <div class="module-card">
+            <div class="module-card-name">ACTION CHUNKING · H=50</div>
+            <div class="module-card-title">一次生成 50 步</div>
+            <div class="module-card-desc">
+              一次预测未来 50 个时间步（1 秒）的动作序列，而不是每步单独生成——
+              避免机械臂抖动。这是从 ACT/RT-2 一路沿用下来的技巧。
+            </div>
+          </div>
+        </div>
+
+        <div class="callout purple">
+          <div class="callout-label">对照 VLA</div>
+          <p>
+            π₀ 的名字里 V-L-A 三个字母各自对应一个模态处理：
+            <strong>V</strong> = SigLIP 图像编码 ·
+            <strong>L</strong> = Gemma 文本编码 ·
+            <strong>A</strong> = Action Expert + flow matching 头。
+            前两者合起来就是 PaliGemma（SigLIP + Gemma）这个现成的 VLM。
+          </p>
+        </div>
+
+        <h3>1.3 Fig 1 全景：这个系统长什么样</h3>
+
+        <div class="fig-interactive">
+          <div class="fig-block">
+            <div class="hotspot-wrap" data-hotspot-group="fig1">
+              <img src="../assets/figures/pi0/fig-1.png" alt="Figure 1: Generalist robot policy overview">
+              <div class="hotspot" data-id="dataset" style="left:18%; top:32%;"
+                   data-title="π cross-embodiment dataset · 跨本体数据集"
+                   data-body="左上：π₀ 自采的多机器人数据集——单臂、双臂、移动底盘多种形态各自采了一批灵巧任务数据。不是一个机器人刷 10000 小时，是 7 种机器人拼出的多样化混合。"></div>
+              <div class="hotspot" data-id="oxe" style="left:48.2%; top:21.5%;"
+                   data-title="Open X-Embodiment · 公开数据"
+                   data-body="右上输入：把公开的 OXE 数据集也一起喂进去，扩大 pre-training 覆盖的机器人形态和任务分布。"></div>
+              <div class="hotspot" data-id="pretrain" style="left:42.0%; top:34.3%;"
+                   data-title="Internet-scale pre-training · VLM 初始化"
+                   data-body="中间的 π₀ VLA 模型：pre-trained VLM（PaliGemma，继承互联网规模语义）+ action expert（从零初始化 300M）。这就是模型本体。"></div>
+              <div class="hotspot" data-id="posttrain" style="left:50.0%; top:57.2%;"
+                   data-title="High-quality post-training data · 高质量微调数据"
+                   data-body="下方：pre-train 完之后再用一小批高质量演示数据做 post-training——和 LLM 里"先预训练再 SFT"一个思路。"></div>
+              <div class="hotspot" data-id="zero" style="left:82.2%; top:18.9%;"
+                   data-title="Zero-shot · 零样本执行"
+                   data-body="右上：不做任何额外微调，直接给语言指令就能执行 pre-training 分布内的任务（e.g. bus table 收桌子）。"></div>
+              <div class="hotspot" data-id="spec" style="left:85.4%; top:38.0%;"
+                   data-title="Specialized · 针对困难任务微调"
+                   data-body="右中：对特别难的任务（叠多件衣服、清空洗烘一体机）再用少量该任务数据微调，就能打通全流程。"></div>
+              <div class="hotspot" data-id="unseen" style="left:83.9%; top:57.8%;"
+                   data-title="Efficient · 新任务高效微调"
+                   data-body="右下：对 pre-training 没见过的任务（放东西进抽屉、换纸巾），少量演示即可学会——验证 pre-training 给出的是"通用技能先验"而非"记忆具体任务"。"></div>
+            </div>
+            <div class="fig-cap">
+              <span class="fig-num">Fig 1 · p.1</span>
+              Our generalist robot policy uses a pre-trained VLM backbone, as well as a diverse
+              cross-embodiment dataset with a variety of dexterous manipulation tasks. The model is
+              adapted to robot control by adding a separate <em>action expert</em> that produces
+              continuous actions via flow matching.
+              <span class="fig-cn">
+                π₀ 的全景：左边是数据（π 自采 + OXE 公开），中间是模型（pre-trained VLM + action expert），
+                右边是三种下游使用模式（零样本 / 针对难任务微调 / 针对新任务微调）。
+              </span>
+            </div>
+          </div>
+          <div class="hotspot-panel"></div>
+        </div>
+
+        <div class="quiz"
+             data-correct="c"
+             data-explain="正确：π₀ 的独特性在于"第一个把 flow matching 用进机器人" + 和 pre-trained VLM 拼成完整流程。VLM 初始化本身不新，action chunking 在 ACT 里就用了，都不是 π₀ 的首创——但把它们组成一条完整 pipeline 是 π₀ 的贡献。"
+             data-explain-wrong="想一想：论文里反复强调的"first" 是哪件事？不是 VLM，也不是 chunking——VLM 初始化在 RT-2 就有了，chunking 在 ACT 里就有了。">
+          <div class="q-label">🧠 理解检查</div>
+          <div class="q-text">下列哪一项是 π₀ 真正的技术首创？</div>
+          <div class="q-options">
+            <button class="q-opt" data-k="a">用预训练 VLM 当 backbone</button>
+            <button class="q-opt" data-k="b">一次生成 50 步的 action chunking</button>
+            <button class="q-opt" data-k="c">把 flow matching 用到机器人动作生成</button>
+            <button class="q-opt" data-k="d">从互联网抓海量机器人数据</button>
+          </div>
+          <div class="q-feedback"></div>
+        </div>
+
+        <div class="callout">
+          <div class="callout-label">本节小结</div>
+          <p>
+            π₀ 要做的是<strong>机器人版的基础模型</strong>：数据上靠多本体拼，架构上靠
+            VLM + action expert 分工，生成上靠 flow matching 保精度。下一节先把
+            <strong>"大 pre-train + 小 post-train"</strong>这套范式说清楚——它才是
+            π₀ 整体 pipeline 的骨架，§3 之后的各个模块都是在填这个骨架。
+          </p>
+        </div>
+
+        <!-- ═════════════════════════════════════════════════ -->
+        <h2 id="paradigm">§2 两阶段范式 · 大 pre-train + 小 post-train</h2>
+
+        <div class="cn-read">
+          <div class="cn-label">承上 / 这一节解决什么</div>
+          <p>
+            §1 说 π₀ 的目标是<strong>做通用机器人基础模型</strong>——但"通用"到底怎么实现？
+            答案不是"训一个万能的模型一把梭"，而是<strong>照搬 LLM 的路数</strong>：
+            先在<strong>大而杂</strong>的数据（7 种机器人 · 68 任务 · 1 万小时）上预训练，
+            让模型学到"通用的低层技能先验"；再在<strong>小而精</strong>的高质量演示数据上
+            post-training，把这些先验调成"某个具体任务的解"。
+          </p>
+          <p>
+            本节把<strong>为什么要分两阶段</strong>讲清楚——这会直接决定 §4 架构里
+            "为什么要拆出 action expert"和 §8 实验里"为什么 scratch 打不过 pre-trained"。
+          </p>
+        </div>
+
+        <details class="en-quote">
+          <summary>展开原文 · 两阶段范式</summary>
+          <div class="quote-body">
+            <p>
+              "Our framework consists of a pre-training stage followed by a post-training stage...
+              The purpose of the pre-training phase is to train a base model that exhibits broad
+              capabilities and generalization, but is not necessarily specialized for high performance
+              on any one task. This base model can follow language commands and perform a variety
+              of tasks at rudimentary proficiency."
+            </p>
+            <div class="quote-cite">— §III Overview, p.3</div>
+          </div>
+        </details>
+
+        <h3>2.1 两阶段在干什么</h3>
+
+        <div class="tab-switcher">
+          <div class="tabs">
+            <div class="tab active" data-tab="pre">① Pre-training · 大杂烩</div>
+            <div class="tab" data-tab="post">② Post-training · 小精</div>
+            <div class="tab" data-tab="why">③ 为什么非要分两步</div>
+          </div>
+
+          <div class="panel active" data-panel="pre">
+            <table class="kv-table">
+              <tr><td>数据规模</td><td>OXE + DROID + Bridge v2 + π 自采 → <strong>~10,000 小时</strong>，903M 时间步</td></tr>
+              <tr><td>机器人形态</td><td>7 种：UR5e / Bimanual UR5e / Franka / Bimanual Trossen / Bimanual ARX / Mobile Trossen / Mobile Fibocom</td></tr>
+              <tr><td>任务数</td><td>68 个 π 自采任务 + OXE 里的子集</td></tr>
+              <tr><td>目标</td><td>"广而浅"——能听懂指令、能大致做各种基础操作，<strong>但任何单个任务都不顶尖</strong></td></tr>
+              <tr><td>对应 NLP</td><td>类比 GPT 的 next-token 预训练：见过什么都懂一点，但没专精</td></tr>
+            </table>
+          </div>
+
+          <div class="panel" data-panel="post">
+            <table class="kv-table">
+              <tr><td>数据规模</td><td><strong>1–10 小时</strong> 演示足矣（部分任务 5 小时就能达 SOTA）</td></tr>
+              <tr><td>数据质量</td><td>专人精采、无错误演示、单任务连续成功</td></tr>
+              <tr><td>目标</td><td>"窄而深"——把某个具体任务（叠衣服 / 收桌子 / 装盒子）做到高成功率 + 强鲁棒</td></tr>
+              <tr><td>对应 NLP</td><td>类比 SFT/RLHF：用小批高质量数据把基础模型调成"听指令"的有用模型</td></tr>
+            </table>
+          </div>
+
+          <div class="panel" data-panel="why">
+            <div class="callout blue">
+              <div class="callout-label">核心理由</div>
+              <p>
+                如果你<strong>只用小而精的数据</strong>从零训，模型会过拟合到具体任务，
+                换场景就垮——这就是传统 behavior cloning 的老问题。如果你<strong>只用大而杂的数据</strong>，
+                模型学到的是"平均质量的动作分布"——对任何具体任务都不够精细。
+                <strong>两阶段合起来</strong>：pre-train 给你"通用技能先验 + 对物体/语言的广义理解"，
+                post-train 把这些先验聚焦到具体任务。§8 实验 A/D 专门验证了这点——
+                scratch 版本在困难任务上掉分明显。
+              </p>
+            </div>
+          </div>
+        </div>
+
+        <h3>2.2 一张图看两阶段怎么拼</h3>
+
+        <pre class="mermaid">
+flowchart LR
+    subgraph PRE["① Pre-training（大杂烩 · 10000h）"]
+      OXE[Open X-Embodiment<br/>公开数据]
+      PI[π 自采数据<br/>7 机器人 · 68 任务]
+      DROID[DROID / Bridge v2]
+    end
+    PRE --> BASE[π₀ Base Model<br/>3.3B 参数<br/>泛化 · 听指令 · 基础操作]
+    BASE --> POST1
+    BASE --> POST2
+    BASE --> POST3
+    subgraph POST["② Post-training（小而精 · 1-10h/任务）"]
+      POST1[叠衬衫 fine-tune]
+      POST2[清空烘干机 fine-tune]
+      POST3[收拾餐桌 fine-tune]
+    end
+    POST1 --> OUT1[叠衬衫 专家策略]
+    POST2 --> OUT2[清空烘干机 专家策略]
+    POST3 --> OUT3[收拾餐桌 专家策略]
+        </pre>
+
+        <div class="callout purple">
+          <div class="callout-label">对照 LLM</div>
+          <p>
+            <strong>π₀ Base</strong> ↔ <strong>GPT-base</strong>（预训练后啥都能扯但不听指令）<br>
+            <strong>π₀ task-specific</strong> ↔ <strong>ChatGPT</strong>（SFT 后听话、专精）<br>
+            这个对照不是我瞎编——论文里原话讲 "analogous to the recipe used for large language models"。
+          </p>
+        </div>
+
+        <details class="en-quote">
+          <summary>展开原文 · LLM 范式搬运</summary>
+          <div class="quote-body">
+            <p>
+              "We present a prototype model and learning framework, which we call π₀, that illustrates
+              how each of these bottlenecks could be tackled. ... Our framework broadly resembles the
+              training procedures employed for large language models, which typically consist of
+              pre-training a base model on very large datasets ranged from the web, followed by a
+              post-training recipe that uses higher-quality curated data to induce a desired behavior."
+            </p>
+            <div class="quote-cite">— §I Introduction + §VII Discussion, p.2 / p.12</div>
+          </div>
+        </details>
+
+        <div class="quiz"
+             data-correct="b"
+             data-explain="正确：post-training 数据是"小而精"，典型单任务只有 1-10 小时（看 §8 实验 C 的 fine-tuning data 横轴）。大数据在 pre-training。"
+             data-explain-wrong="搞反了——大数据在 pre-training（10000h），post-training 反而小（1-10h）。这正是"基础模型 + SFT"范式的关键：大池子学通用，小池子调专精。">
+          <div class="q-label">🧠 理解检查</div>
+          <div class="q-text">关于 π₀ 的 post-training 数据规模，下列哪一项描述对？</div>
+          <div class="q-options">
+            <button class="q-opt" data-k="a">和 pre-training 一样量级（1 万小时级）</button>
+            <button class="q-opt" data-k="b">单任务 1–10 小时演示，小而精</button>
+            <button class="q-opt" data-k="c">必须覆盖全部机器人形态</button>
+            <button class="q-opt" data-k="d">不需要，fine-tune 直接用 pre-training 数据重刷一遍</button>
+          </div>
+          <div class="q-feedback"></div>
+        </div>
+
+        <div class="callout">
+          <div class="callout-label">本节小结 / 启下</div>
+          <p>
+            搞清楚"大 pre-train + 小 post-train"是<strong>外壳</strong>后，下一节 §3 打开<strong>内核</strong>——
+            在具体每一步里，模型到底在生成什么？答案是"未来 50 步的动作块"，用 flow matching 生成。
+            这两个词各有一节讲：§3.1 action chunking，§3.2 flow matching。
+          </p>
+        </div>
+
+        <!-- ═════════════════════════════════════════════════ -->
+        <h2 id="chunking">§3 基础组件 · action chunking 与 flow matching</h2>
+
+        <div class="cn-read">
+          <div class="cn-label">承上 / 这一节解决什么</div>
+          <p>
+            §2 把整体范式讲清楚了，但没说"一次前向在输出什么"。π₀ 每次推理输出的不是 1 个动作，
+            而是<strong>未来 H=50 步的动作块</strong>（action chunk），而且这 50 步是
+            <strong>用 flow matching 一次性生成</strong>（不是 autoregressive 逐步吐）。
+            这俩组合决定了后面 §4 架构的样子和 §5 推理的 10 步循环，不先搞清它俩别往下走。
+          </p>
+        </div>
+
+        <h3 id="chunking-sec">3.1 Action Chunking · 为什么一次要生成 50 步</h3>
+
+        <div class="callout">
+          <div class="callout-label">一句话</div>
+          <p>
+            如果每次推理只输出下 1 个动作，两次推理之间的<strong>微小预测差异</strong>会让
+            机械臂产生肉眼可见的抖动（jitter）。一次生成 50 步（= 1 秒，执行频率 50 Hz），
+            让这段时间内动作之间自然连贯，抖动消失。
+          </p>
+        </div>
+
+        <table class="kv-table">
+          <tr><td><code>H = 50</code></td><td>一次生成的动作个数（chunk size / action horizon）</td></tr>
+          <tr><td><code>50 Hz</code></td><td>执行频率——50 个动作刚好对应 <strong>1 秒</strong> 的机器人运动</td></tr>
+          <tr><td><code>action_dim</code></td><td>每步动作维度（随机器人不同：单臂 ~7，双臂 ~14，移动底盘 ~18；统一 pad 到 18 维）</td></tr>
+          <tr><td>chunk 形状</td><td><code>A = [a_t, a_{t+1}, ..., a_{t+49}]</code>，shape <code>[50, 18]</code></td></tr>
+        </table>
+
+        <div class="callout blue">
+          <div class="callout-label">类比</div>
+          <p>
+            像打字预测——你不是一个字母一个字母想，而是脑子里先浮出一整个短语再连贯打出来。
+            单动作预测 = 每个字母都重新决策 → 卡顿；chunk 预测 = 一整个短语出炉 → 流畅。
+          </p>
+        </div>
+
+        <div class="callout amber">
+          <div class="callout-label">代价</div>
+          <p>
+            一次生成 50 步 → 延迟高（要跑完整个 flow matching 10 步去噪才拿到动作）。
+            工程上用 <strong>receding horizon control</strong> 缓解：执行前 N 步（比如前 10 步）
+            就回到观测阶段重新推理，不用等 50 步执行完——这个后面 §5.4 讲。
+          </p>
+        </div>
+
+        <h3 id="flow">3.2 Flow Matching · 从噪声到干净动作的直线路径</h3>
+
+        <div class="cn-read">
+          <div class="cn-label">最少的 flow matching 知识</div>
+          <p>
+            Flow matching 是 2023 年 Lipman 等人提出的生成模型范式，直觉非常简单：
+            <strong>在"纯噪声"和"真实样本"之间画一条直线，让模型去学习这条线上每点的"速度向量"</strong>。
+            推理时就沿着预测的速度场一路走，直到走到干净样本。
+            对比扩散模型（diffusion）的"曲线路径 + 随机游走"，flow matching 的直线更省、更稳。
+          </p>
+        </div>
+
+        <h4>3.2.1 核心三公式</h4>
+
+        <div class="callout">
+          <div class="callout-label">① 线性插值（训练时构造 noisy action）</div>
+          <pre style="margin:8px 0; padding:12px; background:var(--bg3); border-radius:6px; font-family:var(--font-mono); font-size:14px; overflow-x:auto;"><code>A_τ = τ · A + (1 − τ) · ε       其中 ε ~ N(0, I),  τ ∈ [0, 1]</code></pre>
+          <p style="margin-top:8px;">
+            <strong>τ=0</strong> → 纯噪声；<strong>τ=1</strong> → 干净动作；中间值 = 线性混合。
+            注意 π₀ 的约定和部分 flow matching 原论文<strong>方向相反</strong>（有些论文 τ=0 是干净），
+            但只要内部一致就没问题。
+          </p>
+        </div>
+
+        <div class="callout">
+          <div class="callout-label">② 目标向量场（ground truth 的"速度"）</div>
+          <pre style="margin:8px 0; padding:12px; background:var(--bg3); border-radius:6px; font-family:var(--font-mono); font-size:14px; overflow-x:auto;"><code>u(A_τ | A) = ε − A</code></pre>
+          <p style="margin-top:8px;">
+            怎么推出来的？对 <code>A_τ = τA + (1−τ)ε</code> 求导得 <code>dA_τ/dτ = A − ε</code>。
+            论文把方向反过来写 <code>u = ε − A</code>（从"干净指向噪声"反向，作为"去噪方向"）——
+            <strong>这个方向在整条直线上是常数</strong>，这正是 flow matching 比 diffusion 漂亮的地方：
+            目标平稳，模型好学。
+          </p>
+        </div>
+
+        <div class="callout">
+          <div class="callout-label">③ 训练 loss（MSE 回归速度）</div>
+          <pre style="margin:8px 0; padding:12px; background:var(--bg3); border-radius:6px; font-family:var(--font-mono); font-size:14px; overflow-x:auto;"><code>L(θ) = E[ ‖ v_θ(A_τ, o_t) − u(A_τ | A) ‖² ]
+      = E[ ‖ v_θ(A_τ, o_t) − (ε − A) ‖² ]</code></pre>
+          <p style="margin-top:8px;">
+            让模型输出的向量场 <code>v_θ</code>（网络输出）尽可能贴近目标 <code>u=ε−A</code>（已知答案）。
+            期望 E 来自三处随机：数据中采 <code>(o_t, A)</code>、随机采 <code>τ</code>、随机采 <code>ε</code>。
+            <strong>注意</strong>：π₀ 采样 <code>τ</code> 用的是<strong>偏小的 β 分布</strong>
+            （不是均匀分布），让模型多学"早期去噪"——早期噪声多，信号弱，更难学。
+          </p>
+        </div>
+
+        <h4>3.2.2 flow matching 是怎么跑的（训练 vs 推理）</h4>
+
+        <pre class="mermaid">
+flowchart TB
+    subgraph TRAIN["训练 · 一次前向"]
+      T1["采真实动作 A (ground truth)"] --> T2["采 τ~β, ε~N(0,I)"]
+      T2 --> T3["构造 A_τ = τA + (1-τ)ε"]
+      T3 --> T4["网络输出 v_θ(A_τ, o_t)"]
+      T4 --> T5["loss = ‖v_θ − (ε−A)‖²"]
+    end
+    subgraph INFER["推理 · 10 步 Euler 积分"]
+      I1["初始化 Â_0 ~ N(0,I), τ=0"] --> I2
+      I2["网络输出 v_θ(Â_k, τ_k)"] --> I3
+      I3["Â_{k+1} = Â_k + δ · v_θ （δ=0.1）"] --> I4
+      I4["τ_{k+1} = τ_k + 0.1"] --> I5{τ=1.0 ?}
+      I5 -->|否| I2
+      I5 -->|是| I6["输出 Â_10 = 干净动作 chunk"]
+    end
+        </pre>
+
+        <div class="callout amber">
+          <div class="callout-label">训练 vs 推理的差别</div>
+          <p>
+            训练时<strong>一次前向就够</strong>（随机采一个 τ，算一次 loss 更新）。
+            推理时没有 ground truth，只能从纯噪声出发<strong>一步一步走 10 次</strong>——
+            每次都是"用当前状态预测速度 → 欧拉积分前进一小步"，直到 τ=1.0。
+            这 10 次前向构成了 §5 里的<strong>外层循环</strong>；每次前向内部又有 18 层 transformer，
+            构成<strong>内层循环</strong>——后面细讲。
+          </p>
+        </div>
+
+        <div class="quiz"
+             data-correct="c"
+             data-explain="正确：flow matching 的目标向量场 u = ε - A 是"从干净动作指向噪声"的常量方向（整条插值直线上对 τ 求导都是同一个值）。扩散模型的目标随时间变化，flow matching 这里反而更平稳——这正是它被偏爱的理由之一。"
+             data-explain-wrong="关键是 u 对 τ 是否依赖。把 A_τ = τA + (1-τ)ε 对 τ 求导，得到的是 A - ε，这是常数（不含 τ），论文把方向反写成 ε - A。">
+          <div class="q-label">🧠 理解检查</div>
+          <div class="q-text">flow matching 的目标向量场 <code>u(A_τ|A)</code> 随 τ 变化吗？为什么这点很重要？</div>
+          <div class="q-options">
+            <button class="q-opt" data-k="a">变化，早期大晚期小，像 diffusion</button>
+            <button class="q-opt" data-k="b">变化，τ 越接近 1 越平滑</button>
+            <button class="q-opt" data-k="c">不变，是常量 ε−A，让目标平稳易学</button>
+            <button class="q-opt" data-k="d">不变，但只是巧合，换个插值就变了</button>
+          </div>
+          <div class="q-feedback"></div>
+        </div>
+
+        <div class="callout">
+          <div class="callout-label">本节小结 / 启下</div>
+          <p>
+            到这里你已经知道：一次要生成 <code>[50, action_dim]</code> 的动作块（§3.1），
+            生成方式是 flow matching 的 10 步 Euler 积分（§3.2）。
+            <strong>但 v_θ 到底长什么样</strong>？它是 PaliGemma 还是独立网络？
+            和图像、语言、机器人状态怎么融合？——这是 §4 架构要回答的。
+          </p>
+        </div>
+
+        <!-- ═════════════════════════════════════════════════ -->
+        <h2 id="arch">§4 架构 · PaliGemma + Action Expert</h2>
+
+        <div class="cn-read">
+          <div class="cn-label">承上 / 这一节解决什么</div>
+          <p>
+            §3 告诉你"输入 <code>o_t</code> + 噪声动作 <code>A_τ</code>，输出速度 <code>v_θ</code>"——
+            但中间那个 <strong>v_θ</strong> 的网络体到底长什么样？本节拆开来看。核心答案是
+            <strong>两套权重拼接的 transformer</strong>：PaliGemma（3B，处理图像+语言）+
+            Action Expert（300M，处理机器人状态和动作 token），两边通过<strong>块因果注意力</strong>交流。
+            搞懂这个结构，§5 推理流和 §6 训练流才有落点。
+          </p>
+        </div>
+
+        <h3 id="arch-overview">4.0 Fig 3 总览</h3>
+
+        <div class="fig-interactive">
+          <div class="fig-block">
+            <div class="hotspot-wrap" data-hotspot-group="fig3">
+              <img src="../assets/figures/pi0/fig-3.png" alt="Figure 3: π₀ architecture overview">
+              <div class="hotspot" data-id="dataset" style="left:12.3%; top:3.3%;"
+                   data-title="π dataset · 自采数据"
+                   data-body="左侧：π 公司自采的多机器人数据——7 种本体、68 任务，这是 pre-training 数据的主力。"></div>
+              <div class="hotspot" data-id="oxeblock" style="left:1.3%; top:43.5%;"
+                   data-title="Internet + OXE · 外部数据"
+                   data-body="互联网规模图像/视觉-语言数据 + Open X-Embodiment 公开机器人数据。和左边一起构成 pre-training mixture。"></div>
+              <div class="hotspot" data-id="siglip" style="left:27.6%; top:27.1%;"
+                   data-title="SigLIP · 图像塔"
+                   data-body="PaliGemma 内的视觉编码器（400M）。把每张图像切 patch，每 patch 变成一个 token，带语义。"></div>
+              <div class="hotspot" data-id="gemma" style="left:55%; top:22%;"
+                   data-title="Gemma · 语言塔"
+                   data-body="PaliGemma 内的语言 decoder（2.6B）。把语言指令 "fold shirt?" 变成 text token 序列。SigLIP + Gemma 合起来就是 VLM backbone（~3B）。"></div>
+              <div class="hotspot" data-id="vlt" style="left:50%; top:45%;"
+                   data-title="VLT block · 共享 Transformer 主干"
+                   data-body="所有 18 层 transformer 都有两套并行权重：VLM 侧（处理图像/文本 token）和 action expert 侧（处理状态/动作 token）。同一层内两边互相注意力，但 FFN 各走各的。"></div>
+              <div class="hotspot" data-id="expert" style="left:71.6%; top:59.4%;"
+                   data-title="Action Expert · 动作专家 300M"
+                   data-body="从零初始化的小 transformer，权重独立于 PaliGemma。只处理 robot state q_t 和 noisy action A_τ 的 token；输出速度向量 v_θ。300M << 3B 方便推理时快速去噪。"></div>
+              <div class="hotspot" data-id="state" style="left:62.8%; top:58.8%;"
+                   data-title="Robot state q_t · 关节角"
+                   data-body="当前机器人关节角（单臂 7 维 / 双臂 14 维 / 移动 18 维），pad 到 18 维后线性投影成 1 个 token，进 action expert。"></div>
+              <div class="hotspot" data-id="noisy" style="left:97.2%; top:18%;"
+                   data-title="Noisy action A_τ · 待去噪动作"
+                   data-body="推理时从 N(0,I) 采样，训练时用 A_τ = τA + (1-τ)ε 合成。50 步 × 18 维 → 50 个 action token 送进 action expert。"></div>
+              <div class="hotspot" data-id="output" style="left:98.5%; top:52.6%;"
+                   data-title="Output v_θ · 速度场"
+                   data-body="action expert 最后一层输出 50 个速度向量，每个 18 维。训练时用 MSE 回归 ε-A；推理时用它做 Euler 积分前进一步。"></div>
+            </div>
+            <div class="fig-cap">
+              <span class="fig-num">Fig 3 · p.3</span>
+              Overview of our framework. We start with a pre-training mixture... The VLM backbone
+              weights are initialized from PaliGemma, providing learned representations from
+              large-scale Internet pre-training.
+              <span class="fig-cn">
+                左：pre-training 数据（π 自采 + Internet + OXE）。中：π₀ 模型——PaliGemma VLM backbone
+                （SigLIP 400M + Gemma 2.6B，蓝色部分）+ Action Expert（300M，橙色部分）。
+                右：输出连续动作给各种机器人。
+              </span>
+            </div>
+          </div>
+          <div class="hotspot-panel"></div>
+        </div>
+
+        <details class="en-quote">
+          <summary>展开原文 · 架构核心</summary>
+          <div class="quote-body">
+            <p>
+              "The π₀ model... consists primarily of a language model transformer backbone. Following the
+              standard late fusion VLM recipe, image and text inputs are encoded... We further augment this
+              backbone with robotics-specific inputs and outputs — namely, proprioceptive state and robot
+              actions. π₀ uses conditional flow matching to model the continuous distribution of actions."
+            </p>
+            <div class="quote-cite">— §IV, p.3</div>
+          </div>
+        </details>
+
+        <h3 id="mask">4.1 Block-wise Causal Attention · 块因果注意力</h3>
+
+        <div class="callout">
+          <div class="callout-label">一句话</div>
+          <p>
+            整个 token 序列拆成<strong>三个块</strong>：<strong>① 图像+文本（PaliGemma 的</strong>
+            <strong>prefix）→ ② 机器人状态 q_t（action expert 的 1 个 token）→ ③ 噪声动作 A_τ（50 个 token）</strong>。
+            注意力规则：<strong>块内双向</strong> + <strong>块间只能向前看</strong>。这让 pre-trained VLM 部分
+            不被后来的机器人 token 污染，推理时可以把 ①②的 KV 算一次缓存起来重复用（10 步去噪只有 ③ 变）。
+          </p>
+        </div>
+
+        <pre class="mermaid">
+flowchart LR
+    B1["① 图像+文本 tokens<br/>(PaliGemma 权重)<br/>块内双向"]
+    B2["② 状态 q_t · 1 token<br/>(action expert 权重)<br/>能看 ①"]
+    B3["③ 噪声动作 A_τ · 50 tokens<br/>(action expert 权重)<br/>能看 ①②，块内双向"]
+    B1 --> B2
+    B2 --> B3
+    B1 --> B3
+        </pre>
+
+        <div class="callout blue">
+          <div class="callout-label">为什么这样分块</div>
+          <p>
+            <strong>① 作为 prefix</strong>：观测一步变，前两个块计算一次就够了——10 步去噪可以<strong>复用 KV cache</strong>，只重新算 50 个 action token，节省 ~90% FLOPs。<br>
+            <strong>② 隔出状态块</strong>：状态每步看一次即可，不需要被 50 个 action token 重复 attend，和 ③ 分开建模更干净。<br>
+            <strong>③ 块内双向</strong>：action chunk 内的 50 步是"一体成形"，互相都要 attend，不像 LLM 那样严格 autoregressive。
+          </p>
+        </div>
+
+        <details class="en-quote">
+          <summary>展开原文 · attention mask</summary>
+          <div class="quote-body">
+            <p>
+              "We adopt a blockwise causal attention mask with three blocks: image and language prefix
+              (block 1), robot state (block 2), and noisy action chunk (block 3). Tokens in a given block
+              can attend to tokens in the same block and all preceding blocks."
+            </p>
+            <div class="quote-cite">— §IV + Appendix B, p.3</div>
+          </div>
+        </details>
+
+        <h3 id="expert">4.2 为什么要独立的 Action Expert</h3>
+
+        <div class="cn-read">
+          <div class="cn-label">这节回答一个工程直觉问题</div>
+          <p>
+            既然已经有了 3B 的 PaliGemma，为什么不直接让它处理机器人 token？非要额外塞一个 300M 的
+            action expert？——答案是<strong>模态冲突 + 推理速度</strong>。
+          </p>
+        </div>
+
+        <table class="kv-table">
+          <tr><td><strong>模态冲突</strong></td><td>VLM 权重是"图像-文本离散 token 分布"的最优解；机器人状态/动作是<strong>连续</strong>信号，分布规律和语义 token 完全不同。共享一套权重会互相拖累。</td></tr>
+          <tr><td><strong>推理速度</strong></td><td>推理时要跑 <strong>10 次前向</strong>（flow matching 10 步）。前两个块（图像+语言+状态）KV cache 一次即可复用；但 action token 每步都要重算——让这部分走 <strong>300M 小网络</strong>而不是 3B 大网络，10 步总 FLOPs 几乎不增。</td></tr>
+          <tr><td><strong>保护预训练</strong></td><td>机器人数据量远小于 VLM 预训练数据，让机器人梯度全灌进 3B VLM 会导致<strong>灾难性遗忘</strong>语义知识。Expert 独立，机器人梯度只改 300M。</td></tr>
+        </table>
+
+        <div class="callout purple">
+          <div class="callout-label">类比 MoE</div>
+          <p>
+            可以理解为"模态 MoE"：token 根据类型（文本图像 vs 状态动作）被路由到不同专家的权重。
+            只是这里路由规则是<strong>静态的</strong>——token 是什么类型从一开始就定了，不是学出来的 gate。
+          </p>
+        </div>
+
+        <div class="quiz"
+             data-correct="b"
+             data-explain="正确：块 ① 是图像+文本，每次观测算一次；10 步去噪循环里只有块 ③（动作）在变，① 的 KV 可以缓存复用。这是块因果 mask 带来的直接工程红利。"
+             data-explain-wrong="再想一下去噪循环里什么在变：只有 noisy action A_τ 逐步从噪声变干净，图像和语言是观测 o_t 的一部分，整个循环里不变。">
+          <div class="q-label">🧠 理解检查</div>
+          <div class="q-text">推理时为什么可以把图像+文本的 KV cache 起来重复用 10 次？</div>
+          <div class="q-options">
+            <button class="q-opt" data-k="a">因为 PaliGemma 权重被冻结</button>
+            <button class="q-opt" data-k="b">因为 10 步去噪中观测不变，只有 noisy action token 在更新</button>
+            <button class="q-opt" data-k="c">因为 SigLIP 输出是确定性的</button>
+            <button class="q-opt" data-k="d">因为块 ① 和块 ③ 之间没有 attention 连接</button>
+          </div>
+          <div class="q-feedback"></div>
+        </div>
+
+        <div class="callout">
+          <div class="callout-label">本节小结 / 启下</div>
+          <p>
+            到这你会画 π₀ 的数据流图了：图像+语言进 PaliGemma、状态+动作进 Action Expert、
+            块因果 mask 把它们串起来、最后 Action Expert 最后一层输出 50 个速度向量。
+            下一节 §5 把这套架构在<strong>推理时</strong>的完整 10 步循环跑一遍——把
+            "我给个指令 → 机械臂动起来" 里每个 tensor 的 shape 都讲清。
+          </p>
+        </div>
+
+        <!-- ═════════════════════════════════════════════════ -->
+        <h2 id="infer-stage1">§5 推理 · 一次完整的 10 步去噪</h2>
+
+        <div class="cn-read">
+          <div class="cn-label">承上 / 这一节解决什么</div>
+          <p>
+            §4 给了架构静态图，本节动起来：从<strong>"看到一帧图 + 听到指令"</strong>到
+            <strong>"输出 50 个动作执行"</strong>，中间 tensor 怎么流。重点是搞清
+            <strong>什么算 1 次、什么算 10 次</strong>——这是理解 π₀ 工程可行性的关键。
+          </p>
+        </div>
+
+        <pre class="mermaid">
+flowchart TB
+    O[["Stage 1 · 观测编码（只 1 次）<br/>图像→SigLIP→patch tokens<br/>指令→Gemma embed→text tokens"]]
+    S[["Stage 2 · 状态 token（只 1 次）<br/>q_t (18d) → linear proj → 1 state token"]]
+    INIT["Stage 3 初始化<br/>Â_0 ~ N(0,I) shape [50,18]<br/>τ=0"]
+    LOOP["Stage 3 去噪循环（10 次）<br/>forward: v_θ(Â_k, τ_k, o_t)<br/>update: Â_{k+1} = Â_k + 0.1 · v_θ<br/>τ_{k+1} = τ_k + 0.1"]
+    DONE{"τ=1.0 ?"}
+    EXEC[["Stage 4 · 执行前 N 步<br/>(receding horizon)<br/>N 步后回到 Stage 1 重新观测"]]
+    O --> S --> INIT --> LOOP --> DONE
+    DONE -->|否| LOOP
+    DONE -->|是| EXEC
+        </pre>
+
+        <h3 id="infer-stage1-sec">5.1 Stage 1 · 观测编码（只跑 1 次）</h3>
+
+        <table class="kv-table">
+          <tr><td>输入</td><td><code>I = [I¹, ..., Iⁿ]</code>（2 或 3 个 RGB camera）+ 文本指令 <code>ℓ</code></td></tr>
+          <tr><td>图像</td><td>每个图像 → SigLIP → 若干 patch token（每个 token 768 维）</td></tr>
+          <tr><td>文本</td><td>指令 → Gemma tokenizer → embed 成 text token</td></tr>
+          <tr><td>输出</td><td>图像 token + 文本 token 拼起来走过 PaliGemma 前 18 层，拿到 <strong>KV cache</strong></td></tr>
+        </table>
+
+        <div class="callout amber">
+          <div class="callout-label">工程重点</div>
+          <p>
+            这一步只在新观测到来时跑一次，之后 10 步去噪<strong>全部复用同一份 KV</strong>。
+            ——这正是 §4.1 块因果 mask 的直接收益。
+          </p>
+        </div>
+
+        <h3 id="infer-stage2">5.2 Stage 2 · State token（只跑 1 次）</h3>
+
+        <div class="code-block">
+          <code>q_t ∈ R^18  (pad 过的关节角) → Linear(18 → d_model) → state_token  (shape [1, d_model])</code>
+        </div>
+        <p>进入 Action Expert 的第 1 层，之后它的 KV 也被缓存。观测+状态 = 块①②，以下 10 次循环里这两块不变。</p>
+
+        <h3 id="infer-stage3">5.3 Stage 3 · 10 步去噪循环（热路径）</h3>
+
+        <div class="code-block">
+          <code>Â ← sample from N(0, I)     # shape [50, 18]<br>τ ← 0<br>for k in 0..9:<br>&nbsp;&nbsp;&nbsp;&nbsp;action_tokens ← Linear(τ · onehot + Â)  # [50, d_model]<br>&nbsp;&nbsp;&nbsp;&nbsp;v_θ ← ActionExpert(action_tokens, cache=KV_obs_state)  # [50, 18]<br>&nbsp;&nbsp;&nbsp;&nbsp;Â ← Â + 0.1 · v_θ     # Euler 积分<br>&nbsp;&nbsp;&nbsp;&nbsp;τ ← τ + 0.1</code>
+        </div>
+
+        <div class="callout blue">
+          <div class="callout-label">两层嵌套循环</div>
+          <p>
+            <strong>外层</strong>：去噪 10 步（for k）。<strong>内层</strong>：每步 Action Expert 18 层 transformer。
+            总计算量 ≈ 10 × 18 = 180 层 forward 量级，但其中图像+语言部分只算 1 次——比全网络每步都重算便宜 10 倍。
+          </p>
+        </div>
+
+        <h3 id="infer-stage4">5.4 Stage 4 · 执行（receding horizon）</h3>
+
+        <p>
+          拿到 <code>Â ∈ R^{50×18}</code> 后，<strong>不一定</strong>真的执行 50 步再重规划。
+          实践中常 "执行前 N 步（e.g. 10 步 = 0.2 秒）→ 回 Stage 1 重新观测 → 再来一轮"。
+          这让策略对突发扰动（物体滑落、机械臂偏移）反应快，同时保留 chunk 预测的平滑性。
+        </p>
+
+        <div class="callout">
+          <div class="callout-label">本节小结 / 启下</div>
+          <p>
+            推理路径讲完了。但训练时<strong>没有 10 步循环</strong>——训练是"一次前向一次反传"。
+            下一节把训练路径写清。
+          </p>
+        </div>
+
+        <!-- ═════════════════════════════════════════════════ -->
+        <h2 id="train-sample">§6 训练 · Flow Matching Loss</h2>
+
+        <div class="cn-read">
+          <div class="cn-label">承上 / 这一节解决什么</div>
+          <p>
+            §3.2 给了公式，§5 给了推理。训练是 flow matching 里最简单的一部分——一次前向就够了。
+            但<strong>采样细节</strong>决定最终表现：τ 怎么采、loss 怎么加权、监督信号从哪来。
+          </p>
+        </div>
+
+        <h3 id="train-sample-sec">6.1 一步训练的完整流程</h3>
+
+        <div class="code-block">
+          <code># 从数据集抽一个样本<br>(o_t, A_t) ← sample from D     # o_t=观测, A_t=真实 50 步动作<br><br># 采 τ（偏小 β 分布，让模型多学"噪声多"的阶段）<br>τ ← Beta(1.5, 1.0).sample().clip(0, 1 - 0.001)     # shape [1]<br><br># 采 ε（各维独立标准高斯）<br>ε ← N(0, I)     # shape [50, 18]<br><br># 线性插值得 noisy action<br>A_τ ← τ · A_t + (1 - τ) · ε<br><br># 前向<br>v_θ ← π₀(o_t, q_t, A_τ, τ)     # shape [50, 18]<br><br># Loss 和反传<br>L ← ‖v_θ − (ε − A_t)‖²<br>L.backward(); opt.step()</code>
+        </div>
+
+        <h3 id="train-loss">6.2 为什么 τ 用偏小的 β 分布</h3>
+
+        <div class="callout amber">
+          <div class="callout-label">细节 but 关键</div>
+          <p>
+            均匀采 τ 的问题：τ 接近 1 时（样本快接近干净动作）<strong>任务简单</strong>——
+            大部分网络容量被"浪费"在容易的样本上。π₀ 用偏小的 β 分布让 τ 更多落在 <strong>[0, 0.5]</strong>，
+            强迫模型多练"从很噪声的起点往回推"的困难情形——这直接对应推理时前几步（τ=0.0, 0.1, 0.2...）
+            最不稳定的阶段。
+          </p>
+        </div>
+
+        <details class="en-quote">
+          <summary>展开原文 · τ 采样</summary>
+          <div class="quote-body">
+            <p>
+              "We sample the flow matching timestep τ from a shifted beta distribution that emphasizes
+              lower timesteps (noisier). See Appendix B for more details."
+            </p>
+            <div class="quote-cite">— §IV, p.4</div>
+          </div>
+        </details>
+
+        <div class="quiz"
+             data-correct="a"
+             data-explain="正确：推理时从 τ=0（纯噪声）开始，前几步最难——信号少、方向模糊。训练时用偏小 β 分布采 τ，让模型多练这些难样本，正好对齐推理时的困难阶段。"
+             data-explain-wrong="不是稳定性问题或梯度问题——这是"任务难度 vs 训练容量"的分配问题。越小的 τ 对应越噪声的输入，越需要模型学好。">
+          <div class="q-label">🧠 理解检查</div>
+          <div class="q-text">为什么 π₀ 训练时 τ 不用均匀分布，而用偏小的 β 分布？</div>
+          <div class="q-options">
+            <button class="q-opt" data-k="a">强迫模型多学"噪声多、信号弱"的早期去噪阶段</button>
+            <button class="q-opt" data-k="b">让 loss 梯度更稳定</button>
+            <button class="q-opt" data-k="c">因为均匀分布不可导</button>
+            <button class="q-opt" data-k="d">减少训练计算量</button>
+          </div>
+          <div class="q-feedback"></div>
+        </div>
+
+        <div class="callout">
+          <div class="callout-label">本节小结 / 启下</div>
+          <p>
+            训练的数学部分到此为止。但论文真正的"秘密"在<strong>数据</strong>上——
+            1 万小时怎么拼出来的、7 种机器人怎么共享一套动作空间？§7 讲数据和本体。
+          </p>
+        </div>
+
+        <!-- ═════════════════════════════════════════════════ -->
+        <h2 id="data">§7 数据与机器人</h2>
+
+        <div class="cn-read">
+          <div class="cn-label">承上 / 这一节解决什么</div>
+          <p>
+            π₀ 的泛化能力来自数据多样性。本节两图：<strong>Fig 4</strong> 看数据由谁组成，
+            <strong>Fig 5</strong> 看 7 种机器人本体长什么样、动作空间有多大。
+          </p>
+        </div>
+
+        <h3 id="data-sec">7.1 Fig 4 · 数据组成</h3>
+
+        <div class="fig-interactive">
+          <div class="fig-block">
+            <div class="hotspot-wrap" data-hotspot-group="fig4">
+              <img src="../assets/figures/pi0/fig-4.png" alt="Figure 4: Dataset overview pie chart">
+              <div class="hotspot" data-id="pi-own" style="left:30%; top:45%;"
+                   data-title="π self-collected · 自采"
+                   data-body="π 公司自己采的数据——7 种机器人本体、68 任务、~903M 时间步的绝大部分。质量可控，是"精"的部分。"></div>
+              <div class="hotspot" data-id="oxe-pie" style="left:55%; top:30%;"
+                   data-title="Open X-Embodiment · OXE"
+                   data-body="公开的跨本体机器人数据集。提供额外机器人形态和任务的广度覆盖。"></div>
+              <div class="hotspot" data-id="bridge" style="left:65%; top:55%;"
+                   data-title="Bridge v2"
+                   data-body="Bridge v2 公开单臂操作数据集，作为 OXE 补充。"></div>
+              <div class="hotspot" data-id="droid-pie" style="left:72%; top:40%;"
+                   data-title="DROID"
+                   data-body="大规模 Franka 单臂操作数据集，多样场景。"></div>
+            </div>
+            <div class="fig-cap">
+              <span class="fig-num">Fig 4 · p.5</span>
+              Overview of our dataset: pre-training mixture consists of a subset of OXE and π self-collected.
+              <span class="fig-cn">
+                π₀ 的 pre-training 数据组成：π 自采占最大比例，OXE/Bridge v2/DROID 补充广度。
+                单臂 797M + 双臂 106M 步，共 ~903M。
+              </span>
+            </div>
+          </div>
+          <div class="hotspot-panel"></div>
+        </div>
+
+        <h3 id="robots">7.2 Fig 5 · 7 种机器人本体</h3>
+
+        <div class="fig-interactive">
+          <div class="fig-block">
+            <div class="hotspot-wrap" data-hotspot-group="fig5">
+              <img src="../assets/figures/pi0/fig-5.png" alt="Figure 5: 7 robot platforms">
+              <!-- 顶排 3 个：Bimanual UR5e · Bimanual Trossen · Bimanual ARX -->
+              <div class="hotspot" data-id="biur5e" style="left:18%; top:22%;"
+                   data-title="Bimanual UR5e · 双臂 14 DoF"
+                   data-body="两台 UR5e + 3 相机 + 14 维动作空间。"></div>
+              <div class="hotspot" data-id="bitrossen" style="left:50%; top:22%;"
+                   data-title="Bimanual Trossen · ALOHA"
+                   data-body="ALOHA setup，6-DoF 双臂 + 2 手腕 + 1 正面相机，14 维。"></div>
+              <div class="hotspot" data-id="biarx" style="left:82%; top:22%;"
+                   data-title="Bimanual ARX / AgileX"
+                   data-body="第三种双臂 setup，6-DoF 双臂 + 3 相机，14 维。"></div>
+              <!-- 底排 4 个：UR5e · Franka · Mobile Trossen · Mobile Fibocom -->
+              <div class="hotspot" data-id="ur5e" style="left:13%; top:55%;"
+                   data-title="UR5e · 单臂 7 DoF"
+                   data-body="带并联夹爪、手腕相机+肩部相机，7 维动作空间。"></div>
+              <div class="hotspot" data-id="franka" style="left:37%; top:55%;"
+                   data-title="Franka · 单臂 8 DoF"
+                   data-body="2 相机 + 8 维动作空间。"></div>
+              <div class="hotspot" data-id="mtrossen" style="left:62%; top:55%;"
+                   data-title="Mobile Trossen · 移动双臂"
+                   data-body="ALOHA 臂装在 Mobile ALOHA 平台上，双臂 + 2 非驱动底盘轮 = 16 维。"></div>
+              <div class="hotspot" data-id="fibocom" style="left:87%; top:55%;"
+                   data-title="Mobile Fibocom · 全向底盘"
+                   data-body="ARX 双臂 + 1 全向底盘 → 17 维。整个 pi0 最大的动作空间。"></div>
+            </div>
+            <div class="fig-cap">
+              <span class="fig-num">Fig 5 · p.6</span>
+              The robots used in our experiments. These include single and dual-arm manipulations
+              with 6-DoF and 7-DoF arms, as well as holonomic and nonholonomic mobile manipulators.
+              <span class="fig-cn">
+                7 种本体，动作维度从 7 到 18。π₀ 把所有动作统一 <strong>pad 到 18 维</strong>，
+                对应 "取最大公约数" 的多本体策略。
+              </span>
+            </div>
+          </div>
+          <div class="hotspot-panel"></div>
+        </div>
+
+        <div class="callout amber">
+          <div class="callout-label">工程 trick · 动作维度统一</div>
+          <p>
+            不同机器人动作空间维度不同，但 action expert 只有一个输出头——解法是
+            <strong>统一 pad 到 18 维</strong>（最大者）。训练时根据机器人类型加 mask，
+            忽略不存在的维度。这比"每机器人一个头"简单得多，也是 π₀ 能共享一套权重的关键前提。
+          </p>
+        </div>
+
+        <!-- ═════════════════════════════════════════════════ -->
+        <h2 id="exp-a">§8 实验 · 四套评估</h2>
+
+        <div class="cn-read">
+          <div class="cn-label">承上 / 这一节解决什么</div>
+          <p>
+            §1–§7 告诉你 π₀ "应该能做什么"。本节用实验验证。作者设计了<strong>四套互补评估</strong>：
+            <strong>A</strong> 对比 baseline，<strong>B</strong> 语言遵循能力，<strong>C</strong> 新任务微调效率，
+            <strong>D</strong> 5-20 分钟级的复杂多阶段任务。每套都挑出了 π₀ 相对前辈的一个独特优势。
+          </p>
+        </div>
+
+        <h3 id="exp-a-sec">A · 开箱即用对比（Fig 7）</h3>
+        <table class="kv-table">
+          <tr><td>任务</td><td>5 个：shirt folding / bussing easy / bussing hard / grocery bagging / toast out of toaster</td></tr>
+          <tr><td>对手</td><td>OpenVLA（7B VLA，基于 RT-2 系）、Octo（小型 diffusion policy）、π₀-small（π₀ 的无 VLM 版 470M baseline）、π₀-parity（训练步数对齐版）</td></tr>
+          <tr><td>结论</td><td>π₀ 全面领先——在 bussing hard / grocery bagging 这类难任务上 <strong>baseline 接近全 0</strong>，π₀ 保持高成功率。验证 flow matching + VLM 初始化的叠加效果。</td></tr>
+        </table>
+
+        <h3 id="exp-b">B · 语言指令遵循（Fig 8）</h3>
+        <table class="kv-table">
+          <tr><td>评估</td><td>3 种任务（table setting / grocery bagging / bussing hard）× 3 种指令粒度（flat / human-intermediate / HL-VLM-intermediate）</td></tr>
+          <tr><td>对照</td><td>π₀ vs π₀-small</td></tr>
+          <tr><td>结论</td><td>π₀ 显著优于 π₀-small，<strong>差距主要来自中等粒度指令</strong>（"pick up the spoon"）——VLM pre-training 提供的语义 grounding 正好在这里生效。换成高层指令（"set the table"）两者都需要外部 HL-VLM 分解。</td></tr>
+        </table>
+
+        <h3 id="exp-c">C · 新任务微调效率</h3>
+        <table class="kv-table">
+          <tr><td>任务</td><td>pre-training 未见过的 dexterous task（e.g. 放东西进抽屉、换纸巾、stack bowls）</td></tr>
+          <tr><td>数据量</td><td>1–5 小时演示</td></tr>
+          <tr><td>结论</td><td>π₀ 在 <strong>1h 级</strong>数据就能上手；scratch / no-pretrain 版本要 5h+ 才接近。<strong>pre-training 给的是"通用操作先验"而非"具体任务记忆"</strong>——这正是基础模型范式成立的必要条件。</td></tr>
+        </table>
+
+        <h3 id="exp-d">D · 复杂多阶段任务</h3>
+        <table class="kv-table">
+          <tr><td>任务</td><td>清空洗烘一体机、叠多件衣服、收拾餐桌到洗碗机——单次演示 5–20 分钟级</td></tr>
+          <tr><td>配合</td><td>高层 VLM 规划（SayCan 风格）+ π₀ 做底层技能执行</td></tr>
+          <tr><td>结论</td><td>π₀ 能在这些时长下保持成功率，是<strong>同类 VLA 第一次做到</strong>。之前的 RT-2/OpenVLA 停在几秒到分钟级任务。</td></tr>
+        </table>
+
+        <div class="callout red">
+          <div class="callout-label">局限 · 实验里没说的</div>
+          <p>
+            <strong>① 评估主要在 π 自己的机器人上做</strong>——跨实验室 zero-shot 迁移没 report；
+            <strong>② 硬件闭源</strong>——复现困难（没开源 checkpoint 到 1M+ 步规模）；
+            <strong>③ 安全/失败模式</strong>没系统性分析（和传统控制论意义上的"可验证"差距还很大）。
+          </p>
+        </div>
+
+        <div class="quiz"
+             data-correct="c"
+             data-explain="正确：§C 新任务微调实验对照了有/无 pre-training，以 1-5h 数据达到的成功率作为衡量——结果 pre-trained 版在 1h 就有效，从 0 开始训的版本要 5h+。这支持"pre-training 提供通用先验"的假设。"
+             data-explain-wrong="仔细看四套实验是什么在对比：A 是 π₀ vs baseline（和 pre-training 无关），B 是语言指令粒度（和微调数据量无关），D 是多阶段任务（主要看时长）。">
+          <div class="q-label">🧠 理解检查</div>
+          <div class="q-text">四套实验里，哪一套最直接验证"pre-training 本身有价值"？</div>
+          <div class="q-options">
+            <button class="q-opt" data-k="a">A · 开箱即用对比</button>
+            <button class="q-opt" data-k="b">B · 语言指令遵循</button>
+            <button class="q-opt" data-k="c">C · 新任务微调效率（1h vs 5h）</button>
+            <button class="q-opt" data-k="d">D · 复杂多阶段任务</button>
+          </div>
+          <div class="q-feedback"></div>
+        </div>
+
+        <!-- ═════════════════════════════════════════════════ -->
+        <h2 id="vla-link">§9 与 LeCun / VLA 的联系</h2>
+
+        <div class="cn-read">
+          <div class="cn-label">这一节解决什么</div>
+          <p>
+            把 π₀ 放进 embodied AI 的地图里——它和 <a href="lecun-autonomous-intelligence.html">LeCun 的自主智能架构</a>、
+            和 RT-2 / OpenVLA / Helix 这些兄弟模型到底什么关系？
+          </p>
+        </div>
+
+        <h3>9.1 对应 LeCun 六模块</h3>
+        <table class="kv-table">
+          <tr><td><strong>Perception</strong></td><td>↔ PaliGemma · SigLIP 视觉编码 + Gemma 指令理解</td></tr>
+          <tr><td><strong>World Model</strong></td><td><strong>缺失</strong>——π₀ 是 <em>policy-only</em>，没有预测下一帧观测的模块</td></tr>
+          <tr><td><strong>Cost</strong></td><td>隐式在数据里——专家演示的行为分布就是"好"的定义，没有显式 cost</td></tr>
+          <tr><td><strong>Short-term Memory</strong></td><td><strong>缺失</strong>——每次决策只看当前 1 帧，无历史</td></tr>
+          <tr><td><strong>Actor</strong></td><td>↔ Action Expert · 直接输出 50 步动作</td></tr>
+          <tr><td><strong>Configurator</strong></td><td>部分存在——语言指令充当任务配置</td></tr>
+        </table>
+
+        <div class="callout purple">
+          <div class="callout-label">核心差距</div>
+          <p>
+            π₀ 是 <strong>model-free VLA</strong>——不建模世界。这让它<strong>数据效率差</strong>
+            （要 1 万小时）、<strong>规划能力弱</strong>（多步任务靠外部 HL-VLM 分解）。
+            LeCun 路线（JEPA + MPC）想要的是<strong>能在脑内想象未来</strong>的模型——
+            π₀ 没有这块，但胜在<strong>工程现在就能跑出来</strong>。
+          </p>
+        </div>
+
+        <h3>9.2 和其他 VLA 的比较</h3>
+        <table class="kv-table">
+          <tr><td><strong>RT-2 (2023)</strong></td><td>VLM + 离散 action token（tokenize 到文本词表）。π₀ 换成 flow matching 的连续 action，精度和平滑度都大提升。</td></tr>
+          <tr><td><strong>OpenVLA (2024)</strong></td><td>7B 开源 VLA，依然用离散 action token。π₀ 比它小（3.3B）反而更强——主要得益于 flow matching 和 action expert。</td></tr>
+          <tr><td><strong>Diffusion Policy (2023)</strong></td><td>用 diffusion 做动作生成，但<strong>没有 VLM 初始化</strong>——小模型精细但不泛化。π₀ = Diffusion Policy 思想 + VLM backbone。</td></tr>
+          <tr><td><strong>Helix / Figure AI</strong></td><td>类似路线（双塔 VLM + 快慢分层），工程细节不开放，π₀ 是开放的代表作。</td></tr>
+        </table>
+
+        <h3>9.3 给自己找实习时的 takeaway</h3>
+        <div class="callout blue">
+          <div class="callout-label">启示</div>
+          <p>
+            <strong>① 技术栈</strong>：会 PaliGemma / Flow Matching / Block-wise attention 是 VLA 岗位基本面。
+            <strong>② 工程技巧</strong>：multi-embodiment pad、KV cache 跨步复用、receding horizon——
+            这些都是面试可以聊的点。
+            <strong>③ 研究空白</strong>：π₀ 缺世界模型/短期记忆/显式 cost——这些恰是下一代模型的 greenfield。
+            如果你要在硕士阶段做点有辨识度的东西，在这三块做减法实验比盲目 scale 更有价值。
+          </p>
+        </div>
+
+        <div class="callout">
+          <div class="callout-label">全篇收束</div>
+          <p>
+            π₀ 不是最"干净"的架构（比起 JEPA 的理论自洽），也不是最大（比起 OpenVLA 7B），
+            但它是<strong>当前最 useable 的 VLA 基础模型</strong>——把 LLM 的 pre-train/post-train
+            范式、VLM 的语义先验、flow matching 的连续动作生成三块拼在一起，跑出了真能叠衣服的机器人。
+            工程味道浓于理论味道，但这正是 embodied AI 这个阶段最需要的东西。
+          </p>
+        </div>
+
+      </main>
+    </div>
+  </div>
+
+  <script>
+    // Tab 切换
+    document.querySelectorAll('.tab-switcher').forEach(sw => {
+      sw.querySelectorAll('.tab').forEach(tab => {
+        tab.addEventListener('click', () => {
+          const id = tab.dataset.tab;
+          sw.querySelectorAll('.tab').forEach(t => t.classList.toggle('active', t === tab));
+          sw.querySelectorAll('.panel').forEach(p => p.classList.toggle('active', p.dataset.panel === id));
+        });
+      });
+    });
+
+    if (window.mermaid) {
+      mermaid.initialize({ startOnLoad: true, theme: 'dark' });
+    }
+  </script>
+</body>
+</html>
