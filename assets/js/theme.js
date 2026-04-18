@@ -1,10 +1,10 @@
 // 主题切换：暗色 / 亮色
 (function () {
   // 1. 启动时立刻应用，避免闪烁（应放在 <head> 中尽早执行）
+  // 默认 light；若 localStorage 有显式保存则优先之
   var saved = localStorage.getItem('theme');
-  if (saved === 'light' || saved === 'dark') {
-    document.documentElement.setAttribute('data-theme', saved);
-  }
+  var initial = (saved === 'light' || saved === 'dark') ? saved : 'light';
+  document.documentElement.setAttribute('data-theme', initial);
 
   // 2. DOM 就绪后插入按钮
   function inject() {
