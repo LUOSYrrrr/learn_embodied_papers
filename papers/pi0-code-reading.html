@@ -1,0 +1,188 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>π₀ / π₀.5 代码阅读笔记 · Paper Notes</title>
+  <link rel="stylesheet" href="../assets/css/style.css">
+  <script src="../assets/js/theme.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/marked@11/marked.min.js"></script>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/highlightjs/cdn-release@11.9.0/build/styles/github-dark.min.css">
+  <script src="https://cdn.jsdelivr.net/gh/highlightjs/cdn-release@11.9.0/build/highlight.min.js"></script>
+  <style>
+    /* ─── Markdown 渲染区样式，尽量贴本站深色主题 ─── */
+    .md-render { font-size: 15px; line-height: 1.85; color: var(--text2); }
+    .md-render h1 { font-family: var(--font-serif); font-size: 28px; font-weight: 700; color: var(--text); margin: 40px 0 18px; }
+    .md-render h2 {
+      font-family: var(--font-serif); font-size: 22px; font-weight: 700; color: var(--text);
+      margin: 44px 0 14px; padding-top: 20px; border-top: 1px solid var(--border);
+    }
+    .md-render h3 { font-family: var(--font-serif); font-size: 17px; font-weight: 600; color: var(--text); margin: 28px 0 10px; }
+    .md-render h4 { font-size: 15px; font-weight: 600; color: var(--text); margin: 20px 0 8px; }
+    .md-render p { margin: 10px 0; }
+    .md-render strong { color: var(--text); font-weight: 600; }
+    .md-render em { color: var(--text); font-style: italic; }
+
+    .md-render a { color: var(--accent); text-decoration: none; border-bottom: 1px dashed var(--accent); }
+    .md-render a:hover { opacity: 0.8; }
+
+    .md-render ul, .md-render ol { margin: 10px 0 10px 22px; padding: 0; }
+    .md-render li { margin: 6px 0; }
+    .md-render li > input[type="checkbox"] { margin-right: 8px; }
+
+    /* 内联 code */
+    .md-render p code, .md-render li code, .md-render td code, .md-render h1 code,
+    .md-render h2 code, .md-render h3 code, .md-render h4 code {
+      font-family: var(--font-mono); font-size: 0.88em;
+      background: var(--bg3); color: var(--accent);
+      padding: 2px 6px; border-radius: 4px;
+      border: 1px solid var(--border);
+    }
+
+    /* 代码块（pre > code）—— 保留换行 */
+    .md-render pre {
+      background: var(--bg3); border: 1px solid var(--border);
+      border-radius: var(--radius); padding: 16px 18px; margin: 16px 0;
+      overflow-x: auto;
+    }
+    .md-render pre code {
+      font-family: var(--font-mono); font-size: 13px; line-height: 1.65;
+      background: none; border: none; padding: 0; color: #e2e8f0;
+      white-space: pre; display: block;
+    }
+    /* highlight.js 覆盖背景 */
+    .md-render pre code.hljs { background: transparent; padding: 0; }
+
+    /* 表格 */
+    .md-render table {
+      width: 100%; margin: 16px 0; border-collapse: collapse;
+      font-size: 13px;
+    }
+    .md-render th, .md-render td {
+      border: 1px solid var(--border);
+      padding: 10px 14px; text-align: left; vertical-align: top;
+    }
+    .md-render th { background: var(--bg2); color: var(--text); font-weight: 600; }
+    .md-render tbody tr:nth-child(even) { background: var(--bg2); }
+
+    /* blockquote */
+    .md-render blockquote {
+      border-left: 3px solid var(--accent);
+      padding: 8px 16px; margin: 14px 0;
+      background: var(--bg2); color: var(--text2);
+    }
+    .md-render blockquote p { margin: 4px 0; }
+
+    /* hr */
+    .md-render hr { border: none; border-top: 1px dashed var(--border); margin: 32px 0; }
+
+    /* loading/error */
+    .md-loading { padding: 40px; text-align: center; color: var(--text3); font-family: var(--font-mono); font-size: 13px; }
+    .md-error {
+      padding: 20px; margin: 20px 0; border: 1px solid var(--accent3);
+      border-radius: var(--radius); background: var(--bg2);
+      color: var(--accent3); font-family: var(--font-mono); font-size: 13px;
+    }
+
+    /* 让第一个 h1 不要有顶部分隔线（因为上面已经有 paper-header） */
+    .md-render > h1:first-child, .md-render > h2:first-child { border-top: none; padding-top: 0; margin-top: 0; }
+  </style>
+</head>
+<body>
+  <nav class="nav">
+    <a class="nav-logo" href="../index.html">~/paper-notes</a>
+    <div class="nav-links">
+      <a href="../index.html">← 返回首页</a>
+      <a href="pi0-vla-flow-model.html">π₀ 论文笔记 →</a>
+    </div>
+  </nav>
+
+  <div class="page">
+    <div class="paper-page">
+      <a class="back-link" href="../index.html">← 所有笔记</a>
+
+      <div class="paper-header">
+        <div class="paper-venue">// Code Reading · 源码精读 · 2026-04</div>
+        <h1 class="paper-title">π₀ / π₀.5 代码阅读笔记</h1>
+        <div class="paper-authors">基于 openpi · <code>src/openpi/models_pytorch/pi0_pytorch.py</code></div>
+        <div class="paper-badges">
+          <span class="badge badge-green">源码精读</span>
+          <span class="badge badge-blue">VLA · Flow Matching</span>
+          <span class="badge badge-amber">PyTorch</span>
+        </div>
+        <div class="paper-pdf" style="margin-top:14px; font-family:var(--font-mono); font-size:12px;">
+          <a href="pi0-vla-flow-model.html" style="color:var(--accent); text-decoration:none; border-bottom:1px dashed var(--accent);">📖 配套论文笔记</a>
+          &nbsp;·&nbsp;
+          <a href="https://github.com/Physical-Intelligence/openpi" target="_blank" style="color:var(--accent); text-decoration:none; border-bottom:1px dashed var(--accent);">🔗 openpi 仓库</a>
+          &nbsp;·&nbsp;
+          <a href="../notes/pi0-code-reading.md" target="_blank" style="color:var(--accent); text-decoration:none; border-bottom:1px dashed var(--accent);">📝 原始 Markdown</a>
+        </div>
+      </div>
+
+      <div id="md-content" class="md-render">
+        <div class="md-loading">Loading notes...</div>
+      </div>
+    </div>
+
+    <footer class="footer">
+      <a href="../index.html">← 返回首页</a>
+      &nbsp;·&nbsp;
+      <a href="pi0-vla-flow-model.html">π₀ 论文笔记 →</a>
+      &nbsp;·&nbsp;
+      <a href="https://github.com/Physical-Intelligence/openpi" target="_blank">openpi 源码 ↗</a>
+    </footer>
+  </div>
+
+  <script>
+    // marked 配置：代码高亮用 highlight.js
+    marked.setOptions({
+      gfm: true,
+      breaks: false,
+      headerIds: true,
+      mangle: false,
+    });
+
+    // 自定义 renderer：给标题加 anchor id（从文字 slugify）
+    const renderer = new marked.Renderer();
+    const slug = (t) => String(t).toLowerCase()
+      .replace(/<[^>]*>/g, '')
+      .replace(/[^\w\u4e00-\u9fa5\s-]/g, '')
+      .trim().replace(/\s+/g, '-');
+    renderer.heading = (text, level) => {
+      const id = slug(text);
+      return `<h${level} id="${id}">${text}</h${level}>`;
+    };
+
+    // 把 MD 里 ](src/openpi/... 这类代码仓内部链接改写成 GitHub 绝对链接
+    const REPO_BASE = 'https://github.com/Physical-Intelligence/openpi/blob/main/';
+    renderer.link = (href, title, text) => {
+      let h = href;
+      if (/^src\//.test(h)) h = REPO_BASE + h;
+      const titleAttr = title ? ` title="${title}"` : '';
+      const extAttr = /^https?:/.test(h) ? ' target="_blank" rel="noopener"' : '';
+      return `<a href="${h}"${titleAttr}${extAttr}>${text}</a>`;
+    };
+
+    marked.use({ renderer });
+
+    fetch('../notes/pi0-code-reading.md')
+      .then(r => {
+        if (!r.ok) throw new Error('HTTP ' + r.status);
+        return r.text();
+      })
+      .then(md => {
+        const container = document.getElementById('md-content');
+        container.innerHTML = marked.parse(md);
+        // 语法高亮
+        container.querySelectorAll('pre code').forEach(el => {
+          try { hljs.highlightElement(el); } catch (e) {}
+        });
+      })
+      .catch(err => {
+        document.getElementById('md-content').innerHTML =
+          '<div class="md-error">加载 Markdown 失败: ' + err.message +
+          '<br><small>确保用 HTTP server 访问（如 <code>python -m http.server</code>），file:// 协议会被浏览器拦截。</small></div>';
+      });
+  </script>
+</body>
+</html>

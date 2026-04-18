@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Paper Notes · 具身智能论文精读</title>
+  <title>Embodied AI Notes · 具身智能学习笔记</title>
   <link rel="stylesheet" href="assets/css/style.css">
   <script src="assets/js/theme.js"></script>
   <style>
@@ -121,17 +121,18 @@
 
   <div class="page">
     <div class="hero">
-      <div class="hero-tag">// Embodied AI · 具身智能</div>
-      <h1>论文精读笔记</h1>
+      <div class="hero-tag">// Embodied AI · 具身智能学习笔记</div>
+      <h1>具身智能学习笔记</h1>
       <p>
-        面向具身智能（Embodied AI）方向的中文论文解析。聚焦 VLA（视觉-语言-动作）模型、
-        世界模型、控制策略、认知科学等方向，每篇包含架构精读、核心公式、以及与工程实践的连接。
+        面向具身智能（Embodied AI）方向的中文学习记录：论文精读、源码精读、以及认知科学/理论背景。
+        聚焦 VLA（视觉-语言-动作）模型、世界模型、控制策略等方向，每篇都有架构拆解 / 核心公式 /
+        与工程实践的连接。
       </p>
     </div>
 
     <div class="intro-grid">
       <div class="intro-cell">
-        <div class="intro-cell-num">3</div>
+        <div class="intro-cell-num">4</div>
         <div class="intro-cell-label">已精读</div>
       </div>
       <div class="intro-cell">
@@ -150,6 +151,20 @@
       <span class="sh-hint">按更新时间排序</span>
     </div>
     <div class="recent-wrap">
+      <a class="recent-card" href="papers/pi0-code-reading.html">
+        <div class="recent-date">2026-04-18 · 刚完成</div>
+        <div class="recent-title">π₀ / π₀.5 代码阅读笔记</div>
+        <div class="recent-sub">
+          以 <code style="font-size:11px;">pi0_pytorch.py</code> 为主线：类 MoE 双专家初始化 · Flow Matching 9 阶段训练 ·
+          推理两阶段 + KV cache · Attention mask 块标志推导 · π₀ vs π₀.5 三大差异。含 tab 交互对比。
+        </div>
+        <div class="recent-tags">
+          <span class="status-badge status-done">✓ 已完成</span>
+          <span class="card-pill">源码精读</span>
+          <span class="card-pill">openpi · PyTorch</span>
+        </div>
+      </a>
+
       <a class="recent-card" href="papers/pi0-vla-flow-model.html">
         <div class="recent-date">2026-04-15 · 刚完成</div>
         <div class="recent-title">π₀: A Vision-Language-Action Flow Model</div>
@@ -275,6 +290,10 @@
             <span class="dc-item-main">π₀<span class="dc-item-en">Physical Intelligence 2024</span></span>
             <span class="status-badge status-done">✓</span>
           </a>
+          <a class="dc-item" href="papers/pi0-code-reading.html">
+            <span class="dc-item-main">π₀ / π₀.5 代码阅读<span class="dc-item-en">openpi · pi0_pytorch.py</span></span>
+            <span class="status-badge status-done">✓</span>
+          </a>
           <a class="dc-item disabled">
             <span class="dc-item-main">RT-2<span class="dc-item-en">Google DeepMind 2023</span></span>
             <span class="status-badge status-plan">○</span>
@@ -391,8 +410,9 @@
       <div class="section-num">// ABOUT</div>
       <h2 style="font-family:var(--font-serif); font-size:20px; font-weight:700; margin:8px 0 16px; color:var(--text);">关于本项目</h2>
       <p style="font-size:14px; color:var(--text2); line-height:1.85;">
-        这是一个个人学习笔记仓库，记录具身智能（Embodied AI）方向的论文精读过程。
-        每篇笔记包含：论文核心贡献、架构拆解、关键公式推导、以及与实际工程/研究的联系。
+        这是一个个人学习笔记仓库，记录具身智能（Embodied AI）方向的学习过程——不限于论文精读，
+        也包含源码精读、工程实践、认知科学背景等。
+        每篇笔记包含：核心贡献/设计、架构拆解、关键公式或代码、以及与研究/工程实践的联系。
         使用中文写作，英文专业术语保留对照，方便查阅原文。
       </p>
       <p style="font-size:14px; color:var(--text2); line-height:1.85; margin-top:10px;">
