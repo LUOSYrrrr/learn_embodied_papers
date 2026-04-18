@@ -1,0 +1,210 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>[论文标题] · Paper Notes</title>
+  <link rel="stylesheet" href="../assets/css/style.css">
+  <script src="../assets/js/theme.js"></script>
+  <script src="../assets/js/interactive.js" defer></script>
+  <script src="https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.min.js"></script>
+</head>
+<body>
+  <nav class="nav">
+    <a class="nav-logo" href="../index.html">~/paper-notes</a>
+    <div class="nav-links">
+      <a href="../index.html">← 返回首页</a>
+      <a href="../pdfs/[category]/[slug].pdf" target="_blank">📄 PDF</a>
+    </div>
+  </nav>
+
+  <div class="page">
+    <div class="docs-layout">
+
+      <!-- ─── 左：章节树 ─── -->
+      <aside class="docs-sidebar-left">
+        <div class="ds-title">[论文短名]</div>
+
+        <a class="ds-leaf-top" href="#intro">§1 引言</a>
+
+        <details open>
+          <summary>§2 [章节名]</summary>
+          <a class="ds-leaf" href="#sec-2-1">2.1 [子节]</a>
+          <a class="ds-leaf" href="#sec-2-2">2.2 [子节]</a>
+        </details>
+
+        <details>
+          <summary>§3 [章节名]</summary>
+          <a class="ds-leaf" href="#sec-3-1">3.1 [子节]</a>
+        </details>
+      </aside>
+
+      <!-- ─── 中：正文 ─── -->
+      <main class="docs-content">
+
+        <div class="docs-breadcrumb">
+          <a href="../index.html">paper-notes</a>
+          <span class="sep">/</span>
+          <a href="../index.html">[分类]</a>
+          <span class="sep">/</span>
+          [作者+年份]
+        </div>
+
+        <h1>[论文英文标题]</h1>
+        <p style="color:var(--text3); font-family:var(--font-mono); font-size:12px; margin-top:-12px;">
+          [作者] · [机构] · [日期]
+        </p>
+
+        <div class="cn-read">
+          <div class="cn-label">这篇笔记怎么读</div>
+          <p>
+            按论文章节顺序走，每一节先<strong>中文导读</strong>，再展开<strong>原文段落</strong>（点击折叠块），
+            关键图直接用论文原图，互动元素帮你看清细节。
+          </p>
+        </div>
+
+        <!-- ═════════════════════════════════════════════════ -->
+        <h2 id="intro">§1 引言</h2>
+
+        <div class="cn-read">
+          <div class="cn-label">这一节解决什么</div>
+          <p>[小白能秒懂的本节要点]</p>
+        </div>
+
+        <details class="en-quote">
+          <summary>展开原文 · [段落主题]</summary>
+          <div class="quote-body">
+            <p>"[短引用]"</p>
+            <div class="quote-cite">— §1, p.X</div>
+          </div>
+        </details>
+
+        <!-- ═════════════════════════════════════════════════ -->
+        <h2 id="sec-2-1">§2.1 [章节标题]</h2>
+
+        <div class="cn-read">
+          <div class="cn-label">直觉理解</div>
+          <p>[白话讲述]</p>
+        </div>
+
+        <!-- 图块 + 热点 -->
+        <div class="fig-block">
+          <div class="hotspot-wrap" data-hotspot-group="figN">
+            <img src="../assets/figures/[slug]/fig-N.png" alt="Figure N: ...">
+            <div class="hotspot" data-id="elem1" style="left:50%; top:30%;"
+                 data-title="元素名 · English"
+                 data-body="说明"></div>
+            <!-- 5-8 个 hotspot -->
+          </div>
+          <div class="fig-cap">
+            <span class="fig-num">Fig N · p.X</span>
+            [原文 caption 英文]
+            <span class="fig-cn">[中文翻译]</span>
+          </div>
+        </div>
+        <div class="hotspot-panel"></div>
+
+        <!-- 步骤导览 -->
+        <div class="step-walker" data-hotspot-group="figN">
+          <div class="sw-header">
+            <div class="sw-title">🪜 跟着信号走一遍</div>
+            <div class="sw-controls">
+              <button class="sw-btn prev">◀</button>
+              <span class="sw-counter">1 / N</span>
+              <button class="sw-btn next">▶</button>
+            </div>
+          </div>
+          <div class="sw-progress">
+            <div class="sw-dot"></div><div class="sw-dot"></div><div class="sw-dot"></div>
+          </div>
+          <div class="sw-body">
+            <div class="sw-step active" data-hotspot="elem1">
+              <h4>第 1 步：[标题]</h4>
+              <p>[讲解]</p>
+            </div>
+          </div>
+        </div>
+
+        <!-- Quiz -->
+        <div class="quiz"
+             data-correct="b"
+             data-explain="[正确解释]"
+             data-explain-wrong="[错误解释]">
+          <div class="q-label">🧠 理解检查</div>
+          <div class="q-text">[问题]？</div>
+          <div class="q-options">
+            <button class="q-opt" data-k="a">[选项 A]</button>
+            <button class="q-opt" data-k="b">[选项 B]</button>
+            <button class="q-opt" data-k="c">[选项 C]</button>
+            <button class="q-opt" data-k="d">[选项 D]</button>
+          </div>
+          <div class="q-feedback"></div>
+        </div>
+
+      </main>
+
+      <!-- ─── 右：本页目录（自动生成）─── -->
+      <aside class="docs-sidebar-right">
+        <div class="ds-title">本页目录</div>
+        <ul id="page-toc"></ul>
+      </aside>
+
+    </div>
+  </div>
+
+  <script>
+    // 自动生成右侧目录 + 滚动高亮（标准模板，无需修改）
+    const toc = document.getElementById('page-toc');
+    const headings = document.querySelectorAll('.docs-content h2[id], .docs-content h3[id]');
+    headings.forEach(h => {
+      const li = document.createElement('li');
+      const a = document.createElement('a');
+      a.href = '#' + h.id;
+      a.textContent = h.textContent.replace(/^\d+(\.\d+)*\s*/, '');
+      if (h.tagName === 'H3') a.classList.add('toc-h3');
+      a.dataset.target = h.id;
+      li.appendChild(a);
+      toc.appendChild(li);
+    });
+    const tocLinks = toc.querySelectorAll('a');
+    const leftLinks = document.querySelectorAll('.docs-sidebar-left a[href^="#"]');
+    new IntersectionObserver((entries) => {
+      entries.forEach(e => {
+        if (e.isIntersecting) {
+          const id = e.target.id;
+          tocLinks.forEach(a => a.classList.toggle('active', a.dataset.target === id));
+          leftLinks.forEach(a => a.classList.toggle('active', a.getAttribute('href') === '#' + id));
+        }
+      });
+    }, { rootMargin: '-80px 0px -70% 0px' }).observe(headings[0]);
+    headings.forEach(h => {
+      const obs = new IntersectionObserver((entries) => {
+        entries.forEach(e => {
+          if (e.isIntersecting) {
+            const id = e.target.id;
+            tocLinks.forEach(a => a.classList.toggle('active', a.dataset.target === id));
+            leftLinks.forEach(a => a.classList.toggle('active', a.getAttribute('href') === '#' + id));
+          }
+        });
+      }, { rootMargin: '-80px 0px -70% 0px' });
+      obs.observe(h);
+    });
+
+    // Mermaid 主题跟随
+    function initMermaid() {
+      const dark = document.documentElement.getAttribute('data-theme') !== 'light';
+      mermaid.initialize({ startOnLoad: true, theme: dark ? 'dark' : 'default', securityLevel: 'loose' });
+    }
+    initMermaid();
+    new MutationObserver(() => {
+      document.querySelectorAll('.mermaid').forEach(el => {
+        if (el.dataset.original) el.textContent = el.dataset.original;
+        else el.dataset.original = el.textContent;
+        el.removeAttribute('data-processed');
+      });
+      initMermaid();
+      mermaid.run();
+    }).observe(document.documentElement, { attributes: true, attributeFilter: ['data-theme'] });
+  </script>
+</body>
+</html>

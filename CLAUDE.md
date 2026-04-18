@@ -136,6 +136,18 @@ paper-notes/
 
 ---
 
+## Skill
+
+新增论文笔记时使用 `/paper-to-html` skill，定义在：
+
+```
+.claude/skills/paper-to-html/SKILL.md
+```
+
+包含完整工作流：PDF 读取 → 图片裁剪 → 页面骨架 → 逐节内容（中文导读 / 热点图 / step-walker / quiz）→ 提交粒度。换电脑后 `git clone` 即可复用，无需重新配置。
+
+---
+
 ## 新建论文页面的步骤
 
 1. 复制 `papers/_template.html` → 新文件名（如 `papers/pi0-vla-flow-model.html`）
