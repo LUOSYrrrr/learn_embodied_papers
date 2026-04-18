@@ -100,45 +100,57 @@
   </nav>
 
   <div class="page">
-    <div class="paper-page">
-      <a class="back-link" href="../index.html">← 所有笔记</a>
+    <div class="docs-layout">
 
-      <div class="paper-header">
-        <div class="paper-venue">// Code Reading · 源码精读 · 2026-04</div>
-        <h1 class="paper-title">π₀ / π₀.5 代码阅读笔记</h1>
-        <div class="paper-authors">基于 openpi · <code>src/openpi/models_pytorch/pi0_pytorch.py</code></div>
-        <div class="paper-badges">
-          <span class="badge badge-green">源码精读</span>
-          <span class="badge badge-blue">VLA · Flow Matching</span>
-          <span class="badge badge-amber">PyTorch</span>
+      <!-- ─── 左侧目录（JS 基于 h2/h3 自动生成） ─── -->
+      <aside class="docs-sidebar-left">
+        <div class="ds-title">// 目录</div>
+        <div id="md-toc" style="display:none;"></div>
+        <div id="md-toc-empty" class="md-loading" style="padding:20px 10px; font-size:12px; color:var(--text3);">Loading…</div>
+      </aside>
+
+      <!-- ─── 主体内容 ─── -->
+      <main class="docs-content">
+        <div class="docs-breadcrumb">
+          <a href="../index.html">paper-notes</a>
+          <span class="sep">/</span>
+          源码精读
+          <span class="sep">/</span>
+          π₀ / π₀.5
         </div>
-        <div class="paper-pdf" style="margin-top:14px; font-family:var(--font-mono); font-size:12px;">
-          <a href="pi0-vla-flow-model.html" style="color:var(--accent); text-decoration:none; border-bottom:1px dashed var(--accent);">📖 配套论文笔记</a>
-          &nbsp;·&nbsp;
-          <a href="https://github.com/Physical-Intelligence/openpi" target="_blank" style="color:var(--accent); text-decoration:none; border-bottom:1px dashed var(--accent);">🔗 openpi 仓库</a>
-          &nbsp;·&nbsp;
-          <a href="../notes/pi0-code-reading.md" target="_blank" style="color:var(--accent); text-decoration:none; border-bottom:1px dashed var(--accent);">📝 原始 Markdown</a>
+
+        <div class="paper-header" style="margin-bottom:32px;">
+          <div class="paper-venue">// Code Reading · 源码精读 · 2026-04</div>
+          <h1 class="paper-title">π₀ / π₀.5 代码阅读笔记</h1>
+          <div class="paper-authors">基于 openpi · <code>src/openpi/models_pytorch/pi0_pytorch.py</code></div>
+          <div class="paper-badges">
+            <span class="badge badge-green">源码精读</span>
+            <span class="badge badge-blue">VLA · Flow Matching</span>
+            <span class="badge badge-amber">PyTorch</span>
+          </div>
+          <div class="paper-pdf" style="margin-top:14px; font-family:var(--font-mono); font-size:12px;">
+            <a href="pi0-vla-flow-model.html" style="color:var(--accent); text-decoration:none; border-bottom:1px dashed var(--accent);">📖 配套论文笔记</a>
+            &nbsp;·&nbsp;
+            <a href="https://github.com/Physical-Intelligence/openpi" target="_blank" style="color:var(--accent); text-decoration:none; border-bottom:1px dashed var(--accent);">🔗 openpi 仓库</a>
+            &nbsp;·&nbsp;
+            <a href="../notes/pi0-code-reading.md" target="_blank" style="color:var(--accent); text-decoration:none; border-bottom:1px dashed var(--accent);">📝 原始 Markdown</a>
+          </div>
         </div>
-      </div>
 
-      <!-- 目录由 JS 基于 h2 / h3 自动生成 -->
-      <div id="md-toc" class="toc" style="display:none;">
-        <div class="toc-title">// 目录</div>
-        <ol></ol>
-      </div>
+        <div id="md-content" class="md-render">
+          <div class="md-loading">Loading notes...</div>
+        </div>
 
-      <div id="md-content" class="md-render">
-        <div class="md-loading">Loading notes...</div>
-      </div>
+        <footer class="footer" style="margin-top:60px;">
+          <a href="../index.html">← 返回首页</a>
+          &nbsp;·&nbsp;
+          <a href="pi0-vla-flow-model.html">π₀ 论文笔记 →</a>
+          &nbsp;·&nbsp;
+          <a href="https://github.com/Physical-Intelligence/openpi" target="_blank">openpi 源码 ↗</a>
+        </footer>
+      </main>
+
     </div>
-
-    <footer class="footer">
-      <a href="../index.html">← 返回首页</a>
-      &nbsp;·&nbsp;
-      <a href="pi0-vla-flow-model.html">π₀ 论文笔记 →</a>
-      &nbsp;·&nbsp;
-      <a href="https://github.com/Physical-Intelligence/openpi" target="_blank">openpi 源码 ↗</a>
-    </footer>
   </div>
 
   <script>
@@ -198,31 +210,67 @@
         container.querySelectorAll('pre code').forEach(el => {
           try { hljs.highlightElement(el); } catch (e) {}
         });
-        // 生成目录（h2 为一级，h3 缩进为二级）
-        const tocRoot = document.querySelector('#md-toc ol');
+        // 生成左侧目录（用 details+ds-leaf 结构，不自动编号——因为 MD 标题自带编号）
+        const tocRoot = document.getElementById('md-toc');
         const heads = container.querySelectorAll('h2, h3');
         if (heads.length && tocRoot) {
-          let currentH2 = null;
+          tocRoot.innerHTML = '';
+          // 先按 H2 分组：每个 H2 可能带若干 H3
+          const groups = [];
+          let cur = null;
           heads.forEach(h => {
-            const li = document.createElement('li');
-            const a = document.createElement('a');
-            a.href = '#' + h.id;
-            a.textContent = h.textContent;
-            li.appendChild(a);
-            if (h.tagName === 'H2') {
-              tocRoot.appendChild(li);
-              currentH2 = li;
+            if (h.tagName === 'H2') { cur = { h2: h, children: [] }; groups.push(cur); }
+            else if (cur) { cur.children.push(h); }
+          });
+
+          groups.forEach(g => {
+            if (g.children.length === 0) {
+              // 孤立 H2：顶层链接
+              const a = document.createElement('a');
+              a.className = 'ds-leaf-top';
+              a.href = '#' + g.h2.id;
+              a.textContent = g.h2.textContent;
+              tocRoot.appendChild(a);
             } else {
-              // H3 挂到最近的 H2 下面
-              let sub = currentH2 && currentH2.querySelector('ol');
-              if (!sub && currentH2) {
-                sub = document.createElement('ol');
-                currentH2.appendChild(sub);
-              }
-              (sub || tocRoot).appendChild(li);
+              // 有子节：details + summary + 若干 ds-leaf
+              const det = document.createElement('details');
+              det.open = true;
+              const sum = document.createElement('summary');
+              sum.textContent = g.h2.textContent;
+              // 点击 summary 文字本身也能跳转到该章节
+              sum.addEventListener('click', (e) => {
+                // 只有点到文字（而非展开箭头）时跳转
+                if (e.target === sum) {
+                  setTimeout(() => { location.hash = '#' + g.h2.id; }, 0);
+                }
+              });
+              det.appendChild(sum);
+              g.children.forEach(h3 => {
+                const a = document.createElement('a');
+                a.className = 'ds-leaf';
+                a.href = '#' + h3.id;
+                a.textContent = h3.textContent;
+                det.appendChild(a);
+              });
+              tocRoot.appendChild(det);
             }
           });
-          document.getElementById('md-toc').style.display = '';
+
+          tocRoot.style.display = '';
+          const empty = document.getElementById('md-toc-empty');
+          if (empty) empty.remove();
+
+          // 滚动高亮当前章节
+          const links = tocRoot.querySelectorAll('a[href^="#"]');
+          const obs = new IntersectionObserver((entries) => {
+            entries.forEach(e => {
+              if (e.isIntersecting) {
+                const id = e.target.id;
+                links.forEach(a => a.classList.toggle('active', a.getAttribute('href') === '#' + id));
+              }
+            });
+          }, { rootMargin: '-80px 0px -70% 0px' });
+          heads.forEach(h => obs.observe(h));
         }
       })
       .catch(err => {
