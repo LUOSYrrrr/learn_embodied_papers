@@ -121,6 +121,12 @@
         </div>
       </div>
 
+      <!-- 目录由 JS 基于 h2 / h3 自动生成 -->
+      <div id="md-toc" class="toc" style="display:none;">
+        <div class="toc-title">// 目录</div>
+        <ol></ol>
+      </div>
+
       <div id="md-content" class="md-render">
         <div class="md-loading">Loading notes...</div>
       </div>
@@ -192,6 +198,32 @@
         container.querySelectorAll('pre code').forEach(el => {
           try { hljs.highlightElement(el); } catch (e) {}
         });
+        // 生成目录（h2 为一级，h3 缩进为二级）
+        const tocRoot = document.querySelector('#md-toc ol');
+        const heads = container.querySelectorAll('h2, h3');
+        if (heads.length && tocRoot) {
+          let currentH2 = null;
+          heads.forEach(h => {
+            const li = document.createElement('li');
+            const a = document.createElement('a');
+            a.href = '#' + h.id;
+            a.textContent = h.textContent;
+            li.appendChild(a);
+            if (h.tagName === 'H2') {
+              tocRoot.appendChild(li);
+              currentH2 = li;
+            } else {
+              // H3 挂到最近的 H2 下面
+              let sub = currentH2 && currentH2.querySelector('ol');
+              if (!sub && currentH2) {
+                sub = document.createElement('ol');
+                currentH2.appendChild(sub);
+              }
+              (sub || tocRoot).appendChild(li);
+            }
+          });
+          document.getElementById('md-toc').style.display = '';
+        }
       })
       .catch(err => {
         document.getElementById('md-content').innerHTML =
