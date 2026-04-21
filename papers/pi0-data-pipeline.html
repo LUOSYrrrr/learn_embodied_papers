@@ -1,0 +1,375 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>π₀ 数据 Pipeline · Transform 设计 · Paper Notes</title>
+  <link rel="stylesheet" href="../assets/css/style.css">
+  <script src="../assets/js/theme.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/marked@11/marked.min.js"></script>
+  <!-- 两套高亮主题，随站点 light/dark 切换启用 -->
+  <link id="hljs-light" rel="stylesheet" href="https://cdn.jsdelivr.net/gh/highlightjs/cdn-release@11.9.0/build/styles/github.min.css">
+  <link id="hljs-dark"  rel="stylesheet" href="https://cdn.jsdelivr.net/gh/highlightjs/cdn-release@11.9.0/build/styles/github-dark.min.css" disabled>
+  <script src="https://cdn.jsdelivr.net/gh/highlightjs/cdn-release@11.9.0/build/highlight.min.js"></script>
+  <!-- Mermaid（流程图） -->
+  <script src="https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.min.js"></script>
+  <style>
+    /* ─── Markdown 渲染区样式，尽量贴本站深色主题 ─── */
+    .md-render { font-size: 15px; line-height: 1.85; color: var(--text2); }
+    .md-render h1 { font-family: var(--font-serif); font-size: 28px; font-weight: 700; color: var(--text); margin: 40px 0 18px; }
+    .md-render h2 {
+      font-family: var(--font-serif); font-size: 22px; font-weight: 700; color: var(--text);
+      margin: 44px 0 14px; padding-top: 20px; border-top: 1px solid var(--border);
+    }
+    .md-render h3 { font-family: var(--font-serif); font-size: 17px; font-weight: 600; color: var(--text); margin: 28px 0 10px; }
+    .md-render h4 { font-size: 15px; font-weight: 600; color: var(--text); margin: 20px 0 8px; }
+    .md-render p { margin: 10px 0; }
+    .md-render strong { color: var(--text); font-weight: 600; }
+    .md-render em { color: var(--text); font-style: italic; }
+
+    .md-render a { color: var(--accent); text-decoration: none; border-bottom: 1px dashed var(--accent); }
+    .md-render a:hover { opacity: 0.8; }
+
+    .md-render ul, .md-render ol { margin: 10px 0 10px 22px; padding: 0; }
+    .md-render li { margin: 6px 0; }
+    .md-render li > input[type="checkbox"] { margin-right: 8px; }
+
+    /* 内联 code */
+    .md-render p code, .md-render li code, .md-render td code, .md-render h1 code,
+    .md-render h2 code, .md-render h3 code, .md-render h4 code {
+      font-family: var(--font-mono); font-size: 0.88em;
+      background: var(--bg3); color: var(--accent);
+      padding: 2px 6px; border-radius: 4px;
+      border: 1px solid var(--border);
+    }
+
+    /* 代码块（pre > code）—— 保留换行 */
+    .md-render pre {
+      background: var(--bg3); border: 1px solid var(--border);
+      border-radius: var(--radius); padding: 16px 18px; margin: 16px 0;
+      overflow-x: auto;
+    }
+    .md-render pre code {
+      font-family: var(--font-mono); font-size: 13px; line-height: 1.65;
+      background: none; border: none; padding: 0; color: var(--text);
+      white-space: pre; display: block;
+    }
+    /* highlight.js 覆盖背景，让站点 --bg3 透出来 */
+    .md-render pre code.hljs { background: transparent; padding: 0; }
+
+    /* 表格 */
+    .md-render table {
+      width: 100%; margin: 16px 0; border-collapse: collapse;
+      font-size: 13px;
+    }
+    .md-render th, .md-render td {
+      border: 1px solid var(--border);
+      padding: 10px 14px; text-align: left; vertical-align: top;
+    }
+    .md-render th { background: var(--bg2); color: var(--text); font-weight: 600; }
+    .md-render tbody tr:nth-child(even) { background: var(--bg2); }
+
+    /* blockquote */
+    .md-render blockquote {
+      border-left: 3px solid var(--accent);
+      padding: 8px 16px; margin: 14px 0;
+      background: var(--bg2); color: var(--text2);
+    }
+    .md-render blockquote p { margin: 4px 0; }
+
+    /* hr */
+    .md-render hr { border: none; border-top: 1px dashed var(--border); margin: 32px 0; }
+
+    /* loading/error */
+    .md-loading { padding: 40px; text-align: center; color: var(--text3); font-family: var(--font-mono); font-size: 13px; }
+    .md-error {
+      padding: 20px; margin: 20px 0; border: 1px solid var(--accent3);
+      border-radius: var(--radius); background: var(--bg2);
+      color: var(--accent3); font-family: var(--font-mono); font-size: 13px;
+    }
+
+    /* 让第一个 h1 不要有顶部分隔线（因为上面已经有 paper-header） */
+    .md-render > h1:first-child, .md-render > h2:first-child { border-top: none; padding-top: 0; margin-top: 0; }
+
+    /* ─── 开头的 TL;DR 摘要框（md 开头的第一个 blockquote，不是章节） ─── */
+    .md-render > blockquote:first-child {
+      margin: 0 0 40px;
+      padding: 18px 22px 20px;
+      background: var(--bg2);
+      border: 1px solid var(--border);
+      border-left: 3px solid var(--accent);
+      border-radius: var(--radius);
+      color: var(--text2);
+      font-size: 14px;
+    }
+    .md-render > blockquote:first-child::before {
+      content: "TL;DR · 一句话速览";
+      display: block;
+      font-family: var(--font-mono);
+      font-size: 10px;
+      font-weight: 600;
+      letter-spacing: 0.14em;
+      color: var(--accent);
+      text-transform: uppercase;
+      margin-bottom: 10px;
+    }
+    .md-render > blockquote:first-child p { margin: 6px 0; }
+    .md-render > blockquote:first-child strong { color: var(--text); }
+
+    /* ─── Mermaid 流程图容器 ─── */
+    .md-render .mermaid {
+      margin: 22px 0;
+      padding: 20px 16px;
+      background: var(--bg2);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      text-align: center;
+      overflow-x: auto;
+    }
+    .md-render .mermaid svg { max-width: 100%; height: auto; }
+  </style>
+</head>
+<body>
+  <nav class="nav">
+    <a class="nav-logo" href="../index.html">~/paper-notes</a>
+    <div class="nav-links">
+      <a href="../index.html">← 返回首页</a>
+      <a href="pi0-code-reading.html">π₀ 代码阅读 →</a>
+    </div>
+  </nav>
+
+  <div class="page">
+    <div class="docs-layout">
+
+      <!-- ─── 左侧目录（JS 基于 h2/h3 自动生成） ─── -->
+      <aside class="docs-sidebar-left">
+        <div class="ds-title">// 目录</div>
+        <div id="md-toc" style="display:none;"></div>
+        <div id="md-toc-empty" class="md-loading" style="padding:20px 10px; font-size:12px; color:var(--text3);">Loading…</div>
+      </aside>
+
+      <!-- ─── 主体内容 ─── -->
+      <main class="docs-content">
+        <div class="docs-breadcrumb">
+          <a href="../index.html">paper-notes</a>
+          <span class="sep">/</span>
+          源码精读
+          <span class="sep">/</span>
+          π₀ Data Pipeline
+        </div>
+
+        <div class="paper-header" style="margin-bottom:32px;">
+          <div class="paper-venue">// Data Pipeline · 总结 · 聚焦 Transform 设计 · 2026-04</div>
+          <h1 class="paper-title">π₀ 数据 Pipeline 总结 · Transform 设计</h1>
+          <div class="paper-authors">
+            基于 openpi · 训练 / 推理 两条路径共用一条 transform 链
+            · 适配器模式 + 镜像对称 + norm_stats 粘合
+          </div>
+          <div class="paper-badges">
+            <span class="badge badge-green">数据流</span>
+            <span class="badge badge-blue">Transform 设计</span>
+            <span class="badge badge-amber">LeRobot · LIBERO</span>
+          </div>
+          <div class="paper-pdf" style="margin-top:14px; font-family:var(--font-mono); font-size:12px;">
+            <a href="pi0-code-reading.html" style="color:var(--accent); text-decoration:none; border-bottom:1px dashed var(--accent);">📖 π₀ 代码阅读笔记</a>
+            &nbsp;·&nbsp;
+            <a href="pi0-vla-flow-model.html" style="color:var(--accent); text-decoration:none; border-bottom:1px dashed var(--accent);">📄 π₀ 论文笔记</a>
+            &nbsp;·&nbsp;
+            <a href="https://github.com/Physical-Intelligence/openpi" target="_blank" style="color:var(--accent); text-decoration:none; border-bottom:1px dashed var(--accent);">🔗 openpi 仓库</a>
+            &nbsp;·&nbsp;
+            <a href="../notes/pi0-data-pipeline.md" target="_blank" style="color:var(--accent); text-decoration:none; border-bottom:1px dashed var(--accent);">📝 原始 Markdown</a>
+          </div>
+        </div>
+
+        <div id="md-content" class="md-render">
+          <div class="md-loading">Loading notes...</div>
+        </div>
+
+        <footer class="footer" style="margin-top:60px;">
+          <a href="../index.html">← 返回首页</a>
+          &nbsp;·&nbsp;
+          <a href="pi0-code-reading.html">π₀ 代码阅读 →</a>
+          &nbsp;·&nbsp;
+          <a href="https://github.com/Physical-Intelligence/openpi" target="_blank">openpi 源码 ↗</a>
+        </footer>
+      </main>
+
+    </div>
+  </div>
+
+  <script>
+    // 高亮主题跟随站点 data-theme 切换
+    function syncHljsTheme() {
+      var dark = document.documentElement.getAttribute('data-theme') === 'dark';
+      var l = document.getElementById('hljs-light');
+      var d = document.getElementById('hljs-dark');
+      if (l) l.disabled = dark;
+      if (d) d.disabled = !dark;
+    }
+    syncHljsTheme();
+    new MutationObserver(() => {
+      syncHljsTheme();
+      rerenderMermaidOnThemeChange();
+    }).observe(
+      document.documentElement, { attributes: true, attributeFilter: ['data-theme'] }
+    );
+
+    // ─── Mermaid 初始化（主题随 data-theme 切换） ───
+    function mermaidTheme() {
+      return document.documentElement.getAttribute('data-theme') === 'dark' ? 'dark' : 'default';
+    }
+    function initMermaid() {
+      mermaid.initialize({
+        startOnLoad: false,
+        theme: mermaidTheme(),
+        securityLevel: 'loose',        // 允许节点里写 <br/>、<b>、<span>
+        flowchart: { htmlLabels: true, curve: 'basis' },
+        fontFamily: 'Inter, "Helvetica Neue", Arial, sans-serif',
+      });
+    }
+    initMermaid();
+
+    // 把 container 里 <pre><code class="language-mermaid"> 替换成 <div class="mermaid">，再渲染
+    async function renderMermaid(container) {
+      const blocks = container.querySelectorAll('pre code.language-mermaid');
+      blocks.forEach(code => {
+        const src = code.textContent;
+        const div = document.createElement('div');
+        div.className = 'mermaid';
+        div.setAttribute('data-src', src);   // 保留源码用于主题切换时重渲
+        div.textContent = src;
+        code.parentElement.replaceWith(div);
+      });
+      if (blocks.length) {
+        try { await mermaid.run({ querySelector: '.md-render .mermaid' }); }
+        catch (e) { console.error('mermaid render error:', e); }
+      }
+    }
+    async function rerenderMermaidOnThemeChange() {
+      const diagrams = document.querySelectorAll('.md-render .mermaid');
+      if (!diagrams.length) return;
+      initMermaid();  // 重设主题
+      diagrams.forEach(d => {
+        d.removeAttribute('data-processed');
+        d.innerHTML = d.getAttribute('data-src') || d.textContent;
+      });
+      try { await mermaid.run({ querySelector: '.md-render .mermaid' }); }
+      catch (e) { console.error('mermaid re-render error:', e); }
+    }
+
+    // marked 配置：代码高亮用 highlight.js
+    marked.setOptions({
+      gfm: true,
+      breaks: false,
+      headerIds: true,
+      mangle: false,
+    });
+
+    // 自定义 renderer：给标题加 anchor id（从文字 slugify）
+    const renderer = new marked.Renderer();
+    const slug = (t) => String(t).toLowerCase()
+      .replace(/<[^>]*>/g, '')
+      .replace(/[^\w\u4e00-\u9fa5\s-]/g, '')
+      .trim().replace(/\s+/g, '-');
+    renderer.heading = (text, level) => {
+      const id = slug(text);
+      return `<h${level} id="${id}">${text}</h${level}>`;
+    };
+
+    // 把 MD 里 ](src/openpi/... 这类代码仓内部链接改写成 GitHub 绝对链接
+    const REPO_BASE = 'https://github.com/Physical-Intelligence/openpi/blob/main/';
+    renderer.link = (href, title, text) => {
+      let h = href;
+      if (/^src\//.test(h)) h = REPO_BASE + h;
+      const titleAttr = title ? ` title="${title}"` : '';
+      const extAttr = /^https?:/.test(h) ? ' target="_blank" rel="noopener"' : '';
+      return `<a href="${h}"${titleAttr}${extAttr}>${text}</a>`;
+    };
+
+    marked.use({ renderer });
+
+    fetch('../notes/pi0-data-pipeline.md')
+      .then(r => {
+        if (!r.ok) throw new Error('HTTP ' + r.status);
+        return r.text();
+      })
+      .then(async md => {
+        const container = document.getElementById('md-content');
+        container.innerHTML = marked.parse(md);
+        // 先把 mermaid 代码块替换并渲染成 SVG
+        await renderMermaid(container);
+        // 剩下的代码块走 hljs 语法高亮（mermaid 块已被替换成 div，不会命中这里）
+        container.querySelectorAll('pre code').forEach(el => {
+          try { hljs.highlightElement(el); } catch (e) {}
+        });
+        // 生成左侧目录（用 details+ds-leaf 结构，不自动编号——因为 MD 标题自带编号）
+        const tocRoot = document.getElementById('md-toc');
+        const heads = container.querySelectorAll('h2, h3');
+        if (heads.length && tocRoot) {
+          tocRoot.innerHTML = '';
+          // 先按 H2 分组：每个 H2 可能带若干 H3
+          const groups = [];
+          let cur = null;
+          heads.forEach(h => {
+            if (h.tagName === 'H2') { cur = { h2: h, children: [] }; groups.push(cur); }
+            else if (cur) { cur.children.push(h); }
+          });
+
+          groups.forEach(g => {
+            if (g.children.length === 0) {
+              // 孤立 H2：顶层链接
+              const a = document.createElement('a');
+              a.className = 'ds-leaf-top';
+              a.href = '#' + g.h2.id;
+              a.textContent = g.h2.textContent;
+              tocRoot.appendChild(a);
+            } else {
+              // 有子节：details + summary + 若干 ds-leaf
+              const det = document.createElement('details');
+              det.open = true;
+              const sum = document.createElement('summary');
+              sum.textContent = g.h2.textContent;
+              // 点击 summary 文字本身也能跳转到该章节
+              sum.addEventListener('click', (e) => {
+                // 只有点到文字（而非展开箭头）时跳转
+                if (e.target === sum) {
+                  setTimeout(() => { location.hash = '#' + g.h2.id; }, 0);
+                }
+              });
+              det.appendChild(sum);
+              g.children.forEach(h3 => {
+                const a = document.createElement('a');
+                a.className = 'ds-leaf';
+                a.href = '#' + h3.id;
+                a.textContent = h3.textContent;
+                det.appendChild(a);
+              });
+              tocRoot.appendChild(det);
+            }
+          });
+
+          tocRoot.style.display = '';
+          const empty = document.getElementById('md-toc-empty');
+          if (empty) empty.remove();
+
+          // 滚动高亮当前章节
+          const links = tocRoot.querySelectorAll('a[href^="#"]');
+          const obs = new IntersectionObserver((entries) => {
+            entries.forEach(e => {
+              if (e.isIntersecting) {
+                const id = e.target.id;
+                links.forEach(a => a.classList.toggle('active', a.getAttribute('href') === '#' + id));
+              }
+            });
+          }, { rootMargin: '-80px 0px -70% 0px' });
+          heads.forEach(h => obs.observe(h));
+        }
+      })
+      .catch(err => {
+        document.getElementById('md-content').innerHTML =
+          '<div class="md-error">加载 Markdown 失败: ' + err.message +
+          '<br><small>确保用 HTTP server 访问（如 <code>python -m http.server</code>），file:// 协议会被浏览器拦截。</small></div>';
+      });
+  </script>
+</body>
+</html>

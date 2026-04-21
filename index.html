@@ -132,7 +132,7 @@
 
     <div class="intro-grid">
       <div class="intro-cell">
-        <div class="intro-cell-num">4</div>
+        <div class="intro-cell-num">5</div>
         <div class="intro-cell-label">已精读</div>
       </div>
       <div class="intro-cell">
@@ -151,6 +151,21 @@
       <span class="sh-hint">按更新时间排序</span>
     </div>
     <div class="recent-wrap">
+      <a class="recent-card" href="papers/pi0-data-pipeline.html">
+        <div class="recent-date">2026-04-21 · 刚完成</div>
+        <div class="recent-title">π₀ 数据 Pipeline · Transform 设计</div>
+        <div class="recent-sub">
+          以 openpi 的 transform 链为主线：7 层适配器 + 镜像对称（训练 .inputs 单向 / 推理 .inputs+.outputs）+
+          <code style="font-size:11px;">norm_stats.json</code> 做粘合。逐层展开每个 transform 的"做什么/为什么/代码在哪"，
+          以及 LIBERO / ALOHA / DROID 三种数据集的适配差异对照。
+        </div>
+        <div class="recent-tags">
+          <span class="status-badge status-done">✓ 已完成</span>
+          <span class="card-pill">数据流 · Transform</span>
+          <span class="card-pill">openpi · LeRobot</span>
+        </div>
+      </a>
+
       <a class="recent-card" href="papers/pi0-code-reading.html">
         <div class="recent-date">2026-04-18 · 刚完成</div>
         <div class="recent-title">π₀ / π₀.5 代码阅读笔记</div>
@@ -292,6 +307,10 @@
           </a>
           <a class="dc-item" href="papers/pi0-code-reading.html">
             <span class="dc-item-main">π₀ / π₀.5 代码阅读<span class="dc-item-en">openpi · pi0_pytorch.py</span></span>
+            <span class="status-badge status-done">✓</span>
+          </a>
+          <a class="dc-item" href="papers/pi0-data-pipeline.html">
+            <span class="dc-item-main">π₀ 数据 Pipeline · Transform<span class="dc-item-en">openpi · data_loader / transforms</span></span>
             <span class="status-badge status-done">✓</span>
           </a>
           <a class="dc-item disabled">
