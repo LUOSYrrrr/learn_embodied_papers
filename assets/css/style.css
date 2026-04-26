@@ -268,8 +268,74 @@ code {
 }
 .code-block code {
   background: none; border: none; padding: 0;
-  font-size: 13px; color: var(--text2); display: block; line-height: 1.7;
+  font-size: 13px; color: var(--text); display: block; line-height: 1.7;
+  white-space: pre-wrap; word-break: normal; overflow-wrap: normal;
 }
+
+/* ── Prism syntax highlighting (project palette) ── */
+pre[class*="language-"] {
+  background: var(--bg2);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 16px 18px;
+  margin: 16px 0;
+  overflow-x: auto;
+  font-family: var(--font-mono);
+  font-size: 13px;
+  line-height: 1.75;
+  color: var(--text);
+  position: relative;
+  tab-size: 4;
+}
+pre[class*="language-"]::before {
+  content: attr(data-lang);
+  position: absolute;
+  top: 6px; right: 12px;
+  font-family: var(--font-mono);
+  font-size: 10px;
+  color: var(--text3);
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+pre[class*="language-"] code,
+code[class*="language-"] {
+  font-family: var(--font-mono);
+  font-size: 13px;
+  background: none;
+  border: none;
+  padding: 0;
+  color: var(--text);
+  white-space: pre;
+  text-shadow: none;
+}
+.token.comment, .token.prolog, .token.doctype, .token.cdata {
+  color: var(--text3); font-style: italic;
+}
+.token.punctuation { color: var(--text2); }
+.token.namespace { opacity: 0.7; }
+.token.boolean, .token.number, .token.constant, .token.symbol, .token.deleted {
+  color: var(--purple);
+}
+.token.string, .token.char, .token.attr-value, .token.builtin, .token.inserted {
+  color: var(--amber);
+}
+.token.operator, .token.entity, .token.url {
+  color: var(--accent2);
+}
+.token.atrule, .token.keyword {
+  color: var(--accent);
+}
+.token.function, .token.class-name {
+  color: var(--blue);
+}
+.token.regex, .token.important, .token.variable {
+  color: var(--accent3);
+}
+.token.decorator, .token.annotation {
+  color: var(--accent3);
+}
+.token.important, .token.bold { font-weight: 600; }
+.token.italic { font-style: italic; }
 
 /* ── Diagram container ── */
 .diagram-wrap {

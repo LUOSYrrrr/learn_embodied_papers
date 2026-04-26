@@ -1,0 +1,1584 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>π₀.₅ · A Vision-Language-Action Model with Open-World Generalization</title>
+  <link rel="stylesheet" href="../assets/css/style.css">
+  <script src="../assets/js/theme.js"></script>
+  <script src="../assets/js/interactive.js" defer></script>
+  <script src="https://cdn.jsdelivr.net/npm/prismjs@1.29.0/components/prism-core.min.js" defer></script>
+  <script src="https://cdn.jsdelivr.net/npm/prismjs@1.29.0/components/prism-python.min.js" defer></script>
+</head>
+<body>
+  <nav class="nav">
+    <a class="nav-logo" href="../index.html">~/paper-notes</a>
+    <div class="nav-links">
+      <a href="../index.html">← 返回首页</a>
+      <a href="../pdfs/vla/pi0.5.pdf" target="_blank">📄 PDF</a>
+      <a href="https://github.com/Physical-Intelligence/openpi" target="_blank">💻 openpi</a>
+    </div>
+  </nav>
+
+  <div class="page">
+    <div class="docs-layout">
+
+      <!-- ─── 左：章节树 ─── -->
+      <aside class="docs-sidebar-left">
+        <div class="ds-title">π₀.₅ · Open-World VLA</div>
+
+        <a class="ds-leaf-top" href="#motivation">§1 它在 π₀ 之上多解决了什么</a>
+
+        <details open>
+          <summary>§2 与 π₀ 的差异概览</summary>
+          <a class="ds-leaf" href="#diff-overview">2.1 一句话说清</a>
+          <a class="ds-leaf" href="#diff-table">2.2 三层差异对照表</a>
+        </details>
+
+        <details>
+          <summary>§3 架构变化</summary>
+          <a class="ds-leaf" href="#arch-math">3.1 数学预备 · 模仿学习目标</a>
+          <a class="ds-leaf" href="#arch-overview-fig">3.2 模型总览（Fig 3）</a>
+          <a class="ds-leaf" href="#arch-pretrain">　　3.2.1 Pre-training · 左半边</a>
+          <a class="ds-leaf" href="#arch-inference">　　3.2.2 推理流程 · 右半边</a>
+          <a class="ds-leaf" href="#arch-fast">3.3 FAST tokenizer：动作怎么进 token</a>
+          <a class="ds-leaf" href="#arch-state">3.4 State 进 token：从 suffix → prefix</a>
+          <a class="ds-leaf" href="#arch-adarms">3.5 时间注入：MLP → adaRMSNorm</a>
+          <a class="ds-leaf" href="#arch-attn">3.6 Attention 模式（Fig 18）</a>
+        </details>
+
+        <details>
+          <summary>§4 训练 Recipe</summary>
+          <a class="ds-leaf" href="#train-loss">4.1 两阶段 + Combined loss（Eq.1）</a>
+          <a class="ds-leaf" href="#train-data">4.2 数据混合（Fig 4）</a>
+        </details>
+
+        <details>
+          <summary>§5 实验</summary>
+          <a class="ds-leaf" href="#exp-real">5.1 真实新家泛化（Fig 7）</a>
+          <a class="ds-leaf" href="#exp-scale">5.2 场景数 scaling（Fig 8/9）</a>
+          <a class="ds-leaf" href="#exp-ablate">5.3 数据消融（Fig 10/11）</a>
+          <a class="ds-leaf" href="#exp-vs-pi0">5.4 vs π₀ / π₀-FAST+Flow（Fig 12）</a>
+          <a class="ds-leaf" href="#exp-hl">5.5 高层推理 ablation（Fig 13）</a>
+        </details>
+
+        <a class="ds-leaf-top" href="#openpi">§6 openpi 公开了什么 / 没公开什么</a>
+        <a class="ds-leaf-top" href="#takeaway">§7 收获与局限</a>
+      </aside>
+
+      <!-- ─── 中：正文 ─── -->
+      <main class="docs-content">
+
+        <div class="docs-breadcrumb">
+          <a href="../index.html">paper-notes</a>
+          <span class="sep">/</span>
+          VLA
+          <span class="sep">/</span>
+          π₀.₅ · 2025
+        </div>
+
+        <h1>π₀.₅: a Vision-Language-Action Model with Open-World Generalization</h1>
+        <p style="color:var(--text3); font-family:var(--font-mono); font-size:12px; margin-top:-12px;">
+          Physical Intelligence · Black, Brown, Darpinian, Driess, Finn, Levine et al. · arXiv 2504.16054 · 2025-04
+        </p>
+
+        <div class="cn-read">
+          <div class="cn-label">这篇笔记怎么读</div>
+          <p>
+            π₀.₅ 不是一个全新架构——它是 π₀ 的一次"系统级升级"，关键词只有一个：
+            <strong>open-world generalization</strong>（在没见过的真实家里干活）。
+            做法是：架构上动两刀（state 写进 prompt、用 adaRMSNorm 注入 flow timestep），
+            训练上换成两阶段（discrete pre-train → flow post-train），数据上把
+            <strong>非机器人 web 数据</strong> + <strong>非移动机器人数据</strong> + <strong>高层 subtask 标注</strong>
+            一起喂进去，让模型既能<strong>说</strong>（"先 pick up the pillow"）又能<strong>做</strong>（连续动作 chunk）。
+          </p>
+          <p style="margin-top:8px;">
+            阅读路径：先看 §2 的差异速览（如果你已经读过 π₀），再分别看
+            <strong>架构（§3）</strong>、<strong>训练（§4）</strong>、<strong>实验（§5）</strong>。
+            §6 对照 <a href="https://github.com/Physical-Intelligence/openpi" target="_blank" style="color:var(--accent);">openpi 源码</a>，
+            说明哪些组件公开了、哪些只在 paper 里出现。
+          </p>
+        </div>
+
+        <!-- ═════════════════════════════════════════════════ -->
+        <h2 id="motivation">§1 它在 π₀ 之上多解决了什么</h2>
+
+        <div class="cn-read">
+          <div class="cn-label">这一节解决什么</div>
+          <p>
+            π₀ 已经把"大 pre-train + 小 post-train"做成了；但 π₀ 评测里多数任务在<strong>训练过的场景</strong>上做。
+            π₀.₅ 直面下一个 open question——<strong>能不能在完全没见过的真家里直接 deploy？</strong>
+            它给的答案是"可以"，前提是训练时把异质数据源做<strong>co-training</strong>。
+          </p>
+        </div>
+
+        <div class="callout">
+          <div class="callout-label">核心主张（Abstract）</div>
+          <p>
+            π₀.₅ 通过把<strong>多机器人本体（other robots）+ 高层语义子任务（high-level subtask prediction）+
+            人工口头指令（verbal instructions）+ 网络多模态数据（image-caption / VQA / 物体检测）</strong>
+            混进一个统一的 next-token 训练目标里，
+            <strong>仅用约 400 小时</strong>移动机器人数据，就能让 VLA 在<strong>从未见过的真实卧室/厨房</strong>里
+            连续干 10–15 分钟、完成多阶段清理任务。
+          </p>
+        </div>
+
+        <details class="en-quote">
+          <summary>展开原文 · Abstract 核心句</summary>
+          <div class="quote-body">
+            <p>"We describe π₀.₅, a new model based on π₀ that uses co-training on heterogeneous tasks to enable broad generalization. ... Our experiments show that this kind of knowledge transfer is essential for effective generalization, and we demonstrate for the first time that an end-to-end learning-enabled robotic system can perform long-horizon and dexterous manipulation skills, such as cleaning a kitchen or bedroom, in entirely new homes."</p>
+            <div class="quote-cite">— Abstract, p.1</div>
+          </div>
+        </details>
+
+        <div class="fig-interactive">
+          <div class="fig-block">
+            <div class="hotspot-wrap" data-hotspot-group="fig1">
+              <img src="../assets/figures/pi05/fig-1.png" alt="Figure 1: π₀.₅ teaser">
+              <div class="hotspot" data-id="multimodal" style="left:14%; top:30%;"
+                   data-title="Multimodal Web Data · 非机器人监督"
+                   data-body="左上三块：subtask commands（关微波炉 / 拿手套）、object detection（图上画框打 'Dress' 'Coffee' 标签）、web VQA（”图里有几张桌子？“）。这些是来自互联网的图文对，让模型继承 VLM 的开放词汇与视觉常识。“></div>
+              <div class="hotspot" data-id="policy" style="left:50%; top:25%;"
+                   data-title="π₀.₅ VLA Policy · 高低层一体"
+                   data-body="同一个模型同时输出高层 subtask（“pick up the pillow”）和低层 action chunk。论文反复强调：高层和低层用相同权重做推理，只是 prompt 不同。"></div>
+              <div class="hotspot" data-id="action-expert" style="left:68%; top:30%;"
+                   data-title="Action Expert · flow matching 头"
+                   data-body="300M 参数的小 transformer 专家，从噪声去噪出连续动作。沿用 π₀ 的设计，但 timestep 注入方式从 MLP 拼接换成 adaRMSNorm。"></div>
+              <div class="hotspot" data-id="robot-data" style="left:88%; top:42%;"
+                   data-title="异质机器人数据"
+                   data-body="右侧四块：In-the-wild Mobile（400 h 移动操作）、In-the-wild Static（在家里的静态臂）、In-Lab Static（实验室里跨本体）、General Robot Data（OXE / Bridge 等开源池）。绝大多数训练样本（97.6%）不来自目标移动机器人。"></div>
+              <div class="hotspot" data-id="newhome" style="left:50%; top:78%;"
+                   data-title="Deploy out-of-the-box · 关键卖点"
+                   data-body="模型在<strong>训练数据完全没见过</strong>的真家里直接 zero-shot 干活，不需要在新家采数据 fine-tune。这是 π₀ 没演示过的能力。"></div>
+            </div>
+            <div class="fig-cap">
+              <span class="fig-num">Fig 1 · p.1</span>
+              The π₀.₅ model transfers knowledge from a heterogeneous range of data sources... to enable broad generalization across environments and objects. π₀.₅ can control a mobile manipulator to clean kitchens and bedrooms in new homes that were not present in the training data.
+              <span class="fig-cn">π₀.₅ 把 web 多模态数据 + 异质机器人数据 + 人类口头指令 + 高层 subtask 标注混在一起 co-train，最终在没见过的真家里完成 10–15 分钟的清理任务。</span>
+            </div>
+          </div>
+          <div class="hotspot-panel"></div>
+        </div>
+
+        <div class="callout blue">
+          <div class="callout-label">类比 · 像不像 LLM 的"读万卷书 vs 行万里路"</div>
+          <p>
+            π₀ 那一代像"专科医生"——只看手术录像（机器人轨迹）反复练。
+            π₀.₅ 像"刚毕业的住院医"——除了练手术（机器人轨迹），还<strong>读教科书（web 数据）、
+            听上级口述（verbal instructions）、看不同医院的录像（异质机器人）</strong>。
+            最后从来没在新家见过手术台，也能通过<strong>语义抽象</strong>把"擦溢出"这种命令拆分到位。
+          </p>
+        </div>
+
+        <!-- ═════════════════════════════════════════════════ -->
+        <h2 id="diff-overview">§2 与 π₀ 的差异概览</h2>
+
+        <div class="cn-read">
+          <div class="cn-label">这一节解决什么</div>
+          <p>
+            读 π₀.₅ 最高效的姿势是<strong>把它和 π₀ 并排看</strong>。
+            上一节讲了它要做的事（open-world 泛化）。这节用一张表把
+            <strong>三层（架构 / 训练 / 数据）</strong>差异锁死，后面三章只是在展开这张表。
+          </p>
+        </div>
+
+        <h3 id="diff-table" style="margin-top:24px;">2.1 三层差异对照</h3>
+
+        <table class="kv-table" style="margin-top:14px;">
+          <tr>
+            <td style="width:120px;"><strong>层面</strong></td>
+            <td style="width:46%;"><strong>π₀（2024-10）</strong></td>
+            <td><strong>π₀.₅（2025-04）</strong></td>
+          </tr>
+          <tr>
+            <td>骨干 VLM</td>
+            <td>PaliGemma（SigLIP + Gemma 2.6B）</td>
+            <td>同 PaliGemma（不变）</td>
+          </tr>
+          <tr>
+            <td>Action Expert</td>
+            <td>~300M 小 transformer，flow matching 头</td>
+            <td>同 ~300M，但 timestep 注入换成 <code>adaRMSNorm</code></td>
+          </tr>
+          <tr>
+            <td>状态 q<sub>t</sub> 输入</td>
+            <td>连续 vector → <code>state_proj</code> → 1 个 suffix token</td>
+            <td><strong>离散化 256 桶 → 拼进 prompt 文本</strong>（"State: 12 87 ...;\nAction:"）</td>
+          </tr>
+          <tr>
+            <td><code>max_token_len</code></td>
+            <td>48</td>
+            <td><strong>200</strong>（要装下离散 state + 长 prompt）</td>
+          </tr>
+          <tr>
+            <td>训练阶段</td>
+            <td>单阶段：flow matching loss</td>
+            <td><strong>两阶段：</strong> discrete next-token (FAST) → flow matching post-train</td>
+          </tr>
+          <tr>
+            <td>训练损失</td>
+            <td>L<sub>flow</sub> = E‖ω − a − f<sub>θ</sub>‖²</td>
+            <td>L = H(text logits) + α · ‖ω − a − f<sub>θ</sub>‖²，pre-train α=0，post-train α=10</td>
+          </tr>
+          <tr>
+            <td>高层推理 (HL)</td>
+            <td>无（只产 action chunk）</td>
+            <td><strong>同一模型先产 subtask 文本，再产 actions</strong>（chain-of-thought）</td>
+          </tr>
+          <tr>
+            <td>训练数据</td>
+            <td>OXE + 内部多本体机器人数据</td>
+            <td>+ 移动 manipulation 400h + 多环境非移动 + 实验室跨本体 + <strong>web (caption / VQA / detection)</strong> + <strong>HL 子任务标注</strong> + <strong>口头指令 (VI)</strong></td>
+          </tr>
+          <tr>
+            <td>评测重点</td>
+            <td>训练分布内 + 少量微调任务</td>
+            <td><strong>完全没见过的真家</strong>（mock 厨房 / 卧室 + 3 个真家）</td>
+          </tr>
+        </table>
+
+        <div class="callout amber">
+          <div class="callout-label">openpi 里这层差异怎么落地</div>
+          <p>
+            <code>Pi0Config(pi05=True)</code> 一个 flag 把上表里所有"<strong>架构</strong>"差异点齐了——具体就两件事，
+            源码 <a href="https://github.com/Physical-Intelligence/openpi/blob/main/src/openpi/models/pi0_config.py" target="_blank" style="color:var(--accent);">pi0_config.py</a>
+            注释里写得很直接：
+          </p>
+          <pre data-lang="python" class="language-python" style="margin-top:8px;"><code class="language-python"># Pi05 has two differences from Pi0:
+# - the state input is part of the discrete language tokens
+#   rather than a continuous input that is part of the suffix
+# - the action expert uses adaRMSNorm to inject the flow matching timestep
+pi05: bool = False</code></pre>
+          <p style="margin-top:8px;">
+            训练数据 / HL inference / web co-training 那一层的差异，<strong>openpi 就完全不开放了</strong>——
+            §6 会逐项对照。
+          </p>
+        </div>
+
+        <div class="quiz"
+             data-correct="c"
+             data-explain="正确。pi0_config.py 注释明确给出两点：state 进离散语言 token、action expert 用 adaRMSNorm 注入 timestep。架构改动只有这两处，骨干 PaliGemma 不变。"
+             data-explain-wrong="不太对——π₀.₅ 没换骨干，PaliGemma 是同一套；Action Expert 大小也不变；改的是 state 的位置和 timestep 注入方式。">
+          <div class="q-label">🧠 理解检查</div>
+          <div class="q-text">π₀.₅ 相比 π₀ <strong>架构层面</strong>主要改了哪两点？</div>
+          <div class="q-options">
+            <button class="q-opt" data-k="a">换了 VLM 骨干 + 加深了 Action Expert</button>
+            <button class="q-opt" data-k="b">把 SigLIP 换成 DINOv2 + 加了 cross-attention</button>
+            <button class="q-opt" data-k="c">state 离散化进 prompt + adaRMSNorm 注入 flow timestep</button>
+            <button class="q-opt" data-k="d">用 diffusion 替代 flow matching + 加了 KV cache</button>
+          </div>
+          <div class="q-feedback"></div>
+        </div>
+
+        <!-- ═════════════════════════════════════════════════ -->
+        <h2 id="arch-overview">§3 架构变化</h2>
+
+        <div class="cn-read">
+          <div class="cn-label">这一节解决什么</div>
+          <p>
+            上一节给了三点架构改动的<strong>结论</strong>。这节展开它们。
+            为什么 state 要从 suffix 搬到 prompt？为什么 timestep 要从 MLP 换成 adaRMSNorm？
+            两个改动看起来无伤大雅，但各自服务一个目的——
+            <strong>state 进 prompt</strong> 是为了和"两阶段训练"里的<em>纯 discrete pre-train</em>对齐，
+            <strong>adaRMSNorm</strong> 是 flow timestep 在大模型里的标准做法（DiT 早就这么干了）。
+          </p>
+        </div>
+
+        <!-- ─── 3.1 数学预备 · 模仿学习目标 ─── -->
+        <h3 id="arch-math" style="margin-top:24px;">3.1 数学预备 · 模仿学习目标</h3>
+
+        <div class="cn-read">
+          <div class="cn-label">为什么先讲这个</div>
+          <p>
+            架构里所有"为什么这么写"的回答，最终都指向<strong>同一个数学目标</strong>。
+            π₀.₅ 用的是 <strong>imitation learning（模仿学习）</strong>：
+            给定大量"<em>人类示教</em>"数据，让模型学会"<em>看到这个画面 + 听到这句话时，要输出哪些动作</em>"。
+            没有奖励函数、没有探索、没有 RL——是<strong>纯监督学习</strong>。
+          </p>
+          <p style="margin-top:10px;">
+            生活类比：你是个学厨学徒，师傅在你面前做了 1000 次"切洋葱"，每次你都看着他怎么握刀、怎么下手。
+            后来师傅说"切洋葱"，你就照师傅最常做的那种动作切——这就是 imitation learning。
+          </p>
+        </div>
+
+        <h4 style="margin-top:24px;">① 核心目标函数 · 一个 expectation</h4>
+
+        <div class="callout">
+          <div class="callout-label">公式（论文 §III Preliminaries）</div>
+          <div class="code-block" style="margin-top:8px;"><code>max<sub>θ</sub>  E<sub>(a<sub>t:t+H</sub>, o<sub>t</sub>, l) ~ D</sub>  log π<sub>θ</sub>(a<sub>t:t+H</sub> | o<sub>t</sub>, l)</code></div>
+          <p style="margin-top:12px;">一项一项拆：</p>
+          <table class="kv-table" style="margin-top:8px;">
+            <tr><td style="width:160px;"><code>π<sub>θ</sub></code></td><td>策略（policy），就是这个 VLA 模型本身。θ 是它所有可学习参数（PaliGemma + action expert 加起来 ~3B）。</td></tr>
+            <tr><td><code>a<sub>t:t+H</sub></code></td><td>从 t 时刻起未来 H 步的动作序列。π₀.₅ 里 H = 50（即一个 action chunk）。</td></tr>
+            <tr><td><code>o<sub>t</sub></code></td><td>当前观察 = 3 路相机图像 + 关节状态 q<sub>t</sub>。</td></tr>
+            <tr><td><code>l</code></td><td>语言指令（language instruction）。可以是高层 <code>"clean the bedroom"</code>，也可以是低层 <code>"pick up the pillow"</code>。</td></tr>
+            <tr><td><code>D</code></td><td>示教数据集（demonstration dataset），几千小时的 (动作, 观察, 指令) 三元组。</td></tr>
+            <tr><td><code>E[...]</code></td><td>对整个数据集求期望——意思是"<em>对所有训练样本求平均</em>"。</td></tr>
+            <tr><td><code>log π<sub>θ</sub>(a | o, l)</code></td><td>模型在看到 (o, l) 时，给出"<em>真实动作 a</em>"的<strong>对数概率</strong>。越高说明模型越"同意"人类的选择。</td></tr>
+            <tr><td><code>max<sub>θ</sub></code></td><td>调整参数 θ，让上面那个对数概率的期望<strong>最大</strong>。</td></tr>
+          </table>
+          <p style="margin-top:12px;">
+            一句话翻译：<strong>"调参数让模型在每条示教数据上预测人类动作的概率最大"</strong>。
+            这就是<strong>极大似然估计（MLE）</strong>，也叫 <strong>behavioral cloning（行为克隆）</strong>，
+            是 imitation learning 最基础的形式。
+          </p>
+        </div>
+
+        <div class="callout blue" style="margin-top:16px;">
+          <div class="callout-label">和 RL 的对比 · 一张表区分</div>
+          <table class="kv-table">
+            <tr>
+              <td style="width:110px;"></td><td><strong>imitation learning（π₀.₅ 用）</strong></td><td><strong>reinforcement learning</strong></td>
+            </tr>
+            <tr><td>数据来源</td><td>人类示教（offline）</td><td>智能体自己探索（online/offline）</td></tr>
+            <tr><td>监督信号</td><td>"应该做的动作"——直接给 label</td><td>奖励 r(s, a)——间接，需要 credit assignment</td></tr>
+            <tr><td>损失</td><td>MLE / cross-entropy</td><td>policy gradient / Q-learning / ...</td></tr>
+            <tr><td>样本效率</td><td>高（每条数据都直接告诉你答案）</td><td>低（要试错）</td></tr>
+            <tr><td>能力上限</td><td>受限于示教质量（不会超过老师）</td><td>理论上无上限</td></tr>
+          </table>
+          <p style="margin-top:10px;">
+            π₀.₅ 选 imitation learning 是因为机器人 RL 在真实世界里太贵——一次失败可能撞坏机械臂、打碎瓷碗。
+            示教数据虽然贵（要请人遥操作几千小时），但比 RL 探索的代价小得多。
+          </p>
+        </div>
+
+        <h4 style="margin-top:24px;">② 联合分布拆解 · HL / LL 的数学根据</h4>
+
+        <div class="callout">
+          <div class="callout-label">公式（论文 §IV-A 第一段）</div>
+          <p>
+            ① 里只写了"<em>给观察出动作</em>"。但 π₀.₅ 还要同时输出文本子任务 <code>l̂</code>（"<em>pick up the pillow</em>"）。
+            所以论文写的更完整的联合分布是：
+          </p>
+          <div class="code-block" style="margin-top:8px;"><code>π<sub>θ</sub>(a<sub>t:t+H</sub>, l̂ | o<sub>t</sub>, l)</code></div>
+          <p style="margin-top:10px;">
+            其中 <code>l</code> 是用户给的高层任务（"<em>clean the bedroom</em>"），<code>l̂</code> 是模型自己产出的子任务文本。
+            关键一步是论文把这个联合分布<strong>拆成两个条件分布</strong>：
+          </p>
+          <div class="code-block" style="margin-top:8px;"><code>π<sub>θ</sub>(a<sub>t:t+H</sub>, l̂ | o<sub>t</sub>, l) = π<sub>θ</sub>(a<sub>t:t+H</sub> | o<sub>t</sub>, l̂) · π<sub>θ</sub>(l̂ | o<sub>t</sub>, l)</code></div>
+          <p style="margin-top:12px;">
+            <strong>注意右边第一项的条件是 <code>l̂</code> 不是 <code>l</code>！</strong>这背后的假设是：
+            <em>给定具体子任务 l̂ 后，动作分布就和原始高层指令 l 无关了</em>——
+            知道"现在该 pick up the pillow"就够了，不需要再记得"目标是 clean the bedroom"。
+          </p>
+          <table class="kv-table" style="margin-top:12px;">
+            <tr>
+              <td style="width:140px;"><strong>π(l̂ | o, l)</strong></td>
+              <td><strong>HL（high-level inference）</strong>：看观察 + 高层指令，AR 解码出文本子任务。<br>对应 §3.2.2 step 2。</td>
+            </tr>
+            <tr>
+              <td><strong>π(a | o, l̂)</strong></td>
+              <td><strong>LL（low-level inference）</strong>：看观察 + 子任务文本，flow matching 出动作。<br>对应 §3.2.2 step 4。</td>
+            </tr>
+          </table>
+          <p style="margin-top:12px;">
+            "<strong>用同一个模型做两件事</strong>"在数学上就是这一个等式——
+            两个条件分布共享 θ，只是 prompt 的内容不同。这就是 §3.2.2 里"两遍 forward"的根据。
+          </p>
+        </div>
+
+        <h4 style="margin-top:24px;">③ 观察 + transformer 的形式化</h4>
+
+        <div class="callout">
+          <div class="callout-label">论文 §IV-A 后半段</div>
+          <p><strong>观察的具体组成：</strong></p>
+          <div class="code-block" style="margin-top:8px;"><code>o<sub>t</sub> = [ I<sub>t</sub><sup>1</sup>, ..., I<sub>t</sub><sup>n</sup>, q<sub>t</sub> ]</code></div>
+          <p style="margin-top:10px;">
+            n 路相机图像 + 当前关节状态 q<sub>t</sub>（含关节角、夹爪、躯干升降、底盘速度）。
+            <strong>q<sub>t</sub> 离散化后作为文本 token 输入</strong>——这就是 §3.4 "state 进 prompt" 的实现细节。
+          </p>
+          <p style="margin-top:12px;"><strong>Transformer 函数：</strong></p>
+          <div class="code-block" style="margin-top:8px;"><code>y<sub>1:N</sub> = f( x<sub>1:N</sub>, A(x<sub>1:N</sub>), ρ(x<sub>1:N</sub>) )</code></div>
+          <table class="kv-table" style="margin-top:8px;">
+            <tr><td style="width:140px;"><code>x<sub>1:N</sub></code></td><td>N 个输入 token（"token" 用得宽松，包括离散和连续）</td></tr>
+            <tr><td><code>ρ(x<sub>i</sub>)</code></td><td>token 类型，3 种：<code>x<sub>i</sub><sup>w</sup> ∈ ℕ</code>（文本）/ <code>x<sub>i</sub><sup>I</sup> ∈ ℝ<sup>p×p×3</sup></code>（图像 patch）/ <code>x<sub>i</sub><sup>a</sup> ∈ ℝ<sup>d</sup></code>（动作的 flow 中间值）</td></tr>
+            <tr><td><code>A(x<sub>1:N</sub>)</code></td><td>注意力矩阵 ∈ [0,1]<sup>N×N</sup>，决定谁能看见谁。<strong>image patch / 文本 prompt / 连续 action 内部用双向</strong>，跨段 causal——详见 §3.6 Fig 18。</td></tr>
+            <tr><td><code>不同 expert 权重</code></td><td>动作 token 走 action expert（独立一组权重），其他 token 走 PaliGemma 主干</td></tr>
+          </table>
+          <p style="margin-top:12px;"><strong>输出分两路：</strong></p>
+          <div class="code-block" style="margin-top:8px;"><code>y<sub>1:N</sub> = ( y<sup>l</sup><sub>1:M</sub>,  y<sup>a</sup><sub>1:H</sub> ),    M + H ≤ N</code></div>
+          <p style="margin-top:10px;">
+            前 M 个是<strong>文本 logits</strong>（用来 sample 出 l̂）；
+            后 H 个是 <strong>action expert 的输出</strong>（线性投影成 a<sub>t:t+H</sub>）。
+            <strong>M + H ≤ N</strong> 意味着不是所有位置都参与 loss——图像 patch 那些位置就没有 loss。
+          </p>
+        </div>
+
+        <h4 style="margin-top:24px;">④ 这个 <code>max log</code> 怎么变成"loss"</h4>
+
+        <div class="callout amber">
+          <div class="callout-label">从 max likelihood 到 minimize cross-entropy</div>
+          <p>
+            工程上不写 max（梯度下降天然是 minimize），所以加个负号：
+          </p>
+          <div class="code-block" style="margin-top:8px;"><code>L(θ) = − E<sub>(a, o, l) ~ D</sub>  log π<sub>θ</sub>(a | o, l)</code></div>
+          <p style="margin-top:12px;">
+            这就是 <strong>negative log-likelihood (NLL)</strong>，等价于<strong>交叉熵（cross-entropy, CE）</strong>损失。
+            实现上对每条样本算一次，然后在 batch 上平均。
+          </p>
+          <p style="margin-top:10px;">
+            真正的难点是：<strong>π<sub>θ</sub>(a | o, l) 这个"动作的概率"怎么算？</strong>
+            动作 <code>a</code> 是 50 步 × 关节维度的连续高维向量，不能直接 softmax。
+            π₀.₅ 用<strong>两条路径</strong>解决这件事——pre-training 走"离散化"（CE），
+            post-training 走"流匹配"（MSE）。下面分别看。
+          </p>
+        </div>
+
+        <h4 style="margin-top:24px;">⑤ Pre-training · CE on FAST tokens</h4>
+
+        <div class="callout">
+          <p>
+            Pre-training 阶段，<strong>动作经 FAST tokenizer 离散化</strong>成 token 序列
+            <code>(τ<sub>1</sub>, τ<sub>2</sub>, ..., τ<sub>N</sub>)</code>，
+            和文本 token 共用一个词表。这样动作的概率可以拆成 next-token 连乘：
+          </p>
+          <div class="code-block" style="margin-top:8px;"><code>π<sub>θ</sub>(a | o, l) = Π<sub>i</sub> π<sub>θ</sub>(τ<sub>i</sub> | τ<sub>&lt;i</sub>, o, l)</code></div>
+          <p style="margin-top:12px;">取 log 把连乘变求和：</p>
+          <div class="code-block" style="margin-top:8px;"><code>log π<sub>θ</sub>(a | o, l) = Σ<sub>i</sub> log π<sub>θ</sub>(τ<sub>i</sub> | τ<sub>&lt;i</sub>, o, l)</code></div>
+          <p style="margin-top:12px;">
+            这就是标准的 <strong>autoregressive CE loss</strong>——和 GPT 训练用的目标函数<strong>一字不差</strong>。
+            对所有 token（动作 + 文本 subtask + caption + bbox 坐标）都用这同一个公式。
+            这就是 §3.2.1 里说"<em>所有 token 共享一个目标函数</em>"的数学根据。
+          </p>
+        </div>
+
+        <h4 style="margin-top:24px;">⑥ Post-training · flow matching MSE</h4>
+
+        <div class="callout">
+          <p>
+            离散化推理太慢（要 AR 解 ~50 个 token）。Post-training 加一个 action expert，让动作走<strong>连续 flow matching</strong>。
+            它<strong>不直接</strong>建模 π(a|o,l)——而是建模一个<strong>速度场</strong> v<sub>θ</sub>：
+          </p>
+          <p style="margin-top:10px;"><strong>线性插值（论文写法）</strong>：</p>
+          <div class="code-block" style="margin-top:8px;"><code>a<sup>τ,ω</sup><sub>t:t+H</sub> = τ · a<sub>t:t+H</sub> + (1 − τ) · ω,    ω ~ N(0, I),    τ ∈ [0, 1]</code></div>
+          <p style="margin-top:10px;">
+            注意约定：<strong>τ = 1 是干净数据，τ = 0 是纯噪声</strong>（和 diffusion 的常见约定相反）。
+          </p>
+          <p style="margin-top:12px;"><strong>训练目标 = 预测向量场 ω − a</strong>：</p>
+          <div class="code-block" style="margin-top:8px;"><code>L<sub>flow</sub>(θ) = E<sub>D, τ, ω</sub>  ‖ ω − a<sub>t:t+H</sub> − f<sup>a</sup><sub>θ</sub>(a<sup>τ,ω</sup><sub>t:t+H</sub>, o<sub>t</sub>, l) ‖²</code></div>
+          <p style="margin-top:12px;">
+            <code>(ω − a)</code> 是恒定的"目标速度"，与 τ 无关。
+            模型学会预测它后，推理时从纯噪声 ω 出发、沿向量场积分 10 步即可还原 a。
+          </p>
+          <p style="margin-top:10px;">
+            虽然形式是 MSE 不是 CE，但理论上它<strong>仍然是在最大化 imitation learning 的对数似然</strong>——
+            flow matching 的 loss 等价于 log-likelihood 的一个 lower bound（推导见 Lipman 2022）。
+            所以 ① 里的 <code>max log</code> 仍然成立，只是<strong>参数化方式不同</strong>。
+          </p>
+        </div>
+
+        <h4 style="margin-top:24px;">⑦ 论文 Eq. (1) · 真正的 combined loss</h4>
+
+        <div class="callout purple">
+          <div class="callout-label">公式（论文 §IV-B Eq. 1）</div>
+          <p>
+            把 ⑤ 的文本 CE 和 ⑥ 的 flow MSE 用一个超参数 α 合在一起，就是论文里编号的 Eq. (1)：
+          </p>
+          <div class="code-block" style="margin-top:8px;"><code>L(θ) = E<sub>D, τ, ω</sub> [ H(x<sub>1:M</sub>, f<sup>l</sup><sub>θ</sub>(o<sub>t</sub>, l))  +  α · ‖ ω − a<sub>t:t+H</sub> − f<sup>a</sup><sub>θ</sub>(a<sup>τ,ω</sup><sub>t:t+H</sub>, o<sub>t</sub>, l) ‖² ]</code></div>
+          <table class="kv-table" style="margin-top:12px;">
+            <tr><td style="width:200px;"><code>H(x<sub>1:M</sub>, f<sup>l</sup><sub>θ</sub>(...))</code></td><td>所有<strong>文本 token</strong>上的 cross-entropy（包括 FAST 编码的动作 token、subtask、caption、bbox）</td></tr>
+            <tr><td><code>‖ω − a − f<sup>a</sup><sub>θ</sub>(...)‖²</code></td><td>action expert 上的 flow matching MSE</td></tr>
+            <tr><td><code>α</code></td><td>trade-off。<strong>pre-train: α = 0</strong>（关掉 flow，纯 CE 训），<strong>post-train: α 上调</strong>（开启 flow，但仍保留 CE）。</td></tr>
+          </table>
+          <p style="margin-top:12px;">
+            这就是 §4.1 反复出现的"<em>两阶段</em>"的数学来源——<strong>同一个 Eq. (1)，只是 α 从 0 切到非 0</strong>。
+            pre-train 阶段没有 action expert（α=0 让那一项消失），所以可以当作纯 VLM 训；
+            post-train 阶段加上 action expert 权重，从随机初始化开始学 flow matching 那一项。
+          </p>
+        </div>
+
+        <h4 style="margin-top:24px;">⑧ 数据源混合 · §IV-D recipe（不是 Eq. 1）</h4>
+
+        <div class="callout">
+          <div class="callout-label">注意：这个加权和论文里没有给出编号公式，是 §IV-D / 表 I 描述的 co-training 配方</div>
+          <p>
+            上面 Eq. (1) 描述的是"<em>一个样本如何算 loss</em>"。但 π₀.₅ 一个 batch 里同时有 6 种数据源，
+            最终损失是按数据源加权的混合：
+          </p>
+          <div class="code-block" style="margin-top:8px;"><code>L<sub>total</sub> = w<sub>MM</sub>·L<sub>MM</sub> + w<sub>ME</sub>·L<sub>ME</sub> + w<sub>CE</sub>·L<sub>CE</sub> + w<sub>HL</sub>·L<sub>HL</sub> + w<sub>WD</sub>·L<sub>WD</sub> + w<sub>VI</sub>·L<sub>VI</sub></code></div>
+          <table class="kv-table" style="margin-top:12px;">
+            <tr><td style="width:80px;"><strong>L<sub>MM</sub></strong></td><td>mobile manipulation —— 移动机器人示教（主力数据）</td></tr>
+            <tr><td><strong>L<sub>ME</sub></strong></td><td>multi-embodiment —— 多机器人本体（OXE 等公开数据）</td></tr>
+            <tr><td><strong>L<sub>CE</sub></strong></td><td>cross-embodiment —— 跨本体迁移（含其他形态机器人）</td></tr>
+            <tr><td><strong>L<sub>HL</sub></strong></td><td>high-level subtask —— 高层文本子任务标注</td></tr>
+            <tr><td><strong>L<sub>WD</sub></strong></td><td>web data —— 互联网多模态数据（caption、VQA、bbox）</td></tr>
+            <tr><td><strong>L<sub>VI</sub></strong></td><td>verbal intervention —— 实时口头干预（仅 post-train）</td></tr>
+          </table>
+          <p style="margin-top:12px;">
+            每个 <code>L<sub>X</sub></code> 内部就是 ⑦ 的 Eq. (1)。
+            pre-training 阶段 w<sub>VI</sub> = 0（没有口头干预数据），
+            post-training 时 w<sub>CE</sub> 降到 0（不再用跨本体）。
+            具体权重论文没全公开，ablation（§5.3）一个个去掉看哪个最重要——MM 和 ME 影响最大。
+          </p>
+        </div>
+
+        <div class="callout amber" style="margin-top:16px;">
+          <div class="callout-label">把所有数学串成一句话</div>
+          <p>
+            π₀.₅ 想做的事情就一件——<strong>最大化"在示教数据上预测人类动作的对数概率"</strong>（①）。
+            把它拆成"动作 × 子任务"两个分布让<strong>同一个模型既能想又能做</strong>（②），
+            再用一个统一的 transformer 同时吃图像/文本/动作三种 token（③），
+            最后用一个 α 控制的 combined loss 在 pre-train（α=0，纯 CE）和 post-train（α&gt;0，加 flow MSE）之间切换（⑦）。
+            所有架构改动（state 进 prefix、adaRMSNorm、attention mask）都是为了让<strong>这个目标在更多种数据上更稳定地优化</strong>。
+          </p>
+        </div>
+
+        <h3 id="arch-overview-fig" style="margin-top:36px;">3.2 模型总览（Fig 3）</h3>
+
+        <div class="fig-interactive">
+          <div class="fig-block">
+            <div class="hotspot-wrap" data-hotspot-group="fig3">
+              <img src="../assets/figures/pi05/fig-3.png" alt="Figure 3: Model overview">
+              <div class="hotspot" data-id="pre-vlm" style="left:23%; top:55%;"
+                   data-title="Pre-training · 单一 VLM，全 discrete"
+                   data-body="左半部分：所有任务（机器人动作、subtask、caption、bbox）都被表达成离散 token，统一用 next-token cross-entropy 训。机器人动作通过 FAST tokenizer 离散化。这是 π₀.₅ 最关键的训练设计。"></div>
+              <div class="hotspot" data-id="discrete-action" style="left:23%; top:8%;"
+                   data-title="FAST 离散动作 token"
+                   data-body="动作经 FAST [Pertsch et al.] 压缩为离散 token，与文本共享词表。好处：训练目标统一、scaling law 兼容；坏处：推理慢（要 AR 解）。所以推理时不再用它。"></div>
+              <div class="hotspot" data-id="post-vla" style="left:62%; top:50%;"
+                   data-title="Post-training · 加 Action Expert"
+                   data-body="右半部分：在 pre-trained VLA 旁边长出一个 300M 的 action expert（图里浅绿块），从随机初始化开始，专门学连续动作的 flow matching 向量场。"></div>
+              <div class="hotspot" data-id="hl" style="left:54%; top:13%;"
+                   data-title="High-level subtask prediction"
+                   data-body="同一个 transformer 先 AR 输出文本子任务（”pick up the pillow“），再把这个子任务 append 进 prompt 作为 low-level command 喂回去。HL 和 LL 共享权重，仅 prompt 不同。"></div>
+              <div class="hotspot" data-id="continuous" style="left:90%; top:18%;"
+                   data-title="Continuous actions · 推理时用 flow"
+                   data-body="推理时只用 flow matching 头解出连续动作 chunk，速度快（10 步去噪 vs FAST 几百次 AR 解码）。"></div>
+              <div class="hotspot" data-id="noise" style="left:90%; top:60%;"
+                   data-title="Noise → action（10 步去噪）"
+                   data-body="和 π₀ 一样：从 N(0,I) 噪声出发，沿 ω = noise − action 的向量场积分 10 步到达干净动作。dt = -1/10。"></div>
+            </div>
+            <div class="fig-cap">
+              <span class="fig-num">Fig 3 · p.4</span>
+              π₀.₅ is trained in two stages. First, a pre-training stage combines all of the different data sources to produce an initial VLA with discrete tokens. Second, a post-training stage specializes the model for low-level and high-level inferences for mobile manipulation.
+              <span class="fig-cn">π₀.₅ 两阶段训练：左 = 全 discrete 大 pre-train（动作走 FAST 离散化），右 = post-train 时长出 action expert 学 flow matching。同一个模型既出文本（subtask）又出动作。</span>
+            </div>
+          </div>
+          <div class="hotspot-panel"></div>
+        </div>
+
+        <div class="step-walker" data-hotspot-group="fig3">
+          <div class="sw-header">
+            <div class="sw-title">🪜 跟着两阶段走一遍</div>
+            <div class="sw-controls">
+              <button class="sw-btn prev">◀</button>
+              <span class="sw-counter">1 / 5</span>
+              <button class="sw-btn next">▶</button>
+            </div>
+          </div>
+          <div class="sw-progress">
+            <div class="sw-dot"></div><div class="sw-dot"></div><div class="sw-dot"></div><div class="sw-dot"></div><div class="sw-dot"></div>
+          </div>
+          <div class="sw-body">
+            <div class="sw-step active" data-hotspot="pre-vlm">
+              <h4>第 1 步：Pre-train · 一切都是 token</h4>
+              <p>所有数据源（机器人动作、文本子任务、caption、bbox）统一离散化成 token，用 next-token 交叉熵训。
+              这相当于把 LLM 的 pretrain 配方原封不动搬过来，只是把"action"这个新模态塞进词表。</p>
+            </div>
+            <div class="sw-step" data-hotspot="discrete-action">
+              <h4>第 2 步：动作怎么进 token？FAST tokenizer</h4>
+              <p>FAST [Pertsch et al. 2025] 把连续动作 chunk 压缩成 ~50 个离散 token，存在 PaliGemma 词表的最后一段。
+              这样动作和文本完全等价，训练阶段全用 cross-entropy，无需特殊设计。</p>
+            </div>
+            <div class="sw-step" data-hotspot="post-vla">
+              <h4>第 3 步：Post-train · 给推理换"快通道"</h4>
+              <p>问题是 FAST 推理太慢（自回归解几百次）。所以 post-train 时旁边新长一个 300M action expert，从噪声出发<strong>一次性</strong>预测整个连续 chunk 的 flow matching 向量场——10 步去噪就能出 50 步 action。</p>
+            </div>
+            <div class="sw-step" data-hotspot="hl">
+              <h4>第 4 步：HL/LL 同一个模型</h4>
+              <p>chain-of-thought 风格：先 AR 出文本子任务（"pick up the pillow"），把它接到 prompt 末尾，再让<em>同一个 transformer</em> 预测低层动作 chunk。HL 和 LL 共享所有权重，只是 prompt 不同。</p>
+            </div>
+            <div class="sw-step" data-hotspot="continuous">
+              <h4>第 5 步：推理 · 文本走 AR，动作走 flow</h4>
+              <p>推理时：① text token 走标准 AR 解码出 subtask；② 把 subtask 接进 prompt；③ action expert 从噪声做 10 步去噪输出 50 步动作 chunk。两条路径共用前缀的 KV cache。</p>
+            </div>
+          </div>
+        </div>
+
+        <!-- ─── 3.1.1 Pre-training 讲解 ─── -->
+        <h3 id="arch-pretrain" style="margin-top:36px;">3.2.1 Pre-training · 左半边在干嘛</h3>
+
+        <div class="cn-read">
+          <div class="cn-label">先建立直觉 · 一个学生同时学 4 门课</div>
+          <p>
+            Fig 3 左半边描述<strong>预训练阶段</strong>。可以把它理解成：把一个 PaliGemma（SigLIP 视觉 + Gemma 语言）扔进"<strong>多功能补习班</strong>"，
+            每来一条数据就告诉它"<em>这次你扮演什么角色</em>"——通过 task-specific prompt 切换它的身份：
+            一会儿当<strong>动作家</strong>（输出 FAST 离散动作 token），
+            一会儿当<strong>计划员</strong>（输出 subtask 文本），
+            一会儿当<strong>讲解员</strong>（输出 caption），
+            一会儿当<strong>定位员</strong>（输出 bbox）。
+          </p>
+          <p style="margin-top:10px;">
+            四种任务的 loss <strong>完全相同</strong>——都是 next-token cross-entropy。
+            这是 π₀.₅ 最 elegant 的地方：<strong>一个目标函数学完所有东西</strong>，
+            没有 flow MSE、没有特殊 head、没有 action expert——这些都留到 post-training 再说。
+          </p>
+        </div>
+
+        <div class="callout blue" style="margin-top:18px;">
+          <div class="callout-label">输入 → 输出 · 4 条数据流对照（对应图里 4 种颜色）</div>
+          <table class="kv-table" style="margin-top:8px;">
+            <tr>
+              <td style="width:30px;"><strong>#</strong></td>
+              <td style="width:200px;"><strong>task-specific prompt（图右下输入）</strong></td>
+              <td style="width:220px;"><strong>预测目标（图左上输出）</strong></td>
+              <td><strong>数据来源</strong></td>
+            </tr>
+            <tr>
+              <td>①</td>
+              <td>粉色 · <code>"clean the kitchen"</code> 等长任务</td>
+              <td><strong>language subtasks</strong>：<br><code>"put the plate in the sink"</code></td>
+              <td>HL 数据：人坐在示教旁边每 ~2 秒标注一句"现在该 do X"</td>
+            </tr>
+            <tr>
+              <td>②</td>
+              <td>黄色 · <code>"pick up the pillow"</code> 等具体子任务</td>
+              <td><strong>discretized actions</strong>：<br><code>-17 12 34 142 -72 -135</code></td>
+              <td>机器人示教数据（动作经 FAST tokenizer 离散化）</td>
+            </tr>
+            <tr>
+              <td>③</td>
+              <td>紫色 · <code>"caption the image"</code></td>
+              <td><strong>open vocabulary captions</strong>：<br><code>"a dog catches a frisbee"</code></td>
+              <td>web 多模态数据（WD：互联网图文对）</td>
+            </tr>
+            <tr>
+              <td>④</td>
+              <td>灰色 · <code>"localize the gripper"</code></td>
+              <td><strong>bounding boxes</strong>：<br><code>3 35 145 223</code>（坐标 token）</td>
+              <td>web/物体检测数据 + 机器人图里框出夹爪/物体</td>
+            </tr>
+          </table>
+          <p style="margin-top:12px;">
+            注意：<strong>所有 token 共享一个词表</strong>。动作通过 FAST 映射到词表末尾的 1024 个 token；
+            bbox 坐标走 PaliGemma 自带的 1024 个 location token。
+            所以模型看到的永远是<strong>一段纯 token 序列</strong>，只是不同 token 代表的"语义类型"不同。
+          </p>
+        </div>
+
+        <h4 style="margin-top:24px;">一条训练样本的完整流转</h4>
+
+        <div class="step-walker" data-hotspot-group="pretrain">
+          <div class="sw-header">
+            <div class="sw-title">🪜 一条 batch 的 5 步</div>
+            <div class="sw-controls">
+              <button class="sw-btn prev">◀</button>
+              <span class="sw-counter">1 / 5</span>
+              <button class="sw-btn next">▶</button>
+            </div>
+          </div>
+          <div class="sw-progress">
+            <div class="sw-dot"></div><div class="sw-dot"></div><div class="sw-dot"></div><div class="sw-dot"></div><div class="sw-dot"></div>
+          </div>
+          <div class="sw-body">
+            <div class="sw-step active">
+              <h4>第 1 步：抽 batch · 5 个数据池按比例混采</h4>
+              <p>从 5 个数据池（MM 移动机器人 / ME 多机器人本体 / CE 跨本体 / HL 高层标注 / WD web）按固定比例抽样组成一个 batch。
+              每条样本自带"<em>该用哪种 task-specific prompt</em>"的标签——决定它走 ①②③④ 哪一条数据流。
+              （详细比例见 §4.3 Fig 4）</p>
+            </div>
+            <div class="sw-step">
+              <h4>第 2 步：图像走 SigLIP · 编成 patch token</h4>
+              <p>每张图（机器人 3 路相机、或 1 张 web 图）经过 SigLIP（400M）编为 256 个 patch token。
+              纯文本样本这一步跳过。</p>
+            </div>
+            <div class="sw-step">
+              <h4>第 3 步：拼成统一 token 序列</h4>
+              <p>序列 = [图像 patch tokens] + [task-specific prompt 文本 tokens] + [target tokens]。
+              target 可能是动作 token、subtask 文本、caption 文本、bbox 坐标——
+              <strong>对模型来说没区别，全是 token</strong>。</p>
+            </div>
+            <div class="sw-step">
+              <h4>第 4 步：transformer 预测下一个 token</h4>
+              <p>整段序列喂进 PaliGemma 主干（图中央那条大蓝条）。
+              用因果 mask 让模型对每个位置预测下一个 token。
+              <strong>注意 pre-training 阶段没有 action expert</strong>——动作完全靠 FAST 离散化走文本通道。</p>
+            </div>
+            <div class="sw-step">
+              <h4>第 5 步：算 cross-entropy 反传</h4>
+              <p>所有目标 token 共用同一个 cross-entropy loss。
+              不论这条样本是教模型"画 bbox"还是"出动作"，目标函数完全一样——
+              这就是 π₀.₅ 把 web 知识、机器人动作、HL 子任务<strong>真正混在一起 co-train</strong> 的关键。</p>
+            </div>
+          </div>
+        </div>
+
+        <div class="callout amber" style="margin-top:20px;">
+          <div class="callout-label">为什么 pre-training 这样设计 · 三个理由</div>
+          <ul style="margin-top:8px; line-height:1.85; color:var(--text2);">
+            <li><strong>① 统一目标 = 直接吃 LLM scaling law</strong>。所有数据都是 next-token，可以直接套 LLM 的训练 infra（学习率、batch size、初始化都不用改）。
+            如果机器人动作走 flow MSE、文本走 CE，loss 量纲不同、梯度难平衡，混训会很痛。</li>
+            <li><strong>② 让 web 知识真的"流"到机器人侧</strong>。同一组 transformer 权重既学了 <code>"a dog catches a frisbee"</code>，也学了 <code>"pick up the pillow → 动作 token"</code>，
+            两种知识互相影响——模型见到 bedroom 里的枕头时，能调用 web 数据里的 "pillow" 概念去理解它。</li>
+            <li><strong>③ 不需要 action expert 简化训练</strong>。FAST 离散化把动作变成文本，省下了 action expert 的工程复杂度——pre-training 直接复用 PaliGemma 训练代码就行。
+            Action expert 是 post-training 才长出来的"加速器"（解决推理慢的问题，不是训练问题）。</li>
+          </ul>
+        </div>
+
+        <div class="callout" style="margin-top:16px;">
+          <div class="callout-label">和 Fig 3 左半边对照速查</div>
+          <table class="kv-table">
+            <tr>
+              <td style="width:160px;"><strong>图中位置</strong></td><td style="width:240px;"><strong>含义</strong></td><td><strong>对应 step</strong></td>
+            </tr>
+            <tr><td>左下蓝色梯形 + 图像</td><td>SigLIP 编码相机图 / web 图</td><td>step 2</td></tr>
+            <tr><td>左下 4 色 task-specific prompts</td><td>告诉模型这次输出哪种 token</td><td>step 3</td></tr>
+            <tr><td>中间大蓝条 "pre-trained VLM"</td><td>PaliGemma 主干，4 类任务<strong>共享同一组权重</strong></td><td>step 4</td></tr>
+            <tr><td>左上 4 行输出（4 色对应）</td><td>4 种 next-token 监督目标</td><td>step 5</td></tr>
+            <tr><td>颜色规则</td><td>同色的 prompt 和 output 是同一类任务的两端（粉=语言子任务，黄=动作，紫=caption，灰=bbox）</td><td>—</td></tr>
+          </table>
+        </div>
+
+        <!-- ─── 3.1.2 推理流程（从原 4.4 搬过来）─── -->
+        <h3 id="arch-inference" style="margin-top:36px;">3.2.2 推理流程 · 右半边在干嘛</h3>
+
+        <div class="cn-read">
+          <div class="cn-label">先建立直觉 · HL 和 LL 是什么</div>
+          <p>
+            把 π₀.₅ 想成一个"<strong>会自言自语</strong>的厨师"。
+            老板给他一句模糊的命令"<em>把厨房收拾一下</em>"——这是 <strong>high-level prompt（高层指令）</strong>，
+            它太抽象，关节电机解不出来。于是这个厨师先"<strong>在心里说一句</strong>"：
+            "<em>嗯，我现在该把碗放进水槽。</em>" 这句心里话就是 <strong>subtask（子任务）</strong>，
+            也叫 <strong>low-level command（低层命令）</strong>——它具体到一个动作单元，能直接对应到一段连续动作。
+            然后他根据这句心里话，输出 1 秒钟的关节角度序列。
+          </p>
+          <p style="margin-top:10px;">
+            关键是：<strong>"自言自语"和"做动作"是同一个大脑做的</strong>。
+            Fig 3 右半部分画的就是这件事——同一个 transformer，跑两遍，只是 prompt 不同。
+          </p>
+        </div>
+
+        <div class="callout blue" style="margin-top:18px;">
+          <div class="callout-label">三组核心术语 · 一次说清楚</div>
+          <table class="kv-table" style="margin-top:8px;">
+            <tr>
+              <td style="width:170px;"><strong>high-level prompt</strong></td>
+              <td>用户/任务级别的目标。粒度大、时间跨度长（几分钟）。例：<code>"clean the bedroom"</code>、<code>"do the laundry"</code>。这是从外部输入给系统的。</td>
+            </tr>
+            <tr>
+              <td><strong>subtask（HL 输出）</strong></td>
+              <td>模型自己想出来的下一步要做什么。粒度中等（几秒）。例：<code>"pick up the pillow"</code>、<code>"open the drawer"</code>。这是 HL 推理产生的<em>文本</em>。</td>
+            </tr>
+            <tr>
+              <td><strong>low-level command（LL 输入）</strong></td>
+              <td><strong>就是把上一步的 subtask 拷贝过来当作 prompt</strong>。模型再跑一次，这次输出的是连续动作 chunk（不是文本）。</td>
+            </tr>
+            <tr>
+              <td><strong>action chunk（LL 输出）</strong></td>
+              <td>50 步 × 关节维度 的连续浮点数。50Hz 下覆盖 1 秒；执行完再进入下一轮。这是 action expert 通过 flow matching 一次性吐出来的。</td>
+            </tr>
+          </table>
+          <p style="margin-top:12px;">
+            所以 Fig 3 右上的 <code>"pick up the pillow"</code> 框出现两次不是画错——
+            <strong>它先作为 HL 的输出（在虚线左侧的"subtask prediction"位置）</strong>，
+            <strong>然后被 append 到 prompt 末尾，作为 LL 的输入（虚线右侧的"low-level command"位置）</strong>。
+            是同一段文本，扮演了两个角色。
+          </p>
+        </div>
+
+        <h4 style="margin-top:24px;">完整推理循环（一次"清理卧室"任务的真实流程）</h4>
+
+        <div class="step-walker" data-hotspot-group="inference">
+          <div class="sw-header">
+            <div class="sw-title">🪜 一次任务的完整 6 步</div>
+            <div class="sw-controls">
+              <button class="sw-btn prev">◀</button>
+              <span class="sw-counter">1 / 6</span>
+              <button class="sw-btn next">▶</button>
+            </div>
+          </div>
+          <div class="sw-progress">
+            <div class="sw-dot"></div><div class="sw-dot"></div><div class="sw-dot"></div><div class="sw-dot"></div><div class="sw-dot"></div><div class="sw-dot"></div>
+          </div>
+          <div class="sw-body">
+            <div class="sw-step active">
+              <h4>第 1 步：用户给一句长任务</h4>
+              <p>外部输入 <code>"clean the bedroom"</code>。同时机器人给出当前观测：
+              3 路相机图像 + 当前关节状态 q<sub>t</sub>。这一组 (图像 + state + 文本) 就是 prompt 的初始内容。</p>
+              <p>注意此时 prompt 末尾<strong>没有</strong> subtask——因为还没想好。</p>
+            </div>
+            <div class="sw-step">
+              <h4>第 2 步：HL forward · 模型"想"下一步该干啥</h4>
+              <p>把 prompt 喂进 transformer，让它<strong>自回归解码文本</strong>（和 ChatGPT 写句子一模一样）。
+              输出例如 <code>"pick up the pillow"</code>。</p>
+              <p>这一步只用 VLA 主干（图 3 中间那块大蓝条），<strong>不调用 action expert</strong>。
+              输出的是<em>语言 token</em>，不是动作。</p>
+            </div>
+            <div class="sw-step">
+              <h4>第 3 步：把 subtask 拼回 prompt</h4>
+              <p>新 prompt = 图像 + state + <code>"clean the bedroom"</code> + <code>"pick up the pillow"</code>。
+              注意原来的高层指令<strong>仍然在</strong>——只是末尾多了一句更具体的 subtask。</p>
+              <p>这就是 Fig 3 右半部分虚线右侧"<em>low-level command</em>"那一格的来源——它<strong>就是上一步的输出复制粘贴过来</strong>。</p>
+            </div>
+            <div class="sw-step">
+              <h4>第 4 步：LL forward · action expert 介入</h4>
+              <p>同一个 transformer 再跑一遍，这次走<strong>另一条出口</strong>：
+              action expert（图 3 右上那块浅绿色的小 transformer，300M 参数）
+              从纯噪声 ε ∼ N(0, I) 出发，沿 flow matching 向量场积分 <strong>10 步</strong>，
+              最终得到 50 步连续动作 chunk。</p>
+              <p>注意：HL 和 LL 用的是<strong>同一组主干权重</strong>，只是 LL 多调用了 action expert，且 prompt 末尾多了那句 subtask。</p>
+            </div>
+            <div class="sw-step">
+              <h4>第 5 步：执行动作 + 重新观测</h4>
+              <p>把这 50 步动作以 50Hz 发给电机，<strong>大约执行 1 秒</strong>。
+              执行过程中相机和编码器持续更新，但<strong>这一秒不重新调模型</strong>（这就是 chunk 的好处——降低推理频率）。</p>
+              <p>1 秒结束后回到 step 4：刷新观测、prompt 末尾保留同一个 subtask、再跑一次 LL → 又是 1 秒动作。
+              这样 LL 大约 <strong>1 Hz</strong> 调用一次。</p>
+            </div>
+            <div class="sw-step">
+              <h4>第 6 步：定期重做 HL · 换 subtask</h4>
+              <p>如果一直执行 <code>"pick up the pillow"</code>，枕头早就拿到手里了——该去丢到床上了。
+              所以每隔 <strong>~5 秒（论文里大约每 5 个 LL chunk）</strong>重新跑一次 HL，
+              让模型基于<em>新观测</em>（已经握着枕头）重新想 subtask，可能输出 <code>"place pillow on bed"</code>。</p>
+              <p>HL 频率 ≈ 0.2 Hz，LL 频率 ≈ 1 Hz，电机控制 ≈ 50 Hz——<strong>三个频率层层嵌套</strong>。</p>
+            </div>
+          </div>
+        </div>
+
+        <div class="callout amber" style="margin-top:20px;">
+          <div class="callout-label">为什么要两遍 forward · 不能一次出完吗</div>
+          <p>
+            理论上可以让一个端到端模型直接吃 <code>"clean the bedroom"</code> 输出动作。
+            但 π₀.₅ 故意拆成两步，原因有三：
+          </p>
+          <ul style="margin-top:8px; line-height:1.85; color:var(--text2);">
+            <li><strong>① 监督信号更稠密</strong>。中间多了一个文本 subtask，可以从人类标注数据里直接学（HL 数据来源：人坐在示教数据旁边，每 ~2 秒标注一句"现在该 do X"）。
+            如果只有"长指令 → 50 步动作"，长程因果链太弱，模型学不会。</li>
+            <li><strong>② 推理时可以借力 web 知识</strong>。HL 是文本输出，所以预训练时见过的<em>食谱、家务流程、菜单</em>等 web 文本能直接迁移过来。LL 只管"看到这句具体子任务，做相应动作"，不需要理解世界。</li>
+            <li><strong>③ 可解释 + 可干预</strong>。运行时人类能看到模型"心里在想什么"。
+            如果 HL 输出 <code>"throw the pillow out the window"</code>，你能立刻发现并制止——
+            纯端到端模型只会突然抛出诡异动作。</li>
+          </ul>
+        </div>
+
+        <div class="callout purple" style="margin-top:16px;">
+          <div class="callout-label">为什么必须共享权重 · GPT-4 当 HL 不行</div>
+          <p>
+            论文 §V-E / Fig 13 做了一个关键 ablation：<strong>把 HL 换成 GPT-4</strong>（让 GPT-4 看图后输出 subtask，再喂给 π₀.₅ 当 LL）。
+            结果性能<strong>显著低于</strong>共享权重的 π₀.₅。
+          </p>
+          <p style="margin-top:8px;">
+            原因是 GPT-4 虽然语言能力强，但<strong>不知道这个机器人当前能做什么</strong>——
+            它不知道夹爪有多大、最大伸展范围多远、抓不抓得住毛绒玩具。
+            它可能输出 <code>"fold the blanket"</code>，但 π₀.₅ 的 LL 根本没学过 fold。
+          </p>
+          <p style="margin-top:8px;">
+            而<strong>共享权重的 HL 自带"自我能力模型"</strong>——它知道训练数据里出现过哪些 subtask、对应的动作 LL 能不能做。
+            所以它产出的 subtask 永远是 LL 能执行的子集。这就是"<strong>HL 和 LL 必须是同一个脑子</strong>"的本质。
+          </p>
+        </div>
+
+        <div class="callout" style="margin-top:16px;">
+          <div class="callout-label">和 Fig 3 右半边对照速查</div>
+          <table class="kv-table">
+            <tr>
+              <td style="width:160px;"><strong>图中位置</strong></td><td style="width:240px;"><strong>含义</strong></td><td><strong>对应推理步骤</strong></td>
+            </tr>
+            <tr><td>右半 (post-training & inference)</td><td>实际部署时的两次 forward</td><td>step 2 + step 4</td></tr>
+            <tr><td><code>"clean the bedroom"</code></td><td>high-level prompt（外部输入）</td><td>step 1</td></tr>
+            <tr><td>虚线左侧 <code>"pick up the pillow"</code></td><td>HL 输出的 subtask（文本，AR 解码）</td><td>step 2</td></tr>
+            <tr><td>虚线右侧 <code>"pick up the pillow"</code></td><td>同一段文本，作为 LL 的 prompt 后缀</td><td>step 3</td></tr>
+            <tr><td>action expert (300M)</td><td>从噪声去噪 10 步出 50 步动作</td><td>step 4</td></tr>
+            <tr><td>continuous actions</td><td>最终关节指令</td><td>step 5</td></tr>
+          </table>
+        </div>
+
+        <div class="callout blue" style="margin-top:24px;">
+          <div class="callout-label">前置概念 · prefix / suffix 是什么（来自 π₀）</div>
+          <p>
+            后面几节会反复出现"<strong>prefix</strong>"和"<strong>suffix</strong>"这两个词——它们是 π₀ 把序列切成的两块。
+            理解 π₀.₅ 的所有架构改动（state 搬位置、attention 隔离、adaRMS）都建立在这个划分上。
+            源码见 <a href="https://github.com/Physical-Intelligence/openpi/blob/main/src/openpi/models/pi0.py" target="_blank" style="color:var(--accent);">pi0.py</a> 的
+            <code>embed_prefix</code> 和 <code>embed_suffix</code>。
+          </p>
+
+          <table class="kv-table" style="margin-top:12px;">
+            <tr>
+              <td style="width:90px;"></td>
+              <td><strong>π₀ Prefix · 观测 + 语言</strong></td>
+              <td><strong>π₀ Suffix · 状态 + 动作</strong></td>
+            </tr>
+            <tr>
+              <td>来源</td>
+              <td><code>embed_prefix</code></td>
+              <td><code>embed_suffix</code></td>
+            </tr>
+            <tr>
+              <td>内容</td>
+              <td>3 相机 × 256 patch tokens（SigLIP 出）+ ≤48 prompt tokens</td>
+              <td>1 个 state token（<code>state_proj(q_t)</code>）+ 50 个 action tokens + timestep（拼到 action 上）</td>
+            </tr>
+            <tr>
+              <td>注意力</td>
+              <td>内部全双向（图像/语言互看）</td>
+              <td>state 双向看 prefix；action 双向看 prefix+state、内部全双向；prefix/state <strong>看不到</strong> action</td>
+            </tr>
+            <tr>
+              <td>训练目标</td>
+              <td>无 loss（纯条件）</td>
+              <td>action 上的 flow MSE</td>
+            </tr>
+          </table>
+
+          <p style="margin-top:12px;">
+            简单记忆：<strong>prefix = "看到的 + 听到的"，suffix = "要做的"</strong>。
+          </p>
+
+          <p style="margin-top:12px; padding-top:10px; border-top:1px dashed var(--border);">
+            <strong>π₀.₅ 的改动正好作用在这条分界线上：</strong>
+          </p>
+          <ul style="margin-top:6px; line-height:1.85; color:var(--text2);">
+            <li>state 从 suffix 搬到 <strong>prefix 里的 prompt 文本</strong>（§3.3 详述）；</li>
+            <li>timestep 不再拼到 action 上，改走 <strong>adaRMSNorm</strong> 注入每层（§3.4）；</li>
+            <li>所以 π₀.₅ 的 suffix 只剩 50 个 action tokens——更纯粹，prefix 变长（多了 state 文本）。</li>
+          </ul>
+        </div>
+
+        <h3 id="arch-fast" style="margin-top:32px;">3.3 FAST tokenizer：动作怎么进 token</h3>
+
+        <div class="cn-read">
+          <div class="cn-label">背景问题</div>
+          <p>
+            Fig 3 左半部分有一行叫 <code>discretized actions</code>，把 50 步的连续动作 chunk 显示成一串小数字
+            (e.g. <code>-17 12 34 142 -72 -135</code>)——这串就是 <strong>FAST tokens</strong>。
+            π₀.₅ 把它和 prompt 文本、bbox、subtask 拼在同一个序列里训 next-token，
+            是 pre-train 阶段能"统一所有模态"的关键。下面 3 段把这件事说清楚。
+          </p>
+        </div>
+
+        <h4 style="margin-top:18px;">FAST 是什么？</h4>
+        <p style="color:var(--text2); line-height:1.8;">
+          FAST = <strong>Frequency-space Action Sequence Tokenization</strong>，PI 团队 2025 年初的工作
+          (<a href="https://arxiv.org/abs/2501.09747" target="_blank" style="color:var(--accent);">Pertsch et al., RSS 2025</a>，
+          也就是 π₀.₅ 论文里的引用 [64])。它的目的：把<strong>一段连续动作 chunk</strong>压成一串<strong>离散 token</strong>，
+          让动作和文本能共用一套词表。核心 4 步：
+        </p>
+        <ol style="color:var(--text2); line-height:1.85; margin-top:10px;">
+          <li>把 50 步 × <em>d</em> 维的动作 chunk 视作时序信号；</li>
+          <li>做 <strong>DCT（离散余弦变换）</strong>到频域——动作通常很平滑，频域里大部分系数接近 0；</li>
+          <li>按系数大小做<strong>稀疏量化</strong>，只保留显著的几个；</li>
+          <li>把量化后的整数序列再过一遍 <strong>BPE</strong> 压缩 → 输出长度可变（典型 30–60 个）的 token 序列。</li>
+        </ol>
+        <p style="color:var(--text2); line-height:1.8; margin-top:10px;">
+          这些 token 在 openpi 里被映射到 PaliGemma 词表的<strong>最后一段</strong>（跳过末尾 128 个特殊 token），
+          所以解码时 PaliGemma 看到的就是普通 vocab id：
+        </p>
+        <pre data-lang="python" class="language-python"><code class="language-python"># openpi/models/tokenizer.py:139
+def _act_tokens_to_paligemma_tokens(self, tokens):
+    return self._paligemma_tokenizer.vocab_size() - 1 - self._fast_skip_tokens - tokens
+    #     ↑ 比如 PG vocab_size=257152, fast_skip=128, tokens=[0,1,2,...]
+    #     就会被映射成 257023, 257022, 257021... 占用 vocab 末段</code></pre>
+
+        <h4 style="margin-top:22px;">π₀ 里对应什么？</h4>
+        <p style="color:var(--text2); line-height:1.8;">
+          <strong>原版 π₀（2024-10）里没有 FAST</strong>。π₀ 直接用 action expert 做 flow matching，
+          在<em>连续值空间</em>预测向量场——根本不需要把动作离散化。
+          所以 π₀ 训练时 action 走的是和 text 完全分开的两条路：text 走 cross-entropy，action 走 flow MSE。
+        </p>
+        <p style="color:var(--text2); line-height:1.8; margin-top:10px;">
+          后来 PI 出过一个变体叫 <strong>π₀-FAST</strong>（2025-02），它走另一极端：<em>只</em>用 FAST 离散化 + AR 解码，
+          没有 flow head。π₀.₅ 等于把这两条路<strong>合并</strong>了——pre-train 阶段抄 π₀-FAST 的离散路径（统一目标），
+          post-train 阶段抄 π₀ 的 flow 路径（推理快）。
+        </p>
+
+        <table class="kv-table" style="margin-top:14px;">
+          <tr>
+            <td style="width:130px;"><strong>动作怎么训</strong></td>
+            <td><strong>π₀</strong></td>
+            <td><strong>π₀-FAST</strong></td>
+            <td><strong>π₀.₅</strong></td>
+          </tr>
+          <tr>
+            <td>表示</td>
+            <td>连续 R<sup>d</sup></td>
+            <td>FAST 离散 token</td>
+            <td>pre: FAST · post: 连续</td>
+          </tr>
+          <tr>
+            <td>Loss</td>
+            <td>flow MSE</td>
+            <td>cross-entropy</td>
+            <td>CE + α·MSE（Eq.1）</td>
+          </tr>
+          <tr>
+            <td>推理</td>
+            <td>10 步 flow 去噪</td>
+            <td>AR 解码 ~50 token</td>
+            <td>10 步 flow 去噪</td>
+          </tr>
+        </table>
+
+        <h4 style="margin-top:22px;">用 FAST pre-train 的好处（论文怎么说）</h4>
+
+        <details class="en-quote">
+          <summary>展开原文 · §III 与 §IV-B 关于 FAST 的两段</summary>
+          <div class="quote-body">
+            <p>"For actions, prior work has developed effective, compression-based tokenization approaches [64], which we use in this work during pretraining."</p>
+            <div class="quote-cite">— §III, p.4</div>
+            <p style="margin-top:10px;">"as shown in [64], VLA training can be much faster when actions are represented by discrete tokens, particularly when using a tokenization scheme that is efficient for compressing the action chunks (e.g., FAST). Unfortunately, such discrete representations are less well-suited for real-time inference, because they require expensive autoregressive decoding for inference [64]. Therefore, an ideal model design would train on discretized actions but still allow for use of flow matching to produce continuous actions at inference time."</p>
+            <div class="quote-cite">— §IV-B, p.5</div>
+          </div>
+        </details>
+
+        <div class="callout">
+          <div class="callout-label">三个具体好处</div>
+          <ol style="margin-top:8px; line-height:1.85; color:var(--text2);">
+            <li>
+              <strong>训得快</strong>——离散 token + cross-entropy 是 LLM 已经磨合好的 setup：
+              不用解 ODE，不用维护 action expert 的额外参数，FSDP/data loader/loss 都直接复用文本 LLM 的代码。
+              论文 §IV-B 直接引用 FAST 论文："VLA training can be much faster when actions are represented by discrete tokens"。
+            </li>
+            <li>
+              <strong>所有模态共享同一个目标</strong>——subtask 文本、bbox、caption、动作全是 next-token cross-entropy。
+              这意味着<strong>异质数据可以直接 mixed batch 训</strong>，不需要为每个模态写独立 loss/独立 head。
+              这是 π₀.₅ 能把 web 数据 + HL 标注 + 多机器人动作混在一起训的工程基础。
+            </li>
+            <li>
+              <strong>压缩率高 → 长 chunk 也能塞进 context</strong>——
+              FAST 的 DCT+BPE 比 RT-2 / OpenVLA 那种"每维独立分桶"高效得多
+              （后者 50 步 × 18 维 = 900 个 token，FAST 通常 30–60 个）。
+              对 π₀.₅ 这种 50 步 × 18-19 维 chunk 是必要前提。
+            </li>
+          </ol>
+        </div>
+
+        <div class="callout amber">
+          <div class="callout-label">为什么不一直用 FAST？</div>
+          <p>
+            FAST 的死穴是<strong>推理慢</strong>——AR 解码 30-60 个 action token，
+            每个都要走一遍完整 transformer forward。在 50 Hz 控制频率下做不到实时。
+            这就是为什么 π₀.₅ 在 post-train 时<strong>切换</strong>到 flow matching：
+            训练阶段用 FAST 享受统一目标的好处，推理阶段用 flow 享受 10 步并行去噪的好处。
+            <strong>两全其美的代价就是双 loss + attention mask 隔离</strong>（§3.5 Fig 18）。
+          </p>
+        </div>
+
+        <div class="quiz"
+             data-correct="b"
+             data-explain="正确。π₀.₅ 用 FAST 是为 pre-training 的训练效率（§IV-B 引用 FAST：'VLA training can be much faster'），但推理时切回 flow matching 因为 AR 解码 30-60 个 action token 在 50Hz 控制下不实时。"
+             data-explain-wrong="不太对。FAST 比逐维分桶压缩率高、BPE 也很标准，问题出在推理速度上——AR 解码每 token 一次完整 forward。">
+          <div class="q-label">🧠 理解检查</div>
+          <div class="q-text">π₀.₅ 为什么要"训练用 FAST、推理用 flow matching"两套？</div>
+          <div class="q-options">
+            <button class="q-opt" data-k="a">FAST 压缩率不够，需要 flow 补充</button>
+            <button class="q-opt" data-k="b">FAST 训得快但推理慢；flow 推理快但训练时离散数据更易 scale</button>
+            <button class="q-opt" data-k="c">FAST 不支持 BPE，必须额外加 flow head</button>
+            <button class="q-opt" data-k="d">flow matching 不能做 cross-entropy 训练</button>
+          </div>
+          <div class="q-feedback"></div>
+        </div>
+
+        <h3 id="arch-state" style="margin-top:32px;">3.4 State 进 token：从 suffix → prefix</h3>
+
+        <div class="cn-read">
+          <div class="cn-label">为什么搬</div>
+          <p>
+            π₀ 里 state（关节角度等本体感知 18-19 维向量）的处理：用一个 <code>nn.Linear</code> 把它投到 embedding 维，
+            塞进 suffix（也就是 action expert 的输入流里）。π₀.₅ 把它<strong>离散化</strong>成 256 桶（按 [-1,1] 均分），
+            写进 prompt 文本里——具体格式：<code>"Task: {prompt}, State: {bin_idx_list};\nAction: "</code>。
+          </p>
+          <p style="margin-top:8px;">
+            这样改有两个直接好处：
+            <strong>① pre-train 阶段不用维护两条不同的 state 路径</strong>（因为那时还没有 action expert）；
+            <strong>② state 也参与 attention</strong>，可以和 prompt / 视觉 token 双向交互。
+          </p>
+        </div>
+
+        <details class="en-quote">
+          <summary>展开原文 · 架构差异说明 (App. E)</summary>
+          <div class="quote-body">
+            <p>"The π₀.₅ model builds upon π₀ and adopts the PaliGemma VLM as the backbone... but also the robot's proprioceptive state q<sub>t</sub> in tokenized form and tokenized actions, which will be auto-regressively predicted."</p>
+            <div class="quote-cite">— App. E, p.18</div>
+          </div>
+        </details>
+
+        <div class="callout blue">
+          <div class="callout-label">openpi 里的 12 行代码</div>
+          <p>
+            两种 state 处理路径在 <code>tokenizer.py</code> 里一目了然——<code>state is None</code> 走 π₀ 路径，否则走 π₀.₅：
+          </p>
+          <pre data-lang="python" class="language-python" style="margin-top:8px;"><code class="language-python">if state is not None:
+    # This is the Pi05 format, where the state is part of the discrete language input.
+    discretized_state = np.digitize(state, bins=np.linspace(-1, 1, 256 + 1)[:-1]) - 1
+    state_str = " ".join(map(str, discretized_state))
+    full_prompt = f"Task: {cleaned_text}, State: {state_str};\nAction: "
+    tokens = self._tokenizer.encode(full_prompt, add_bos=True)
+else:
+    # This is the Pi0 format, where the state is part of the continuous action expert input.
+    tokens = self._tokenizer.encode(cleaned_text, add_bos=True) + self._tokenizer.encode("\n")</code></pre>
+          <p style="margin-top:8px; color:var(--text2); font-size:13px;">
+            这也直接解释了为什么 <code>max_token_len</code> 要从 48 飙到 200——
+            一个 19 维 state 离散化后就是 19 个数字 token，加上原 prompt 和"<code>Task: ... , State: ... ;\nAction: </code>"模板很容易超 48。
+          </p>
+        </div>
+
+        <h3 id="arch-adarms" style="margin-top:32px;">3.5 时间注入：MLP → adaRMSNorm</h3>
+
+        <div class="cn-read">
+          <div class="cn-label">为什么换</div>
+          <p>
+            flow matching 需要把 timestep τ 注入网络，让模型知道"现在去噪到第几步了"。
+            π₀ 用最朴素的方式：sin-cos 编码 τ → MLP → 和 action token 拼在一起再过一个 MLP。
+            π₀.₅ 换成 <strong>adaRMSNorm</strong>：把 τ 的 embedding 喂给每个 transformer 层的 RMSNorm，
+            让 norm 的 scale/shift 随 τ 变化（就是 DiT 那一套）。
+            好处：<strong>更细粒度（每层都知道 τ）</strong>、<strong>不占 token 长度</strong>、<strong>梯度流更稳</strong>。
+          </p>
+        </div>
+
+        <div class="callout">
+          <div class="callout-label">openpi 里的对照实现</div>
+          <p>看 <code>pi0.py</code> 的 <code>embed_suffix</code>，两条分支非常直观：</p>
+          <pre data-lang="python" class="language-python" style="margin-top:8px;"><code class="language-python">if self.pi05:
+    # time MLP (for adaRMS) — τ 走自己的小 MLP，输出当 adarms_cond
+    time_emb = self.time_mlp_in(time_emb)
+    time_emb = nnx.swish(time_emb)
+    time_emb = self.time_mlp_out(time_emb)
+    time_emb = nnx.swish(time_emb)
+    action_expert_tokens = action_tokens          # action token 不被 τ 污染
+    adarms_cond = time_emb                         # τ 通过 RMSNorm 的 scale/shift 注入
+else:
+    # 老 π₀：τ 直接和 action 拼接走一个 MLP
+    time_tokens = einops.repeat(time_emb, "b emb -> b s emb", s=self.action_horizon)
+    action_time_tokens = jnp.concatenate([action_tokens, time_tokens], axis=-1)
+    action_time_tokens = self.action_time_mlp_in(action_time_tokens)
+    action_time_tokens = nnx.swish(action_time_tokens)
+    action_time_tokens = self.action_time_mlp_out(action_time_tokens)
+    action_expert_tokens = action_time_tokens
+    adarms_cond = None</code></pre>
+        </div>
+
+        <h3 id="arch-attn" style="margin-top:32px;">3.6 Attention 模式（Fig 18）</h3>
+
+        <div class="fig-interactive">
+          <div class="fig-block">
+            <div class="hotspot-wrap" data-hotspot-group="fig18">
+              <img src="../assets/figures/pi05/fig-18.png" alt="Figure 18: π₀.₅ attention mask">
+              <div class="hotspot" data-id="prefix-block" style="left:32%; top:32%;"
+                   data-title="Prefix · 全双向"
+                   data-body="Image / Prompt / State 之间用 full attention，可以彼此看到。这样视觉特征、任务描述、本体状态能充分融合。"></div>
+              <div class="hotspot" data-id="fast-causal" style="left:62%; top:55%;"
+                   data-title="FAST action tokens · 因果"
+                   data-body="预训练阶段动作的离散 token 流：对前缀双向、对自身因果（标准 AR）。这是 next-token 训练目标的来源。"></div>
+              <div class="hotspot" data-id="expert-isolated" style="left:88%; top:78%;"
+                   data-title="Action expert · 单向连接"
+                   data-body="action expert 的 token 能 attend 到前缀（看观测），但 prefix / FAST tokens 都<strong>看不见</strong> expert tokens——避免 expert 的连续表征污染 VLM 主流。"></div>
+              <div class="hotspot" data-id="separation" style="left:78%; top:30%;"
+                   data-title="两套动作表征互不串"
+                   data-body="FAST tokens 和 action expert tokens 都代表“动作”，但训练目标不同（一个 cross-entropy，一个 flow MSE）。论文用 attention mask 强行隔开，避免训练时 leakage。"></div>
+            </div>
+            <div class="fig-cap">
+              <span class="fig-num">Fig 18 · p.18</span>
+              Example of the π₀.₅ attention masking pattern.
+              <span class="fig-cn">前缀（图像/prompt/state）内部全双向；FAST 动作 token 对前缀双向、对自身因果；action expert tokens 单向 attend 前缀但不被任何人 attend——保证两条动作路径不互相污染。</span>
+            </div>
+          </div>
+          <div class="hotspot-panel"></div>
+        </div>
+
+        <div class="quiz"
+             data-correct="b"
+             data-explain="正确。Fig 18 + 论文 §IV-A 解释：FAST tokens 走标准 AR (cross-entropy) 训练，action expert tokens 走 flow matching (MSE) 训练，两条路径用 attention mask 隔开，避免训练时一边的梯度/特征泄露到另一边。"
+             data-explain-wrong="不对——KV cache 的复用是顺带的好处，不是核心动机；FAST 和 expert 都没有数值不稳定问题。">
+          <div class="q-label">🧠 理解检查</div>
+          <div class="q-text">为什么 π₀.₅ 要用复杂的 attention mask 把 FAST tokens 和 action expert tokens 隔开？</div>
+          <div class="q-options">
+            <button class="q-opt" data-k="a">为了让 KV cache 复用更高效</button>
+            <button class="q-opt" data-k="b">两条路径用不同 loss（CE vs MSE）训练，要避免特征互相污染</button>
+            <button class="q-opt" data-k="c">FAST 解码会数值溢出，必须隔离</button>
+            <button class="q-opt" data-k="d">action expert 是 LoRA 加的，不能改 prefix 流</button>
+          </div>
+          <div class="q-feedback"></div>
+        </div>
+
+        <!-- ═════════════════════════════════════════════════ -->
+        <h2 id="train-stages">§4 训练 Recipe</h2>
+
+        <div class="cn-read">
+          <div class="cn-label">这一节解决什么</div>
+          <p>
+            §3 把架构差异讲完。但 π₀.₅ 真正的 contribution 不在架构——而在<strong>训练 recipe</strong>。
+            上一段里反复出现的"两阶段"到底分别在干什么？loss 长什么样？数据怎么混？
+            这一节回答这些。
+          </p>
+        </div>
+
+        <h3 id="train-loss" style="margin-top:24px;">4.1 两阶段 + Combined loss（Eq.1）</h3>
+
+        <div class="callout">
+          <div class="callout-label">公式 · 论文 Eq.(1)</div>
+          <div class="code-block" style="margin-top:8px;"><code>L = E[ H(x_{1:M}, f_θ^ℓ(o_t, ℓ))             ← 文本 token 的交叉熵（含 FAST 编码的动作 token）
+       + α · ‖ω − a_{t:t+H} − f_θ^{τ,ω}(a_t^{τ,ω}, o_t, ℓ)‖² ]   ← action expert 的 flow MSE</code></div>
+          <p style="margin-top:8px;">
+            <strong>Pre-training</strong>：α = 0，纯 next-token；保留语言能力 + 学动作的离散表征。
+          </p>
+          <p>
+            <strong>Post-training</strong>：α = 10，flow MSE 主导；继续用 next-token 让模型不忘语言；只在 MM + ME 这两个最贴近评测分布的数据上训。论文里用了 <strong>280k pre-train 步 + 80k post-train 步</strong>。
+          </p>
+        </div>
+
+        <div class="callout amber">
+          <div class="callout-label">为什么是"先 discrete 再 flow"而不是反过来？</div>
+          <p>
+            两个原因，论文里都有写：① <strong>Discrete + FAST 训得快</strong>——大规模异质数据不需要 action expert 这套额外参数和稳定性问题；
+            ② <strong>Flow 是为推理速度才加的</strong>——离散 AR 解码一个 50 步 chunk 太慢（几百次 forward），flow matching 10 步就解完。所以 <em>用 discrete 学知识，用 flow 求速度</em>。
+          </p>
+        </div>
+
+        <h3 id="train-data" style="margin-top:32px;">4.2 数据混合（Fig 4）</h3>
+
+        <div class="fig-interactive">
+          <div class="fig-block">
+            <div class="hotspot-wrap" data-hotspot-group="fig4">
+              <img src="../assets/figures/pi05/fig-4.png" alt="Figure 4: pre/post-train data examples">
+              <div class="hotspot" data-id="ce" style="left:8%; top:50%;"
+                   data-title="CE · Cross-Embodiment Lab Data"
+                   data-body="实验室里的跨本体数据：单臂、双臂、不同夹爪。任务广（fold laundry / sort drawer / pack bottles）。pre-train 用、post-train 不用。"></div>
+              <div class="hotspot" data-id="mm" style="left:30%; top:30%;"
+                   data-title="MM · Mobile Manipulator (~400h)"
+                   data-body="目标本体的数据：4 摄像头 + 6 DoF×2 臂 + 2D 底盘。约 100 个家里采的家务任务。这是分布最贴近评测的，但只占总数据 ~2.4%。"></div>
+              <div class="hotspot" data-id="me" style="left:30%; top:80%;"
+                   data-title="ME · Multi-Environment static (非移动)"
+                   data-body="非移动的'在家里'机器人——固定在桌台或挂架上的单/双臂机器人，能进更多家、采更多环境。论文说这是 OOD 物体类别泛化的关键来源。'></div>
+              <div class="hotspot" data-id="hl-data" style="left:55%; top:30%;"
+                   data-title="HL · 高层 subtask 标注"
+                   data-body="把'clean the bedroom'分解成'close the closet → put away pillow'这样的子任务序列。论文亲自人工标注了 MM/ME/CE 数据的子任务。同时还有 bbox 训练（让模型先框出 gripper 要去的物体）。'></div>
+              <div class="hotspot" data-id="wd" style="left:55%; top:75%;"
+                   data-title="WD · 多模态网络数据"
+                   data-body="CapsFusion / COCO captions / Cambrian-7M / PixMo / VQAv2 + 自采的室内场景 bbox 标注。让模型保留 VLM 通用知识，对 OOD 物体识别尤其关键。"></div>
+              <div class="hotspot" data-id="vi" style="left:88%; top:50%;"
+                   data-title="VI · Verbal Instruction（仅 post-train）"
+                   data-body="人类专家在远程操作机器人时，<strong>边操作边用语言指挥</strong>：每一步发'put cup in sink'这种命令。变成 (语言, 动作) demonstration 对，让模型学 HL→LL 映射。占 post-train data 约 11%。"></div>
+            </div>
+            <div class="fig-cap">
+              <span class="fig-num">Fig 4 · p.6</span>
+              Examples from pre-training and post-training tasks. Pre-training uses MM + ME + CE + HL + WD; post-training uses MM + ME + HL + WD + VI (drops CE).
+              <span class="fig-cn">Pre-train 5 种数据源、Post-train 把 CE 去掉换成 VI（口头指令）。整个训练里目标本体数据（MM）只占 2.4%，绝大多数知识是从其他来源迁移过来的。</span>
+            </div>
+          </div>
+          <div class="hotspot-panel"></div>
+        </div>
+
+        <div class="callout blue">
+          <div class="callout-label">类比 · 像"实习生写代码"</div>
+          <p>
+            实习生（MM 数据）只在公司项目（目标本体）上写过 400 行代码。
+            但他读过的 GitHub 仓库（CE/ME，其他机器人）、Stack Overflow（WD，web）、
+            高级工程师的 code review（HL，子任务标注）、结对编程实况（VI，口头指令）加起来
+            是 <strong>40000 行的量级</strong>。Pi 0.5 的实验证明：
+            <strong>对 open-world 泛化能力，"读过的别人的代码量"比"自己的代码量"重要得多</strong>。
+          </p>
+        </div>
+
+        <!-- ═════════════════════════════════════════════════ -->
+        <h2 id="exp-real">§5 实验</h2>
+
+        <div class="cn-read">
+          <div class="cn-label">这一节解决什么</div>
+          <p>
+            π₀.₅ 的实验只回答一个问题——<strong>它真的能在没见过的家里干活吗？</strong>
+            然后用 ablation 拆出"哪些训练原料是必须的"。重点关注 5 张图。
+          </p>
+        </div>
+
+        <h3 id="exp-real" style="margin-top:24px;">5.1 真实新家泛化（Fig 7）</h3>
+
+        <div class="fig-block">
+          <img src="../assets/figures/pi05/fig-7.png" alt="Figure 7: evaluation in real homes" style="max-width:100%; border:1px solid var(--border); border-radius:4px;">
+          <div class="fig-cap">
+            <span class="fig-num">Fig 7 · p.7</span>
+            Evaluation in three kitchens and three bedrooms in real homes that were not seen during training.
+            <span class="fig-cn">在 3 个真厨房 + 3 个真卧室里测 'items in drawer' / 'laundry basket' / 'dishes in sink' 三个任务，每任务 10 trial 平均。三个真家性能（深绿/中绿/浅绿）和 mock 环境性能（黄）大致相当——证明 mock 评测可以代替真家评测。</span>
+          </div>
+        </div>
+
+        <h3 id="exp-scale" style="margin-top:32px;">5.2 场景数 scaling（Fig 8）</h3>
+
+        <div class="fig-block">
+          <img src="../assets/figures/pi05/fig-8.png" alt="Figure 8: locations scaling" style="max-width:100%; border:1px solid var(--border); border-radius:4px;">
+          <div class="fig-cap">
+            <span class="fig-num">Fig 8 · p.9</span>
+            Evaluating performance with different numbers of locations.
+            <span class="fig-cn">黄线：MM 训练家数从 0 → 104 逐步增加，平均任务进度从 ~15% 涨到 ~85%。深绿柱：直接用测试家自己的数据训（in-domain）也只达 ~85%——证明"用 100 个其他家"≈"用测试家自己"，这是 open-world 泛化的关键证据。中绿/浅黄柱：去掉 pre-training 后性能崩溃，说明 co-training recipe 不可或缺。</span>
+          </div>
+        </div>
+
+        <div class="cn-read">
+          <div class="cn-label">关键发现</div>
+          <p>
+            把 MM 数据里的<strong>家数从 3 → 12 → 22 → 53 → 82 → 104</strong>逐步增加，性能从 ~30% 涨到 ~80%。
+            而<strong>对照组（直接用测试家的数据训）</strong>的性能也是 ~80%——
+            说明<strong>"用 100 个其他家的数据"和"用测试家自己的数据"效果相当</strong>。这是 open-world 泛化的关键证据。
+          </p>
+        </div>
+
+        <h3 id="exp-ablate" style="margin-top:32px;">5.3 数据消融（Fig 10/11）</h3>
+
+        <div class="fig-interactive">
+          <div class="fig-block">
+            <div class="hotspot-wrap" data-hotspot-group="fig10">
+              <img src="../assets/figures/pi05/fig-10.png" alt="Figure 10: training recipe ablations">
+              <div class="hotspot" data-id="full" style="left:14%; top:30%;"
+                   data-title="Full π₀.₅ ~75%"
+                   data-body="完整 recipe，作为 baseline。"></div>
+              <div class="hotspot" data-id="nowd" style="left:30%; top:38%;"
+                   data-title="no WD ≈ Full"
+                   data-body="去掉 web data：在 mock home 任务上几乎不掉（p=0.385）。但 Fig 11 显示对 OOD 物体语言跟随影响很大——WD 的作用是"识别没见过的物体"。"></div>
+              <div class="hotspot" data-id="noce" style="left:48%; top:55%;"
+                   data-title="no CE 大幅下降"
+                   data-body="去掉实验室跨本体：~50%，p<0.001。CE 给的是"通用操作技能"。"></div>
+              <div class="hotspot" data-id="nome" style="left:65%; top:55%;"
+                   data-title="no ME 大幅下降"
+                   data-body="去掉非移动多环境：~55%。ME 给的是"在家里这种环境的操作经验"。"></div>
+              <div class="hotspot" data-id="noboth" style="left:84%; top:62%;"
+                   data-title="no CE or ME 几近崩溃"
+                   data-body="同时去 CE 和 ME：~40%。说明跨本体迁移是 π₀.₅ 泛化的支柱。"></div>
+            </div>
+            <div class="fig-cap">
+              <span class="fig-num">Fig 10 · p.9</span>
+              Training recipe ablations on mock homes (4 tasks × 10 trials).
+              <span class="fig-cn">移除单一数据源对 mock home 任务的影响。CE / ME 是泛化支柱，WD 在 mock 上不显著但对 OOD 物体识别关键（见 Fig 11）。</span>
+            </div>
+          </div>
+          <div class="hotspot-panel"></div>
+        </div>
+
+        <div class="fig-block" style="margin-top:18px;">
+          <img src="../assets/figures/pi05/fig-11.png" alt="Figure 11: training recipe ablations - language following" style="max-width:100%; border:1px solid var(--border); border-radius:4px;">
+          <div class="fig-cap">
+            <span class="fig-num">Fig 11 · p.10</span>
+            Training recipe ablations, language following.
+            <span class="fig-cn">同样的消融换到"语言跟随"指标上：In-Dist（见过类别）所有变体都还行；OOD（没见过类别）一旦去掉 WD 就掉一大截——这正是 web data 的核心价值，让模型认识训练集里没出现过的物体。</span>
+          </div>
+        </div>
+
+        <h3 id="exp-vs-pi0" style="margin-top:32px;">5.4 vs π₀ / π₀-FAST+Flow（Fig 12）</h3>
+
+        <div class="fig-block" style="display:flex; gap:18px; align-items:flex-start; flex-wrap:wrap;">
+          <img src="../assets/figures/pi05/fig-12.png" alt="Figure 12: comparing π₀.₅ with other models" style="max-width:380px; border:1px solid var(--border); border-radius:4px;">
+          <div style="flex:1; min-width:260px;">
+            <div class="callout">
+              <div class="callout-label">三个对比对象</div>
+              <table class="kv-table" style="margin-top:0;">
+                <tr><td><code>π₀ 80k</code></td><td>原版 π₀，相同步数</td></tr>
+                <tr><td><code>π₀ 300k</code></td><td>原版 π₀，多训 4× 给它机会</td></tr>
+                <tr><td><code>π₀-FAST+Flow</code></td><td>用 π₀.₅ 的<strong>架构</strong>但<strong>不用</strong> HL/WD 数据</td></tr>
+                <tr><td><code>π₀.₅ (full)</code></td><td>本文方案</td></tr>
+              </table>
+            </div>
+            <p style="margin-top:14px; color:var(--text2); line-height:1.7;">
+              结论：架构升级（FAST+Flow）<strong>带来约 50% 进步</strong>；
+              加 HL+WD 数据再带来 <strong>另外 30%</strong>。
+              <strong>架构差不多重要 ≈ 数据 recipe</strong>。
+            </p>
+          </div>
+        </div>
+
+        <h3 id="exp-hl" style="margin-top:32px;">5.5 高层推理 ablation（Fig 13）</h3>
+
+        <div class="fig-block" style="display:flex; gap:18px; align-items:flex-start; flex-wrap:wrap;">
+          <img src="../assets/figures/pi05/fig-13.png" alt="Figure 13: HL inference ablations" style="max-width:380px; border:1px solid var(--border); border-radius:4px;">
+          <div style="flex:1; min-width:260px;">
+            <div class="callout amber">
+              <div class="callout-label">最反直觉的发现</div>
+              <p>
+                <strong>implicit HL</strong>（训练时用 HL 数据，但推理时<em>不</em>显式调用 HL）的成绩仅次于 full π₀.₅。
+                这说明 HL 数据的最大价值是<strong>训练时的 representation shaping</strong>——
+                让模型在 backbone 里就学到了任务分解的语义先验，而不是 chain-of-thought 的解码格式。
+              </p>
+            </div>
+            <p style="margin-top:14px; color:var(--text2); line-height:1.7;">
+              其他对比：<code>no VI</code>（去掉口头指令） 和 <code>no WD</code>（去掉 web）显著掉点；
+              <code>GPT-4 HL</code>（用 GPT-4 当高层规划）反而比 implicit HL 还差——
+              因为 GPT-4 不知道这台机器人能做什么。<code>human HL</code>（人当高层）是上限。
+            </p>
+          </div>
+        </div>
+
+        <div class="quiz"
+             data-correct="c"
+             data-explain="正确。Fig 13 显示 implicit HL（训练用 HL 数据但推理时不显式调用）几乎和 full π₀.₅ 持平，远好于 GPT-4 HL。这说明 HL 数据的主要价值是训练时塑造表示，而不是显式 chain-of-thought 推理。"
+             data-explain-wrong="不太对——论文恰好做了相反的实验：implicit HL（不显式 HL 推理）几乎和 full 持平。GPT-4 HL 反而比 implicit HL 差。">
+          <div class="q-label">🧠 理解检查</div>
+          <div class="q-text">关于 π₀.₅ 的高层推理（HL inference），最 reactant 的发现是什么？</div>
+          <div class="q-options">
+            <button class="q-opt" data-k="a">必须显式 chain-of-thought 推理才有效</button>
+            <button class="q-opt" data-k="b">用 GPT-4 当 HL 比训练共享权重的 HL 更准</button>
+            <button class="q-opt" data-k="c">HL 数据主要在训练时塑造 representation；推理时不显式调用 HL 也接近最佳</button>
+            <button class="q-opt" data-k="d">HL 数据只在训练前 10% 步有用</button>
+          </div>
+          <div class="q-feedback"></div>
+        </div>
+
+        <!-- ═════════════════════════════════════════════════ -->
+        <h2 id="openpi">§6 openpi 公开了什么 / 没公开什么</h2>
+
+        <div class="cn-read">
+          <div class="cn-label">这一节解决什么</div>
+          <p>
+            前面 5 节是论文层面。这节切到工程层面——
+            <a href="https://github.com/Physical-Intelligence/openpi" target="_blank" style="color:var(--accent);">github.com/Physical-Intelligence/openpi</a>
+            是 PI 团队公开的开源仓，里面同时含 π₀ / π₀-FAST / π₀.₅。
+            如果你打算<strong>复现</strong>或<strong>魔改</strong> π₀.₅，先得知道哪些是开源的、哪些只能从论文里"看个大概"。
+          </p>
+        </div>
+
+        <div class="callout">
+          <div class="callout-label">openpi README 原话</div>
+          <p style="font-style:italic; color:var(--text2);">
+            "Note that, in this repository, we currently only support the <strong>flow matching head</strong> for both π₀.₅ training and inference."
+          </p>
+          <p style="margin-top:8px; font-size:13px; color:var(--text3);">
+            这一句话基本框死了开源边界——只给 post-train 阶段。下面分项展开。
+          </p>
+        </div>
+
+        <h3 style="margin-top:24px;">6.1 ✅ 公开的部分</h3>
+
+        <table class="kv-table">
+          <tr>
+            <td style="width:34%;"><strong>组件</strong></td>
+            <td><strong>位置 / 说明</strong></td>
+          </tr>
+          <tr>
+            <td>π₀.₅ 模型架构（pi05=True）</td>
+            <td><code>src/openpi/models/pi0_config.py</code> · <code>pi0.py</code>。state 进 prompt + adaRMSNorm 都已实装。</td>
+          </tr>
+          <tr>
+            <td>State 离散化 tokenizer</td>
+            <td><code>models/tokenizer.py · PaligemmaTokenizer.tokenize(state=...)</code></td>
+          </tr>
+          <tr>
+            <td>FAST tokenizer（pre-train 用过的）</td>
+            <td><code>models/tokenizer.py · FASTTokenizer</code>。但 README 明说当前 repo 只支持 flow matching head 的训练，所以这个 tokenizer 实际<strong>不在 π₀.₅ 训练循环里</strong>。</td>
+          </tr>
+          <tr>
+            <td>flow matching loss / sampling</td>
+            <td><code>pi0.py · compute_loss / sample_actions</code>。10 步去噪、Beta(1.5,1) τ 采样、KV cache 复用都齐了。</td>
+          </tr>
+          <tr>
+            <td><code>pi05_base</code> 预训练 checkpoint</td>
+            <td><code>gs://openpi-assets/checkpoints/pi05_base</code>。<strong>关键：这是已经做完两阶段大 pre-train 后的权重</strong>，你只需要 fine-tune。</td>
+          </tr>
+          <tr>
+            <td>fine-tune 配置</td>
+            <td><code>training/config.py</code> 里的 <code>pi05_aloha</code> / <code>pi05_droid</code> / <code>pi05_libero</code> / <code>pi05_so101</code> / <code>pi05_aloha_pen_uncap</code> / <code>pi05_full_droid_finetune</code> 等。</td>
+          </tr>
+          <tr>
+            <td>π₀.₅-DROID checkpoint（with knowledge insulation）</td>
+            <td><code>gs://openpi-assets/checkpoints/pi05_droid</code>。<strong>和 π₀.₅ 同期发布的"knowledge insulation"工作</strong>——freeze backbone 训 action expert，避免遗忘。</td>
+          </tr>
+          <tr>
+            <td>PyTorch 版（2025-09 加的）</td>
+            <td><code>src/openpi/models_pytorch/pi0_pytorch.py</code>。除了模型还有 <code>scripts/train_pytorch.py</code>。</td>
+          </tr>
+        </table>
+
+        <h3 style="margin-top:24px;">6.2 ❌ 没公开的部分</h3>
+
+        <table class="kv-table">
+          <tr>
+            <td style="width:34%;"><strong>组件</strong></td>
+            <td><strong>论文出现位置 / 为什么不开</strong></td>
+          </tr>
+          <tr>
+            <td><strong>大规模 discrete pre-train pipeline</strong></td>
+            <td>论文 §IV-C：280k step、α=0、用 FAST tokens 训。openpi 直接<strong>给你 pre-trained 权重 (<code>pi05_base</code>)</strong>，但训练脚本里没有"先 α=0 再 α=10 切换"这套流程。想自己 from-scratch pretrain 要自己写。</td>
+          </tr>
+          <tr>
+            <td><strong>HL（high-level subtask）推理</strong></td>
+            <td>论文 §IV + Fig 13。openpi <code>policy.py</code> 只跑 action expert flow。chain-of-thought 风格的"先文本再动作"这套推理逻辑 <strong>没在 inference 路径里</strong>。</td>
+          </tr>
+          <tr>
+            <td><strong>Mobile manipulation 数据 (MM, ~400h)</strong></td>
+            <td>论文 §IV-C。<strong>没开源</strong>。这是 PI 公司自己采的私有数据。</td>
+          </tr>
+          <tr>
+            <td><strong>HL 子任务标注</strong></td>
+            <td>论文 §IV-C。<strong>没开源</strong>。"clean the bedroom → pick up pillow → adjust blanket"这种人工分解，全都是 PI 内部标注。</td>
+          </tr>
+          <tr>
+            <td><strong>Verbal Instruction (VI) 数据</strong></td>
+            <td>论文 §IV-D。<strong>没开源</strong>。需要专家边遥操作边喊指令的特殊采集流程。</td>
+          </tr>
+          <tr>
+            <td><strong>Web data co-training pipeline (WD)</strong></td>
+            <td>论文 §IV-C 列了 CapsFusion / COCO / Cambrian-7M / PixMo / VQAv2 + 自采室内 bbox。<strong>开源 dataset 都能拿到，但 PI 的混合比例、sampling 权重、prompt 模板都没给</strong>。</td>
+          </tr>
+          <tr>
+            <td><strong>非移动 ME 数据 + 实验室 CE 数据</strong></td>
+            <td>论文 §IV-C。这两块<strong>大部分没开源</strong>，只有 <a href="https://robotics-transformer-x.github.io/" target="_blank" style="color:var(--accent);">Open X-Embodiment</a> 里 PI 贡献的部分能拿到。</td>
+          </tr>
+          <tr>
+            <td><strong>Mobile manipulator 硬件平台 + 控制栈</strong></td>
+            <td>论文 §IV-E。<strong>是 PI 自研的</strong>。所以即使你拿到所有数据，也没硬件去复现真家评测。</td>
+          </tr>
+        </table>
+
+        <div class="callout red">
+          <div class="callout-label">实操建议</div>
+          <p>
+            如果你的目标是<strong>用 π₀.₅ 在自己的机器人上做 fine-tune</strong> —— openpi 完全够用，
+            <code>pi05_base</code> + 自己的 LeRobot 格式数据集 + <code>pi05_so101</code> 风格 config 能跑通。
+          </p>
+          <p style="margin-top:8px;">
+            但如果你的目标是<strong>复现 paper 里"在新家做家务"那个数字</strong>——你做不到。
+            因为缺 ① 移动机器人硬件 ② MM/VI 私有数据 ③ HL 标注 ④ 完整 pre-train pipeline。
+            想往那个方向探索的话，更现实的路径是基于 <code>pi05_base</code> + 自己的私有数据做<strong>类比性</strong>的 OOD 评测。
+          </p>
+        </div>
+
+        <div class="callout blue">
+          <div class="callout-label">配套工作 · Knowledge Insulation</div>
+          <p>
+            <code>pi05_droid</code> 这个 checkpoint 实际是 PI 同期发布的另一篇工作
+            <a href="https://www.physicalintelligence.company/research/knowledge_insulation" target="_blank" style="color:var(--accent);">Knowledge Insulation</a>
+            的产物。核心思路：fine-tune 时<strong>冻住 backbone</strong>只训 action expert，
+            避免大 pretrain 学到的语义知识被小数据集冲掉。
+            如果你 fine-tune 时担心"过拟合到新任务、丢了泛化"，可以参考。
+          </p>
+        </div>
+
+        <!-- ═════════════════════════════════════════════════ -->
+        <h2 id="takeaway">§7 收获与局限</h2>
+
+        <div class="callout">
+          <div class="callout-label">三句话总结</div>
+          <ol style="margin-top:8px; line-height:1.85; color:var(--text2);">
+            <li>
+              <strong>架构改动有限</strong>（state 进 prompt + adaRMSNorm），
+              真正的 lift 来自<strong>训练 recipe</strong>——异质 co-training 把 web/CE/ME/HL/VI 全混进同一个 next-token loss。
+            </li>
+            <li>
+              <strong>同一模型既出 subtask 又出 action</strong>是 π₀.₅ 的关键设计——但 ablation 显示，
+              HL 数据的最大价值是训练时<em>塑造</em>表示（implicit HL 几乎和 full 持平），
+              而不是推理时显式 chain-of-thought。
+            </li>
+            <li>
+              <strong>openpi 只开放后半部分</strong>——你能 fine-tune <code>pi05_base</code>，但复现不了那张"clean a real kitchen"的图。
+              想真正在 open-world 做实验，还是要自己采数据 / 借 PI 的 SO101 风格平台。
+            </li>
+          </ol>
+        </div>
+
+        <div class="callout amber">
+          <div class="callout-label">论文自己说的局限（§VI）</div>
+          <ul style="margin-top:8px; line-height:1.8; color:var(--text2);">
+            <li>不熟悉的把手 / 难物理操作的柜子还是会卡。</li>
+            <li>部分可观测场景（机械臂挡住要擦的污点）会失败。</li>
+            <li>HL 推理偶尔被分心（同一抽屉反复开关）。</li>
+            <li>Prompt 复杂度受限于训练分布——很难直接给"按 X 顺序做 Y 然后再 Z"这种长指令。</li>
+            <li>没有持久 memory / 多房间空间记忆。</li>
+          </ul>
+        </div>
+
+        <p style="margin-top:32px; color:var(--text3); font-size:13px; text-align:center; border-top:1px solid var(--border); padding-top:24px;">
+          ↑ 本笔记基于 arXiv:2504.16054v1（2025-04-22）+ openpi commit (主分支 2025-09 PyTorch 支持后)。
+          配套阅读：<a href="pi0-vla-flow-model.html" style="color:var(--accent);">π₀ 论文笔记</a>、
+          <a href="pi0-code-reading.html" style="color:var(--accent);">π₀/π₀.5 代码阅读</a>。
+        </p>
+
+      </main>
+    </div>
+  </div>
+</body>
+</html>
