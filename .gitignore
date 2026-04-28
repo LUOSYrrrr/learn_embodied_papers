@@ -7,3 +7,4 @@ __pycache__/
 # 原版 PDF 体积大，默认不入库；如要入库改用 Git LFS 或删掉下行
 pdfs/**/*.pdf
 CLAUDE.md
+.gstack/

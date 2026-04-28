@@ -1,0 +1,764 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>OpenVLA · An Open-Source Vision-Language-Action Model</title>
+  <link rel="stylesheet" href="../assets/css/style.css">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16/dist/katex.min.css">
+  <script src="../assets/js/theme.js"></script>
+  <script src="../assets/js/interactive.js" defer></script>
+  <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16/dist/katex.min.js"></script>
+  <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16/dist/contrib/auto-render.min.js"
+          onload="renderMathInElement(document.body,{delimiters:[{left:'$$',right:'$$',display:true},{left:'$',right:'$',display:false}]})"></script>
+</head>
+<body>
+  <nav class="nav">
+    <a class="nav-logo" href="../index.html">Paper Notes</a>
+    <div class="nav-links">
+      <a href="../index.html">← 返回首页</a>
+      <a href="../pdfs/vla/Kim 等 - 2024 - OpenVLA An Open-Source Vision-Language-Action Model.pdf" target="_blank">📄 PDF</a>
+      <a href="https://openvla.github.io" target="_blank">🔗 官网</a>
+    </div>
+  </nav>
+
+  <div class="page">
+    <div class="docs-layout">
+
+      <!-- ─── 左：章节树 ─── -->
+      <aside class="docs-sidebar-left">
+        <div class="ds-title">OpenVLA · 开源 VLA</div>
+
+        <a class="ds-leaf-top" href="#tldr">§1 一句话总结</a>
+
+        <details open>
+          <summary>§2 为什么需要 OpenVLA</summary>
+          <a class="ds-leaf" href="#why-open">2.1 开源的必要性</a>
+          <a class="ds-leaf" href="#why-position">2.2 与 RT-2-X / Octo 的定位</a>
+        </details>
+
+        <details open>
+          <summary>§3 模型架构</summary>
+          <a class="ds-leaf" href="#arch-vlm">3.1 VLM 骨干：Prismatic-7B</a>
+          <a class="ds-leaf" href="#arch-vision">3.2 双编码器：SigLIP + DINOv2</a>
+          <a class="ds-leaf" href="#arch-action">3.3 动作离散化：256-bin Tokenization</a>
+          <a class="ds-leaf" href="#arch-pipeline">3.4 端到端推理流程</a>
+        </details>
+
+        <details>
+          <summary>§4 训练</summary>
+          <a class="ds-leaf" href="#train-data">4.1 数据：970k 轨迹 · Open X</a>
+          <a class="ds-leaf" href="#train-recipe">4.2 训练配方</a>
+          <a class="ds-leaf" href="#train-decisions">4.3 关键设计决定</a>
+        </details>
+
+        <details>
+          <summary>§5 实验</summary>
+          <a class="ds-leaf" href="#exp-bridge">5.1 BridgeData V2 · WidowX</a>
+          <a class="ds-leaf" href="#exp-google">5.2 Google Robot</a>
+          <a class="ds-leaf" href="#exp-finetune">5.3 Fine-tuning 到新任务</a>
+        </details>
+
+        <details>
+          <summary>§6 效率</summary>
+          <a class="ds-leaf" href="#eff-lora">6.1 LoRA 微调</a>
+          <a class="ds-leaf" href="#eff-quant">6.2 量化推理</a>
+        </details>
+
+        <details>
+          <summary>§7 局限 & π₀ 对比</summary>
+          <a class="ds-leaf" href="#limit">7.1 局限性</a>
+          <a class="ds-leaf" href="#vs-pi0">7.2 OpenVLA → π₀ 的进化</a>
+        </details>
+      </aside>
+
+      <!-- ─── 中：正文 ─── -->
+      <main class="docs-main">
+        <div class="paper-header">
+          <div class="paper-venue">arXiv 2406.09246 · CoRL 2024</div>
+          <h1 class="paper-title">OpenVLA: An Open-Source Vision-Language-Action Model</h1>
+          <div class="paper-authors">
+            Moo Jin Kim*, Karl Pertsch*, Siddharth Karamcheti* · Ted Xiao · Ashwin Balakrishna · Suraj Nair ·
+            Rafael Rafailov · Ethan Foster · Grace Lam · Pannag Sanketi · Quan Vuong · Thomas Kollar ·
+            Benjamin Burchfiel · Russ Tedrake · Dorsa Sadigh · Sergey Levine · Percy Liang · Chelsea Finn
+          </div>
+          <div class="paper-badges">
+            <span class="badge badge-green">开源 VLA</span>
+            <span class="badge badge-blue">7B 参数</span>
+            <span class="badge badge-amber">970k 轨迹</span>
+            <span class="badge">Stanford · Berkeley · Google · TRI · PI</span>
+          </div>
+        </div>
+
+        <!-- ============================== §1 TL;DR ============================== -->
+        <div class="section" id="tldr">
+          <div class="section-num">§ 01</div>
+          <h2>一句话总结</h2>
+
+          <div class="cn-read">
+            <div class="cn-label">这篇论文在做什么</div>
+            <p>OpenVLA 是<strong>第一个完全开源的通用机器人策略模型</strong>。它把一个预训练好的<span class="term" data-en="vision-language model">视觉-语言模型</span>（Prismatic-7B）直接微调成能输出机器人动作的 <span class="term" data-en="vision-language-action model">VLA</span>，在 970k 条真实机器人轨迹上训练后，<strong>比 55B 参数的闭源 RT-2-X 还强 16.5%</strong>，而参数量只有它的 1/8。</p>
+            <p>类比：如果 RT-2-X 是 GPT-4（强但闭源），OpenVLA 就是 LLaMA——开源、可微调、消费级 GPU 能跑。</p>
+          </div>
+
+          <!-- Fig 1: Overview -->
+          <div class="fig-interactive panel-below">
+            <div class="fig-block">
+              <div class="hotspot-wrap" data-hotspot-group="fig1">
+                <img src="../assets/figures/openvla/fig-1.png" alt="Figure 1: OpenVLA overview">
+                <div class="hotspot" data-id="f1-data" style="left:15%; top:30%;"
+                     data-title="训练数据 · 970k Episodes"
+                     data-body="来自 Open X-Embodiment 数据集，包含 70+ 个子数据集、多种机器人形态（WidowX、Google Robot、Franka 等），涵盖桌面操作任务"></div>
+                <div class="hotspot" data-id="f1-backbone" style="left:40%; top:25%;"
+                     data-title="VLM 骨干 · Prismatic-7B"
+                     data-body="底层是 Llama 2 7B 语言模型 + ViT 视觉编码器。Prismatic 的特点是融合 SigLIP（语义）和 DINOv2（空间）两个视觉编码器"></div>
+                <div class="hotspot" data-id="f1-finetune" style="left:40%; top:40%;"
+                     data-title="Fine-tune VLM w/ Robot Actions"
+                     data-body="核心思路：把机器人动作离散化成 token，直接用 next-token prediction 训练——和训练聊天机器人一样的范式"></div>
+                <div class="hotspot" data-id="f1-control" style="left:72%; top:18%;"
+                     data-title="闭环控制 · Closed-Loop"
+                     data-body="用户给自然语言指令（如 'Wipe the table'），模型每步接收当前图像 → 输出 7D 动作（Δx, Δθ, ΔGrip）→ 执行 → 循环"></div>
+                <div class="hotspot" data-id="f1-action" style="left:80%; top:30%;"
+                     data-title="7D 动作输出 · [Δx, Δθ, ΔGrip]"
+                     data-body="每个动作维度离散成 256 bin，输出 7 个 token。相比 π₀ 的连续 Flow Matching，OpenVLA 走的是离散 token 路线"></div>
+                <div class="hotspot" data-id="f1-multi" style="left:30%; top:75%;"
+                     data-title="多机器人控制 · Multi-Robot"
+                     data-body="训练后直接（zero-shot）控制 WidowX 和 Google Robot；通过 fine-tuning 还能快速适配 Franka 等新平台"></div>
+                <div class="hotspot" data-id="f1-open" style="left:75%; top:75%;"
+                     data-title="完全开源 · Fully Open-Source"
+                     data-body="数据、权重、代码全部开源在 HuggingFace。支持 LoRA 微调和 4-bit 量化，消费级 GPU（RTX 4090）即可运行"></div>
+              </div>
+              <div class="fig-cap">
+                <span class="fig-num">Fig 1 · p.1</span>
+                OpenVLA overview: a 7B-parameter open-source VLA trained on 970k robot episodes from Open X-Embodiment.
+                <span class="fig-cn">OpenVLA 总览：大规模训练数据 → VLM 微调 → 闭环机器人控制，完全开源</span>
+              </div>
+            </div>
+            <div class="hotspot-panel"></div>
+          </div>
+        </div>
+
+        <!-- ============================== §2 Why OpenVLA ============================== -->
+        <div class="section" id="why-open">
+          <div class="section-num">§ 02</div>
+          <h2>为什么需要 OpenVLA</h2>
+
+          <div class="cn-read">
+            <div class="cn-label">承上 · 问题是什么</div>
+            <p>上一节看到 OpenVLA 的全貌——用 VLM 做机器人策略。但<strong>为什么不直接用 RT-2-X？</strong>两个字：<strong>闭源</strong>。RT-2-X (55B) 效果好，但你拿不到权重、看不到训练代码、无法在自己的机器人上微调。Octo 虽然开源，但它不是 VLA——没有大规模 Internet 预训练带来的语义理解能力。</p>
+          </div>
+
+          <details class="en-quote">
+            <summary>展开原文 · 现有 VLA 的两个问题</summary>
+            <div class="quote-body">
+              <p>"There are two key reasons preventing the widespread use of existing VLAs: 1) current models are <em>closed</em>, with limited visibility into model architecture, training procedures, and data mixture, and 2) existing works do not provide best practices for <em>deploying and adapting VLAs</em> to new robots, environments, and tasks — especially on commodity hardware."</p>
+              <div class="quote-cite">— §1, p.2</div>
+            </div>
+          </details>
+
+          <div id="why-position">
+            <h3>与 RT-2-X / Octo 的定位对比</h3>
+          </div>
+
+          <table class="kv-table">
+            <tr>
+              <td></td>
+              <td><strong>RT-2-X</strong></td>
+              <td><strong>Octo</strong></td>
+              <td><strong>OpenVLA</strong></td>
+            </tr>
+            <tr>
+              <td>参数量</td>
+              <td>55B</td>
+              <td>93M</td>
+              <td>7B</td>
+            </tr>
+            <tr>
+              <td>骨干</td>
+              <td>PaLI-X (闭源 VLM)</td>
+              <td>Transformer (从头训练)</td>
+              <td>Prismatic-7B (开源 VLM)</td>
+            </tr>
+            <tr>
+              <td>Internet 预训练</td>
+              <td>✅ 万亿 token</td>
+              <td>❌ 无</td>
+              <td>✅ VLM 预训练继承</td>
+            </tr>
+            <tr>
+              <td>开源</td>
+              <td>❌ 闭源</td>
+              <td>✅ 开源</td>
+              <td>✅ 完全开源</td>
+            </tr>
+            <tr>
+              <td>动作输出</td>
+              <td>离散 token</td>
+              <td>连续 (Diffusion head)</td>
+              <td>离散 token (256 bin)</td>
+            </tr>
+            <tr>
+              <td>Fine-tuning 支持</td>
+              <td>❌ 不支持</td>
+              <td>✅ 支持</td>
+              <td>✅ 支持 (含 LoRA)</td>
+            </tr>
+            <tr>
+              <td>消费级 GPU 可用</td>
+              <td>❌</td>
+              <td>✅</td>
+              <td>✅ (4-bit 量化 → 7GB VRAM)</td>
+            </tr>
+          </table>
+
+          <div class="callout">
+            <div class="callout-label">核心定位</div>
+            <p>OpenVLA = <strong>RT-2 的架构思路</strong>（VLM → 动作 token）+ <strong>Octo 的开源精神</strong>（权重 / 代码 / 数据全开放）+ <strong>更大更好的数据</strong>（970k vs 350k 轨迹）。</p>
+          </div>
+
+          <div class="quiz"
+               data-correct="c"
+               data-explain="OpenVLA 超过 RT-2-X 的关键不是参数量（7B vs 55B，反而更小），而是：(1) 更大的训练数据集 970k vs 350k (2) 更好的数据清洗 (3) 融合 SigLIP+DINOv2 的视觉编码器 —— 引用 §1 p.2"
+               data-explain-wrong="参数量方面 OpenVLA 只有 RT-2-X 的 1/8，所以不是参数量的功劳；闭源 vs 开源影响的是可用性，不是性能">
+            <div class="q-label">🧠 理解检查</div>
+            <div class="q-text">OpenVLA (7B) 为什么能在 29 个任务上比 RT-2-X (55B) 高 16.5%？</div>
+            <div class="q-options">
+              <button class="q-opt" data-k="a">参数量更大所以更强</button>
+              <button class="q-opt" data-k="b">因为是开源的所以社区帮忙优化了</button>
+              <button class="q-opt" data-k="c">更大更干净的训练数据 + 更好的视觉编码器（SigLIP + DINOv2 融合）</button>
+              <button class="q-opt" data-k="d">使用了 Flow Matching 而不是 token 预测</button>
+            </div>
+            <div class="q-feedback"></div>
+          </div>
+        </div>
+
+        <!-- ============================== §3 Architecture ============================== -->
+        <div class="section" id="arch-vlm">
+          <div class="section-num">§ 03</div>
+          <h2>模型架构</h2>
+
+          <div class="cn-read">
+            <div class="cn-label">承上 · 现在看看具体怎么搭的</div>
+            <p>上一节讲了 OpenVLA 的定位——开源 VLA，融合了 VLM 预训练的语义理解。这一节拆开看<strong>具体的三个组件</strong>：视觉编码器怎么看图、语言模型怎么思考、动作怎么输出。</p>
+            <p>OpenVLA 的架构<strong>出奇地简单</strong>——它就是一个标准的 VLM（视觉-语言模型），只不过把"输出自然语言"换成了"输出动作 token"。这种极简设计是刻意的：<strong>VLM 的训练基础设施已经非常成熟</strong>（HuggingFace、FSDP、FlashAttention 全能用），直接复用比从头造轮子高效得多。</p>
+          </div>
+
+          <!-- Fig 2: Architecture -->
+          <div class="fig-interactive panel-below">
+            <div class="fig-block">
+              <div class="hotspot-wrap" data-hotspot-group="fig2">
+                <img src="../assets/figures/openvla/fig-2.png" alt="Figure 2: OpenVLA architecture">
+                <div class="hotspot" data-id="f2-image" style="left:6%; top:40%;"
+                     data-title="输入图像 · Input Image"
+                     data-body="单张 224×224 RGB 图像。注意 OpenVLA 只支持单图输入（无历史帧），这是它的局限之一。图像被 ViT 分成 patch 后分别送入两个编码器"></div>
+                <div class="hotspot" data-id="f2-dino" style="left:25%; top:68%;"
+                     data-title="DINOv2 · 空间特征"
+                     data-body="自监督视觉编码器，擅长捕捉空间结构和几何信息。对机器人操作特别重要——需要知道物体的精确位置、形状、朝向"></div>
+                <div class="hotspot" data-id="f2-siglip" style="left:32%; top:68%;"
+                     data-title="SigLIP · 语义特征"
+                     data-body="语言-图像对齐编码器（类似 CLIP），擅长理解图像的语义内容（'这是一个碗'、'那是一根胡萝卜'）。两个编码器的特征 channel-wise 拼接后送入 projector"></div>
+                <div class="hotspot" data-id="f2-proj" style="left:27%; top:52%;"
+                     data-title="MLP Projector · 2层 MLP"
+                     data-body="把视觉特征从编码器空间映射到语言模型的 embedding 空间。简单的 2 层 MLP——够了，复杂的 cross-attention 方案（如 Flamingo）在 VLM 上已被证明不如 patch-as-token"></div>
+                <div class="hotspot" data-id="f2-lang" style="left:14%; top:82%;"
+                     data-title="语言指令 · Language Instruction"
+                     data-body="自然语言任务描述（如 'Put eggplant in bowl'），经 Llama Tokenizer 编码后变成 token 序列。格式化为 prompt：'What should the robot do to {task}? A:'"></div>
+                <div class="hotspot" data-id="f2-llama" style="left:45%; top:28%;"
+                     data-title="Llama 2 7B · LLM 骨干"
+                     data-body="整个模型的大脑。接收视觉 token（来自 projector）和语言 token（来自 tokenizer），用 next-token prediction 输出动作 token。注意：训练时视觉编码器也被一起微调（不冻结）"></div>
+                <div class="hotspot" data-id="f2-detok" style="left:62%; top:8%;"
+                     data-title="Action De-Tokenizer · 解码器"
+                     data-body="把 7 个离散 token（每个 ∈ [0, 255]）还原为连续动作值。每个 token 对应一个动作维度：3D 平移 + 3D 旋转 + 1D 夹爪 = 7D"></div>
+                <div class="hotspot" data-id="f2-action" style="left:82%; top:25%;"
+                     data-title="7D Robot Action · 输出"
+                     data-body="最终输出：[Δx, Δy, Δz, Δroll, Δpitch, Δyaw, ΔGrip]。每个维度从 256 个 bin 中选一个，bin 的边界由训练数据的 1st-99th 百分位决定"></div>
+              </div>
+              <div class="fig-cap">
+                <span class="fig-num">Fig 2 · p.4</span>
+                OpenVLA model architecture. Given an image observation and a language instruction, the model predicts 7-dimensional robot control actions.
+                <span class="fig-cn">OpenVLA 架构：输入图像 + 语言指令 → 双视觉编码器 → MLP 投影 → Llama 2 7B → 7D 动作 token</span>
+              </div>
+            </div>
+            <div class="hotspot-panel"></div>
+          </div>
+
+          <!-- Step Walker for Fig 2 -->
+          <div class="step-walker" data-hotspot-group="fig2">
+            <div class="sw-header">
+              <div class="sw-title">🪜 跟着数据走一遍推理流程</div>
+              <div class="sw-controls">
+                <button class="sw-btn prev">◀</button>
+                <span class="sw-counter">1 / 6</span>
+                <button class="sw-btn next">▶</button>
+              </div>
+            </div>
+            <div class="sw-progress">
+              <div class="sw-dot"></div>
+              <div class="sw-dot"></div>
+              <div class="sw-dot"></div>
+              <div class="sw-dot"></div>
+              <div class="sw-dot"></div>
+              <div class="sw-dot"></div>
+            </div>
+            <div class="sw-body">
+              <div class="sw-step active" data-hotspot="f2-image">
+                <h4>第 1 步：接收图像</h4>
+                <p>机器人摄像头拍一张 224×224 的 RGB 图像。<strong>只有一张、没有历史</strong>——这和 π₀ 系列（用多帧观测）不同。</p>
+              </div>
+              <div class="sw-step" data-hotspot="f2-dino">
+                <h4>第 2 步：双编码器提取视觉特征</h4>
+                <p>图像同时送入 <strong>DINOv2</strong>（空间特征）和 <strong>SigLIP</strong>（语义特征），各输出一组 patch token。两组特征在 channel 维度拼接——一边知道"在哪里"，一边知道"是什么"。</p>
+              </div>
+              <div class="sw-step" data-hotspot="f2-proj">
+                <h4>第 3 步：MLP 投影到语言空间</h4>
+                <p>拼接后的视觉特征经 2 层 MLP 映射到 Llama 的 embedding 空间，变成一组"视觉 token"，和语言 token 一样被 Llama 处理。</p>
+              </div>
+              <div class="sw-step" data-hotspot="f2-lang">
+                <h4>第 4 步：语言指令编码</h4>
+                <p>用户给的指令（如 "Put eggplant in bowl"）经 Llama Tokenizer 编码。格式化为：<code>"What should the robot do to {task}? A:"</code></p>
+              </div>
+              <div class="sw-step" data-hotspot="f2-llama">
+                <h4>第 5 步：Llama 2 7B 生成动作 token</h4>
+                <p>Llama 接收 [视觉 token] + [语言 token] 的序列，用标准 next-token prediction 依次生成 7 个动作 token。<strong>loss 只算在动作 token 上</strong>——图像和语言部分不算 loss。</p>
+              </div>
+              <div class="sw-step" data-hotspot="f2-detok">
+                <h4>第 6 步：解码为连续动作</h4>
+                <p>7 个 token（每个 ∈ [0, 255]）通过 de-tokenizer 还原为连续值：3D 平移 + 3D 旋转 + 1D 夹爪 = 7D 动作。发送给机器人执行，然后回到第 1 步。</p>
+              </div>
+            </div>
+          </div>
+
+          <div id="arch-vision">
+            <h3>3.2 双编码器：SigLIP + DINOv2</h3>
+          </div>
+
+          <div class="cn-read">
+            <div class="cn-label">为什么要两个视觉编码器</div>
+            <p><strong>SigLIP</strong> 擅长语义（"这是一个碗"）但空间信息弱；<strong>DINOv2</strong> 擅长空间（"碗在桌子左边 15cm 处"）但语义信息弱。机器人操作<strong>两样都要</strong>：既要知道该拿什么（语义），也要知道怎么够到（空间）。</p>
+            <p>实验证明：Prismatic（SigLIP + DINOv2 融合）比 CLIP-only 或 SigLIP-only 的 VLM 在语言定位任务上高 <strong>10%</strong>。</p>
+          </div>
+
+          <details class="en-quote">
+            <summary>展开原文 · 为什么选 Prismatic</summary>
+            <div class="quote-body">
+              <p>"Prismatic uses a <em>two-part</em> visual encoder, consisting of pretrained SigLIP and DiNOv2 models. Input image patches are passed separately through both encoders and the resulting feature vectors are concatenated channel-wise."</p>
+              <div class="quote-cite">— §3.1, p.4</div>
+            </div>
+          </details>
+
+          <div id="arch-action">
+            <h3>3.3 动作离散化：256-bin Tokenization</h3>
+          </div>
+
+          <div class="cn-read">
+            <div class="cn-label">连续动作怎么变成 token</div>
+            <p>机器人动作是连续值（比如 Δx = 0.02m），但 Llama 只会做 next-token prediction。解决方案：<strong>把每个维度的连续范围切成 256 个 bin</strong>，每个 bin 对应一个 token ID。</p>
+          </div>
+
+          <div class="callout amber">
+            <div class="callout-label">离散化细节</div>
+            <p><strong>bin 边界</strong>：用训练数据每个维度的第 1 和第 99 百分位数作为上下界，均匀切 256 份。用百分位而非 min-max 是为了忽略异常值。</p>
+            <p><strong>token 复用</strong>：Llama tokenizer 只预留了 100 个 special token，不够 256 个。解法是覆盖 vocabulary 中<strong>最不常用的 256 个 token</strong>（跟 RT-2 一样的 trick）。</p>
+            <p><strong>7D → 7 token</strong>：一个 N 维动作 = N 个离散整数 ∈ [0, 255]，每个对应一个 token。</p>
+          </div>
+
+          <div id="arch-pipeline">
+            <h3>3.4 端到端推理流程</h3>
+          </div>
+
+          <div class="callout blue">
+            <div class="callout-label">推理伪代码</div>
+            <p>
+              1. 接收图像 $I$ 和语言指令 $l$<br>
+              2. 视觉编码：$v = \text{MLP}(\text{concat}(\text{SigLIP}(I), \text{DINOv2}(I)))$<br>
+              3. 语言编码：$t = \text{LlamaTokenizer}(\texttt{"What should the robot do to } l \texttt{? A:"})$<br>
+              4. 自回归生成：$a_1, a_2, \dots, a_7 = \text{Llama}([v; t])$<br>
+              5. 解码：$\Delta x, \Delta\theta, \Delta\text{Grip} = \text{DeTok}(a_1, \dots, a_7)$<br>
+              6. 执行 → 回到 1
+            </p>
+          </div>
+        </div>
+
+        <!-- ============================== §4 Training ============================== -->
+        <div class="section" id="train-data">
+          <div class="section-num">§ 04</div>
+          <h2>训练</h2>
+
+          <div class="cn-read">
+            <div class="cn-label">承上 · 架构简单，那训练呢</div>
+            <p>上一节看到 OpenVLA 的架构其实就是一个标准 VLM + 动作 token。架构这么简单，差异化就在<strong>数据和训练细节</strong>上。这一节看三件事：用什么数据、怎么训练、以及几个关键的设计决定（每一个都经过消融实验验证）。</p>
+          </div>
+
+          <div id="train-data-detail">
+            <h3>4.1 数据：970k 轨迹 · Open X-Embodiment</h3>
+          </div>
+
+          <div class="cn-read">
+            <div class="cn-label">数据策展</div>
+            <p><span class="term" data-en="Open X-Embodiment">Open X-Embodiment</span> 是目前最大的开源机器人数据集（70+ 子数据集、200 万轨迹）。但不能直接全用——需要精心筛选和加权。</p>
+          </div>
+
+          <div class="callout">
+            <div class="callout-label">数据筛选规则</div>
+            <p><strong>只保留</strong>：(1) 桌面操作任务 (manipulation)；(2) 至少有一个第三人称摄像头；(3) 单臂末端执行器控制。</p>
+            <p><strong>加权</strong>：沿用 Octo 的 mixture weight——对多样性高的数据集上调权重，单一场景的下调。</p>
+            <p><strong>DROID 插曲</strong>：尝试加入 DROID 数据集（10% 权重），但训练中动作 token 准确率始终上不去，最终在后 1/3 训练中移除。</p>
+          </div>
+
+          <div id="train-recipe">
+            <h3>4.2 训练配方</h3>
+          </div>
+
+          <table class="kv-table">
+            <tr><td>基座模型</td><td>Prismatic-7B VLM（已在 LLaVA 1.5 数据上预训练）</td></tr>
+            <tr><td>训练目标</td><td>Next-token prediction，<strong>loss 只算动作 token</strong></td></tr>
+            <tr><td>图像分辨率</td><td>224 × 224</td></tr>
+            <tr><td>Batch size</td><td>2048</td></tr>
+            <tr><td>学习率</td><td>2e-5（固定，无 warmup）</td></tr>
+            <tr><td>训练 epoch</td><td>27 epoch（远多于 VLM 的 1-2 epoch）</td></tr>
+            <tr><td>GPU</td><td>64 × A100，14 天（21,500 A100·h）</td></tr>
+          </table>
+
+          <div id="train-decisions">
+            <h3>4.3 关键设计决定</h3>
+          </div>
+
+          <div class="cn-read">
+            <div class="cn-label">四个反直觉的发现</div>
+            <p>OpenVLA 团队在 BridgeData V2 上做了大量消融实验，发现了几个和 VLM 训练<strong>完全相反的结论</strong>。这些结论对你以后训练 VLA 非常重要。</p>
+          </div>
+
+          <div class="module-grid">
+            <div class="module-card">
+              <div class="module-card-name">VISION ENCODER · 视觉编码器</div>
+              <div class="module-card-title">必须微调，不能冻结</div>
+              <div class="module-card-desc">VLM 训练中冻结视觉编码器通常更好。但 VLA 训练反过来——冻结后空间细节不够精确，机器人抓不准。微调视觉编码器是性能关键。</div>
+            </div>
+            <div class="module-card">
+              <div class="module-card-name">IMAGE RESOLUTION · 图像分辨率</div>
+              <div class="module-card-title">224px 就够了</div>
+              <div class="module-card-desc">384px 训练慢 3x 但性能一样。VLM benchmark 上分辨率很重要，但 VLA 的桌面操作场景下 224px 足够。</div>
+            </div>
+            <div class="module-card">
+              <div class="module-card-name">TRAINING EPOCHS · 训练轮次</div>
+              <div class="module-card-title">要训很多 epoch（27轮）</div>
+              <div class="module-card-desc">VLM/LLM 通常只训 1-2 epoch。但 VLA 需要多轮迭代，性能持续提升直到动作 token 准确率达 95%。这是因为机器人数据远少于 Internet 数据。</div>
+            </div>
+            <div class="module-card">
+              <div class="module-card-name">VLM BACKBONE · 骨干选择</div>
+              <div class="module-card-title">Prismatic > LLaVA > IDEFICS-1</div>
+              <div class="module-card-desc">在多物体 + 语言定位任务上，Prismatic 比 LLaVA 高 10%，比 IDEFICS-1 高 35%。关键差异来自 SigLIP+DINOv2 的融合视觉编码器。</div>
+            </div>
+          </div>
+
+          <div class="quiz"
+               data-correct="b"
+               data-explain="VLM 训练中冻结视觉编码器通常效果更好（保留 Internet 预训练特征），但 VLA 训练相反——必须微调才能获得足够精确的空间细节来指导机器人操作。参见 §3.4 p.6"
+               data-explain-wrong="224px 够用、多 epoch 重要、Prismatic 最佳——这些都是 OpenVLA 的发现。但题目问的是和 VLM 训练相反的结论，关键反直觉点是视觉编码器不能冻结。">
+            <div class="q-label">🧠 理解检查</div>
+            <div class="q-text">OpenVLA 训练中，哪个发现和 VLM 训练的常识完全相反？</div>
+            <div class="q-options">
+              <button class="q-opt" data-k="a">224px 分辨率就够了</button>
+              <button class="q-opt" data-k="b">视觉编码器必须微调（VLM 中通常冻结更好）</button>
+              <button class="q-opt" data-k="c">需要 27 epoch 才能收敛</button>
+              <button class="q-opt" data-k="d">Prismatic 是最好的骨干</button>
+            </div>
+            <div class="q-feedback"></div>
+          </div>
+        </div>
+
+        <!-- ============================== §5 Experiments ============================== -->
+        <div class="section" id="exp-bridge">
+          <div class="section-num">§ 05</div>
+          <h2>实验</h2>
+
+          <div class="cn-read">
+            <div class="cn-label">承上 · 训练完了，效果怎么样</div>
+            <p>前面讲了架构（简单的 VLM + 动作 token）和训练（970k 数据、27 epoch、微调视觉编码器）。现在来看<strong>实际能不能用</strong>。OpenVLA 在两个机器人平台上做了 zero-shot 评测（WidowX + Google Robot），还测了 fine-tuning 到新机器人（Franka）的效果。</p>
+          </div>
+
+          <h3>5.1 BridgeData V2 · WidowX 评测</h3>
+
+          <div class="fig-interactive panel-below">
+            <div class="fig-block">
+              <div class="hotspot-wrap" data-hotspot-group="fig3">
+                <img src="../assets/figures/openvla/fig-3.png" alt="Figure 3: BridgeData V2 WidowX results">
+                <div class="hotspot" data-id="f3-avg" style="left:10%; top:15%;"
+                     data-title="平均成功率 · Average"
+                     data-body="OpenVLA 70.6% vs RT-2-X 50.6% vs Octo 20.0% vs RT-1-X 18.5%。OpenVLA 全面领先，比 RT-2-X 高 20 个百分点"></div>
+                <div class="hotspot" data-id="f3-visual" style="left:22%; top:10%;"
+                     data-title="视觉泛化 · Visual Generalization"
+                     data-body="面对未见过的背景、干扰物、物体外观时的表现。OpenVLA 87.0% vs RT-2-X 52.0%——Internet 预训练的语义理解在此大放异彩"></div>
+                <div class="hotspot" data-id="f3-motion" style="left:35%; top:15%;"
+                     data-title="运动泛化 · Motion"
+                     data-body="面对未见过的物体位置和朝向。OpenVLA 60.0% vs RT-2-X 55.0%——DINOv2 的空间特征帮助模型理解不同位置的抓取"></div>
+                <div class="hotspot" data-id="f3-lang" style="left:85%; top:8%;"
+                     data-title="语言定位 · Language Grounding"
+                     data-body="场景有多个物体时，能否操作指令指定的那个。OpenVLA 90.0% 最高——这直接得益于 VLM 的语言理解能力"></div>
+                <div class="hotspot" data-id="f3-semantic" style="left:68%; top:15%;"
+                     data-title="语义泛化 · Semantic"
+                     data-body="面对完全没见过的物体和 Internet 概念。RT-2-X 38.8% > OpenVLA 36.3%——唯一 RT-2-X 赢的类别，因为 RT-2-X 在 Internet 数据上做了 co-training"></div>
+                <div class="hotspot" data-id="f3-tasks" style="left:40%; top:70%;"
+                     data-title="任务示例 · Task Examples"
+                     data-body="5 种代表性任务：放物体到盘子、抬起茄子、翻杯子、堆叠、放瓶子到锅里。覆盖了抓取、放置、翻转等基本操作"></div>
+              </div>
+              <div class="fig-cap">
+                <span class="fig-num">Fig 3 · p.7</span>
+                BridgeData V2 WidowX robot evaluation tasks and results.
+                <span class="fig-cn">OpenVLA 在 WidowX 上的 17 项任务评测，平均成功率 70.6%，比 RT-2-X 高 20 个百分点</span>
+              </div>
+            </div>
+            <div class="hotspot-panel"></div>
+          </div>
+
+          <div id="exp-google">
+            <h3>5.2 Google Robot 评测</h3>
+          </div>
+
+          <div class="cn-read">
+            <div class="cn-label">换一个机器人平台</div>
+            <p>在 Google 的移动操作机器人上测试——<strong>OpenVLA 和 RT-2-X 打平</strong>（78.3% vs 85.0% in-distribution，82.9% vs 82.9% OOD）。但 OpenVLA 的参数量只有 1/8，且完全开源。</p>
+          </div>
+
+          <div class="fig-block">
+            <img src="../assets/figures/openvla/fig-4.png" alt="Figure 4: Google robot results" style="max-width:500px">
+            <div class="fig-cap">
+              <span class="fig-num">Fig 4 · p.8</span>
+              Google robot evaluation: in-distribution and OOD tasks.
+              <span class="fig-cn">Google Robot 评测：OpenVLA 与 RT-2-X 表现相当，但参数量 7B vs 55B</span>
+            </div>
+          </div>
+
+          <div id="exp-finetune">
+            <h3>5.3 Fine-tuning 到新机器人 · Franka</h3>
+          </div>
+
+          <div class="cn-read">
+            <div class="cn-label">Zero-shot 不够？Fine-tune！</div>
+            <p>真正的杀手锏不是 zero-shot——而是<strong>用 10-150 个 demo 就能适配新机器人</strong>。在 Franka 上，OpenVLA fine-tuned 比 Diffusion Policy 高 20.4%，尤其在<strong>多物体 + 语言指令</strong>的场景下碾压。</p>
+          </div>
+
+          <div class="fig-block">
+            <img src="../assets/figures/openvla/fig-5.png" alt="Figure 5: Fine-tuning results on Franka">
+            <div class="fig-cap">
+              <span class="fig-num">Fig 5 · p.9</span>
+              Adapting to new robot setups: Franka-Tabletop (5Hz) and Franka-DROID (15Hz).
+              <span class="fig-cn">Fine-tuning 结果：OpenVLA 在 Franka 7 项任务上平均最高，尤其在多指令多物体任务上优势明显</span>
+            </div>
+          </div>
+
+          <div class="callout amber">
+            <div class="callout-label">关键观察</div>
+            <p><strong>Diffusion Policy 在窄任务上更精确</strong>（如 "Put Carrot in Bowl"），因为它能输出更平滑的连续轨迹。但在多物体 + 多指令场景下，<strong>OpenVLA 的语言理解能力是决定性优势</strong>——Diffusion Policy 没有 VLM 的语义先验。</p>
+          </div>
+        </div>
+
+        <!-- ============================== §6 Efficiency ============================== -->
+        <div class="section" id="eff-lora">
+          <div class="section-num">§ 06</div>
+          <h2>效率：LoRA + 量化</h2>
+
+          <div class="cn-read">
+            <div class="cn-label">承上 · 能用，但贵不贵</div>
+            <p>前一节看到 OpenVLA 效果好，但 7B 模型训练要 64×A100 跑 14 天——普通人负担不起。这一节回答<strong>实际落地的关键问题</strong>：能不能用更便宜的方式训练和部署？</p>
+          </div>
+
+          <h3>6.1 LoRA 微调 · 1 张 A100 就够</h3>
+
+          <table class="kv-table">
+            <tr>
+              <td><strong>策略</strong></td>
+              <td><strong>成功率</strong></td>
+              <td><strong>训练参数</strong></td>
+              <td><strong>VRAM</strong></td>
+            </tr>
+            <tr>
+              <td>Full Fine-Tuning</td>
+              <td>69.7 ± 7.2%</td>
+              <td>7,188M (100%)</td>
+              <td>163 GB*</td>
+            </tr>
+            <tr>
+              <td>Last Layer Only</td>
+              <td>30.3 ± 6.1%</td>
+              <td>465M</td>
+              <td>51.4 GB</td>
+            </tr>
+            <tr>
+              <td>Frozen Vision</td>
+              <td>47.0 ± 6.9%</td>
+              <td>6,760M</td>
+              <td>156 GB*</td>
+            </tr>
+            <tr>
+              <td>Sandwich</td>
+              <td>62.1 ± 7.9%</td>
+              <td>914M</td>
+              <td>64.0 GB</td>
+            </tr>
+            <tr>
+              <td><strong>LoRA (r=32)</strong></td>
+              <td><strong>68.2 ± 7.5%</strong></td>
+              <td><strong>97.6M (1.4%)</strong></td>
+              <td><strong>59.7 GB</strong></td>
+            </tr>
+          </table>
+
+          <div class="callout">
+            <div class="callout-label">LoRA 是最佳平衡点</div>
+            <p>LoRA (r=32) 只训练 <strong>1.4% 的参数</strong>，但效果几乎等于 full fine-tuning（68.2% vs 69.7%）。一张 A100 跑 10-15 小时就能适配新任务——比 full FT 快 8 倍。r=32 和 r=64 效果一样，所以推荐 r=32。</p>
+          </div>
+
+          <div id="eff-quant">
+            <h3>6.2 量化推理 · 消费级 GPU 可用</h3>
+          </div>
+
+          <div class="fig-block">
+            <img src="../assets/figures/openvla/fig-6.png" alt="Figure 6: Inference speed for various GPUs" style="max-width:480px">
+            <div class="fig-cap">
+              <span class="fig-num">Fig 6 · p.10</span>
+              OpenVLA inference speed for various GPUs.
+              <span class="fig-cn">不同 GPU 上的推理速度：RTX 4090 + 4-bit 量化可达 ~3Hz</span>
+            </div>
+          </div>
+
+          <table class="kv-table">
+            <tr><td><strong>精度</strong></td><td><strong>成功率</strong></td><td><strong>VRAM</strong></td></tr>
+            <tr><td>bfloat16</td><td>71.3 ± 4.8%</td><td>16.8 GB</td></tr>
+            <tr><td>int8</td><td>58.1 ± 5.1%</td><td>10.2 GB</td></tr>
+            <tr><td><strong>int4</strong></td><td><strong>71.9 ± 4.7%</strong></td><td><strong>7.0 GB</strong></td></tr>
+          </table>
+
+          <div class="callout">
+            <div class="callout-label">4-bit 量化最优</div>
+            <p>int4 量化<strong>不掉性能</strong>（71.9% ≈ 71.3%），VRAM 从 16.8GB 降到 <strong>7.0GB</strong>。8-bit 反而性能下降——因为量化操作的 overhead 拖慢了推理速度，改变了控制频率。A5000 上 4-bit 可跑 3Hz，匹配 BridgeData V2 的 5Hz 非阻塞控制器。</p>
+          </div>
+
+          <div class="quiz"
+               data-correct="d"
+               data-explain="int4 量化的 VRAM 只需 7.0 GB，RTX 4090 有 24GB VRAM，完全够用。而且 int4 在 A5000 上跑 3Hz、RTX 4090 上更快（~6Hz），满足实时控制需求。参见 Table 2 + Fig 6, p.10"
+               data-explain-wrong="bfloat16 需要 16.8GB、int8 性能反而下降（58.1%）、1080Ti 不支持 bfloat16。正确答案是 int4：7GB VRAM + 不掉性能。">
+            <div class="q-label">🧠 理解检查</div>
+            <div class="q-text">你有一块 RTX 4090 (24GB VRAM)，想部署 OpenVLA 做实时控制，应该选哪个精度？</div>
+            <div class="q-options">
+              <button class="q-opt" data-k="a">bfloat16——精度最高</button>
+              <button class="q-opt" data-k="b">int8——最好的精度-内存平衡</button>
+              <button class="q-opt" data-k="c">需要 2 张 4090 才能跑</button>
+              <button class="q-opt" data-k="d">int4——7GB VRAM、性能不掉、推理更快</button>
+            </div>
+            <div class="q-feedback"></div>
+          </div>
+        </div>
+
+        <!-- ============================== §7 Limitations + π₀ ============================== -->
+        <div class="section" id="limit">
+          <div class="section-num">§ 07</div>
+          <h2>局限性 & 从 OpenVLA 到 π₀</h2>
+
+          <div class="cn-read">
+            <div class="cn-label">承上 · 这么好还有什么问题</div>
+            <p>OpenVLA 证明了"开源 VLA 能打"，但它有几个<strong>结构性的局限</strong>——恰好对应了后来 π₀ 系列解决的方向。理解这些局限，就理解了 VLA 领域的演进逻辑。</p>
+          </div>
+
+          <div class="module-grid">
+            <div class="module-card">
+              <div class="module-card-name">LIMITATION · 单图输入</div>
+              <div class="module-card-title">没有观测历史</div>
+              <div class="module-card-desc">只看当前一帧，无法推断运动方向、速度。高频灵巧操作（如 ALOHA 50Hz）需要时序信息。π₀ 用多帧输入解决。</div>
+            </div>
+            <div class="module-card">
+              <div class="module-card-name">LIMITATION · 离散动作</div>
+              <div class="module-card-title">256 bin 精度有限</div>
+              <div class="module-card-desc">每个维度只有 256 级分辨率。精细操作（如插针、折衣服）可能需要更高精度。π₀ 用 Flow Matching 输出连续动作，精度无上限。</div>
+            </div>
+            <div class="module-card">
+              <div class="module-card-name">LIMITATION · 推理速度</div>
+              <div class="module-card-title">~6Hz on RTX 4090</div>
+              <div class="module-card-desc">自回归生成 7 个 token 是串行的。ALOHA 需要 50Hz，Action Chunking 或 speculative decoding 可能是出路。π₀ 用 action chunk + Flow Matching 一次输出多步。</div>
+            </div>
+            <div class="module-card">
+              <div class="module-card-name">LIMITATION · 成功率</div>
+              <div class="module-card-title">平均 < 90%</div>
+              <div class="module-card-desc">即使是最好的任务，成功率也在 70-90% 之间。工业部署需要 > 95%。数据规模、模型规模、或更好的训练方法都可能帮助突破。</div>
+            </div>
+          </div>
+
+          <div id="vs-pi0">
+            <h3>7.2 OpenVLA → π₀：进化路线图</h3>
+          </div>
+
+          <div class="cn-read">
+            <div class="cn-label">理解 VLA 的演进</div>
+            <p>如果你已经读了 π₀ 系列的笔记，下面这张对照表会帮你把知识串起来。OpenVLA 和 π₀ 代表了 VLA 的两条技术路线：<strong>离散 token vs 连续 flow</strong>。</p>
+          </div>
+
+          <table class="kv-table">
+            <tr>
+              <td></td>
+              <td><strong>OpenVLA</strong></td>
+              <td><strong>π₀</strong></td>
+            </tr>
+            <tr>
+              <td>动作表示</td>
+              <td>离散 token (256 bin)</td>
+              <td>连续 (Flow Matching)</td>
+            </tr>
+            <tr>
+              <td>动作精度</td>
+              <td>1/256 ≈ 0.4% 分辨率</td>
+              <td>理论无限精度</td>
+            </tr>
+            <tr>
+              <td>Action Chunking</td>
+              <td>❌ 单步</td>
+              <td>✅ 多步（chunk = 50）</td>
+            </tr>
+            <tr>
+              <td>VLM 骨干</td>
+              <td>Llama 2 7B</td>
+              <td>PaliGemma 3B → Gemma3 4B</td>
+            </tr>
+            <tr>
+              <td>视觉编码器</td>
+              <td>SigLIP + DINOv2 (融合)</td>
+              <td>SigLIP (单编码器)</td>
+            </tr>
+            <tr>
+              <td>训练范式</td>
+              <td>Next-token prediction</td>
+              <td>Flow Matching (去噪)</td>
+            </tr>
+            <tr>
+              <td>观测历史</td>
+              <td>单帧</td>
+              <td>多帧</td>
+            </tr>
+            <tr>
+              <td>灵巧操作</td>
+              <td>有限（抓放为主）</td>
+              <td>强（折叠、擦桌、双臂）</td>
+            </tr>
+            <tr>
+              <td>开源</td>
+              <td>✅ 完全开源</td>
+              <td>部分（π₀.₅ 开源权重）</td>
+            </tr>
+          </table>
+
+          <div class="callout blue">
+            <div class="callout-label">两条路线的哲学差异</div>
+            <p><strong>OpenVLA 的哲学</strong>：最大限度复用 VLM 基础设施。动作就是 token，训练就是 next-token prediction，部署就是 LLM serving。简单、可扩展、工程友好。</p>
+            <p><strong>π₀ 的哲学</strong>：针对机器人控制定制架构。Action Expert 专门处理动作，Flow Matching 输出连续轨迹，Block-Causal Attention 兼顾语言理解和动作精度。更复杂、但上限更高。</p>
+          </div>
+
+          <div class="callout amber">
+            <div class="callout-label">你的学习路线提示</div>
+            <p>读完 OpenVLA，你已经理解了 VLA 的基本范式（VLM + 动作输出）。回头看 π₀ 系列笔记，会发现 π₀ 的每一个设计决定都在回应 OpenVLA 的某个局限。<strong>这就是论文之间的"对话"</strong>。</p>
+          </div>
+        </div>
+
+      </main>
+    </div><!-- /docs-layout -->
+  </div><!-- /page -->
+</body>
+</html>

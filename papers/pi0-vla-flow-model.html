@@ -5,13 +5,17 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>π₀ · A Vision-Language-Action Flow Model for General Robot Control</title>
   <link rel="stylesheet" href="../assets/css/style.css">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16/dist/katex.min.css">
   <script src="../assets/js/theme.js"></script>
   <script src="../assets/js/interactive.js" defer></script>
   <script src="https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.min.js"></script>
+  <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16/dist/katex.min.js"></script>
+  <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16/dist/contrib/auto-render.min.js"
+          onload="renderMathInElement(document.body,{delimiters:[{left:'$$',right:'$$',display:true},{left:'$',right:'$',display:false}]})"></script>
 </head>
 <body>
   <nav class="nav">
-    <a class="nav-logo" href="../index.html">~/paper-notes</a>
+    <a class="nav-logo" href="../index.html">Paper Notes</a>
     <div class="nav-links">
       <a href="../index.html">← 返回首页</a>
       <a href="../pdfs/vla/pi0.pdf" target="_blank">📄 PDF</a>
@@ -798,14 +802,15 @@ flowchart TB
         <h3 id="infer-stage3">5.3 Stage 3 · Flow Matching 去噪循环（10 次迭代）</h3>
 
         <h4>① 初始化</h4>
-        <div class="code-block">
-          <code>A^τ_0 ~ N(0, I)     # shape [50, action_dim]<br>τ_0 = 0</code>
+        <div class="math-block">
+          $$A^{\tau_0} \sim \mathcal{N}(0, I), \qquad \tau_0 = 0$$
+          <span class="math-label">shape: $[50, \text{action\_dim}]$ · 起点设在纯噪声端</span>
         </div>
         <p style="margin-top:8px;">
-          <code>A^τ_0</code> 相当于 flow matching 里的 <strong>x_0（纯噪声端）</strong>；
-          真实干净动作 <code>A_clean</code>（训练时的 ground truth）对应 <strong>x_1</strong>。
-          下面循环要做的事就是 "从 <code>A^τ_0</code> 逐渐走向 <code>A_clean</code>"，沿着
-          flow matching 的那条直线路径，每步走 δ = 0.1。
+          $A^{\tau_0}$ 相当于 flow matching 里的 <strong>$x_0$（纯噪声端）</strong>；
+          真实干净动作 $A_\text{clean}$（训练时的 ground truth）对应 <strong>$x_1$</strong>。
+          下面循环要做的事就是 "从 $A^{\tau_0}$ 逐渐走向 $A_\text{clean}$"，沿着
+          flow matching 的那条直线路径，每步走 $\delta = 0.1$。
         </p>
 
         <h4>② for k = 0, 1, ..., 9</h4>
@@ -848,18 +853,35 @@ flowchart TB
 
         <div class="callout">
           <div class="callout-label">(c) Euler 积分更新（等价于"更新 action token"）</div>
-          <div class="code-block">
-            <code>A^τ_{k+1} = A^τ_k + δ · v_θ(A^τ_k, τ_k, o_t)     # δ = 0.1</code>
+          <div class="math-block">
+            $$A^{\tau_{k+1}} = A^{\tau_k} + \delta \cdot v_\theta(A^{\tau_k}, \tau_k, o_t), \qquad \delta = 0.1$$
+            <span class="math-label">推理 Stage 3 · 一步 Euler 积分</span>
+          </div>
+          <div class="math-explain">
+            <div class="me-title">逐项拆解</div>
+            <dl>
+              <dt>$A^{\tau_k}$</dt>
+              <dd>当前去噪状态——一段 $[50,\text{action\_dim}]$ 的"半干净"动作</dd>
+              <dt>$v_\theta(A^{\tau_k}, \tau_k, o_t)$</dt>
+              <dd>π₀ 网络预测的<strong>向量场（速度场）</strong>，告诉你当前位置该往哪走</dd>
+              <dt>$\delta = 0.1$</dt>
+              <dd>步长（10 步走完 0→1，所以 $\delta=1/10$）</dd>
+              <dt>$A^{\tau_{k+1}}$</dt>
+              <dd>下一步的 action token，更接近干净动作</dd>
+            </dl>
           </div>
           <p style="margin-top:8px;">
-            新值 = 旧值 + 步长 × 当前位置的"速度"。这就是用 flow matching 预测的向量场
-            沿直线走一小步。
+            <strong>新值 = 旧值 + 步长 × 当前位置的"速度"</strong>。这就是用 flow matching
+            预测的向量场沿直线走一小步——经典 Euler 法。
           </p>
         </div>
 
         <div class="callout">
           <div class="callout-label">(d) 推进时间</div>
-          <div class="code-block"><code>τ_{k+1} = τ_k + 0.1</code></div>
+          <div class="math-block">
+            $$\tau_{k+1} = \tau_k + 0.1$$
+            <span class="math-label">flow timestep 同步前进</span>
+          </div>
         </div>
 
         <div class="callout blue">
@@ -914,42 +936,58 @@ flowchart TB
 
         <h3 id="train-sample-sec">6.1 Step 1 · 取真实动作 chunk</h3>
 
-        <p>从机器人 demonstration 数据集 <code>D</code> 里采一段真实动作序列：</p>
-        <div class="code-block">
-          <code>A = [a_t, a_{t+1}, ..., a_{t+49}]     # shape [50, action_dim]</code>
+        <p>从机器人 demonstration 数据集 $\mathcal{D}$ 里采一段真实动作序列：</p>
+        <div class="math-block">
+          $$A = [\,\mathbf{a}_t,\ \mathbf{a}_{t+1},\ \ldots,\ \mathbf{a}_{t+49}\,]$$
+          <span class="math-label">shape: $[50, \text{action\_dim}]$ · flow matching 里的 $x_1$（目标分布样本）</span>
         </div>
         <p style="margin-top:8px;">
-          这就是 flow matching 里的 <strong>x₁</strong>（目标分布的样本）。同一个样本还包含
-          <code>o_t</code>（当时的观测：图像 + 语言 + 状态）。
+          这就是 flow matching 里的 <strong>$x_1$</strong>（目标分布的样本）。同一个样本还包含
+          $o_t$（当时的观测：图像 + 语言 + 状态）。
         </p>
 
         <h3 id="train-step2">6.2 Step 2 · 采样 τ、ε，构造 noisy action</h3>
 
         <p>随机采两个东西：</p>
         <ul style="line-height:1.9;">
-          <li><strong>噪声</strong> <code>ε ~ N(0, I)</code>，shape 和 A 一样 <code>[50, action_dim]</code></li>
-          <li><strong>时间</strong> <code>τ ∈ [0, 1]</code>（论文里用偏小的 <span class="term" data-en="shifted beta distribution">shifted β 分布</span>，让模型多学早期去噪）</li>
+          <li><strong>噪声</strong> $\varepsilon \sim \mathcal{N}(0, I)$，shape 和 $A$ 一样 $[50, \text{action\_dim}]$</li>
+          <li><strong>时间</strong> $\tau \in [0, 1]$（论文里用偏小的 <span class="term" data-en="shifted beta distribution">shifted β 分布</span>，让模型多学早期去噪）</li>
         </ul>
 
         <p>然后<strong>线性插值</strong>得到 noisy action：</p>
-        <div class="code-block">
-          <code>A^τ = τ · A + (1 − τ) · ε</code>
+        <div class="math-block">
+          $$A^\tau = \tau \cdot A + (1 - \tau) \cdot \varepsilon$$
+          <span class="math-label">Eq. · noisy action 的线性插值（flow matching 起点定义）</span>
+        </div>
+
+        <div class="math-explain">
+          <div class="me-title">逐项拆解</div>
+          <dl>
+            <dt>$A$</dt>
+            <dd>真实干净动作（$x_1$ 端）</dd>
+            <dt>$\varepsilon$</dt>
+            <dd>纯高斯噪声（$x_0$ 端）</dd>
+            <dt>$\tau \in [0,1]$</dt>
+            <dd><strong>清洁度</strong>——$\tau=1$ 全干净，$\tau=0$ 全噪声</dd>
+            <dt>$A^\tau$</dt>
+            <dd>"被部分加噪"的动作，沿直线 $\varepsilon \to A$ 在 $\tau$ 比例处的点</dd>
+          </dl>
         </div>
 
         <div class="callout amber">
           <div class="callout-label">一个常见误读</div>
           <p>
-            <code>A^τ</code> 不是"第 τ 个时间步的动作"（不是 action sequence 里的某一步），
+            $A^\tau$ 不是"第 τ 个时间步的动作"（不是 action sequence 里的某一步），
             而是<strong>整段 50 步动作的"第 τ 个清洁度版本"</strong>——
-            可以理解为 A 被部分加噪后的样子。
+            可以理解为 $A$ 被部分加噪后的样子。
           </p>
         </div>
 
         <p>直观理解这条插值：</p>
         <table class="kv-table">
-          <tr><td><code>τ = 0</code></td><td><code>A^τ = ε</code> → 纯噪声（起点）</td></tr>
-          <tr><td><code>τ = 0.5</code></td><td>一半噪声一半真实动作</td></tr>
-          <tr><td><code>τ = 1</code></td><td><code>A^τ = A</code> → 干净动作（终点）</td></tr>
+          <tr><td>$\tau = 0$</td><td>$A^\tau = \varepsilon$ → 纯噪声（起点）</td></tr>
+          <tr><td>$\tau = 0.5$</td><td>一半噪声一半真实动作</td></tr>
+          <tr><td>$\tau = 1$</td><td>$A^\tau = A$ → 干净动作（终点）</td></tr>
         </table>
         <p>
           这里 τ 约定是 <strong>τ=1 干净、τ=0 噪声</strong>，和推理时方向<strong>一致</strong>——
@@ -981,22 +1019,23 @@ flowchart TB
 
         <h4>① 目标向量场</h4>
 
-        <div class="code-block">
-          <code>u(A^τ | A) = ε − A</code>
+        <div class="math-block">
+          $$u(A^\tau \mid A) = \varepsilon - A$$
+          <span class="math-label">Eq. · flow matching 的目标速度场</span>
         </div>
 
         <p>这是 flow matching 的核心定义。怎么推出来的：</p>
         <ul style="line-height:1.9;">
-          <li>已知 <code>A^τ = τ · A + (1 − τ) · ε</code></li>
-          <li>对 τ 求导：<code>dA^τ / dτ = A − ε</code></li>
-          <li>论文把方向反过来写，定义 <code>u = ε − A</code>（去噪方向：从噪声"指向"干净动作的反方向，或等价地"从干净指向噪声"当作梯度方向）</li>
+          <li>已知 $A^\tau = \tau \cdot A + (1-\tau) \cdot \varepsilon$</li>
+          <li>对 $\tau$ 求导：$\dfrac{\mathrm{d}A^\tau}{\mathrm{d}\tau} = A - \varepsilon$</li>
+          <li>论文把方向反过来写，定义 $u = \varepsilon - A$（去噪方向：从噪声"指向"干净动作的反方向，或等价地"从干净指向噪声"当作梯度方向）</li>
         </ul>
 
         <div class="callout blue">
           <div class="callout-label">为什么这点漂亮</div>
           <p>
-            <code>u = ε − A</code> 是<strong>从噪声端 ε 走到干净端 A 这条直线路径上的速度</strong>——
-            而这条速度<strong>对所有 τ 都是常数</strong>（直线路径嘛）。
+            $u = \varepsilon - A$ 是<strong>从噪声端 $\varepsilon$ 走到干净端 $A$ 这条直线路径上的速度</strong>——
+            而这条速度<strong>对所有 $\tau$ 都是常数</strong>（直线路径嘛）。
             对比扩散模型的曲线 + 随时间变化的目标，flow matching 目标平稳、模型好学——
             这正是它比 diffusion 漂亮的地方。
           </p>
@@ -1004,8 +1043,25 @@ flowchart TB
 
         <h4>② Loss</h4>
 
-        <div class="code-block">
-          <code>L(θ) = E_{p(A|o), q(A^τ|A)} [ ‖ v_θ(A^τ, o_t) − u(A^τ | A) ‖² ]<br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;= E [ ‖ v_θ(A^τ, o_t) − (ε − A) ‖² ]</code>
+        <div class="math-block">
+          $$\mathcal{L}(\theta) = \mathbb{E}_{p(A\mid o),\, q(A^\tau\mid A)} \left[\, \big\| v_\theta(A^\tau, o_t) - u(A^\tau \mid A) \big\|^2 \,\right] = \mathbb{E}\!\left[\, \big\| v_\theta(A^\tau, o_t) - (\varepsilon - A) \big\|^2 \,\right]$$
+          <span class="math-label">Eq. · π₀ 训练总 loss · 简单的 MSE</span>
+        </div>
+
+        <div class="math-explain">
+          <div class="me-title">逐项拆解</div>
+          <dl>
+            <dt>$v_\theta(A^\tau, o_t)$</dt>
+            <dd><strong>模型输出</strong>——给定 noisy action 和观察，预测出来的向量场</dd>
+            <dt>$u(A^\tau \mid A) = \varepsilon - A$</dt>
+            <dd><strong>已知答案</strong>——从噪声端走到干净端这条直线的常数速度</dd>
+            <dt>$\|\cdot\|^2$</dt>
+            <dd>MSE：让预测向量场尽量接近目标向量场，对每一维独立平方求和</dd>
+            <dt>$\mathbb{E}_{p(A\mid o)}$</dt>
+            <dd>对数据集 $\mathcal{D}$ 取期望——随机采一条 $(\text{观测},\ \text{动作})$ pair</dd>
+            <dt>$\mathbb{E}_{q(A^\tau\mid A)}$</dt>
+            <dd>对插值采样取期望——随机采 $\tau$ 和 $\varepsilon$，构造 $A^\tau$</dd>
+          </dl>
         </div>
 
         <p style="margin-top:8px;">翻译成人话：</p>
@@ -1013,16 +1069,16 @@ flowchart TB
         <div class="callout">
           <div class="callout-label">loss 在说什么</div>
           <p>
-            让模型预测的向量场 <code>v_θ</code>（<strong>模型输出</strong>）尽可能接近
-            目标向量场 <code>u = ε − A</code>（<strong>已知答案</strong>），用 MSE 衡量差距。
+            让模型预测的向量场 $v_\theta$（<strong>模型输出</strong>）尽可能接近
+            目标向量场 $u = \varepsilon - A$（<strong>已知答案</strong>），用 MSE 衡量差距。
           </p>
         </div>
 
-        <p>期望 <code>E</code> 来自<strong>三个随机性</strong>上取平均：</p>
+        <p>期望 $\mathbb{E}$ 来自<strong>三个随机性</strong>上取平均：</p>
         <ol style="line-height:1.9;">
-          <li><code>p(A_t | o_t)</code>：从数据集里随机采一条 <code>(观测, 动作)</code> pair</li>
-          <li><code>q(A^τ_t | A_t)</code>：随机采 τ 和 ε，构造 A^τ</li>
-          <li>（隐含）batch 内多个样本一起算，反传后更新 θ</li>
+          <li>$p(A_t \mid o_t)$：从数据集里随机采一条 $(\text{观测},\ \text{动作})$ pair</li>
+          <li>$q(A^\tau_t \mid A_t)$：随机采 $\tau$ 和 $\varepsilon$，构造 $A^\tau$</li>
+          <li>（隐含）batch 内多个样本一起算，反传后更新 $\theta$</li>
         </ol>
 
         <h3 id="train-beta">6.5 为什么 τ 用偏小的 β 分布</h3>

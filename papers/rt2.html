@@ -1,0 +1,651 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>RT-2 · Vision-Language-Action Models Transfer Web Knowledge to Robotic Control</title>
+  <link rel="stylesheet" href="../assets/css/style.css">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16/dist/katex.min.css">
+  <script src="../assets/js/theme.js"></script>
+  <script src="../assets/js/interactive.js" defer></script>
+  <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16/dist/katex.min.js"></script>
+  <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16/dist/contrib/auto-render.min.js"
+          onload="renderMathInElement(document.body,{delimiters:[{left:'$$',right:'$$',display:true},{left:'$',right:'$',display:false}]})"></script>
+</head>
+<body>
+  <nav class="nav">
+    <a class="nav-logo" href="../index.html">Paper Notes</a>
+    <div class="nav-links">
+      <a href="../index.html">← 返回首页</a>
+      <a href="../pdfs/world-model/WAM/Brohan 等 - 2023 - RT-2 Vision-Language-Action Models Transfer Web Knowledge to Robotic Control.pdf" target="_blank">📄 PDF</a>
+      <a href="https://robotics-transformer2.github.io" target="_blank">🔗 官网</a>
+    </div>
+  </nav>
+
+  <div class="page">
+    <div class="docs-layout">
+
+      <!-- ─── 左：章节树 ─── -->
+      <aside class="docs-sidebar-left">
+        <div class="ds-title">RT-2 · VLA 起源</div>
+
+        <a class="ds-leaf-top" href="#tldr">§1 一句话总结</a>
+
+        <details open>
+          <summary>§2 核心思路</summary>
+          <a class="ds-leaf" href="#idea-vlm2vla">2.1 VLM → VLA</a>
+          <a class="ds-leaf" href="#idea-action-token">2.2 动作 = Token</a>
+          <a class="ds-leaf" href="#idea-cofine">2.3 Co-Fine-Tuning</a>
+        </details>
+
+        <details open>
+          <summary>§3 架构与训练</summary>
+          <a class="ds-leaf" href="#arch-backbone">3.1 两个 VLM 骨干</a>
+          <a class="ds-leaf" href="#arch-tokenize">3.2 动作离散化</a>
+          <a class="ds-leaf" href="#arch-constraint">3.3 输出约束</a>
+          <a class="ds-leaf" href="#arch-inference">3.4 实时推理</a>
+        </details>
+
+        <details>
+          <summary>§4 泛化实验</summary>
+          <a class="ds-leaf" href="#exp-seen">4.1 Seen Tasks</a>
+          <a class="ds-leaf" href="#exp-unseen">4.2 Unseen 泛化</a>
+        </details>
+
+        <details>
+          <summary>§5 涌现能力</summary>
+          <a class="ds-leaf" href="#emerge-symbol">5.1 符号理解</a>
+          <a class="ds-leaf" href="#emerge-reason">5.2 推理</a>
+          <a class="ds-leaf" href="#emerge-human">5.3 人类识别</a>
+        </details>
+
+        <details>
+          <summary>§6 消融</summary>
+          <a class="ds-leaf" href="#ablation-size">6.1 模型大小</a>
+          <a class="ds-leaf" href="#ablation-cofine">6.2 Co-FT vs FT vs Scratch</a>
+        </details>
+
+        <details>
+          <summary>§7 Chain-of-Thought</summary>
+          <a class="ds-leaf" href="#cot">7.1 Plan → Action</a>
+        </details>
+
+        <details>
+          <summary>§8 局限 & 对比</summary>
+          <a class="ds-leaf" href="#limit">8.1 局限性</a>
+          <a class="ds-leaf" href="#vs-openvla">8.2 RT-2 → OpenVLA → π₀</a>
+        </details>
+      </aside>
+
+      <!-- ─── 中：正文 ─── -->
+      <main class="docs-main">
+        <div class="paper-header">
+          <div class="paper-venue">arXiv 2307.15818 · 2023</div>
+          <h1 class="paper-title">RT-2: Vision-Language-Action Models Transfer Web Knowledge to Robotic Control</h1>
+          <div class="paper-authors">
+            Anthony Brohan, Noah Brown, Justice Carbajal, Yevgen Chebotar, Xi Chen, Krzysztof Choromanski ·
+            Chelsea Finn · Pete Florence · Karol Hausman · Alexander Herzog · Sergey Levine · Karl Pertsch ·
+            Pannag Sanketi · Quan Vuong · Ted Xiao · and many others
+          </div>
+          <div class="paper-badges">
+            <span class="badge badge-green">VLA 开山之作</span>
+            <span class="badge badge-blue">55B 参数</span>
+            <span class="badge badge-amber">Google DeepMind</span>
+            <span class="badge">闭源</span>
+          </div>
+        </div>
+
+        <!-- ============================== §1 TL;DR ============================== -->
+        <div class="section" id="tldr">
+          <div class="section-num">§ 01</div>
+          <h2>一句话总结</h2>
+
+          <div class="cn-read">
+            <div class="cn-label">这篇论文在做什么</div>
+            <p>RT-2 第一次证明了一个<strong>惊人的简单想法</strong>：把大规模<span class="term" data-en="vision-language model">视觉-语言模型</span>（PaLI-X 55B / PaLM-E 12B）直接微调，让它输出的"文字"不是自然语言，而是<strong>机器人动作的离散编码</strong>。就这么一改，模型就能直接控制机器人——而且继承了 VLM 从数十亿网页学到的语义理解、推理、甚至数学能力。</p>
+            <p>类比：如果 VLM 是一个读过全世界书的大脑，RT-2 的贡献是<strong>给这个大脑接上了手</strong>——让"理解世界"的能力直接变成"操控世界"的能力。</p>
+          </div>
+
+          <!-- Fig 1: Overview -->
+          <div class="fig-interactive panel-below">
+            <div class="fig-block">
+              <div class="hotspot-wrap" data-hotspot-group="fig1">
+                <img src="../assets/figures/rt2/fig-1.png" alt="Figure 1: RT-2 overview">
+                <div class="hotspot" data-id="f1-web" style="left:12%; top:25%;"
+                     data-title="Internet 数据 · VQA + Captions"
+                     data-body="原始 VLM 的训练数据：视觉问答、图片描述、多语言文本。这些数据给模型带来了语义理解和推理能力——RT-2 的秘密武器"></div>
+                <div class="hotspot" data-id="f1-robot" style="left:12%; top:72%;"
+                     data-title="Robot Action Data"
+                     data-body="13 个 Google Robot 在办公室厨房收集 17 个月的操作轨迹。格式：图像 + 指令 → 8 个整数（动作 token）。数据量远少于 web 数据"></div>
+                <div class="hotspot" data-id="f1-cofine" style="left:42%; top:80%;"
+                     data-title="Co-Fine-Tune · 关键"
+                     data-body="不是只用 robot 数据微调——而是把 web 数据和 robot 数据混在一起训练。这样模型在学动作的同时不会忘掉语义知识。这是 RT-2 最重要的 training trick"></div>
+                <div class="hotspot" data-id="f1-rt2" style="left:45%; top:25%;"
+                     data-title="RT-2 · VLA Model"
+                     data-body="核心：一个大型 VLM（PaLI-X 55B 或 PaLM-E 12B），输入是图像+指令文本，输出既能是自然语言也能是动作 token——取决于 prompt 格式"></div>
+                <div class="hotspot" data-id="f1-detok" style="left:48%; top:60%;"
+                     data-title="De-Tokenize · 解码动作"
+                     data-body="把模型输出的整数序列（如 '1 128 91 241 5 101 127'）还原为连续动作值：6DoF 位姿 + 夹爪 + 终止信号 = 8 维"></div>
+                <div class="hotspot" data-id="f1-deploy" style="left:75%; top:25%;"
+                     data-title="闭环部署 · Closed-Loop"
+                     data-body="推理在多 TPU 云服务上运行（55B 太大无法本地跑），通过网络流式传输动作。PaLI-X-55B 跑 1-3Hz，PaLI-X-5B 跑 ~5Hz"></div>
+                <div class="hotspot" data-id="f1-emerge" style="left:75%; top:60%;"
+                     data-title="涌现能力 · Emergent"
+                     data-body="RT-2 展现出 robot 数据中从未出现过的能力：理解符号（'move to 3'）、数学推理（'sum of two plus one'）、人类识别（'person with glasses'）"></div>
+              </div>
+              <div class="fig-cap">
+                <span class="fig-num">Fig 1 · p.2</span>
+                RT-2 overview: robot actions as another language, co-fine-tuned with web-scale VQA data.
+                <span class="fig-cn">RT-2 总览：把动作表示为文本 token，与 Internet VQA 数据一起 co-fine-tune</span>
+              </div>
+            </div>
+            <div class="hotspot-panel"></div>
+          </div>
+        </div>
+
+        <!-- ============================== §2 Core Idea ============================== -->
+        <div class="section" id="idea-vlm2vla">
+          <div class="section-num">§ 02</div>
+          <h2>核心思路</h2>
+
+          <div class="cn-read">
+            <div class="cn-label">承上 · 一个简单到不可思议的想法</div>
+            <p>上一节看到了 RT-2 的全貌。现在拆开看它的核心洞察——其实就三句话：(1) VLM 已经会看图说话了；(2) 机器人动作可以写成一串数字；(3) 那就让 VLM "说"动作数字就行了。</p>
+          </div>
+
+          <h3>2.1 VLM → VLA：从说话到做事</h3>
+
+          <details class="en-quote">
+            <summary>展开原文 · 核心 insight</summary>
+            <div class="quote-body">
+              <p>"We explore an approach that is both simple and surprisingly effective: we directly train vision-language models designed for open-vocabulary visual question answering and visual dialogue to output low-level robot actions, along with solving other Internet-scale vision-language tasks."</p>
+              <div class="quote-cite">— §1, p.2</div>
+            </div>
+          </details>
+
+          <div class="callout">
+            <div class="callout-label">为什么这么做</div>
+            <p>2023 年之前，把 VLM 用在机器人上的主流思路是<strong>分层</strong>：VLM 做高层规划（"先拿杯子"），低层控制器做执行。问题是：低层控制器没有 Internet 预训练的语义先验，泛化能力差。</p>
+            <p>RT-2 的革命性在于：<strong>取消分层，直接端到端</strong>。VLM 不只是"大脑"，它同时也是"脊髓"——直接输出低层 Cartesian 动作。</p>
+          </div>
+
+          <div id="idea-action-token">
+            <h3>2.2 动作 = Token</h3>
+          </div>
+
+          <div class="cn-read">
+            <div class="cn-label">怎么让 VLM 说"动作语言"</div>
+            <p>机器人动作空间：6DoF 末端位移 + 夹爪开合 + 终止信号 = <strong>8 维</strong>。每个连续维度被均匀切成 <strong>256 个 bin</strong>。这样一个动作就变成 8 个整数，比如 <code>"1 128 91 241 5 101 127"</code>。</p>
+          </div>
+
+          <div class="callout amber">
+            <div class="callout-label">Token 映射方式因 VLM 而异</div>
+            <p><strong>PaLI-X</strong>：整数 0-999 各有自己的 token（vocabulary 里已有），所以 action bin 直接映射到对应整数 token。</p>
+            <p><strong>PaLM-E</strong>：没有现成的整数 token。解法和后来的 OpenVLA 一样——<strong>覆盖 vocabulary 中最不常用的 256 个 token</strong>。</p>
+            <p>动作字符串拼接格式：<code>"terminate Δpos_x Δpos_y Δpos_z Δrot_x Δrot_y Δrot_z gripper_extension"</code></p>
+          </div>
+
+          <div id="idea-cofine">
+            <h3>2.3 Co-Fine-Tuning · 最重要的训练决定</h3>
+          </div>
+
+          <div class="cn-read">
+            <div class="cn-label">为什么不能只用 robot 数据微调</div>
+            <p>如果只用 robot 数据微调 VLM，模型会<strong>灾难性遗忘</strong>——忘掉从 Internet 学到的语义知识。RT-2 的解法是<span class="term" data-en="co-fine-tuning">共同微调</span>：<strong>每个 batch 同时包含 web VQA 数据和 robot 动作数据</strong>，通过增大 robot 数据的采样权重来平衡。</p>
+          </div>
+
+          <details class="en-quote">
+            <summary>展开原文 · Co-fine-tuning</summary>
+            <div class="quote-body">
+              <p>"A key technical detail of the training recipe that improves robot performance is <em>co-fine-tuning</em> robotics data with the original web data instead of naïve finetuning on robot data only. We notice that co-fine-tuning leads to more generalizable policies since the policies are exposed to both abstract visual concepts from web scale data and low level robot actions during fine-tuning."</p>
+              <div class="quote-cite">— §3.2, p.6</div>
+            </div>
+          </details>
+
+          <div class="quiz"
+               data-correct="b"
+               data-explain="Co-fine-tuning 是 RT-2 最关键的训练技巧。如果只用 robot 数据微调，模型会灾难性遗忘 Internet 知识；如果只预训练不微调，模型不会输出动作。Co-fine-tuning 让两类数据混在一个 batch 里同时学。参见 §3.2 p.6 和 §4.3 ablation"
+               data-explain-wrong="从头训练 55B 模型在 robot 数据上效果极差（ablation 证明了）；只用 robot 数据微调会遗忘 Internet 知识；Diffusion head 是 π₀ 的做法，RT-2 用的是 token prediction。">
+            <div class="q-label">🧠 理解检查</div>
+            <div class="q-text">RT-2 怎么让 55B VLM 既能理解 Internet 概念，又能输出机器人动作？</div>
+            <div class="q-options">
+              <button class="q-opt" data-k="a">只用 robot 数据微调，然后冻结</button>
+              <button class="q-opt" data-k="b">Co-fine-tuning：每个 batch 混合 web VQA 数据 + robot 动作数据</button>
+              <button class="q-opt" data-k="c">在 VLM 后面接一个 Diffusion head</button>
+              <button class="q-opt" data-k="d">从头在 robot+web 数据上训练 55B 模型</button>
+            </div>
+            <div class="q-feedback"></div>
+          </div>
+        </div>
+
+        <!-- ============================== §3 Architecture ============================== -->
+        <div class="section" id="arch-backbone">
+          <div class="section-num">§ 03</div>
+          <h2>架构与训练</h2>
+
+          <div class="cn-read">
+            <div class="cn-label">承上 · 核心思路清楚了，看具体实现</div>
+            <p>上一节讲了三个核心决定：VLM 直接输出动作、动作离散化为 token、用 co-fine-tuning 保留 Internet 知识。这一节看具体用了哪些 VLM、训练细节、以及怎么做到实时推理。</p>
+          </div>
+
+          <h3>3.1 两个 VLM 骨干</h3>
+
+          <table class="kv-table">
+            <tr>
+              <td></td>
+              <td><strong>RT-2-PaLI-X</strong></td>
+              <td><strong>RT-2-PaLM-E</strong></td>
+            </tr>
+            <tr>
+              <td>基座 VLM</td>
+              <td>PaLI-X（Google，闭源）</td>
+              <td>PaLM-E（Google，闭源）</td>
+            </tr>
+            <tr>
+              <td>参数量</td>
+              <td>5B / <strong>55B</strong></td>
+              <td><strong>12B</strong></td>
+            </tr>
+            <tr>
+              <td>视觉编码器</td>
+              <td>ViT-22B</td>
+              <td>ViT-4B</td>
+            </tr>
+            <tr>
+              <td>语言模型</td>
+              <td>UL2 32B</td>
+              <td>PaLM 8B</td>
+            </tr>
+            <tr>
+              <td>预训练数据</td>
+              <td>主要视觉 VQA/Caption</td>
+              <td>混合 VQA + 语言 + 代码</td>
+            </tr>
+            <tr>
+              <td>Action token 映射</td>
+              <td>整数直接映射 (0-999 已有 token)</td>
+              <td>覆盖最不常用的 256 个 token</td>
+            </tr>
+            <tr>
+              <td>泛化强项</td>
+              <td>符号理解、人类识别</td>
+              <td>数学推理（得益于 PaLM 语言能力）</td>
+            </tr>
+          </table>
+
+          <div id="arch-tokenize">
+            <h3>3.2 动作离散化</h3>
+          </div>
+
+          <div class="callout blue">
+            <div class="callout-label">动作空间 · 8 维</div>
+            <p>
+              <strong>维度</strong>：6DoF 末端位移（Δx, Δy, Δz, Δroll, Δpitch, Δyaw）+ 夹爪开合 + 终止指令<br>
+              <strong>离散化</strong>：每维 256 bin，均匀分割<br>
+              <strong>输出格式</strong>：<code>"terminate Δpos_x Δpos_y Δpos_z Δrot_x Δrot_y Δrot_z gripper"</code><br>
+              <strong>示例</strong>：<code>"1 128 91 241 5 101 127"</code>（terminate=1 表示继续执行）
+            </p>
+          </div>
+
+          <div id="arch-constraint">
+            <h3>3.3 输出约束 · Output Constraint</h3>
+          </div>
+
+          <div class="cn-read">
+            <div class="cn-label">防止模型"说废话"</div>
+            <p>VLM 本来可以输出任意文本。但当 prompt 是 robot 任务格式时（<code>"Q: what action should the robot take to [task]? A:"</code>），必须确保输出<strong>只从 256 个动作 token 中采样</strong>。实现方式：在 decoding 时 mask 掉非动作 token 的 logits。</p>
+          </div>
+
+          <div id="arch-inference">
+            <h3>3.4 实时推理</h3>
+          </div>
+
+          <div class="callout amber">
+            <div class="callout-label">部署挑战 · 55B 怎么实时跑</div>
+            <p><strong>55B 模型无法在机器人本地 GPU 上运行</strong>。RT-2 的解法：部署在多 TPU 云服务上，机器人通过网络请求动作。</p>
+            <p>频率：RT-2-PaLI-X-55B → <strong>1-3 Hz</strong>；RT-2-PaLI-X-5B → <strong>~5 Hz</strong>。足以控制 Google 的移动操作机器人（非高频灵巧操作）。</p>
+          </div>
+        </div>
+
+        <!-- ============================== §4 Generalization ============================== -->
+        <div class="section" id="exp-seen">
+          <div class="section-num">§ 04</div>
+          <h2>泛化实验</h2>
+
+          <div class="cn-read">
+            <div class="cn-label">承上 · 能跑了，但泛化能力是关键</div>
+            <p>RT-2 的核心主张不是"能控制机器人"（RT-1 早就能），而是<strong>VLM 的 Internet 预训练带来了更强的泛化能力</strong>。这一节看 6000 次评测的结果：seen tasks、unseen objects/backgrounds/environments。</p>
+          </div>
+
+          <h3>4.1 Seen Tasks · 和 RT-1 打平</h3>
+
+          <p>在训练时见过的 200+ 任务上，RT-2 和 RT-1（35M 参数，从头训练）表现接近。这说明 VLM 预训练<strong>不损害</strong>已见任务的性能——但也没有明显提升。</p>
+
+          <div id="exp-unseen">
+            <h3>4.2 Unseen 泛化 · RT-2 碾压</h3>
+          </div>
+
+          <div class="fig-interactive panel-below">
+            <div class="fig-block">
+              <div class="hotspot-wrap" data-hotspot-group="fig4">
+                <img src="../assets/figures/rt2/fig-4.png" alt="Figure 4: Overall performance">
+                <div class="hotspot" data-id="f4-seen" style="left:12%; top:40%;"
+                     data-title="Seen Tasks · 训练内"
+                     data-body="RT-2 和 RT-1 差不多（约 75-80%）。VLM 预训练没有损害已见任务性能"></div>
+                <div class="hotspot" data-id="f4-objects" style="left:28%; top:30%;"
+                     data-title="Unseen Objects · 新物体"
+                     data-body="RT-2 (PaLI-X-55B) 约 60%，远超 RT-1 约 25%。VLM 从 Internet 学到了丰富的物体概念"></div>
+                <div class="hotspot" data-id="f4-bg" style="left:48%; top:30%;"
+                     data-title="Unseen Backgrounds · 新背景"
+                     data-body="RT-2 在更换桌面背景、变换光照后仍然稳定，远超 baseline。VLM 的视觉编码器见过数十亿图片的多样背景"></div>
+                <div class="hotspot" data-id="f4-env" style="left:62%; top:25%;"
+                     data-title="Unseen Environments · 新环境"
+                     data-body="从训练的厨房换到办公桌环境。RT-2 仍保持较高成功率，其他 baseline 几乎失败。这是 Internet 级泛化的体现"></div>
+                <div class="hotspot" data-id="f4-avg" style="left:80%; top:25%;"
+                     data-title="Unseen Average"
+                     data-body="RT-2 两个版本的 unseen 平均成功率约 55-60%，比 RT-1 和 VC-1 高约 2 倍，比 R3M 高约 6 倍"></div>
+              </div>
+              <div class="fig-cap">
+                <span class="fig-num">Fig 4 · p.8</span>
+                Overall performance of RT-2 and baselines across seen and unseen evaluations.
+                <span class="fig-cn">RT-2 在 seen tasks 与 RT-1 打平，但在所有 unseen 类别上碾压——平均高约 2 倍</span>
+              </div>
+            </div>
+            <div class="hotspot-panel"></div>
+          </div>
+
+          <div class="callout">
+            <div class="callout-label">关键结论</div>
+            <p>RT-2 vs baseline 的差距<strong>在 unseen 场景下最大</strong>。这精确证明了论文的核心主张：<strong>Internet 预训练带来的泛化能力可以直接迁移到机器人控制</strong>。不是让机器人学更多的 task，而是让它学更强的 representation。</p>
+          </div>
+        </div>
+
+        <!-- ============================== §5 Emergent ============================== -->
+        <div class="section" id="emerge-symbol">
+          <div class="section-num">§ 05</div>
+          <h2>涌现能力</h2>
+
+          <div class="cn-read">
+            <div class="cn-label">承上 · 比泛化更惊人的是涌现</div>
+            <p>上一节看到 RT-2 在 unseen 物体/背景/环境上泛化更好——这还算"预期之内"。但接下来的发现才是 RT-2 真正震撼学界的地方：模型展现出了<strong>robot 数据中从未出现过的能力</strong>。这些能力纯粹来自 Internet 预训练——作者称之为<span class="term" data-en="emergent capabilities">涌现能力</span>。</p>
+          </div>
+
+          <!-- Fig 2: Emergent capabilities -->
+          <div class="fig-block">
+            <img src="../assets/figures/rt2/fig-2.png" alt="Figure 2: Emergent capabilities examples">
+            <div class="fig-cap">
+              <span class="fig-num">Fig 2 · p.5</span>
+              RT-2 emergent capabilities: symbol understanding, reasoning, human recognition.
+              <span class="fig-cn">RT-2 涌现能力示例：这些任务在 robot 数据中从未出现过</span>
+            </div>
+          </div>
+
+          <h3>5.1 符号理解 · Symbol Understanding</h3>
+
+          <div class="cn-read">
+            <div class="cn-label">robot 数据里没有"3"这个概念</div>
+            <p>指令：<code>"move apple to 3"</code>——robot 训练数据中从未出现过数字概念。但 RT-2 能把苹果放到写有数字 3 的位置，因为 VLM 从 Internet 学过"3 长什么样"。</p>
+            <p>更惊人的：<code>"place orange in matching bowl"</code>——模型理解颜色匹配的概念，把橙色水果放进橙色碗里。</p>
+          </div>
+
+          <div id="emerge-reason">
+            <h3>5.2 推理 · Reasoning</h3>
+          </div>
+
+          <div class="cn-read">
+            <div class="cn-label">机器人会做数学了？</div>
+            <p>指令：<code>"move banana to the sum of two plus one"</code>——模型先"算出"答案是 3，然后把香蕉移到数字 3 的位置。这个推理过程来自 PaLM 的数学能力（PaLM-E 版在数学推理上更强）。</p>
+            <p>其他推理示例：<code>"move the apple to the cup with the same color"</code>（颜色推理）、<code>"mueve la manzana al vaso verde"</code>（多语言理解）。</p>
+          </div>
+
+          <div id="emerge-human">
+            <h3>5.3 人类识别 · Human Recognition</h3>
+          </div>
+
+          <div class="cn-read">
+            <div class="cn-label">认人 + 做事</div>
+            <p>指令：<code>"move the coke can to the person with glasses"</code>——模型需要 (1) 识别场景中戴眼镜的人，(2) 把可乐移到那个方向。robot 数据中从未有过"识别人类属性"的任务。</p>
+          </div>
+
+          <!-- Fig 6a: Emergent quantitative -->
+          <div class="fig-interactive panel-below">
+            <div class="fig-block">
+              <div class="hotspot-wrap" data-hotspot-group="fig6">
+                <img src="../assets/figures/rt2/fig-6.png" alt="Figure 6: Emergent skills quantitative + ablations">
+                <div class="hotspot" data-id="f6-symbol" style="left:10%; top:40%;"
+                     data-title="Symbol Understanding"
+                     data-body="RT-2-PaLI-X-55B 约 75%，RT-1 接近 0%。最大的差距——RT-1 完全不理解符号概念"></div>
+                <div class="hotspot" data-id="f6-reason" style="left:18%; top:35%;"
+                     data-title="Reasoning"
+                     data-body="RT-2-PaLM-E-12B 在 reasoning 上反而更强——因为 PaLM 的语言/数学推理能力比视觉为主的 PaLI-X 更强"></div>
+                <div class="hotspot" data-id="f6-avg" style="left:34%; top:30%;"
+                     data-title="Average"
+                     data-body="RT-2-PaLI-X-55B 平均成功率约 65%，比最好的 baseline (RT-1 约 20%) 高 3 倍以上"></div>
+                <div class="hotspot" data-id="f6-scratch" style="left:62%; top:55%;"
+                     data-title="Scratch · 从头训练"
+                     data-body="红色柱：从头在 robot 数据上训 5B/55B，效果极差——甚至 5B 接近 0%。证明了 VLM 预训练是不可替代的"></div>
+                <div class="hotspot" data-id="f6-ft" style="left:70%; top:40%;"
+                     data-title="Fine-Tuned vs Co-Fine-Tuned"
+                     data-body="绿色=co-fine-tune，浅绿=fine-tune only。Co-fine-tune 在所有 unseen 类别上一致更好——保留了 Internet 知识"></div>
+                <div class="hotspot" data-id="f6-size" style="left:82%; top:30%;"
+                     data-title="55B > 5B"
+                     data-body="55B co-fine-tune 是所有配置中最强的。更大的模型 + co-fine-tuning = 最强泛化"></div>
+              </div>
+              <div class="fig-cap">
+                <span class="fig-num">Fig 6 · p.10</span>
+                (a) Emergent skill quantitative evaluation. (b) Ablations: parameter count + training strategy.
+                <span class="fig-cn">左：涌现能力量化评测，RT-2 领先 baseline 3 倍以上。右：消融实验，co-fine-tune + 大模型 = 最强</span>
+              </div>
+            </div>
+            <div class="hotspot-panel"></div>
+          </div>
+
+          <div class="quiz"
+               data-correct="c"
+               data-explain="RT-2 的涌现能力来自 VLM 的 Internet 预训练。符号理解来自 VLM 在 VQA 任务中学过的视觉概念，数学推理来自 PaLM 语言模型，人类识别来自 Internet 图像中的人脸/属性识别。这些能力通过 co-fine-tuning 保留到了 VLA 中。参见 §4.2 p.9"
+               data-explain-wrong="RT-1 的 robot 数据中没有数字/颜色匹配/人物识别任务；reinforcement learning 在 RT-2 中完全没用到；从头训练的 55B 模型在涌现任务上接近 0%。">
+            <div class="q-label">🧠 理解检查</div>
+            <div class="q-text">"move banana to the sum of two plus one"——RT-2 能执行这个指令。这个能力从哪来？</div>
+            <div class="q-options">
+              <button class="q-opt" data-k="a">Robot 训练数据中有类似的数学指令</button>
+              <button class="q-opt" data-k="b">模型在 RL 探索中偶然发现了数学推理</button>
+              <button class="q-opt" data-k="c">来自 VLM 的 Internet 预训练（PaLM 的数学能力），通过 co-fine-tuning 保留</button>
+              <button class="q-opt" data-k="d">从头训练 55B 模型时自动涌现</button>
+            </div>
+            <div class="q-feedback"></div>
+          </div>
+        </div>
+
+        <!-- ============================== §6 Ablations ============================== -->
+        <div class="section" id="ablation-size">
+          <div class="section-num">§ 06</div>
+          <h2>消融实验</h2>
+
+          <div class="cn-read">
+            <div class="cn-label">承上 · 哪些因素真正重要</div>
+            <p>前面看到 RT-2 效果好，但是因为模型大？因为 co-fine-tuning？还是因为 VLM 预训练？这一节的消融实验精确回答了这些问题。</p>
+          </div>
+
+          <h3>6.1 模型大小的影响</h3>
+
+          <div class="cn-read">
+            <div class="cn-label">更大 = 更好（但不是决定性的）</div>
+            <p>PaLI-X-55B vs PaLI-X-5B：55B 在 unseen 泛化上一致更好，但差距不算巨大。<strong>关键不在大小，而在有没有 VLM 预训练</strong>——从头训练的 5B 几乎完全失败。</p>
+          </div>
+
+          <div id="ablation-cofine">
+            <h3>6.2 Co-Fine-Tuning vs Fine-Tuning vs Scratch</h3>
+          </div>
+
+          <div class="module-grid">
+            <div class="module-card">
+              <div class="module-card-name">SCRATCH · 从头训练</div>
+              <div class="module-card-title">几乎完全失败</div>
+              <div class="module-card-desc">5B 从头训 → unseen 接近 0%。55B 从头训 → 也非常差。结论：没有 VLM 预训练，再大的模型也不行。</div>
+            </div>
+            <div class="module-card">
+              <div class="module-card-name">FINE-TUNE · 只用 robot 数据</div>
+              <div class="module-card-title">可以，但不够好</div>
+              <div class="module-card-desc">有 VLM 预训练的底子，只用 robot 数据微调也能工作。但泛化能力弱于 co-fine-tune——灾难性遗忘。</div>
+            </div>
+            <div class="module-card">
+              <div class="module-card-name">CO-FINE-TUNE · 混合数据</div>
+              <div class="module-card-title">最佳方案</div>
+              <div class="module-card-desc">Web + Robot 数据混合训练。所有 unseen 类别上一致最好。代价：训练慢一些（多了 web 数据的 forward pass）。</div>
+            </div>
+            <div class="module-card">
+              <div class="module-card-name">TAKEAWAY · 核心结论</div>
+              <div class="module-card-title">预训练 > 模型大小</div>
+              <div class="module-card-desc">5B + co-fine-tune >> 55B + scratch。VLM 预训练是不可替代的——它不是"锦上添花"，而是"从无到有"。</div>
+            </div>
+          </div>
+        </div>
+
+        <!-- ============================== §7 Chain-of-Thought ============================== -->
+        <div class="section" id="cot">
+          <div class="section-num">§ 07</div>
+          <h2>Chain-of-Thought</h2>
+
+          <div class="cn-read">
+            <div class="cn-label">承上 · 能不能让机器人"先想再做"</div>
+            <p>前面看到 RT-2 已经能做推理任务（"move to the sum of two plus one"）。但那是 implicit reasoning——模型内部隐式推理。这一节 RT-2 团队尝试了<strong>显式推理</strong>：让模型先输出一段自然语言"计划"（Plan），再输出动作 token（Action）。</p>
+          </div>
+
+          <div class="fig-block">
+            <img src="../assets/figures/rt2/fig-7.png" alt="Figure 7: Chain-of-thought rollouts">
+            <div class="fig-cap">
+              <span class="fig-num">Fig 7 · p.11</span>
+              RT-2 with chain-of-thought: model generates both a Plan and an Action.
+              <span class="fig-cn">Chain-of-Thought 示例：模型先输出 Plan（自然语言），再输出 Action（动作 token）</span>
+            </div>
+          </div>
+
+          <div class="callout">
+            <div class="callout-label">怎么实现 CoT</div>
+            <p><strong>训练数据增强</strong>：在动作数据中加入 "Plan" 字段。例如：</p>
+            <p><code>Instruction: I'm hungry. → Plan: pick rxbar chocolate. Action: 1 128 124 136 121 158 111 255.</code></p>
+            <p>只需要微调几百步，模型就能学会先输出计划再输出动作。</p>
+          </div>
+
+          <div class="callout blue">
+            <div class="callout-label">CoT 的意义</div>
+            <p>这个实验虽然是初步探索，但它暗示了一个重要方向：<strong>VLA 可以同时做高层规划和低层控制</strong>，在一个统一的模型中。这正是后来 SayCan → PaLM-E → π₀.₇ 的 diverse prompting 所延续的思路。</p>
+          </div>
+        </div>
+
+        <!-- ============================== §8 Limitations + Compare ============================== -->
+        <div class="section" id="limit">
+          <div class="section-num">§ 08</div>
+          <h2>局限性 & RT-2 → OpenVLA → π₀</h2>
+
+          <div class="cn-read">
+            <div class="cn-label">承上 · RT-2 的遗产和局限</div>
+            <p>RT-2 是 VLA 的开山之作，但它也有明显的结构性局限——每一个都催生了后续工作的改进方向。</p>
+          </div>
+
+          <div class="module-grid">
+            <div class="module-card">
+              <div class="module-card-name">LIMITATION · 闭源</div>
+              <div class="module-card-title">PaLI-X / PaLM-E 不公开</div>
+              <div class="module-card-desc">权重、代码、训练细节全部闭源。社区无法复现、无法微调。→ <strong>OpenVLA</strong> 用开源 Prismatic-7B 解决。</div>
+            </div>
+            <div class="module-card">
+              <div class="module-card-name">LIMITATION · 新运动不会</div>
+              <div class="module-card-title">只迁移语义，不迁移物理技能</div>
+              <div class="module-card-desc">Internet 预训练带来语义泛化（认识新物体），但不带来新的物理运动技能——模型仍然只会 pick-and-place。→ <strong>π₀</strong> 通过更丰富的灵巧操作数据突破。</div>
+            </div>
+            <div class="module-card">
+              <div class="module-card-name">LIMITATION · 推理速度</div>
+              <div class="module-card-title">55B 需要 TPU 云</div>
+              <div class="module-card-desc">不能在机器人本地运行，实时控制受网络延迟影响。1-3Hz 对灵巧操作远远不够。→ <strong>OpenVLA</strong> 7B + 4-bit 量化在本地 GPU 跑 3-6Hz。</div>
+            </div>
+            <div class="module-card">
+              <div class="module-card-name">LIMITATION · 离散动作精度</div>
+              <div class="module-card-title">256 bin 不够精细</div>
+              <div class="module-card-desc">和 OpenVLA 一样的 256 bin 离散化。精细操作需要更高精度。→ <strong>π₀</strong> 用 Flow Matching 输出连续动作，精度无上限。</div>
+            </div>
+          </div>
+
+          <div id="vs-openvla">
+            <h3>8.2 RT-2 → OpenVLA → π₀ 的演进</h3>
+          </div>
+
+          <table class="kv-table">
+            <tr>
+              <td></td>
+              <td><strong>RT-2 (2023)</strong></td>
+              <td><strong>OpenVLA (2024)</strong></td>
+              <td><strong>π₀ (2024)</strong></td>
+            </tr>
+            <tr>
+              <td>核心贡献</td>
+              <td>证明 VLM→VLA 可行</td>
+              <td>开源 + fine-tuning 生态</td>
+              <td>连续动作 + 灵巧操作</td>
+            </tr>
+            <tr>
+              <td>参数量</td>
+              <td>55B (闭源)</td>
+              <td>7B (开源)</td>
+              <td>3B+860M (部分开源)</td>
+            </tr>
+            <tr>
+              <td>动作表示</td>
+              <td>离散 token</td>
+              <td>离散 token</td>
+              <td>连续 (Flow Matching)</td>
+            </tr>
+            <tr>
+              <td>Co-fine-tuning</td>
+              <td>✅ VLM 预训练 + robot</td>
+              <td>❌ 只用 robot 微调</td>
+              <td>✅ 两阶段 (discrete pre + flow post)</td>
+            </tr>
+            <tr>
+              <td>语义泛化</td>
+              <td>最强（co-FT 保留 Internet 知识）</td>
+              <td>弱于 RT-2（无 co-FT）</td>
+              <td>中等（PaliGemma 底子）</td>
+            </tr>
+            <tr>
+              <td>灵巧操作</td>
+              <td>❌ 只能 pick-and-place</td>
+              <td>❌ 只能 pick-and-place</td>
+              <td>✅ 折叠、擦桌、双臂</td>
+            </tr>
+            <tr>
+              <td>可部署性</td>
+              <td>❌ 需要 TPU 云</td>
+              <td>✅ 单 GPU + 量化</td>
+              <td>✅ 优化推理</td>
+            </tr>
+          </table>
+
+          <div class="callout blue">
+            <div class="callout-label">你的知识地图</div>
+            <p>到这里，你已经理解了 VLA 的完整技术演进：</p>
+            <p><strong>RT-2</strong>（提出 VLM→VLA 范式 + co-fine-tuning）→ <strong>OpenVLA</strong>（开源化 + fine-tuning 最佳实践）→ <strong>π₀ 系列</strong>（Flow Matching 连续动作 + 灵巧操作 + diverse prompting）。</p>
+            <p>三篇论文是同一条技术主线的三个阶段：<strong>概念验证 → 开源平民化 → 性能突破</strong>。</p>
+          </div>
+
+          <div class="quiz"
+               data-correct="a"
+               data-explain="OpenVLA 不使用 co-fine-tuning（只用 robot 数据微调 Prismatic VLM），这是它在 semantic generalization 类别上弱于 RT-2 的主要原因（OpenVLA Fig 3: RT-2-X 38.8% > OpenVLA 36.3%）。RT-2 的 co-fine-tuning 让模型在学 robot 动作的同时保留了 Internet 语义知识。"
+               data-explain-wrong="OpenVLA 的视觉编码器（SigLIP+DINOv2 融合）实际上比 RT-2 的更好；两者都用离散 token；OpenVLA 用了更多数据（970k vs 350k），整体更强。唯一 RT-2 赢的点就是 co-fine-tuning 保留的语义泛化。">
+            <div class="q-label">🧠 理解检查</div>
+            <div class="q-text">OpenVLA (7B) 在 29 个任务上整体超过 RT-2-X (55B)，但在"语义泛化"上输了。为什么？</div>
+            <div class="q-options">
+              <button class="q-opt" data-k="a">OpenVLA 没有 co-fine-tuning，robot-only 微调导致 Internet 语义知识部分遗忘</button>
+              <button class="q-opt" data-k="b">OpenVLA 的视觉编码器比 PaLI-X 差</button>
+              <button class="q-opt" data-k="c">OpenVLA 参数量更小所以语义理解更弱</button>
+              <button class="q-opt" data-k="d">OpenVLA 的训练数据中缺少语义相关的任务</button>
+            </div>
+            <div class="q-feedback"></div>
+          </div>
+        </div>
+
+      </main>
+    </div><!-- /docs-layout -->
+  </div><!-- /page -->
+</body>
+</html>

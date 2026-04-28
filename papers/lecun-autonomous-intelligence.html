@@ -8,10 +8,14 @@
   <script src="../assets/js/theme.js"></script>
   <script src="../assets/js/interactive.js" defer></script>
   <script src="https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.min.js"></script>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16/dist/katex.min.css">
+  <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16/dist/katex.min.js"></script>
+  <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16/dist/contrib/auto-render.min.js"
+          onload="renderMathInElement(document.body,{delimiters:[{left:'$$',right:'$$',display:true},{left:'$',right:'$',display:false}]})"></script>
 </head>
 <body>
   <nav class="nav">
-    <a class="nav-logo" href="../index.html">~/paper-notes</a>
+    <a class="nav-logo" href="../index.html">Paper Notes</a>
     <div class="nav-links">
       <a href="../index.html">← 返回首页</a>
       <a href="../pdfs/world-model/lecun-autonomous-intelligence.pdf" target="_blank">📄 PDF</a>
@@ -449,13 +453,42 @@
           <div class="fe-label">🔍 怎么看这张图</div>
           <p><strong>关键观察：和 Fig 3 比，World Model 现在被"复制"了 T 份沿着时间排开。</strong>这不是真的有 T 个网络，而是<strong>同一个 Pred 在时间步 0, 1, ..., T 上展开</strong>（unroll），就像 RNN 的 BPTT 那样。</p>
           <ol>
-            <li>左边：<code>x</code> → <code>Enc(x)</code> → <code>s[0]</code>，编码器只用一次</li>
-            <li>底部：Actor 提议<strong>整条动作序列</strong> <code>a[0], a[1], ..., a[T−1]</code>（注意每个 a[t] 都是一个独立的可优化变量）</li>
-            <li>中间链条：<code>Pred(s[t], a[t]) → s[t+1]</code>，递归往前推，预测出整条状态轨迹</li>
-            <li>顶部红块：每一步算 <code>C(s[t])</code>，加起来 <code>F(x) = ∑ C(s[t])</code>——这就是这条动作序列的<strong>总能量</strong></li>
+            <li>左边：$x \to \mathrm{Enc}(x) \to s[0]$，编码器只用一次</li>
+            <li>底部：Actor 提议<strong>整条动作序列</strong> $a[0], a[1], \dots, a[T-1]$（注意每个 $a[t]$ 都是一个独立的可优化变量）</li>
+            <li>中间链条：$\mathrm{Pred}(s[t], a[t]) \to s[t+1]$，递归往前推，预测出整条状态轨迹</li>
+            <li>顶部红块：每一步算 $C(s[t])$，加起来就是这条动作序列的<strong>总能量</strong></li>
           </ol>
-          <p><strong>整张图就是一张可导的计算图。</strong>沿着图反向传播 ∂F/∂a[t]，就能用梯度下降<strong>在动作空间里做优化</strong>，找到让总能量最小的那条动作序列。这就是"反向传播来规划"——和 BP 训练神经网络是同一种数学操作，只不过这次更新的不是权重，而是<strong>动作变量本身</strong>。</p>
-          <p><strong>为什么叫 receding horizon：</strong>找到最优 <code>â[0…T]</code> 后只执行 <code>â[0]</code>，下一时刻重新感知重新规划。永远只看未来 T 步，但每步都重新算。</p>
+        </div>
+
+        <div class="math-block">
+          $$F\big(x;\, a[0{:}T]\big) \;=\; \sum_{t=0}^{T} C\!\left(\,s[t]\,\right), \qquad s[t+1] = \mathrm{Pred}\!\left(\,s[t],\; a[t]\,\right),\; s[0] = \mathrm{Enc}(x)$$
+          <span class="math-label">Mode-2 总能量 = 沿 rollout 累计代价</span>
+        </div>
+
+        <div class="math-block">
+          $$\hat a[0{:}T] \;=\; \mathop{\arg\min}\limits_{a[0{:}T]} F\big(x;\, a[0{:}T]\big), \qquad \text{执行 } \hat a[0]\text{（receding horizon）}$$
+          <span class="math-label">规划 = 在动作变量上反向传播</span>
+        </div>
+
+        <div class="math-explain">
+          <div class="me-title">逐项拆解 · 为什么这是"反向传播来规划"</div>
+          <dl>
+            <dt>$F(x;\, a[0{:}T])$</dt>
+            <dd><strong>整条动作序列的总能量</strong>——把 rollout 出来的每一步代价加起来。注意它是动作 $a[0{:}T]$ 的可微函数</dd>
+            <dt>$\nabla_{a[t]} F$</dt>
+            <dd>沿计算图反传得到的梯度。用它做梯度下降<strong>在动作空间里</strong>找最优——和训练神经网络是同一种数学操作，只不过更新的不是权重，是<strong>动作变量本身</strong></dd>
+            <dt>$\hat a[0]$（执行第一步）</dt>
+            <dd>规划得到 $T$ 步最优，但<strong>只执行第一步</strong>，下一时刻重新感知重新规划——这就是控制论里的 <strong>Model-Predictive Control（MPC）+ receding horizon</strong></dd>
+            <dt>对比经典 MPC</dt>
+            <dd>区别在于：这里的 $\mathrm{Pred}, C$ 都是<strong>学到的、可微的</strong>神经网络，不是手写的物理模型 + cost</dd>
+          </dl>
+        </div>
+
+        <p>用 §2.6 训练好的 Critic $\mathrm{TC}$ 替换部分 rollout，可以截断到 $T' < T$ 步：</p>
+
+        <div class="math-block">
+          $$F_{\text{trunc}}\big(x;\, a[0{:}T']\big) \;=\; \sum_{t=0}^{T'} C\!\left(s[t]\right) \;+\; \mathrm{TC}\!\left(s[T']\right)$$
+          <span class="math-label">用 Critic 截断长 rollout · §3.3 思路</span>
         </div>
 
         <h4>Mode-2 七步流程（论文原文）</h4>
@@ -543,12 +576,29 @@
           <div class="fe-label">🔍 怎么看这张图</div>
           <p><strong>底部那个 <code>s</code> 是输入</strong>（当前状态），扇形分发给上面所有的子模块。整张图说的就是一件事：<strong>"代价"不是单一标量，而是一堆子代价的加权和</strong>。</p>
           <ul>
-            <li><strong>左半（IC）</strong>：内禀代价子模块 <code>IC₁, IC₂, ..., IC_k</code>，<strong>每个对应一种"先天本能"</strong>——疼、饿、跌倒、靠近危险、好奇心⋯ <strong>权重 <code>uᵢ</code></strong> 把它们线性组合成 <code>IC(s) = Σ uᵢ·ICᵢ(s)</code></li>
-            <li><strong>右半（TC）</strong>：可训练的评论家子模块 <code>TC₁, ..., TC_l</code>，每个学着预测某种"未来代价"，权重 <code>vⱼ</code> 组合成 <code>TC(s) = Σ vⱼ·TCⱼ(s)</code></li>
-            <li><strong>顶上的总和</strong>：<code>C(s) = IC(s) + TC(s)</code> 就是最终的总能量</li>
+            <li><strong>左半（IC）</strong>：内禀代价子模块 $\mathrm{IC}_1, \mathrm{IC}_2, \dots, \mathrm{IC}_k$，<strong>每个对应一种"先天本能"</strong>——疼、饿、跌倒、靠近危险、好奇心⋯ <strong>权重 $u_i$</strong> 把它们线性组合</li>
+            <li><strong>右半（TC）</strong>：可训练的评论家子模块 $\mathrm{TC}_1, \dots, \mathrm{TC}_l$，每个学着预测某种"未来代价"，权重 $v_j$ 组合</li>
+            <li><strong>顶上的总和</strong>：$C(s) = \mathrm{IC}(s) + \mathrm{TC}(s)$ 就是最终的总能量</li>
           </ul>
-          <p><strong>关键设计：u 和 v 由 Configurator 动态设置。</strong>这就解释了为什么"同一个智能体"能在不同任务下行为完全不同——任务 A 时 Configurator 把"找食物"的权重调高，任务 B 时把"避开人群"的权重调高。<strong>智能体本身没变，权重在变。</strong></p>
-          <p><strong>类比生物学：</strong>IC 类似杏仁核（amygdala）固化的本能反应（看到蛇就怕），TC 类似学习而来的情感联想（被某品牌坑过下次见到就警惕）。两者加起来构成行为驱动力。</p>
+        </div>
+
+        <div class="math-block">
+          $$\mathrm{IC}(s) \;=\; \sum_{i=1}^{k} u_i \cdot \mathrm{IC}_i(s), \qquad \mathrm{TC}(s) \;=\; \sum_{j=1}^{l} v_j \cdot \mathrm{TC}_j(s), \qquad C(s) \;=\; \mathrm{IC}(s) + \mathrm{TC}(s)$$
+          <span class="math-label">Cost 模块的加权聚合 · §3.2, p.13</span>
+        </div>
+
+        <div class="math-explain">
+          <div class="me-title">逐项拆解</div>
+          <dl>
+            <dt>$\mathrm{IC}_i(s)$（先天 / 不可训练）</dt>
+            <dd>"硬编码"的内禀代价子模块。例：站立时输出 0、跌倒时输出 1（学走路）；新情境时输出小值（好奇心）；附近人开心时输出小值（共情）</dd>
+            <dt>$\mathrm{TC}_j(s)$（学习 / 可训练）</dt>
+            <dd>用 §2.6 的方法训练，从 $s$ 一步预测<strong>未来某种代价</strong>。把"几步之后才发生的麻烦"折叠到当前状态，避免 Mode-2 真去 rollout 几十步</dd>
+            <dt>$u_i, v_j$ 由 <strong>Configurator 动态设置</strong></dt>
+            <dd>这就解释了"同一个智能体在不同任务下行为完全不同"——智能体没变，<strong>权重在变</strong>。任务 A 时把"找食物"权重调高；任务 B 时把"避开人群"权重调高</dd>
+            <dt>类比 · 生物学</dt>
+            <dd>$\mathrm{IC}$ 类似<strong>杏仁核</strong>固化的本能反应（看到蛇就怕）；$\mathrm{TC}$ 类似学习而来的情感联想（被某品牌坑过下次见到就警惕）</dd>
+          </dl>
         </div>
 
         <h4>Intrinsic Cost 设计举例（论文给的 use case）</h4>
@@ -627,12 +677,31 @@
         <details class="en-quote">
           <summary>展开原文 · Critic 训练目标</summary>
           <div class="quote-body">
-            "The parameters of the critic can be optimized to minimize a prediction loss, for example
-            ‖IC(s_{τ+δ}) − TC(s_τ)‖². This is a simple scenario. ... At a general level, this is
-            similar to critic training methods used in such reinforcement learning approaches as A2C."
+            <p>"The parameters of the critic can be optimized to minimize a prediction loss, for example
+            $\|\mathrm{IC}(s_{\tau+\delta}) - \mathrm{TC}(s_\tau)\|^2$. This is a simple scenario. ... At a general level, this is
+            similar to critic training methods used in such reinforcement learning approaches as A2C."</p>
             <div class="quote-cite">— §3.3, p.15</div>
           </div>
         </details>
+
+        <div class="math-block">
+          $$\mathcal{L}_{\text{critic}} \;=\; \mathbb{E}_{(\tau,\, s_\tau,\, s_{\tau+\delta}) \sim \mathcal{M}}\!\left[\, \big\| \mathrm{IC}(s_{\tau+\delta}) \;-\; \mathrm{TC}(s_\tau) \big\|^2 \,\right]$$
+          <span class="math-label">Critic 训练损失 · §3.3, p.15</span>
+        </div>
+
+        <div class="math-explain">
+          <div class="me-title">逐项拆解</div>
+          <dl>
+            <dt>$\mathrm{IC}(s_{\tau+\delta})$</dt>
+            <dd><strong>真实发生</strong>的内禀代价（Intrinsic Cost）——智能体走到 $\tau+\delta$ 时刻时<strong>当时</strong>算出来、并写进短期记忆的标签</dd>
+            <dt>$\mathrm{TC}(s_\tau)$</dt>
+            <dd>可训练评论家（Trainable Critic）<strong>仅基于当前状态 $s_\tau$</strong> 给出的<strong>未来代价预测</strong>——它没有真去 rollout，只看 $s_\tau$ 一眼就预测 $\delta$ 步后的代价</dd>
+            <dt>$\mathcal{M}$</dt>
+            <dd>关联式短期记忆（associative short-term memory），存了一堆 $(\tau,\, s_\tau,\, \mathrm{IC}(s_\tau))$ 三元组。训练时从中检索一对 $(s_\tau,\, \mathrm{IC}(s_{\tau+\delta}))$</dd>
+            <dt>整体直觉</dt>
+            <dd>这就是 actor-critic RL 里的 critic，但把"reward"换成"内禀代价"。训好后规划时<strong>不必真把 World Model 跑 $\delta$ 步</strong>——直接用 $\mathrm{TC}$ 一步估算未来代价，省掉 Mode-2 的大量算力</dd>
+          </dl>
+        </div>
 
         <!-- ═════════════════════════════════════════════════ -->
         <h2 id="arch-mermaid">本节小结：信号流图</h2>
@@ -751,9 +820,33 @@ flowchart LR
           </p>
           <p>
             这个"看不见但决定结果"的信息就叫<strong>潜变量 z</strong>（latent variable）。
-            引入 z 后能量变成 <code>E(x, y, z)</code>，推理时对 z 取最小：<code>F(x, y) = min_z E(x, y, z)</code>。
+            引入 z 后能量变成 $E_w(x, y, z)$，推理时对 z 取最小。
             用白话讲：<strong>"对 (x, y) 打分时，先假设我们猜到了最合理的 z，然后算那个 z 下的能量"</strong>。
           </p>
+        </div>
+
+        <div class="math-block">
+          $$\check z \;=\; \mathop{\arg\min}\limits_{z \in \mathcal{Z}} \; E_w(x,\, y,\, z)$$
+          <span class="math-label">Eq. 4 · 推理：先找最合理的 z</span>
+        </div>
+
+        <div class="math-block">
+          $$F_w(x,\, y) \;=\; \min_{z \in \mathcal{Z}} \; E_w(x,\, y,\, z) \;=\; E_w(x,\, y,\, \check z)$$
+          <span class="math-label">Eq. 5 · 把 z 消掉后的"零温度自由能"</span>
+        </div>
+
+        <div class="math-explain">
+          <div class="me-title">逐项拆解</div>
+          <dl>
+            <dt>$E_w(x, y, z)$</dt>
+            <dd>带潜变量的<strong>显式能量函数</strong>，由参数 $w$ 决定（一个深网）。三个输入：观测 $x$、被预测部分 $y$、潜变量 $z$</dd>
+            <dt>$\mathcal{Z}$</dt>
+            <dd>$z$ 的取值集合（可以是离散 K 元、低维流形、稀疏向量等）。<strong>$\mathcal{Z}$ 越大，模型越容易坍缩</strong>——下一节就说这个</dd>
+            <dt>$\check z$</dt>
+            <dd>对当前 $(x, y)$ 来说<strong>最合理的潜变量值</strong>。在岔路口例子里，"左转/右转"这两个候选 z 里更让 $(x, y)$ 兼容的那个</dd>
+            <dt>$F_w(x, y)$</dt>
+            <dd>消掉 z 之后的能量函数——只依赖 $(x, y)$。论文叫它 <em>zero-temperature free energy</em>（零温度自由能），但用起来跟普通 EBM 一样</dd>
+          </dl>
         </div>
 
         <div class="fig-interactive">
@@ -945,34 +1038,70 @@ flowchart LR
 
         <h4 style="margin-top:22px;">② 对比式（contrastive）loss 的具体长相</h4>
 
-        <p>核心形式：<strong>H(F_w(x,y), F_w(x,ŷ), m(y,ŷ))</strong>——对第一项递增、对第二项递减（在 margin m 之内）。三个典型实例：</p>
+        <p>核心形式（Eq 6）：对正样本能量 $F_w(x,y)$ 递增、对反例能量 $F_w(x,\hat y)$ 递减——只要后者还没比前者高出 margin $m(y, \hat y)$ 就继续推。三个典型实例：</p>
 
-        <div class="callout" style="margin: 14px 0;">
-          <div class="callout-label">① 三元组 hinge loss（Eq 7）</div>
-          <pre style="font-family:var(--font-mono); font-size:14px; line-height:1.6; margin:8px 0 10px; white-space:pre-wrap;">L(w, x, y, ŷ)  =  [ F_w(x, y) − F_w(x, ŷ) + μ · ‖y − ŷ‖² ]₊</pre>
-          <ul style="margin:0; padding-left:18px;">
-            <li><code>[·]₊</code> = max(·, 0)</li>
-            <li><code>μ · ‖y − ŷ‖²</code> 是<strong>距离相关 margin</strong>——ŷ 离 y 越远，要求能量被拉得越高</li>
-            <li>效果：能量至少随 y 到数据流形的距离<strong>平方增长</strong></li>
-          </ul>
+        <div class="math-block">
+          $$L(w,\, x,\, y,\, \hat y) \;=\; H\!\left(\, F_w(x, y),\; F_w(x, \hat y),\; m(y, \hat y) \,\right)$$
+          <span class="math-label">Eq. 6 · 通用对比 loss · §4.3, p.22</span>
         </div>
 
-        <div class="callout" style="margin: 14px 0;">
-          <div class="callout-label">② 多反例形式（Eq 8）</div>
-          <pre style="font-family:var(--font-mono); font-size:14px; line-height:1.6; margin:8px 0 10px; white-space:pre-wrap;">L(w, x, y, ŷ[1], …, ŷ[K])  =  H( F_w(x, y),  F_w(x, ŷ[1]),  …,  F_w(x, ŷ[K]) )</pre>
-          <ul style="margin:0; padding-left:18px;">
-            <li>对第 1 项<strong>递增</strong>（压低正样本能量）</li>
-            <li>对其余 K 项<strong>递减</strong>（抬高反例能量）</li>
-          </ul>
+        <h5 style="margin-top:18px;">① 三元组 hinge loss</h5>
+
+        <div class="math-block">
+          $$L(w,\, x,\, y,\, \hat y) \;=\; \Big[\, F_w(x, y) \;-\; F_w(x, \hat y) \;+\; \mu\,\|y - \hat y\|^2 \,\Big]_+$$
+          <span class="math-label">Eq. 7 · distance-dependent hinge loss · §4.3, p.22</span>
         </div>
 
-        <div class="callout" style="margin: 14px 0;">
-          <div class="callout-label">③ InfoNCE（Eq 9）—— SimCLR / MoCo / CPC 的通用形式</div>
-          <pre style="font-family:var(--font-mono); font-size:14px; line-height:1.6; margin:8px 0 10px; white-space:pre-wrap;">L  =  F_w(x, y)  +  log[ exp(−F_w(x, y))  +  Σₖ exp(−F_w(x, ŷ[k])) ]</pre>
-          <ul style="margin:0; padding-left:18px;">
-            <li>等价于"在 {正样本 y, 反例 ŷ[1..K]} 里做 softmax 分类"，目标让正样本得分最高</li>
-            <li>K 越大、能量地形塑形越稳——但 K 也是对比方法算力瓶颈的来源</li>
-          </ul>
+        <div class="math-explain">
+          <div class="me-title">逐项拆解</div>
+          <dl>
+            <dt>$[\,a\,]_+$</dt>
+            <dd>$\max(a, 0)$——只在"正样本能量还没比反例低足够多"时才贡献梯度，已经达标就不再推</dd>
+            <dt>$F_w(x, y) - F_w(x, \hat y)$</dt>
+            <dd><strong>能量差</strong>。要让正样本能量低于反例：这一项越负越好</dd>
+            <dt>$\mu \, \|y - \hat y\|^2$</dt>
+            <dd><strong>距离相关 margin</strong>——$\hat y$ 离 $y$ 越远，要求能量被拉得越高。$\mu$ 控制 margin 增长速率</dd>
+            <dt>整体效果</dt>
+            <dd>训练好的能量函数在远离数据流形时<strong>至少以距离平方的速度增长</strong>，能量地形不会变平</dd>
+          </dl>
+        </div>
+
+        <h5 style="margin-top:18px;">② 多反例形式</h5>
+
+        <div class="math-block">
+          $$L(w,\, x,\, y,\, \hat y[1],\, \dots,\, \hat y[K]) \;=\; H\!\left(\, F_w(x, y),\; F_w(x, \hat y[1]),\; \dots,\; F_w(x, \hat y[K]) \,\right)$$
+          <span class="math-label">Eq. 8 · 多反例广义形式 · §4.3, p.23</span>
+        </div>
+
+        <div class="math-explain">
+          <div class="me-title">逐项拆解</div>
+          <dl>
+            <dt>$\hat y[1], \dots, \hat y[K]$</dt>
+            <dd>$K$ 个<strong>反例</strong>。$K$ 越大，"压平能量地形的方向"越多，但算力也越贵</dd>
+            <dt>$H(\cdot)$</dt>
+            <dd>对第一项<strong>递增</strong>（压低正样本能量）、对后面 $K$ 项<strong>递减</strong>（抬高反例能量）的标量函数</dd>
+          </dl>
+        </div>
+
+        <h5 style="margin-top:18px;">③ InfoNCE —— SimCLR / MoCo / CPC 的通用形式</h5>
+
+        <div class="math-block">
+          $$L(w,\, x,\, y,\, \hat y[1],\, \dots,\, \hat y[K]) \;=\; F_w(x, y) \;+\; \log\!\Bigg[\, \exp\!\big(-F_w(x, y)\big) \;+\; \sum_{k=1}^{K} \exp\!\big(-F_w(x, \hat y[k])\big) \,\Bigg]$$
+          <span class="math-label">Eq. 9 · InfoNCE · §4.3, p.23</span>
+        </div>
+
+        <div class="math-explain">
+          <div class="me-title">逐项拆解 · 它和 softmax 的关系</div>
+          <dl>
+            <dt>$F_w(x, y)$（首项）</dt>
+            <dd>正样本能量。loss 直接对它<strong>线性递增</strong>——压低这一项是第一目标</dd>
+            <dt>$\log[\exp(-F) + \sum_k \exp(-F_k)]$</dt>
+            <dd>把"用 $-F$ 当 logit"做 softmax 后取 $-\log p_{\text{正}}$。读作："正样本在 $\{y, \hat y[1], \dots, \hat y[K]\}$ 里被分类为正样本的负对数似然"</dd>
+            <dt>整体直觉</dt>
+            <dd>InfoNCE = 把 EBM 训练变成 <strong>(K+1) 选 1 的 softmax 分类</strong>——目标让正样本得分（$-F_w$）在所有候选里最高</dd>
+            <dt>K 的作用</dt>
+            <dd>$K$ 越大、能量地形塑形越稳——但 $K$ 也是 SimCLR/MoCo 这类方法<strong>算力瓶颈</strong>的来源（要存大批负样本）</dd>
+          </dl>
         </div>
 
         <div class="callout blue">
@@ -1140,9 +1269,42 @@ flowchart LR
             </div>
             <div class="sw-step" data-hotspot="d">
               <h4>第 5 步：算能量</h4>
-              <p>能量 = <code>D(s_y, ŝ_y)</code>，两个向量在抽象空间里的距离。训练时对 z 取最小：<code>F(x, y) = min_z D(s_y, Pred(s_x, z))</code>。这个距离越小，说明 x 和 y 在抽象意义上越"兼容"。</p>
+              <p>能量 = $D(s_y, \tilde s_y)$，两个向量在抽象空间里的距离。训练时对 $z$ 取最小（见下面 Eq 10–12）。这个距离越小，说明 x 和 y 在抽象意义上越"兼容"。</p>
             </div>
           </div>
+        </div>
+
+        <h4 style="margin-top:22px;">JEPA 的能量函数（论文 Eq 10–12）</h4>
+
+        <p>把 §3.2 的 LV-EBM 代到 JEPA 架构里——能量直接用<strong>抽象空间距离</strong> $D$ 写出来：</p>
+
+        <div class="math-block">
+          $$E_w(x,\, y,\, z) \;=\; D\!\left(\, s_y,\; \mathrm{Pred}(s_x,\, z) \,\right)$$
+          <span class="math-label">Eq. 10 · JEPA 能量 = 抽象空间预测误差</span>
+        </div>
+
+        <div class="math-block">
+          $$\check z \;=\; \mathop{\arg\min}\limits_{z \in \mathcal{Z}}\, E_w(x,\, y,\, z) \;=\; \mathop{\arg\min}\limits_{z \in \mathcal{Z}} D\!\left(\, s_y,\; \mathrm{Pred}(s_x,\, z) \,\right)$$
+          <span class="math-label">Eq. 11 · 推理时找最佳 z</span>
+        </div>
+
+        <div class="math-block">
+          $$F_w(x,\, y) \;=\; \min_{z \in \mathcal{Z}} E_w(x,\, y,\, z) \;=\; D\!\left(\, s_y,\; \mathrm{Pred}(s_x,\, \check z) \,\right)$$
+          <span class="math-label">Eq. 12 · 消掉 z 后的能量</span>
+        </div>
+
+        <div class="math-explain">
+          <div class="me-title">逐项拆解 · JEPA 和 LV-EBM 的对应</div>
+          <dl>
+            <dt>$s_x = \mathrm{Enc}(x)$，$s_y = \mathrm{Enc}(y)$</dt>
+            <dd>两个 encoder 的输出。<strong>注意</strong>：Enc_x 和 Enc_y 不要求同架构、不共享参数——这让 $x, y$ 可以是完全不同模态（视频 / 音频）</dd>
+            <dt>$\mathrm{Pred}(s_x, z)$</dt>
+            <dd>预测器。它的输出 $\tilde s_y$ <strong>在抽象空间</strong>（不是像素），这是 JEPA 跟生成式架构最本质的差别——encoder 有权丢掉不可预测的细节</dd>
+            <dt>$D(\cdot, \cdot)$</dt>
+            <dd>抽象空间的距离度量（最常用 $\|\cdot\|^2$）。$D$ 越小 = $x, y$ 越兼容</dd>
+            <dt>$\mathcal{Z}$ 的多模态意义</dt>
+            <dd>当 $z$ 在 $\mathcal{Z}$ 上变化时，$\mathrm{Pred}(s_x, \mathcal{Z}) = \{\tilde s_y = \mathrm{Pred}(s_x, z) \mid z \in \mathcal{Z}\}$ 给出<strong>一组可能预测</strong>——这就是 JEPA 表达"一对多"未来的方式</dd>
+          </dl>
         </div>
 
         <div class="module-grid">
@@ -1258,10 +1420,33 @@ flowchart LR
           <summary>展开原文 · 四条准则合力防坍缩</summary>
           <div class="quote-body">
             <p>"Criteria 1, 2, and 4 collectively prevent a collapse of the energy function."</p>
-            <p>"This type of collapse can be understood with the following thought experiment. Imagine that z has the same dimension as s_y. [...] For any s_y it is possible to set ẑ = s_y, which would make the energy D(s_y, s̃_y) zero. This corresponds to a totally flat and collapsed energy surface."</p>
+            <p>"This type of collapse can be understood with the following thought experiment. Imagine that z has the same dimension as $s_y$. [...] For any $s_y$ it is possible to set $\check z = s_y$, which would make the energy $D(s_y, \tilde s_y)$ zero. This corresponds to a totally flat and collapsed energy surface."</p>
             <div class="quote-cite">— §4.5, p.26–27</div>
           </div>
         </details>
+
+        <h4 style="margin-top:18px;">准则 4 怎么落地：稀疏正则的例子</h4>
+
+        <p>论文 §4.5 p.27 给了一个最简单的实例：用 $L_1$ 正则把 $z$ 推向稀疏，从而限制它的信息量。</p>
+
+        <div class="math-block">
+          $$R(z) \;=\; \alpha \sum_{i=1}^{d} |\,z_i\,|$$
+          <span class="math-label">$L_1$ 稀疏正则 · §4.5, p.27</span>
+        </div>
+
+        <div class="math-explain">
+          <div class="me-title">逐项拆解</div>
+          <dl>
+            <dt>$\alpha$</dt>
+            <dd>正则强度。$\alpha$ 越大，$\check z$ 越稀疏（更多维度被压成 0），低能量区"体积"越小</dd>
+            <dt>$|z_i|$（$L_1$ 范数）</dt>
+            <dd>对每一维取绝对值后求和——经典稀疏编码（sparse coding）正则。和 $L_2$ 比，$L_1$ 倾向于把<strong>整维</strong>压成 0 而不是均匀缩小</dd>
+            <dt>限制信息量的其它方法</dt>
+            <dd>论文 §4.5 列了 4 类：<strong>discretization</strong>（VQ-VAE，$z$ 取离散 K 值）、<strong>低维 / 低秩</strong>（IRM-AE，$z$ 在 $d$ 维流形）、<strong>稀疏化</strong>（如本式或 LISTA）、<strong>加噪</strong>（VAE 让 $z$ 是随机采样）</dd>
+            <dt>对应 §3.4b 那张表</dt>
+            <dd>架构 (b) 生成式潜变量的<strong>正则方向</strong>就是这条——限制 $\mathcal{Z}$ 的容量</dd>
+          </dl>
+        </div>
 
         <div class="callout blue">
           <div class="callout-label">💡 类比</div>
@@ -1329,9 +1514,83 @@ flowchart LR
           <div class="callout-label">VIC 三个字母</div>
           <ul>
             <li><strong>V · Variance</strong>：每维 v 的标准差 ≥ 一个阈值（hinge loss）。防止某维退化成常数。</li>
-            <li><strong>I · Invariance</strong>：‖s_y − s̃_y‖²。x、y 通常是同一图的两种扰动，这一项逼表示对扰动不变。</li>
+            <li><strong>I · Invariance</strong>：$\|s_y - \tilde s_y\|^2$。x、y 通常是同一图的两种扰动，这一项逼表示对扰动不变。</li>
             <li><strong>C · Covariance</strong>：v 的非对角协方差压到 0。防止多维冗余（n 维表示只编码了 1 个方向的信息）。</li>
           </ul>
+        </div>
+
+        <h4 style="margin-top:22px;">VICReg 三项 loss 显式写出来</h4>
+
+        <p>设一个 batch 大小 $N$，把 $s_y$ 升维到 $v_y \in \mathbb{R}^d$（$v_x$ 同理）。记 $\bar v_y = \frac{1}{N}\sum_n v_y^{(n)}$。三项 loss：</p>
+
+        <div class="math-block">
+          $$\mathcal{L}_{V}(v_y) \;=\; \frac{1}{d}\sum_{j=1}^{d} \max\!\left(\, 0,\; \gamma - \sqrt{\mathrm{Var}\big(v_{y,j}\big) + \epsilon}\, \right)$$
+          <span class="math-label">V · Variance（每维标准差 ≥ γ 的 hinge）</span>
+        </div>
+
+        <div class="math-explain">
+          <div class="me-title">逐项拆解 · V</div>
+          <dl>
+            <dt>$\mathrm{Var}(v_{y,j})$</dt>
+            <dd>第 $j$ 维在 batch 内的方差：$\frac{1}{N-1}\sum_n (v_{y,j}^{(n)} - \bar v_{y,j})^2$</dd>
+            <dt>$\gamma$（论文常取 1）</dt>
+            <dd>标准差<strong>下限阈值</strong>。某维如果退化成常数（std = 0），这一项立刻贡献 $\gamma$ 大小的 loss</dd>
+            <dt>$\epsilon$</dt>
+            <dd>防止开方时除零的小常数（如 $10^{-4}$）</dd>
+            <dt>整体直觉</dt>
+            <dd>"每一维都得有方差"——直接禁止<strong>informational collapse</strong>（准则 1+2）</dd>
+          </dl>
+        </div>
+
+        <div class="math-block">
+          $$\mathcal{L}_{C}(v_y) \;=\; \frac{1}{d}\sum_{i \neq j} \big[\,\mathrm{Cov}(v_y)\,\big]_{ij}^{2}, \qquad \mathrm{Cov}(v_y) \;=\; \frac{1}{N-1}\sum_{n=1}^{N}\big(v_y^{(n)} - \bar v_y\big)\big(v_y^{(n)} - \bar v_y\big)^\top$$
+          <span class="math-label">C · Covariance（非对角元素压到 0 = 各维去相关）</span>
+        </div>
+
+        <div class="math-explain">
+          <div class="me-title">逐项拆解 · C</div>
+          <dl>
+            <dt>$\mathrm{Cov}(v_y) \in \mathbb{R}^{d\times d}$</dt>
+            <dd>batch 内的协方差矩阵。<strong>对角线 = 各维方差</strong>（V 项管它），<strong>非对角线 = 维度间协方差</strong>（C 项压向 0）</dd>
+            <dt>$\sum_{i \neq j} [\cdot]_{ij}^2$</dt>
+            <dd>所有非对角元素平方求和——把整个 $\mathrm{Cov}$ 推向<strong>对角矩阵</strong>，等价于让各维度<strong>线性独立</strong></dd>
+            <dt>整体直觉</dt>
+            <dd>合上 V 项就是"协方差 → 单位阵 $I$"——这就是 Fig 14 里红框 $\mathrm{Cov}(v_y) \to I$ 的意思。各维携带<strong>不重复</strong>的信息，就近似实现了"信息量最大化"</dd>
+          </dl>
+        </div>
+
+        <div class="math-block">
+          $$\mathcal{L}_{I}(s_x, s_y) \;=\; \frac{1}{N}\sum_{n=1}^{N}\big\|\, s_y^{(n)} - \tilde s_y^{(n)} \,\big\|^2$$
+          <span class="math-label">I · Invariance（基础版：预测器 = 恒等，$\tilde s_y = s_x$）</span>
+        </div>
+
+        <div class="math-explain">
+          <div class="me-title">逐项拆解 · I</div>
+          <dl>
+            <dt>$\tilde s_y$</dt>
+            <dd>预测器对 $s_y$ 的预测。<strong>最简单的 VICReg</strong>：让预测器是恒等函数，即 $\tilde s_y = s_x$，这时 I 直接退化成 $\|s_y - s_x\|^2$</dd>
+            <dt>$x, y$ 是同一图的两种扰动</dt>
+            <dd>典型 SSL 设定：$x, y$ 是同一张图片的两个 augmented view。这一项强迫两个 view 的表示<strong>对扰动不变</strong></dd>
+            <dt>对应 §3.6 哪条准则</dt>
+            <dd>就是<strong>准则 3</strong>（$s_y$ 可从 $s_x$ 预测出来）</dd>
+          </dl>
+        </div>
+
+        <div class="math-block">
+          $$\mathcal{L}_{\text{VICReg}} \;=\; \lambda\,\mathcal{L}_{I}(s_x, s_y) \;+\; \mu\,\big[\,\mathcal{L}_{V}(v_x) + \mathcal{L}_{V}(v_y)\,\big] \;+\; \nu\,\big[\,\mathcal{L}_{C}(v_x) + \mathcal{L}_{C}(v_y)\,\big]$$
+          <span class="math-label">VICReg 总 loss · Bardes et al. 2021</span>
+        </div>
+
+        <div class="math-explain">
+          <div class="me-title">逐项拆解 · 总体</div>
+          <dl>
+            <dt>$\lambda, \mu, \nu$</dt>
+            <dd>三项的权重超参（Bardes 等人原版用 $\lambda = \mu = 25,\, \nu = 1$）</dd>
+            <dt>x 侧 / y 侧对称</dt>
+            <dd>V 和 C 都<strong>独立施加在 x 和 y 两侧</strong>。这就是 Fig 14 里左右两个红框的由来</dd>
+            <dt>跟 §3.6 四条准则的映射</dt>
+            <dd>V + C（双侧）≈ 准则 1 + 2（信息量最大化）；I = 准则 3（预测）；准则 4（限制 z）需要时另外加 $R(z)$ 项</dd>
+          </dl>
         </div>
 
         <details class="en-quote">

@@ -1,0 +1,956 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>π*₀.₆ · A VLA That Learns From Experience (RECAP)</title>
+  <link rel="stylesheet" href="../assets/css/style.css">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16/dist/katex.min.css">
+  <script src="../assets/js/theme.js"></script>
+  <script src="../assets/js/interactive.js" defer></script>
+  <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16/dist/katex.min.js"></script>
+  <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16/dist/contrib/auto-render.min.js"
+          onload="renderMathInElement(document.body,{delimiters:[{left:'$$',right:'$$',display:true},{left:'$',right:'$',display:false}]})"></script>
+</head>
+<body>
+  <nav class="nav">
+    <a class="nav-logo" href="../index.html">Paper Notes</a>
+    <div class="nav-links">
+      <a href="../index.html">← 返回首页</a>
+      <a href="../pdfs/vla/pi0.6.pdf" target="_blank">📄 PDF</a>
+      <a href="https://pi.website/blog/pistar06" target="_blank">🌐 Blog</a>
+    </div>
+  </nav>
+
+  <div class="page">
+    <div class="docs-layout">
+
+      <!-- ─── 左：章节树 ─── -->
+      <aside class="docs-sidebar-left">
+        <div class="ds-title">π*₀.₆ · RECAP</div>
+
+        <a class="ds-leaf-top" href="#motivation">§1 它在 π₀.₅ 之上多解决了什么</a>
+
+        <details open>
+          <summary>§2 三代关系 · π₀.₅ → π₀.₆ → π*₀.₆</summary>
+          <a class="ds-leaf" href="#lineage-table">2.1 三代差异对照表</a>
+          <a class="ds-leaf" href="#why-rl">2.2 为什么需要 RL · 模仿学习的天花板</a>
+        </details>
+
+        <details>
+          <summary>§3 RECAP 算法总览</summary>
+          <a class="ds-leaf" href="#fig1-overview">3.1 一张图看懂 RECAP（Fig 1）</a>
+          <a class="ds-leaf" href="#algorithm">3.2 三件子任务 · Algorithm 1</a>
+        </details>
+
+        <details>
+          <summary>§4 价值函数 · Value Function</summary>
+          <a class="ds-leaf" href="#vf-design">4.1 离散化 + 多任务 distributional VF</a>
+          <a class="ds-leaf" href="#vf-viz">4.2 VF 学到了什么（Fig 4）</a>
+        </details>
+
+        <details>
+          <summary>§5 优势条件策略提取</summary>
+          <a class="ds-leaf" href="#why-advcond">5.1 为什么不能直接 PPO / AWR</a>
+          <a class="ds-leaf" href="#advcond-math">5.2 优势条件的数学（Eq.2 / Eq.3）</a>
+          <a class="ds-leaf" href="#advcond-impl">5.3 工程实现 · "Advantage: positive" prompt</a>
+        </details>
+
+        <details>
+          <summary>§6 模型架构</summary>
+          <a class="ds-leaf" href="#arch-fig3">6.1 VLA + VF 联动（Fig 3）</a>
+          <a class="ds-leaf" href="#arch-pi06">6.2 π₀.₆ 相比 π₀.₅ 改了什么</a>
+        </details>
+
+        <details>
+          <summary>§7 任务 & 机器人</summary>
+          <a class="ds-leaf" href="#robot-fig5">7.1 双臂平台（Fig 5）</a>
+          <a class="ds-leaf" href="#tasks-fig6">7.2 三类任务（Fig 6）</a>
+        </details>
+
+        <details>
+          <summary>§8 实验结果</summary>
+          <a class="ds-leaf" href="#exp-throughput">8.1 吞吐量 + 成功率（Fig 7/8）</a>
+          <a class="ds-leaf" href="#exp-iter">8.2 迭代式提升（Fig 9/10）</a>
+          <a class="ds-leaf" href="#exp-vs">8.3 vs AWR / PPO（Fig 11）</a>
+          <a class="ds-leaf" href="#exp-failmode">8.4 移除特定失败模式（Fig 12）</a>
+        </details>
+
+        <a class="ds-leaf-top" href="#takeaway">§9 收获 · 局限 · 与 π₀.₅ 的对照</a>
+      </aside>
+
+      <!-- ─── 中：正文 ─── -->
+      <main class="docs-content">
+
+        <div class="docs-breadcrumb">
+          <a href="../index.html">paper-notes</a>
+          <span class="sep">/</span>
+          VLA
+          <span class="sep">/</span>
+          π*₀.₆ · 2025-11
+        </div>
+
+        <h1>π*₀.₆: a VLA That Learns From Experience</h1>
+        <p style="color:var(--text3); font-family:var(--font-mono); font-size:12px; margin-top:-12px;">
+          Physical Intelligence · arXiv 2511.14759 · 2025-11-19
+        </p>
+
+        <div class="cn-read">
+          <div class="cn-label">这篇笔记怎么读</div>
+          <p>
+            π*₀.₆ 不是又一个新架构——它是 π₀.₅ 的"<strong>实习医生升级</strong>"：
+            π₀.₅ 学会了怎么在新家干活（imitation learning），但<strong>不会从自己的失败里改进</strong>；
+            π*₀.₆ 加上了"<strong>从经验里学</strong>"的回路——叫 <strong>RECAP</strong>
+            （RL with Experience and Corrections via Advantage-conditioned Policies）。
+          </p>
+          <p style="margin-top:8px;">
+            阅读路径：先看 <strong>§2 三代关系</strong>（π₀.₅ / π₀.₆ / π*₀.₆ 三个名字别搞混），
+            再看 <strong>§3 RECAP 算法</strong>（一张 Fig 1 + 一张 Algorithm 1 总览），
+            <strong>§4–§5</strong> 是真正新的方法（distributional VF + 优势条件），
+            <strong>§7–§8</strong> 是真实场景结果（13 小时连续做咖啡、两小时折叠新衣服）。
+          </p>
+        </div>
+
+        <!-- ═════════════════════════════════════════════════ -->
+        <h2 id="motivation">§1 它在 π₀.₅ 之上多解决了什么</h2>
+
+        <div class="cn-read">
+          <div class="cn-label">这一节解决什么</div>
+          <p>
+            π₀.₅ 已经把"在新家 zero-shot 干活"做出来了——但论文里多数任务的<strong>成功率仍在 60–80%</strong>，
+            速度也比不过人类。本质问题是：<strong>纯模仿学习的天花板就是示教质量</strong>，
+            老师不会的、老师做错的，模型都学不到。
+            π*₀.₆ 直接面对下一个 open question——
+            <strong>VLA 能不能靠自己 deploy 时的经验持续提升？</strong>
+          </p>
+        </div>
+
+        <div class="callout">
+          <div class="callout-label">核心主张（Abstract）</div>
+          <p>
+            用 <strong>RECAP</strong> 训练的 π*₀.₆ 模型，可以在<strong>真实家里折叠各种衣物</strong>、
+            在<strong>真实工厂场景里组装纸箱</strong>、用<strong>专业意式咖啡机做双份 espresso</strong>。
+            最难的任务上，RECAP 让吞吐量翻倍以上，并把失败率<strong>大约减半</strong>。
+          </p>
+        </div>
+
+        <details class="en-quote">
+          <summary>展开原文 · Abstract 核心句</summary>
+          <div class="quote-body">
+            <p>"We present a general-purpose method, RL with Experience and Corrections via Advantage-conditioned Policies (RECAP), that provides for RL training of VLAs via advantage conditioning. Our method incorporates heterogeneous data into the self-improvement process, including demonstrations, data from on-policy collection, and expert teleoperated interventions provided during autonomous execution."</p>
+            <div class="quote-cite">— Abstract, p.1</div>
+          </div>
+        </details>
+
+        <div class="callout blue">
+          <div class="callout-label">类比 · 像不像 LLM 的 RLHF？</div>
+          <p>
+            LLM 的发展路径是：<strong>pre-train（读万卷书）→ SFT（学着回答）→ RLHF（按反馈改进）</strong>。
+            VLA 现在走的是同一条路：<strong>π₀（pre-train + flow matching）→ π₀.₅（co-train + 高层推理）→ π*₀.₆（RL from experience + corrections）</strong>。
+            RECAP 在 VLA 里的位置 ≈ RLHF 在 LLM 里的位置——都是<strong>把"行动后果"变成可优化的反馈</strong>。
+          </p>
+        </div>
+
+        <!-- ═════════════════════════════════════════════════ -->
+        <h2 id="lineage">§2 三代关系 · π₀.₅ → π₀.₆ → π*₀.₆</h2>
+
+        <div class="cn-read">
+          <div class="cn-label">这一节解决什么</div>
+          <p>
+            读这篇论文最容易混淆的就是<strong>三个名字</strong>：π₀.₅（旧）、π₀.₆（新基模型）、π*₀.₆（带 RL 的最终模型）。
+            上一节说了 RECAP 是"<strong>怎么学</strong>"；这一节先把"<strong>谁在学</strong>"和"<strong>从哪起步</strong>"搞清楚——
+            后面所有公式才有意义。
+          </p>
+        </div>
+
+        <h3 id="lineage-table" style="margin-top:24px;">2.1 三代差异对照</h3>
+
+        <table class="kv-table" style="margin-top:14px;">
+          <tr>
+            <td style="width:90px;"><strong>代际</strong></td>
+            <td style="width:30%;"><strong>π₀.₅（2025-04）</strong></td>
+            <td style="width:30%;"><strong>π₀.₆（2025-?, model card）</strong></td>
+            <td><strong>π*₀.₆（本论文）</strong></td>
+          </tr>
+          <tr>
+            <td>骨干 VLM</td>
+            <td>PaliGemma（SigLIP + Gemma 2.6B）</td>
+            <td><strong>SigLIP 400M + Gemma 3 4B</strong></td>
+            <td>同 π₀.₆</td>
+          </tr>
+          <tr>
+            <td>Action Expert</td>
+            <td>~300M flow matching</td>
+            <td><strong>860M</strong> flow matching</td>
+            <td>同 π₀.₆</td>
+          </tr>
+          <tr>
+            <td>训练范式</td>
+            <td>imitation learning（两阶段：discrete → flow）</td>
+            <td>同 π₀.₅（更大数据）</td>
+            <td><strong>+ offline RL · advantage conditioning</strong></td>
+          </tr>
+          <tr>
+            <td>额外条件</td>
+            <td>language + state + images</td>
+            <td>同 π₀.₅</td>
+            <td>+ <strong>"Advantage: positive/negative"</strong> 文本 token</td>
+          </tr>
+          <tr>
+            <td>数据来源</td>
+            <td>异质机器人 + web + 高层 subtask 标注</td>
+            <td>+ 更多机器人本体</td>
+            <td>+ <strong>autonomous rollouts</strong> + <strong>human interventions</strong></td>
+          </tr>
+          <tr>
+            <td>价值函数</td>
+            <td>无</td>
+            <td>无</td>
+            <td><strong>670M VLM 骨干 + 离散 distributional value head</strong></td>
+          </tr>
+          <tr>
+            <td>典型成果</td>
+            <td>新家 zero-shot 干 10–15 min</td>
+            <td>更强的基线（细节见 model card）</td>
+            <td><strong>13h 连续做 espresso · 工厂组装纸箱 · 折新衣物 2x throughput</strong></td>
+          </tr>
+        </table>
+
+        <div class="callout amber">
+          <div class="callout-label">命名约定</div>
+          <p>
+            带星号 <strong>π*</strong> 在论文里专指<strong>引入了 advantage conditioning 的版本</strong>——
+            没星号的 π₀.₆ 只是"更大的 π₀.₅"，不会做 RL。
+            后面所有方法章节谈的都是 π*₀.₆。
+          </p>
+        </div>
+
+        <h3 id="why-rl" style="margin-top:32px;">2.2 为什么需要 RL · 模仿学习的天花板</h3>
+
+        <div class="cn-read">
+          <div class="cn-label">承上启下</div>
+          <p>
+            §2.1 列了三代差异——但<strong>为什么</strong>非要在 π₀.₆ 头上再叠一层 RL？
+            这一小节给两个理由，下一章 §3 直接讲怎么做。
+          </p>
+        </div>
+
+        <table class="kv-table">
+          <tr>
+            <td style="width:120px;"><strong>问题</strong></td>
+            <td><strong>imitation learning 的硬伤</strong></td>
+          </tr>
+          <tr>
+            <td>compounding error</td>
+            <td>训练时只看到"<em>专家轨迹</em>"。一旦 deploy 时漂出训练分布，模型不知道怎么"<em>回到正轨</em>"——错误会沿时间累积（Ross & Bagnell 2011）。</td>
+          </tr>
+          <tr>
+            <td>速度 / 鲁棒性</td>
+            <td>模型最多<strong>复现示教质量</strong>。示教者本身慢、或经常犹豫，模型就学不到比示教者更快的执行。</td>
+          </tr>
+          <tr>
+            <td>失败模式无法定向修复</td>
+            <td>"<em>把 collar 折反了</em>" 这种特定失败，加再多示教也不一定覆盖到。RL 只要用<strong>含失败的 rollouts</strong>就能精准压制（见 §8.4 Fig 12）。</td>
+          </tr>
+        </table>
+
+        <div class="quiz"
+             data-correct="c"
+             data-explain="正确。π*₀.₆ 是 π₀.₆ + advantage conditioning 的 RL 版本，π₀.₆ 本身只是更大版本的 π₀.₅。RECAP 是训练方法，不是模型。"
+             data-explain-wrong="不对——π₀.₆ 没有 RL，它只是 π₀.₅ 的扩展版本（更大 VLM 骨干 + 更大 action expert）。RL 的是带星号的 π*₀.₆。">
+          <div class="q-label">🧠 理解检查</div>
+          <div class="q-text">下面哪一项把三代关系说对了？</div>
+          <div class="q-options">
+            <button class="q-opt" data-k="a">π₀.₅ 是模仿学习，π₀.₆ 是 RL，π*₀.₆ 是带 corrections 的版本</button>
+            <button class="q-opt" data-k="b">π*₀.₆ 是 π₀.₅ 的代号，π₀.₆ 是 RECAP 的别名</button>
+            <button class="q-opt" data-k="c">π₀.₆ 是 π₀.₅ 的更大版本（仍是 IL），π*₀.₆ 在 π₀.₆ 上加了 advantage conditioning 走 RL</button>
+            <button class="q-opt" data-k="d">三代用的都是同样的 PaliGemma 骨干，只是训练数据不同</button>
+          </div>
+          <div class="q-feedback"></div>
+        </div>
+
+        <!-- ═════════════════════════════════════════════════ -->
+        <h2 id="recap-overview">§3 RECAP 算法总览</h2>
+
+        <div class="cn-read">
+          <div class="cn-label">这一节解决什么</div>
+          <p>
+            §2 给出了"<em>需要 RL</em>"的动机。这一节用一张 Fig 1 + 一张 Algorithm 1
+            把 RECAP 的<strong>整套流水线</strong>讲完——后面 §4 / §5 只是放大它的两个核心齿轮。
+          </p>
+        </div>
+
+        <h3 id="fig1-overview" style="margin-top:24px;">3.1 一张图看懂 RECAP</h3>
+
+        <div class="fig-interactive panel-below">
+          <div class="fig-block">
+            <div class="hotspot-wrap" data-hotspot-group="fig1">
+              <img src="../assets/figures/pi06/fig-1.png" alt="Figure 1: RECAP overview">
+              <div class="hotspot" data-id="data" style="left:10%; top:50%;"
+                   data-title="左侧 · 异质数据来源"
+                   data-body="diverse robotics data（多机器人示教）+ sub-task commands（高层文本）+ multimodal web data（图文 VQA）。这一栏和 π₀.₅ 的 co-training 思路一样——RECAP 没改 pre-training 数据。"></div>
+              <div class="hotspot" data-id="vla" style="left:38%; top:30%;"
+                   data-title="中上 · π*₀.₆ VLA"
+                   data-body="主模型：high-level（文本 subtask）+ low-level（动作）+ action expert（860M flow matching 头）。新增的 advantage 输入用一个文本 token 喂进去（黄色框）。"></div>
+              <div class="hotspot" data-id="vf" style="left:38%; top:75%;"
+                   data-title="中下 · Value Function"
+                   data-body="独立的 670M VLM 骨干 + value head。预测每个状态的"还差几步成功"。VF 是 RECAP 的"老师"——它打分，advantage 才能算出来。"></div>
+              <div class="hotspot" data-id="rollouts" style="left:62%; top:55%;"
+                   data-title="中右 · Rollouts 闭环"
+                   data-body="部署的 VLA 在真机上跑 → 失败/成功被记录 → 人偶尔介入纠正 → 数据回流去更新 VF 和 policy。这就是 'experience' 的物理过程。"></div>
+              <div class="hotspot" data-id="tasks" style="left:88%; top:35%;"
+                   data-title="右侧 · 三大评测任务"
+                   data-body="assembling boxes（工厂场景）、making espresso drinks（咖啡机）、folding diverse laundry（11 类衣物）。都是长程 + 多步骤 + 形变物体。"></div>
+              <div class="hotspot" data-id="recap" style="left:62%; top:80%;"
+                   data-title="Recap 标签"
+                   data-body="把"VF 训练"和"VLA 微调"两步打包就是论文里反复出现的 'RECAP iteration'。Algorithm 1 第 7–9 行就是这个 loop。"></div>
+            </div>
+            <div class="fig-cap">
+              <span class="fig-num">Fig 1 · p.1</span>
+              RECAP enables training VLAs with reward feedback and interventions. Our system starts with a pre-trained VLA that incorporates advantage conditioning, allowing the model to learn effectively from real-world experience.
+              <span class="fig-cn">RECAP 的全景：左边喂数据，中间是 VLA + VF 双模型，右边是真机部署 + 人工干预，闭环回灌训练。</span>
+            </div>
+          </div>
+          <div class="hotspot-panel"></div>
+        </div>
+
+        <h3 id="algorithm" style="margin-top:32px;">3.2 三件子任务 · Algorithm 1</h3>
+
+        <div class="cn-read">
+          <div class="cn-label">先看伪代码再展开</div>
+          <p>
+            论文把 RECAP 切成<strong>三个可重复调用的子例程</strong>，循环 K 次。
+            每一次循环就是"<em>跑数据 → 训 VF → 训 policy</em>"——和 actor-critic 套路一样，
+            但<strong>policy 训练用的不是 policy gradient，是 supervised learning + advantage 条件</strong>。
+          </p>
+        </div>
+
+        <div class="callout">
+          <div class="callout-label">Algorithm 1 · 翻译版</div>
+          <pre style="background:var(--bg3); padding:16px; border-radius:8px; font-family:var(--font-mono); font-size:12px; line-height:1.65; overflow-x:auto;"><code>Require: 多任务示教数据集 D_demo
+
+# ─── Pre-training 阶段 ───
+1: 用 D_demo 训 V_pre                             # 价值函数预训练（Eq.1）
+2: 用 D_demo + V_pre 训 π_pre                     # 策略预训练（Eq.3）
+
+# ─── 对每个下游任务 ℓ 单独跑 ───
+3: 初始化任务阈值 ε_ℓ                              # 控制"什么算优势 > 0"
+4: 用任务示教 D_ℓ 微调 V_ℓ⁰（从 V_pre 开始）        # SFT 价值函数
+5: 用 D_ℓ + V_ℓ⁰ 微调 π_ℓ⁰（从 π_pre 开始）        # SFT 策略
+
+# ─── RECAP 迭代 K 次 ───
+6: for k = 1 to K do
+7:   用 π_ℓ^(k-1) 在真机上 rollout，加进 D_ℓ      # autonomous + interventions
+8:   用 D_ℓ 微调 V_ℓ^k                            # 重新训 VF
+9:   用 D_ℓ + V_ℓ^k 微调 π_ℓ^k                    # 重新训 policy
+10: end for</code></pre>
+        </div>
+
+        <div class="step-walker" data-hotspot-group="fig1">
+          <div class="sw-header">
+            <div class="sw-title">🪜 跟着 Algorithm 1 走一遍</div>
+            <div class="sw-controls">
+              <button class="sw-btn prev">◀</button>
+              <span class="sw-counter">1 / 5</span>
+              <button class="sw-btn next">▶</button>
+            </div>
+          </div>
+          <div class="sw-progress">
+            <div class="sw-dot"></div><div class="sw-dot"></div><div class="sw-dot"></div><div class="sw-dot"></div><div class="sw-dot"></div>
+          </div>
+          <div class="sw-body">
+            <div class="sw-step active" data-hotspot="data">
+              <h4>第 1 步：拿到 demo 数据</h4>
+              <p>D_demo 来自异质机器人 + web 多模态 + sub-task 标注（和 π₀.₅ 一样）。</p>
+            </div>
+            <div class="sw-step" data-hotspot="vf">
+              <h4>第 2 步：先把 V 训出来</h4>
+              <p>独立的 670M VLM + value head。Loss 是 Eq.1 的 cross-entropy on discretized returns。</p>
+            </div>
+            <div class="sw-step" data-hotspot="vla">
+              <h4>第 3 步：用 V 训 policy（pre-training 的 π_pre）</h4>
+              <p>Loss 是 Eq.3：log π(a|o,ℓ) + α·log π(a|I,o,ℓ)。<strong>I = 1{A(o,a) &gt; ε}</strong> 就是把"动作够不够好"压成 0/1。</p>
+            </div>
+            <div class="sw-step" data-hotspot="rollouts">
+              <h4>第 4 步：去真机跑，把 rollouts 加进数据集</h4>
+              <p>自主跑大部分 + 人偶尔介入纠正。介入数据强制标 I=True（人当然是好的）。</p>
+            </div>
+            <div class="sw-step" data-hotspot="recap">
+              <h4>第 5 步：循环 7–9 行</h4>
+              <p>实测 K=2（box assembly）就足够；laundry K=1 已接近饱和。每次循环 = 一次"实习 → 总结 → 再实习"。</p>
+            </div>
+          </div>
+        </div>
+
+        <div class="callout amber">
+          <div class="callout-label">和经典 RL 的关键差异</div>
+          <p>
+            没有 PPO、没有 REINFORCE、没有 policy gradient。
+            <strong>策略训练的损失始终是监督学习的 NLL</strong>——只是把"<em>这个动作好不好</em>"当成<strong>额外的 prompt</strong>喂进去。
+            训练时随机出现 positive / negative 两种条件；推理时永远 condition on positive，相当于 classifier-free guidance（CFG）的"开关"。
+          </p>
+        </div>
+
+        <!-- ═════════════════════════════════════════════════ -->
+        <h2 id="value-function">§4 价值函数 · Value Function</h2>
+
+        <div class="cn-read">
+          <div class="cn-label">这一节解决什么</div>
+          <p>
+            §3 把 RECAP 的整体框架讲完了——但<strong>"价值函数"和"优势函数"具体长什么样</strong>没说。
+            VF 是这套流水线里的"<em>裁判</em>"，VF 不准，advantage 就是噪声，policy 越训越糟。
+            这节回答：<strong>用什么 reward？怎么离散化？为什么用 distributional VF 而不是回归一个标量？</strong>
+          </p>
+        </div>
+
+        <h3 id="vf-design" style="margin-top:24px;">4.1 离散化 + 多任务 distributional VF</h3>
+
+        <div class="callout">
+          <div class="callout-label">Reward 定义（Eq.5）</div>
+          <div class="math-block" style="margin-top:8px;">
+            $$r_t = \begin{cases} 0 & \text{if } t = T \text{ and success} \\ -C_\text{fail} & \text{if } t = T \text{ and failure} \\ -1 & \text{otherwise} \end{cases}$$
+            <span class="math-label">论文 Eq.5 · 每一步扣 1，成功不罚，失败重罚</span>
+          </div>
+          <p style="margin-top:10px;">
+            一句话：<strong>每多走一步扣 1 分；成功不罚；失败重罚</strong>。
+            所以 V<sup>π</sup>(o) = "<em>从这里走到成功还要负多少步</em>"，归一化到 (-1, 0]。
+          </p>
+        </div>
+
+        <div class="callout blue">
+          <div class="callout-label">为什么不是 distributional regression？</div>
+          <p>
+            论文走 <strong>Bellemare 2017 distributional RL</strong> 的路线：把回报离散成 <strong>B = 201 个 bin</strong>，
+            VF 输出<strong>每个 bin 的概率</strong>，loss 是 cross-entropy。
+            连续回归一个 scalar 容易被极端值（fail 时的 -C<sub>fail</sub>）拖着不收敛；
+            分布预测对长尾稳定得多，并且天然给出 uncertainty。
+          </p>
+        </div>
+
+        <div class="callout">
+          <div class="callout-label">VF 训练损失（Eq.1）</div>
+          <div class="math-block" style="margin-top:8px;">
+            $$\min_\phi\ \mathbb{E}_{\tau \sim \mathcal{D}}\!\left[\,\sum_{o_t \in \tau}\ H\!\left(\,R^B_t(\tau),\ p_\phi(V \mid o_t, \ell)\,\right)\,\right]$$
+            <span class="math-label">论文 Eq.1 · distributional VF 训练 · MC 估计 + B-bin 交叉熵</span>
+          </div>
+
+          <div class="math-explain">
+            <div class="me-title">逐项拆解</div>
+            <dl>
+              <dt>$R^B_t(\tau)$</dt>
+              <dd>"从 $t$ 到轨迹结束的真实回报" 离散到 $B = 201$ 个 bin 的 one-hot 分布——<strong>这就是 ground truth</strong></dd>
+              <dt>$p_\phi(V \mid o_t, \ell)$</dt>
+              <dd>VF 网络输出的"V 值在 B 个 bin 上的概率分布"</dd>
+              <dt>$H(\cdot, \cdot)$</dt>
+              <dd>cross-entropy——拉近预测分布和 ground-truth one-hot</dd>
+              <dt>$\mathbb{E}_{\tau\sim\mathcal{D}}$</dt>
+              <dd><strong>Monte Carlo</strong> 估计：直接用整条轨迹的真实回报，不做 TD bootstrap</dd>
+            </dl>
+          </div>
+
+          <p style="margin-top:10px;">
+            论文承认这<strong>不如 off-policy Q-function 优秀</strong>，但<strong>简单稳定</strong>，未来工作可以换。
+          </p>
+        </div>
+
+        <h3 id="vf-viz" style="margin-top:32px;">4.2 VF 学到了什么（Fig 4）</h3>
+
+        <div class="fig-interactive">
+          <div class="fig-block">
+            <div class="hotspot-wrap" data-hotspot-group="fig4">
+              <img src="../assets/figures/pi06/fig-4.png" alt="Figure 4: Value function visualizations">
+              <div class="hotspot" data-id="left-task" style="left:25%; top:8%;"
+                   data-title="左 · 成功的折叠任务"
+                   data-body="折一件衣服，全程 ~180s。下方曲线是 VF 输出的 V 值（越接近 0 越接近成功）。"></div>
+              <div class="hotspot" data-id="left-drop" style="left:35%; top:75%;"
+                   data-title="红色 · V 突然下跌"
+                   data-body="对应"left arm swings up and crumples the folded shirt"——左臂把已经折好的衣服又揉乱了。VF 立刻识别"还要重折"，V 值掉下去。"></div>
+              <div class="hotspot" data-id="left-recover" style="left:48%; top:80%;"
+                   data-title="绿色 · V 回升"
+                   data-body="对应"recovers and folds"——模型恢复并完成折叠，V 重新爬向 0。"></div>
+              <div class="hotspot" data-id="right-task" style="left:80%; top:8%;"
+                   data-title="右 · 失败的取水滤芯任务"
+                   data-body="想从冰箱里取水滤芯但整体失败。VF 经历短暂的"开冰箱成功"小升，最终被罚到 -C_fail。"></div>
+              <div class="hotspot" data-id="right-spike" style="left:75%; top:65%;"
+                   data-title="绿色短升 · 局部小成功"
+                   data-body="对应"successfully opens fridge door"——这是子目标完成，V 短暂回升。证明 VF 能识别<strong>子任务进度</strong>而不只是终态。"></div>
+            </div>
+            <div class="fig-cap">
+              <span class="fig-num">Fig 4 · p.5</span>
+              We visualize the value function output on a folding task that finished successfully (left), and an unsuccessful example of a manipulation task (right). Red parts highlight a drop in value, green parts highlight value increases.
+              <span class="fig-cn">VF 不只是预测最终成败——它能逐帧识别"<em>这里走偏了</em>"和"<em>这里回到正轨了</em>"，这是 advantage 能 work 的前提。</span>
+            </div>
+          </div>
+          <div class="hotspot-panel"></div>
+        </div>
+
+        <!-- ═════════════════════════════════════════════════ -->
+        <h2 id="advantage-conditioning">§5 优势条件策略提取</h2>
+
+        <div class="cn-read">
+          <div class="cn-label">这一节解决什么</div>
+          <p>
+            §4 把"<em>裁判</em>"训出来了。下一个问题是：<strong>有了 V，怎么把策略变好？</strong>
+            正常 RL 的答案是 PPO / Q-learning——但 flow matching VLA 没有可计算的 log-likelihood，
+            那些方法都用不了。RECAP 用的是<strong>第三条路：把"动作好不好"当 prompt 的一部分</strong>。
+          </p>
+        </div>
+
+        <h3 id="why-advcond" style="margin-top:24px;">5.1 为什么不能直接 PPO / AWR</h3>
+
+        <table class="kv-table">
+          <tr>
+            <td style="width:120px;"><strong>方法</strong></td>
+            <td><strong>用在 flow matching VLA 上的硬伤</strong></td>
+          </tr>
+          <tr>
+            <td>PPO / REINFORCE</td>
+            <td>需要 <strong>log π(a|o)</strong>。Flow matching 是 ODE/SDE 形式，<strong>没有 closed-form likelihood</strong>。论文 Appendix D 给了一个用 single-step diffusion ELBO 的近似（PPO baseline），但实测<strong>不稳定且性能差</strong>（Fig 11）。</td>
+          </tr>
+          <tr>
+            <td>AWR（advantage-weighted regression）</td>
+            <td>对样本按 exp(A/β) 加权——<strong>负优势的样本权重 ≈ 0</strong>，等于扔掉一大半数据。VLA 训练成本极高，扔数据是奢侈。</td>
+          </tr>
+          <tr>
+            <td>RECAP（advantage conditioning）</td>
+            <td><strong>所有数据都参与 SL 训练</strong>，只是多个 binary 文本 token 标"好/坏"。推理时 condition on "好"——等价于 classifier-free guidance 的一种实现。</td>
+          </tr>
+        </table>
+
+        <h3 id="advcond-math" style="margin-top:32px;">5.2 优势条件的数学</h3>
+
+        <div class="callout">
+          <div class="callout-label">关键公式（Eq.2）</div>
+          <p>从经典 regularized RL 的闭式解出发，论文证明改进策略 π̂ 可以写成：</p>
+          <div class="math-block" style="margin-top:8px;">
+            $$\hat\pi(a \mid o, \ell)\ \propto\ \pi_\text{ref}(a \mid o, \ell)\ \cdot\ \left(\frac{\pi_\text{ref}(a \mid I, o, \ell)}{\pi_\text{ref}(a \mid o, \ell)}\right)^{\!\beta}$$
+            <span class="math-label">论文 Eq.2 · regularized RL 闭式解 · CFG 风格的策略改进</span>
+          </div>
+
+          <div class="math-explain">
+            <div class="me-title">逐项拆解</div>
+            <dl>
+              <dt>$I = \mathbb{1}\{A^{\pi_\text{ref}}(o, a, \ell) > \varepsilon_\ell\}$</dt>
+              <dd>binary 改进指示符——动作 $a$ 的优势是否超过阈值 $\varepsilon_\ell$</dd>
+              <dt>$\pi_\text{ref}(a \mid I, o, \ell)$</dt>
+              <dd>多 condition 一个 $I$ 的"打了好坏标签的"参考策略</dd>
+              <dt>$\beta = 1$</dt>
+              <dd>$\hat\pi = \pi_\text{ref}(a \mid I, o, \ell)$——<strong>直接 condition on $I=\text{True}$ 就是改进策略</strong></dd>
+              <dt>$\beta > 1$</dt>
+              <dd>进入 CFG（classifier-free guidance）模式，推理期"<em>放大</em>" advantage 信号</dd>
+            </dl>
+          </div>
+        </div>
+
+        <div class="callout">
+          <div class="callout-label">训练损失（Eq.3）</div>
+          <div class="math-block" style="margin-top:8px;">
+            $$\min_\theta\ \mathbb{E}_\mathcal{D}\!\left[\,-\log \pi_\theta(a \mid o, \ell)\ -\ \alpha \cdot \log \pi_\theta(a \mid I, o, \ell)\,\right], \qquad I = \mathbb{1}\{A > \varepsilon\}$$
+            <span class="math-label">论文 Eq.3 · 两项纯 NLL · ref policy + advantage-conditioned policy</span>
+          </div>
+          <p style="margin-top:10px;">
+            两项都是<strong>纯 NLL</strong>——一项是无条件的（用作 ref policy），一项是有 advantage 条件的（用作改进 policy）。
+            实践上不调 α，而是<strong>30% 概率随机丢掉 I 这个 token</strong>——这就是 CFG 风格的 dropout，等价 α = 1。
+          </p>
+        </div>
+
+        <h3 id="advcond-impl" style="margin-top:32px;">5.3 工程实现 · "Advantage: positive" prompt</h3>
+
+        <div class="callout amber">
+          <div class="callout-label">实现细节（§V-B）</div>
+          <p>
+            把 advantage 条件做成<strong>额外的文本 token</strong>，插在 prompt 末尾、动作之前：
+          </p>
+          <div class="code-block" style="margin-top:8px;"><code>... &lt;language&gt; ... &lt;state&gt; ... &lt;subtask&gt; ... <strong>Advantage: positive</strong> [actions]</code></div>
+          <p style="margin-top:10px;">
+            这样既不动模型架构，也不动 tokenizer——VLM 见过的"<em>positive / negative</em>" 文本足够把语义带过来。
+            训练时 30% dropout（无 advantage token），推理时永远填 "<strong>positive</strong>"。
+          </p>
+        </div>
+
+        <div class="callout blue">
+          <div class="callout-label">类比 · 这就是 VLA 版的 CFG</div>
+          <p>
+            Diffusion 图像生成里 CFG 的做法是：训练时随机丢掉 prompt（一定概率走 unconditional），
+            推理时用 ε(x|prompt) - ε(x|∅) 的差去"<em>放大 prompt 信号</em>"。
+            RECAP 把"<em>prompt</em>" 换成"<em>advantage 是 positive</em>"——一模一样的把戏，只是把"<em>条件</em>"从描述换成奖励标签。
+          </p>
+        </div>
+
+        <div class="quiz"
+             data-correct="b"
+             data-explain="正确。RECAP 的特色就是 SL 训练 + advantage 当条件 token，所有数据都用、且不需要 log π。CFG-style dropout 让 inference 时可以放大 advantage 信号。"
+             data-explain-wrong="不对——RECAP 完全不用 policy gradient，也不丢数据；它用的是 SL + advantage 当 prompt 的一部分。">
+          <div class="q-label">🧠 理解检查</div>
+          <div class="q-text">RECAP 训练 policy 时<strong>不</strong>做下面哪一件事？</div>
+          <div class="q-options">
+            <button class="q-opt" data-k="a">在所有 demo + rollout + intervention 数据上跑 SL</button>
+            <button class="q-opt" data-k="b">用 PPO 风格的 policy gradient 更新 flow matching head</button>
+            <button class="q-opt" data-k="c">把 binary advantage 当成额外文本 token 喂进 prompt</button>
+            <button class="q-opt" data-k="d">30% 概率 dropout advantage token（CFG 风格）</button>
+          </div>
+          <div class="q-feedback"></div>
+        </div>
+
+        <!-- ═════════════════════════════════════════════════ -->
+        <h2 id="architecture">§6 模型架构</h2>
+
+        <div class="cn-read">
+          <div class="cn-label">这一节解决什么</div>
+          <p>
+            §3–§5 讲完了"<em>训练时怎么用 VF + advantage</em>"。这节回答<strong>"VLA 和 VF 这两个模型在物理上长什么样、怎么联动"</strong>——只看 Fig 3 一张图就够。
+          </p>
+        </div>
+
+        <h3 id="arch-fig3" style="margin-top:24px;">6.1 VLA + VF 联动（Fig 3）</h3>
+
+        <div class="fig-interactive panel-below">
+          <div class="fig-block">
+            <div class="hotspot-wrap" data-hotspot-group="fig3">
+              <img src="../assets/figures/pi06/fig-3.png" alt="Figure 3: π*0.6 architecture">
+              <div class="hotspot" data-id="vla-backbone" style="left:38%; top:18%;"
+                   data-title="上半 · π*₀.₆ VLA 主体"
+                   data-body="SigLIP 400M（视觉）+ Gemma 3 4B（语言）做主干。和 π₀.₅ 同样用 KI（Knowledge Insulation）训练：next-token loss 喂多源数据，flow matching action expert 用 stop-gradient 隔开。"></div>
+              <div class="hotspot" data-id="action-expert" style="left:80%; top:18%;"
+                   data-title="右上 · Action Expert 860M"
+                   data-body="独立权重的 transformer 专家，flow matching 出连续动作 chunk（50 Hz）。比 π₀.₅ 的 ~300M 大了将近 3 倍。"></div>
+              <div class="hotspot" data-id="discrete-action" style="left:48%; top:5%;"
+                   data-title="discretized actions（顶部 token 串）"
+                   data-body="同时还预测 FAST 离散化的动作 token——<strong>这是 KI recipe 的关键</strong>，让 VLM 主干不被 flow matching 训歪。推理时这一路只是辅助，实际动作来自右边的 action expert。"></div>
+              <div class="hotspot" data-id="advantage-input" style="left:62%; top:42%;"
+                   data-title="metadata = Advantage token"
+                   data-body="advantage 通过 prompt 进入 VLA。binarization A(o,a)&gt;ε 把 VF 的连续打分压成 0/1，然后变成 'positive' / 'negative' 字符串。"></div>
+              <div class="hotspot" data-id="vf-backbone" style="left:38%; top:75%;"
+                   data-title="下半 · Value Function（独立模型）"
+                   data-body="SigLIP 400M + Gemma 3 270M 的小 VLM + value head。<strong>独立训练、独立部署</strong>，只通过 advantage token 与 VLA 通信。"></div>
+              <div class="hotspot" data-id="value-head" style="left:78%; top:65%;"
+                   data-title="value head"
+                   data-body="不再是单 scalar，而是 201-bin 的概率分布（distributional VF，Bellemare 2017）。预测"<em>从这里出发还要负多少步</em>"。"></div>
+              <div class="hotspot" data-id="advantage-calc" style="left:62%; top:55%;"
+                   data-title="advantage 计算"
+                   data-body="A(o,a) = r_{t:t+N} + V(o_{t+N}) - V(o_t)。N 步 lookahead；pre-training 用 N=T 的 MC 估计（更高方差但能边训边算）；post-training 用 N=50 的更稳估计。"></div>
+            </div>
+            <div class="fig-cap">
+              <span class="fig-num">Fig 3 · p.4</span>
+              Interaction between the π*₀.₆ VLA and value function during RECAP training. The VLA is conditioned on a binarized advantage indicator, obtained from a separate value function initialized from a pre-trained but smaller VLM model.
+              <span class="fig-cn">两个独立模型，一个评分（VF），一个执行（VLA）。<strong>耦合点只有一个文本 token</strong>——这是为什么改 VLA 几乎不动它的代码。</span>
+            </div>
+          </div>
+          <div class="hotspot-panel"></div>
+        </div>
+
+        <h3 id="arch-pi06" style="margin-top:32px;">6.2 π₀.₆ 相比 π₀.₅ 改了什么</h3>
+
+        <table class="kv-table">
+          <tr>
+            <td style="width:160px;"><strong>组件</strong></td>
+            <td><strong>π₀.₅</strong></td>
+            <td><strong>π₀.₆</strong></td>
+          </tr>
+          <tr>
+            <td>VLM 骨干</td>
+            <td>PaliGemma（SigLIP 400M + Gemma 2.6B）</td>
+            <td><strong>SigLIP 400M + Gemma 3 4B</strong>（model card）</td>
+          </tr>
+          <tr>
+            <td>Action Expert</td>
+            <td>~300M flow matching</td>
+            <td><strong>860M</strong>（约 3×）</td>
+          </tr>
+          <tr>
+            <td>训练范式</td>
+            <td>discrete pre-train → flow post-train（KI）</td>
+            <td>同 KI</td>
+          </tr>
+          <tr>
+            <td>Pre-training 数据</td>
+            <td>多机器人 + web + HL subtask</td>
+            <td>+ 更多机器人本体</td>
+          </tr>
+          <tr>
+            <td>新增（仅 π*₀.₆）</td>
+            <td>—</td>
+            <td>+ <strong>advantage 文本 token</strong> + <strong>独立 VF 模型</strong></td>
+          </tr>
+        </table>
+
+        <!-- ═════════════════════════════════════════════════ -->
+        <h2 id="tasks">§7 任务 & 机器人</h2>
+
+        <div class="cn-read">
+          <div class="cn-label">这一节解决什么</div>
+          <p>
+            §3–§6 都是方法论。从这节开始进入<strong>"在哪里、做什么"</strong>——
+            选了三类<strong>真实世界长程任务</strong>来验证 RECAP 是否真的能 work，而不是只在 sim 里好看。
+          </p>
+        </div>
+
+        <h3 id="robot-fig5" style="margin-top:24px;">7.1 双臂平台（Fig 5）</h3>
+
+        <div class="fig-interactive">
+          <div class="fig-block">
+            <div class="hotspot-wrap" data-hotspot-group="fig5">
+              <img src="../assets/figures/pi06/fig-5.png" alt="Figure 5: Robot setup">
+              <div class="hotspot" data-id="base-cam" style="left:38%; top:12%;"
+                   data-title="base camera · 中央俯视"
+                   data-body="装在两臂之间，看整个工作区——给"<em>全局</em>"上下文。"></div>
+              <div class="hotspot" data-id="wrist-cams" style="left:32%; top:30%;"
+                   data-title="wrist cameras · 双手腕"
+                   data-body="每个机械臂各有一个腕摄——给"<em>局部细节</em>"，对夹取/插入很关键。"></div>
+              <div class="hotspot" data-id="arms" style="left:30%; top:60%;"
+                   data-title="2× 6-DoF 平行夹爪臂"
+                   data-body="静态 bimanual。50 Hz 关节位控。可以装在桌面上，便于在咖啡店 / 工厂 / 家里部署。"></div>
+              <div class="hotspot" data-id="three-images" style="left:80%; top:30%;"
+                   data-title="3× 图像输入"
+                   data-body="base + L wrist + R wrist 一共 3 路图像，喂给 VLA 的 vision encoder。"></div>
+            </div>
+            <div class="fig-cap">
+              <span class="fig-num">Fig 5 · p.7</span>
+              The robot setup used in our experiments. Static bimanual system with two 6-DoF arms and parallel jaw grippers. Observations from base camera + 2 wrist cameras.
+              <span class="fig-cn">Pre-training 用很多种不同机器人；本文实验只在<strong>这一台静态双臂</strong>上做迭代提升。</span>
+            </div>
+          </div>
+          <div class="hotspot-panel"></div>
+        </div>
+
+        <h3 id="tasks-fig6" style="margin-top:32px;">7.2 三类任务（Fig 6）</h3>
+
+        <div class="fig-block">
+          <img src="../assets/figures/pi06/fig-6.png" alt="Figure 6: Tasks">
+          <div class="fig-cap">
+            <span class="fig-num">Fig 6 · p.8</span>
+            Tasks include three different laundry variants, assembling boxes, and making coffee drinks with an espresso machine.
+            <span class="fig-cn">三类任务、五个变体。每个都规定了明确的"<em>成功标准</em>"——这是 reward labeling 的物理依据。</span>
+          </div>
+        </div>
+
+        <table class="kv-table" style="margin-top:14px;">
+          <tr>
+            <td style="width:140px;"><strong>任务</strong></td>
+            <td style="width:35%;"><strong>成功标准</strong></td>
+            <td><strong>难点</strong></td>
+          </tr>
+          <tr>
+            <td>Fold T-shirts &amp; Shorts</td>
+            <td>大致矩形 + 叠到指定堆位</td>
+            <td>π₀ 时代就在做的基线任务，速度是关键</td>
+          </tr>
+          <tr>
+            <td>Laundry Diverse（11 类）</td>
+            <td>同上，但物品种类多（毛衣、袜子、内衣...）</td>
+            <td>形变物体多样性大，最难的是 button-up shirt</td>
+          </tr>
+          <tr>
+            <td>Laundry Ablation</td>
+            <td>橙色 T 恤 + collar 必须朝上</td>
+            <td>故意放在容易出"<em>collar 朝下</em>" 失败模式的初始姿态</td>
+          </tr>
+          <tr>
+            <td>Assemble Box</td>
+            <td>从纸板片 → 组装 → 贴 label → 入箱</td>
+            <td>真实工厂 deployment；需要受力操作 + 多步骤协调</td>
+          </tr>
+          <tr>
+            <td>Make Espresso (Cafe)</td>
+            <td>取 portafilter → 磨豆 → 压粉 → 锁机 → 萃取 → 端送，&lt;200s</td>
+            <td>商业咖啡机；液体 + 受力 + 长程</td>
+          </tr>
+        </table>
+
+        <!-- ═════════════════════════════════════════════════ -->
+        <h2 id="experiments">§8 实验结果</h2>
+
+        <div class="cn-read">
+          <div class="cn-label">这一节解决什么</div>
+          <p>
+            §7 描述了"<em>在哪做</em>"。这节用四张图回答四个具体问题：
+            <strong>RECAP 比 baseline 强多少？多次迭代有没有持续提升？比 AWR / PPO 强多少？能不能定向修掉某个失败模式？</strong>
+          </p>
+        </div>
+
+        <h3 id="exp-throughput" style="margin-top:24px;">8.1 吞吐量 + 成功率（Fig 7 / Fig 8）</h3>
+
+        <div class="fig-block">
+          <img src="../assets/figures/pi06/fig-7.png" alt="Figure 7: Throughput">
+          <div class="fig-cap">
+            <span class="fig-num">Fig 7 · p.9</span>
+            Throughput (successful completions per hour). RECAP applied to π*₀.₆ (Ours, 黄色最右) leads to substantial improvements in throughput across all tasks.
+            <span class="fig-cn">最右黄柱（Ours = π*₀.₆ + RECAP）在四类任务上都明显高于左侧 baselines；最难的"<em>Diverse Laundry</em>" 和"<em>Make Espresso</em>" 上吞吐量翻倍以上。</span>
+          </div>
+        </div>
+
+        <div class="fig-block" style="margin-top:18px;">
+          <img src="../assets/figures/pi06/fig-8.png" alt="Figure 8: Success rates">
+          <div class="fig-cap">
+            <span class="fig-num">Fig 8 · p.9</span>
+            Success rates with standard error. Each stage of RECAP improves performance across the tasks; failure rates reduce by ~2× on diverse laundry &amp; espresso.
+            <span class="fig-cn">除"<em>Diverse Laundry</em>" 外，最终模型成功率都进入 <strong>90%+</strong> 区间——已经能用于实际场景。</span>
+          </div>
+        </div>
+
+        <table class="kv-table" style="margin-top:14px;">
+          <tr>
+            <td style="width:140px;"><strong>方法（自左向右）</strong></td>
+            <td><strong>含义</strong></td>
+          </tr>
+          <tr><td>π₀.₅ Pretrain</td><td>旧基线</td></tr>
+          <tr><td>π₀.₆ Pretrain</td><td>更大基模型，<strong>不</strong> 用 RECAP</td></tr>
+          <tr><td>π*₀.₆ OfflineRL Pretrain</td><td>π₀.₆ + advantage conditioning，但只用 demo 数据</td></tr>
+          <tr><td>π*₀.₆ OfflineRL + SFT</td><td>+ 任务示教 SFT 微调</td></tr>
+          <tr><td><strong>π*₀.₆ Ours</strong></td><td>+ RECAP 迭代（autonomous + interventions）= 完整方法</td></tr>
+        </table>
+
+        <h3 id="exp-iter" style="margin-top:32px;">8.2 迭代式提升（Fig 9 / Fig 10）</h3>
+
+        <div class="fig-interactive">
+          <div class="fig-block">
+            <img src="../assets/figures/pi06/fig-9.png" alt="Figure 9: Iter throughput">
+            <div class="fig-cap">
+              <span class="fig-num">Fig 9 · p.10</span>
+              Improvement in throughput over multiple iterations. Both tasks improve significantly with more RECAP iterations.
+              <span class="fig-cn">i=0 → i=1 → i=2 一直在提升。Box assembly 在 i=1 时甚至略有下降（数据噪声大），i=2 后大幅超越。</span>
+            </div>
+          </div>
+          <div class="hotspot-panel"></div>
+        </div>
+
+        <h3 id="exp-vs" style="margin-top:32px;">8.3 vs AWR / PPO（Fig 11）</h3>
+
+        <div class="fig-interactive">
+          <div class="fig-block">
+            <img src="../assets/figures/pi06/fig-11.png" alt="Figure 11: vs AWR PPO">
+            <div class="fig-cap">
+              <span class="fig-num">Fig 11 · p.10</span>
+              Comparison of different policy extraction methods. RECAP achieves by far the highest throughput compared to AWR and PPO.
+              <span class="fig-cn">同样的数据、同样的 VF——只换 policy extraction 方法。<strong>AWR/PPO 都不如 RECAP</strong>。PPO 还需要小 trust region (η=0.01) 才能稳定，而稳定后性能依然差。</span>
+            </div>
+          </div>
+          <div class="hotspot-panel"></div>
+        </div>
+
+        <h3 id="exp-failmode" style="margin-top:32px;">8.4 移除特定失败模式（Fig 12）</h3>
+
+        <div class="fig-interactive">
+          <div class="fig-block">
+            <img src="../assets/figures/pi06/fig-12.png" alt="Figure 12: Failure mode removal">
+            <div class="fig-cap">
+              <span class="fig-num">Fig 12 · p.10</span>
+              Failure mode removal. RECAP is particularly effective at removing failure modes, even when learning entirely via RL without intervention data.
+              <span class="fig-cn">Laundry Ablation 任务：刻意制造 collar 朝下的初始条件——baseline 经常折反。两次 RECAP 迭代后<strong>成功率冲到 97%</strong>，证明 RECAP 可以<strong>定向修掉特定 bug</strong>。</span>
+            </div>
+          </div>
+          <div class="hotspot-panel"></div>
+        </div>
+
+        <div class="callout">
+          <div class="callout-label">论文最爆的两个场景数字</div>
+          <ul style="margin-left:18px; line-height:1.8;">
+            <li><strong>Espresso · 13 小时不间断</strong>：在咖啡店连续做 espresso 13h，无人工干预。</li>
+            <li><strong>Laundry · 2 小时折新衣</strong>：在新家折叠未见过的衣服 2h，零中断。</li>
+            <li><strong>Box assembly · 工厂 deployment</strong>：组装的纸箱用于真实工厂打包。</li>
+          </ul>
+        </div>
+
+        <!-- ═════════════════════════════════════════════════ -->
+        <h2 id="takeaway">§9 收获 · 局限 · 与 π₀.₅ 的对照</h2>
+
+        <div class="cn-read">
+          <div class="cn-label">这一节解决什么</div>
+          <p>
+            把整篇论文压缩成<strong>一张总结卡片</strong>——你应该带走什么、它没解决什么、它和 π₀.₅ 在<strong>开源生态</strong>上的关系。
+          </p>
+        </div>
+
+        <h3 style="margin-top:24px;">9.1 三条 takeaway</h3>
+
+        <div class="callout">
+          <div class="callout-label">1 · advantage conditioning 是 flow VLA 做 RL 的"破局点"</div>
+          <p>
+            过去 RL on VLA 的难点是<strong>没有可计算的 log π</strong>。RECAP 把"<em>这个动作好不好</em>"
+            从 loss 里挪到 prompt 里，绕过 likelihood，<strong>用纯 SL 完成 RL 改进</strong>。
+            这条思路对所有 likelihood-free 的生成式模型（diffusion / flow / EBM）都有借鉴意义。
+          </p>
+        </div>
+
+        <div class="callout">
+          <div class="callout-label">2 · 异质数据是 deployment 的杠杆</div>
+          <p>
+            最终训练数据 = 多机器人示教 + autonomous rollouts + human interventions。
+            其中 <strong>interventions 是少量 + 高价值</strong>——只在模型犯错时介入，几百条就够大幅改善。
+            这比"<em>先采几千条新数据再 SFT</em>" 经济得多。
+          </p>
+        </div>
+
+        <div class="callout">
+          <div class="callout-label">3 · distributional VF 是 long-horizon 任务的关键</div>
+          <p>
+            把回报离散成 201 bin、用 cross-entropy 训——比单 scalar 回归稳定。
+            Fig 4 显示 VF 学到的<strong>不只是终态，还有子任务进度</strong>，这是 advantage 能 work 的物理依据。
+          </p>
+        </div>
+
+        <h3 style="margin-top:32px;">9.2 局限（论文 §VII 自己承认）</h3>
+
+        <table class="kv-table">
+          <tr><td style="width:140px;"><strong>不自主</strong></td><td>仍依赖人做 reward labeling、interventions、episode resets。完全 hands-off 还做不到。</td></tr>
+          <tr><td><strong>探索很弱</strong></td><td>只靠 policy stochasticity 和 human interventions 做"<em>探索</em>"。如果初始策略完全偏离，RECAP 救不回来。</td></tr>
+          <tr><td><strong>Offline 风格的 RL loop</strong></td><td>不是 fully online——仍是"<em>采一批 → 训一遍 → 再采</em>"。online 版本是 future work。</td></tr>
+          <tr><td><strong>只在一台双臂上验证迭代提升</strong></td><td>pre-training 跨多本体；但 RECAP 迭代实验全在静态双臂上完成，跨本体迭代未做。</td></tr>
+        </table>
+
+        <h3 style="margin-top:32px;">9.3 对照 π₀.₅ · openpi 开源什么</h3>
+
+        <div class="callout amber">
+          <div class="callout-label">关于开源</div>
+          <p>
+            π₀.₅ 在 <a href="https://github.com/Physical-Intelligence/openpi" target="_blank" style="color:var(--accent);">openpi</a>
+            里以 <code>Pi0Config(pi05=True)</code> 开放了<strong>架构</strong>。
+            π*₀.₆ / RECAP 截至本文发布<strong>未开源</strong>——只有 <a href="https://pi.website/blog/pistar06" target="_blank" style="color:var(--accent);">blog post</a> + 论文。
+            可以预期跟随 π₀.₅ 的节奏，<strong>架构（advantage token 的位置 + VF 模型骨架）会进 openpi</strong>，
+            但<strong>训练 recipe（VF 训练、advantage 阈值、intervention 数据 pipeline）大概率不会公开</strong>。
+          </p>
+        </div>
+
+        <table class="kv-table" style="margin-top:14px;">
+          <tr>
+            <td style="width:200px;"><strong>组件</strong></td>
+            <td style="width:18%;"><strong>π₀.₅ 状态</strong></td>
+            <td style="width:18%;"><strong>π*₀.₆ 预期</strong></td>
+            <td><strong>说明</strong></td>
+          </tr>
+          <tr><td>VLA 架构（含 adv token）</td><td>开源（pi05 flag）</td><td><span style="color:var(--amber);">可能开</span></td><td>只是多一个 prompt token</td></tr>
+          <tr><td>Action Expert 860M 权重</td><td>无（仅 π₀ 老权重）</td><td><span style="color:var(--accent3);">几乎不会</span></td><td>商业核心</td></tr>
+          <tr><td>VF 模型代码</td><td>—</td><td><span style="color:var(--amber);">可能开骨架</span></td><td>distributional head 标准做法</td></tr>
+          <tr><td>VF 权重</td><td>—</td><td><span style="color:var(--accent3);">几乎不会</span></td><td>同上</td></tr>
+          <tr><td>RECAP 训练 loop</td><td>—</td><td><span style="color:var(--accent3);">几乎不会</span></td><td>含真机数据 pipeline</td></tr>
+          <tr><td>真机 rollouts / interventions 数据</td><td>—</td><td><span style="color:var(--accent3);">几乎不会</span></td><td>商业资产</td></tr>
+        </table>
+
+        <div class="quiz" style="margin-top:24px;"
+             data-correct="d"
+             data-explain="正确。RECAP 用 cross-entropy 训 distributional VF，advantage 当 prompt token，policy 训练用 SL 而非 policy gradient——这三件事是论文的核心创新，缺一就不是 RECAP。"
+             data-explain-wrong="再读一次 §3–§5——RECAP 的特色是"VF + advantage token + SL"，不依赖 PPO/REINFORCE 也不用 Q-function。">
+          <div class="q-label">🧠 最终理解检查</div>
+          <div class="q-text">下面哪个组合最完整地概括了 RECAP？</div>
+          <div class="q-options">
+            <button class="q-opt" data-k="a">PPO + Q-function + intervention 数据</button>
+            <button class="q-opt" data-k="b">Online policy gradient + flow matching ELBO + reward shaping</button>
+            <button class="q-opt" data-k="c">AWR + Q-learning + 单 scalar VF</button>
+            <button class="q-opt" data-k="d">Distributional MC value function + binarized advantage 当 prompt token + 纯 SL 损失</button>
+          </div>
+          <div class="q-feedback"></div>
+        </div>
+
+        <p style="margin-top:48px; padding:16px; background:var(--bg2); border-radius:8px; color:var(--text2); font-size:14px;">
+          📄 原文：<a href="../pdfs/vla/pi0.6.pdf" style="color:var(--accent);">pi0.6.pdf</a> ·
+          🌐 Blog：<a href="https://pi.website/blog/pistar06" target="_blank" style="color:var(--accent);">pistar06</a> ·
+          🔗 前作：<a href="pi05-open-world.html" style="color:var(--accent);">π₀.₅ Open-World</a> ·
+          <a href="pi0-vla-flow-model.html" style="color:var(--accent);">π₀ VLA</a>
+        </p>
+
+      </main>
+
+    </div>
+  </div>
+</body>
+</html>

@@ -1,0 +1,735 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>I-JEPA · Self-Supervised Learning from Images with a Joint-Embedding Predictive Architecture</title>
+  <link rel="stylesheet" href="../assets/css/style.css">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16/dist/katex.min.css">
+  <script src="../assets/js/theme.js"></script>
+  <script src="../assets/js/interactive.js" defer></script>
+  <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16/dist/katex.min.js"></script>
+  <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16/dist/contrib/auto-render.min.js"
+          onload="renderMathInElement(document.body,{delimiters:[{left:'$$',right:'$$',display:true},{left:'$',right:'$',display:false}]})"></script>
+</head>
+<body>
+  <nav class="nav">
+    <a class="nav-logo" href="../index.html">Paper Notes</a>
+    <div class="nav-links">
+      <a href="../index.html">← 返回首页</a>
+      <a href="../papers/lecun-autonomous-intelligence.html">← LeCun 2022（前一篇）</a>
+      <a href="../pdfs/world-model/Assran 等 - 2023 - Self-Supervised Learning from Images with a Joint-Embedding Predictive Architecture.pdf" target="_blank">📄 PDF</a>
+    </div>
+  </nav>
+
+  <div class="page">
+    <div class="docs-layout">
+
+      <!-- ─── 左：章节树 ─── -->
+      <aside class="docs-sidebar-left">
+        <div class="ds-title">I-JEPA · CVPR 2023</div>
+
+        <a class="ds-leaf-top" href="#tldr">§1 一句话总览（Fig 1）</a>
+        <a class="ds-leaf-top" href="#bridge-from-lecun">§2 承接：从蓝图到第一块砖</a>
+
+        <details open>
+          <summary>§3 三种 SSL 架构</summary>
+          <a class="ds-leaf" href="#arch-three">3.0 总览（Fig 2）</a>
+          <a class="ds-leaf" href="#arch-jea">3.1 JEA · 联合嵌入</a>
+          <a class="ds-leaf" href="#arch-gen">3.2 Generative · 生成式</a>
+          <a class="ds-leaf" href="#arch-jepa">3.3 JEPA · 联合嵌入预测</a>
+        </details>
+
+        <details open>
+          <summary>§4 I-JEPA 架构</summary>
+          <a class="ds-leaf" href="#ijepa-overview">4.0 全图与信号流（Fig 3）</a>
+          <a class="ds-leaf" href="#ijepa-mask">4.1 多块掩码策略（Fig 4）</a>
+          <a class="ds-leaf" href="#ijepa-loss">4.2 Loss · EMA · 防坍缩</a>
+        </details>
+
+        <details>
+          <summary>§5 它真学到什么了？</summary>
+          <a class="ds-leaf" href="#viz">5.1 Predictor 可视化（Fig 6）</a>
+          <a class="ds-leaf" href="#results">5.2 关键实验结果（Fig 5）</a>
+          <a class="ds-leaf" href="#ablations">5.3 消融：掩码策略 / 表征空间</a>
+        </details>
+
+        <a class="ds-leaf-top" href="#echo-lecun">§6 ★ 与 LeCun 蓝图的呼应</a>
+        <a class="ds-leaf-top" href="#takeaway">§7 关键收获</a>
+      </aside>
+
+      <!-- ─── 中：正文 ─── -->
+      <main class="docs-content">
+
+        <div class="docs-breadcrumb">
+          <a href="../index.html">paper-notes</a>
+          <span class="sep">/</span>
+          <a href="../index.html">世界模型</a>
+          <span class="sep">/</span>
+          I-JEPA · Assran et al. 2023
+        </div>
+
+        <h1>Self-Supervised Learning from Images with a Joint-Embedding Predictive Architecture</h1>
+        <p style="color:var(--text3); font-family:var(--font-mono); font-size:12px; margin-top:-12px;">
+          Mahmoud Assran, Quentin Duval, Ishan Misra, Piotr Bojanowski, Pascal Vincent,
+          Michael Rabbat, <strong>Yann LeCun</strong>, Nicolas Ballas · Meta AI / McGill / Mila / NYU · CVPR 2023
+        </p>
+
+        <div class="cn-read">
+          <div class="cn-label">为什么要看这一篇 · 它是上一篇的"第一块砖"</div>
+          <p>
+            <strong>上一篇（LeCun 2022）</strong>给的是一份"蓝图"——他主张未来的智能体应该用 <strong>JEPA（联合嵌入预测架构）</strong>
+            来学习世界模型，并解释了 JEPA 在能量模型框架下为什么能避免"对比学习"或"像素重建"的两条死胡同。
+            但那篇是 <em>position paper</em>，没有任何实验。
+          </p>
+          <p>
+            <strong>这一篇（Assran 等 2023）</strong>就是同一群人（包括 LeCun 本人）把蓝图的<strong>最简单情形——单张图片</strong>
+            拿来落地：在 ImageNet 上训练一个真实可跑的 JEPA，叫 <strong>I-JEPA（Image-JEPA）</strong>。
+            读完它你能拿到三件事：(1) JEPA 在工程上长什么样；(2) 它和 MAE / DINO / iBOT 这些旧方法的差别在哪；
+            (3) 为什么"在表征空间里预测"这件事，是后面 V-JEPA、ACT-JEPA 一切的起点。
+          </p>
+        </div>
+
+        <!-- ═════════════════════════════════════════════════ -->
+        <h2 id="tldr">§1 一句话总览</h2>
+
+        <div class="cn-read">
+          <div class="cn-label">这篇论文的"贡献能量条"</div>
+          <p>
+            给一张图，<strong>遮住几个大块</strong>，让模型从剩下的"上下文块"出发，
+            预测被遮块的<strong>表征（embedding）</strong>——不是预测像素、不是做对比学习、也不要任何 crop / color jitter
+            这种手工增广。Loss 是 L2，约束在 <strong>表征空间</strong>。
+          </p>
+          <p>
+            就这么简单的一招，在 ImageNet 线性评估上<strong>用 ~5×10× 更少的算力</strong>就能追上甚至超过 MAE / data2vec / iBOT。
+            ViT-Huge/14 只要 16 张 A100 跑 72 小时——这是 LeCun 蓝图第一次有真实数字。
+          </p>
+        </div>
+
+        <div class="fig-block" style="max-width:560px; margin:18px auto;">
+          <img src="../assets/figures/ijepa/fig-1.png" alt="Figure 1: ImageNet linear evaluation efficiency">
+          <div class="fig-cap">
+            <span class="fig-num">Fig 1 · p.1</span>
+            ImageNet-1K Linear Evaluation vs GPU Hours.
+            <span class="fig-cn">
+              纵轴是 ImageNet 线性评估准确率，横轴是预训练 GPU 小时（log scale）。
+              I-JEPA 这条<strong>青绿色线</strong>在效率—性能两个维度上同时压制 iBOT / MAE / data2vec / CAE。
+            </span>
+          </div>
+        </div>
+
+        <details class="en-quote">
+          <summary>展开原文 · Abstract 关键句</summary>
+          <div class="quote-body">
+            <p>
+              "The idea behind I-JEPA is simple: from a single context block, predict the representations of various target blocks in the same image.
+              A core design choice ... is the masking strategy; specifically, it is crucial to (a) sample target blocks with sufficiently large scale (semantic),
+              and to (b) use a sufficiently informative (spatially distributed) context block."
+            </p>
+            <div class="quote-cite">— Abstract, p.1</div>
+          </div>
+        </details>
+
+        <div class="callout">
+          <div class="callout-label">三个数字记住就够了</div>
+          <p>
+            ① <strong>ViT-H/14</strong> 在 16 张 A100 上 <strong>72 小时</strong>跑完 ImageNet-1K 预训练；<br>
+            ② 比 ViT-S/16 + iBOT 还<strong>快 2.5×</strong>，比 ViT-H/14 + MAE 快 <strong>10×</strong>；<br>
+            ③ 不用任何 view augmentation——只用 mask。
+          </p>
+        </div>
+
+        <!-- ═════════════════════════════════════════════════ -->
+        <h2 id="bridge-from-lecun">§2 承接：从 LeCun 的蓝图到 I-JEPA 的第一块砖</h2>
+
+        <div class="cn-read">
+          <div class="cn-label">这一节解决什么</div>
+          <p>
+            上一篇（LeCun 2022 §3）讲过一件事：自监督学习有<strong>四种架构家族</strong>——对比型、生成型、JEA、JEPA——
+            其中 LeCun 把宝押在 JEPA 上，理由是它能<strong>把"无关的细节"丢掉</strong>（不像生成模型必须复原每个像素），
+            又不依赖手工 crop（不像 SimCLR / DINO）。但他<strong>没说怎么训</strong>。
+          </p>
+          <p>
+            这一篇就在回答："如果只看图片，最简单的 JEPA 实例化长什么样？" 答案是：
+            <strong>把一张图切成 patch → 选一块作 context、选 4 块作 target → 用 ViT 预测 target 的表征</strong>。
+            往下读时记住：本文所有设计选择都在围绕<strong>同一件事</strong>——让目标表征语义足够丰富、
+            上下文足够 informative，又不引入手工增广。
+          </p>
+        </div>
+
+        <table class="kv-table">
+          <tr><td>问题（继承自 LeCun 蓝图）</td><td>怎么训一个不是生成式、不是对比式的 SSL？</td></tr>
+          <tr><td>本文场景限制</td><td>单张图片（不是视频、不是动作序列）。最简单的非生成 JEPA 落地。</td></tr>
+          <tr><td>输入信号 x</td><td>一个空间上有信息量的<strong>大 context 块</strong>（占图 85%~100%，去掉与 target 重合的部分）。</td></tr>
+          <tr><td>目标信号 y</td><td>4 个<strong>大 target 块</strong>（每块占图 15%~20%、长宽比 0.75~1.5）。</td></tr>
+          <tr><td>预测目标</td><td>不是 y 的像素，是 y 通过 <strong>target encoder</strong> 之后的表征 s_y。</td></tr>
+          <tr><td>Loss</td><td>L2 距离，公式简单到一眼就懂（见 §4.2）。</td></tr>
+        </table>
+
+        <div class="callout blue">
+          <div class="callout-label">承上启下</div>
+          <p>
+            如果你只读过 LeCun 蓝图，对 JEPA 的印象停留在"图 12 那张抽象画"——这一篇就把那张抽象画里的每个箭头
+            <strong>替换成了 ViT、L2、EMA 这些工程零件</strong>。下一节先用 Fig 2 把"我们站在哪一族架构里"先说清楚。
+          </p>
+        </div>
+
+        <!-- ═════════════════════════════════════════════════ -->
+        <h2 id="arch-three">§3 三种 SSL 架构 · 你必须先看清这张图</h2>
+
+        <div class="cn-read">
+          <div class="cn-label">这一节解决什么</div>
+          <p>
+            上一节说 JEPA 是"四家族"之一。但论文里实际只画了<strong>三种</strong>——因为对比学习被并入 JEA 了。
+            这张 Fig 2 是全文最关键的概念图：看完它你就能<strong>一句话区分 SimCLR / MAE / I-JEPA</strong>。
+          </p>
+        </div>
+
+        <div class="fig-interactive panel-below">
+          <div class="fig-block">
+            <div class="hotspot-wrap" data-hotspot-group="fig2">
+              <img src="../assets/figures/ijepa/fig-2.png" alt="Figure 2: Three SSL architectures">
+              <div class="hotspot" data-id="jea" style="left:17%; top:35%;"
+                   data-title="(a) Joint-Embedding · 联合嵌入"
+                   data-body="x、y 各走一个 encoder 得到 s_x、s_y，要求两者相似（compatible）。代表：SimCLR、DINO、iBOT。问题：x、y 得是同一张图的两个增广视角，要靠 crop / color jitter，泛化偏置强。"></div>
+              <div class="hotspot" data-id="gen" style="left:48%; top:30%;"
+                   data-title="(b) Generative · 生成式"
+                   data-body="x 走一个 encoder，再加一个 decoder 直接重构原始信号 y（在像素或 token 空间）。代表：MAE、BEiT、SimMIM。问题：被迫预测每个像素的颜色 / 纹理细节，浪费容量在低层信息上。"></div>
+              <div class="hotspot" data-id="jepa" style="left:80%; top:30%;"
+                   data-title="(c) JEPA · 联合嵌入预测"
+                   data-body="x 走 x-encoder 得到 s_x，y 走 y-encoder 得到 s_y。但不是直接拉近，而是一个 predictor 从 s_x（加上额外条件 z）预测 s_y。在表征空间预测，避开像素细节。这就是本文的家。"></div>
+              <div class="hotspot" data-id="z" style="left:62%; top:18%;"
+                   data-title="z · 条件变量"
+                   data-body="(b) 和 (c) 都有这个变量。在生成式里它告诉 decoder '复原哪个 patch'；在 JEPA 里它告诉 predictor '预测哪个 target 的表征'。在 I-JEPA 里 z 就是 target patch 的位置编码（mask token）。"></div>
+              <div class="hotspot" data-id="energy" style="left:30%; top:12%;"
+                   data-title="D(·,·) · 能量函数"
+                   data-body="红色框。所有三种架构都是 EBM（Energy-Based Model）：让兼容输入对的能量低、不兼容的高。差别只在'能量怎么算'——直接比 embedding？比像素？比预测？"></div>
+            </div>
+            <div class="fig-cap">
+              <span class="fig-num">Fig 2 · p.2</span>
+              Common architectures for self-supervised learning. The objective is to assign a high energy to incompatible inputs, and a low energy to compatible inputs.
+              <span class="fig-cn">
+                三种自监督架构。(a) 直接比 embedding；(b) 直接重构信号；(c) 预测 embedding。点上面的圆点看每种的代表方法和坑。
+              </span>
+            </div>
+          </div>
+          <div class="hotspot-panel"></div>
+        </div>
+
+        <h3 id="arch-jea">3.1 JEA · 为什么 SimCLR 系不够好</h3>
+        <p>
+          JEA 有效，但代价是：你必须告诉模型"<strong>什么算同一张图</strong>"——通常用<strong>手工设计的增广</strong>
+          （RandomCrop、ColorJitter、GaussianBlur）造一对 x、y。这些增广针对 ImageNet 上的"以物体为中心、矩形构图"
+          调出来的，迁移到医疗影像、卫星图、音频时不一定成立。
+        </p>
+
+        <h3 id="arch-gen">3.2 Generative · 为什么 MAE 仍嫌"低层"</h3>
+        <p>
+          MAE 这种像素重建非常优雅，但它的 loss 是 <code>‖p̂ - p‖²</code>——为了把 loss 降下来，模型必须记住"<strong>这块草地的纹理</strong>"
+          这种和分类无关的低层细节。结果：MAE 的 off-the-shelf 表征（线性评估、k-NN）通常输给 JEA。论文反复强调一句话：
+          <strong>预测像素是浪费的</strong>。
+        </p>
+
+        <h3 id="arch-jepa">3.3 JEPA · 既不要增广，也不要像素</h3>
+        <p>
+          JEPA 的关键是"<strong>把 y 也送进 encoder</strong>"——预测的目标是 s_y（一个抽象向量），不是 y。
+          编码器有权<strong>主动丢掉</strong>不相关细节，只保留语义。但这马上引出一个新问题：
+          如果 encoder 偷懒，把所有图都映射成同一个常数向量，loss 也会等于 0——这叫<strong>表征坍缩</strong>。
+          §4 整章就是在讲 I-JEPA 怎么防止它。
+        </p>
+
+        <div class="quiz"
+             data-correct="c"
+             data-explain="选 (c) 才对。三种架构本质都是能量模型，区别仅在'怎么定义能量'：JEA 直接比 embedding，Generative 比像素，JEPA 比 predicted embedding。后两者通过引入条件变量 z 让能量函数对'缺失信息'敏感。"
+             data-explain-wrong="所有三种都依赖 EBM 框架；JEPA 不是 JEA 的简化（其实更复杂——多了一个 predictor 和 z）；JEPA 的预测目标是 embedding 不是像素。再读一遍图 2 的 D(·,·) 红色框。">
+          <div class="q-label">🧠 理解检查</div>
+          <div class="q-text">关于 Fig 2 的三种架构，下列哪个说法是对的？</div>
+          <div class="q-options">
+            <button class="q-opt" data-k="a">JEPA 是 JEA 的简化版本</button>
+            <button class="q-opt" data-k="b">只有 Generative 架构属于能量模型（EBM）</button>
+            <button class="q-opt" data-k="c">三者都是 EBM；区别只在"能量函数 D(·,·) 操作的对象不同"</button>
+            <button class="q-opt" data-k="d">JEPA 直接预测目标图像的像素</button>
+          </div>
+          <div class="q-feedback"></div>
+        </div>
+
+        <!-- ═════════════════════════════════════════════════ -->
+        <h2 id="ijepa-overview">§4 I-JEPA 架构</h2>
+
+        <div class="cn-read">
+          <div class="cn-label">这一节解决什么</div>
+          <p>
+            上一节告诉了你 I-JEPA 的<strong>家族位置</strong>。这一节给你具体的零件清单——三个 ViT、一个 EMA、一个 L2。
+            注意 I-JEPA 没有 decoder，没有 projector，没有 contrastive head——它结构简到不可思议。
+          </p>
+        </div>
+
+        <div class="fig-interactive panel-below">
+          <div class="fig-block">
+            <div class="hotspot-wrap" data-hotspot-group="fig3">
+              <img src="../assets/figures/ijepa/fig-3.png" alt="Figure 3: I-JEPA architecture">
+              <div class="hotspot" data-id="ctx-img" style="left:11%; top:30%;"
+                   data-title="Context Image · 上下文块"
+                   data-body="一整张图先随机切一个 scale=0.85~1.0、aspect=1 的大块作 context；再去掉所有跟 target 重合的 patch（图里那些灰色被挖掉的位置）。剩下的喂给 context encoder。注意——这是论文最容易忽略的细节：context 是'大块去掉 target 后的剩余'，不是'整张图减 target'。"></div>
+              <div class="hotspot" data-id="ctx-enc" style="left:25%; top:33%;"
+                   data-title="Context Encoder f_θ · ViT"
+                   data-body="一个标准 ViT。只处理'可见'的 context patch（被遮的不进来——这一点和 MAE 一样，省算力）。输出 patch-level 表征 s_x。参数 θ 通过梯度下降更新。"></div>
+              <div class="hotspot" data-id="predictor" style="left:55%; top:8%;"
+                   data-title="Predictor g_φ · 窄 ViT"
+                   data-body="另一个 ViT，但宽度比 context encoder 窄（embedding dim ≤ context encoder）。输入是 s_x + 4 组 mask token（每组对应一个目标块的位置）。每组 token 走一遍 predictor 得到一组 ŝ_y。简单说：'输入上下文表征，告诉我哪个位置，我吐回那个位置该长什么样的表征。'"></div>
+              <div class="hotspot" data-id="g-phi" style="left:62%; top:30%;"
+                   data-title="g_φ × M 次"
+                   data-body="对 M 个 target block，predictor 调用 M 次（论文 M=4）。每次 condition 在不同的 mask token 上，得到 ŝ_y(1)…ŝ_y(M)。这是 JEPA 里的'条件变量 z'——告诉模型预测哪个位置。"></div>
+              <div class="hotspot" data-id="tgt-img" style="left:11%; top:78%;"
+                   data-title="Target Image · 完整原图"
+                   data-body="同一张原图，不做掩码，整张送进 target encoder。彩色框（蓝/红/黄）是稍后被采样为 target 的 4 个块。"></div>
+              <div class="hotspot" data-id="tgt-enc" style="left:25%; top:79%;"
+                   data-title="Target Encoder f_θ̄ · EMA 副本"
+                   data-body="结构和 context encoder 一样的 ViT，但参数 θ̄ 不靠梯度更新——它是 context encoder 参数 θ 的指数滑动平均（EMA）。这是 I-JEPA 防坍缩最关键的一招（详见 §4.2）。"></div>
+              <div class="hotspot" data-id="targets" style="left:42%; top:80%;"
+                   data-title="s_y(i) · 目标表征"
+                   data-body="target encoder 处理整张图后，按掩码位置把对应 patch 的表征切出来——这就是 4 组目标 s_y(1)…s_y(4)。注意：是'先编码整张图、再切'，不是'先切再编码'。这一步保证了目标表征'看过周围 context'，因此语义比纯块编码更高。"></div>
+              <div class="hotspot" data-id="loss" style="left:92%; top:75%;"
+                   data-title="L2 Loss"
+                   data-body="对每个 target，算 ‖ŝ_y(i) - s_y(i)‖²，平均一下。就是这么暴力。没有 InfoNCE、没有 cross-entropy、没有 perceptual loss。"></div>
+            </div>
+            <div class="fig-cap">
+              <span class="fig-num">Fig 3 · p.3</span>
+              I-JEPA. The Image-based Joint-Embedding Predictive Architecture uses a single context block to predict the representations of various target blocks originating from the same image.
+              <span class="fig-cn">
+                信号流：单个 context 块经 context encoder → predictor 预测多个 target 位置的表征；
+                同一张图整张过 target encoder（EMA 副本）得到目标表征；两者算 L2。
+              </span>
+            </div>
+          </div>
+          <div class="hotspot-panel"></div>
+        </div>
+
+        <div class="step-walker" data-hotspot-group="fig3">
+          <div class="sw-header">
+            <div class="sw-title">🪜 跟着一张图走一遍 I-JEPA</div>
+            <div class="sw-controls">
+              <button class="sw-btn prev" aria-label="上一步">◀</button>
+              <span class="sw-counter">1 / 6</span>
+              <button class="sw-btn next" aria-label="下一步">▶</button>
+            </div>
+          </div>
+          <div class="sw-progress">
+            <div class="sw-dot"></div><div class="sw-dot"></div><div class="sw-dot"></div>
+            <div class="sw-dot"></div><div class="sw-dot"></div><div class="sw-dot"></div>
+          </div>
+          <div class="sw-body">
+            <div class="sw-step active" data-hotspot="tgt-img">
+              <h4>第 1 步：从原图采样 4 个 target 块</h4>
+              <p>scale ∈ [0.15, 0.2]、aspect ratio ∈ [0.75, 1.5]，独立采样 4 次（可重叠）。这就是图里左下方块图上彩色框（蓝/红/黄三种区分）。</p>
+              <p><strong>为什么要"大块"？</strong> §6.3 消融过——如果换成小块（block(0.6)），下游精度从 54% 直接掉到 20%。语义只在大尺度上才存在。</p>
+            </div>
+            <div class="sw-step" data-hotspot="ctx-img">
+              <h4>第 2 步：再采一个 context 块、去重</h4>
+              <p>scale ∈ [0.85, 1.0]、aspect=1。然后<strong>把和 target 重合的部分挖掉</strong>——这一步是"去重"，避免上下文里直接看到答案。</p>
+              <p>结果：context 是一个"几乎整张图、但缺了 4 块"的稀疏 patch 集合。这就是论文叫 <em>multi-block masking</em> 的原因。</p>
+            </div>
+            <div class="sw-step" data-hotspot="ctx-enc">
+              <h4>第 3 步：context encoder 处理可见 patch</h4>
+              <p>把 context 的 patch 喂进 context encoder f_θ（ViT）。它<strong>只处理可见 patch</strong>，被挖掉的位置不进来——这是 MAE 教会大家的省算力 trick。输出 patch-level 表征 s_x。</p>
+            </div>
+            <div class="sw-step" data-hotspot="predictor">
+              <h4>第 4 步：predictor 预测 4 个 target 的表征</h4>
+              <p>把 s_x 拼上一组 mask token（共享的可学向量 + target 位置编码），喂进 predictor g_φ，输出 ŝ_y。</p>
+              <p>对 4 个 target 块各做一次——所以 predictor 一个 batch 要跑 4 次。每次条件不同（mask token 位置不同），得到不同的预测。</p>
+            </div>
+            <div class="sw-step" data-hotspot="tgt-enc">
+              <h4>第 5 步：target encoder 处理整张原图</h4>
+              <p>同一张原图<strong>不掩码、整张</strong>送进 target encoder f_θ̄（EMA 副本）。整张过完之后再按位置切出 4 组 target 表征 s_y。</p>
+              <p><strong>关键</strong>：先编码整张、再切，让 target 表征自带"周围邻居信息"，比'只编码这一块'语义高得多（论文 §3 强调过）。</p>
+            </div>
+            <div class="sw-step" data-hotspot="loss">
+              <h4>第 6 步：L2 损失，反传更新 θ 和 φ</h4>
+              <p>loss = (1/M) Σ ‖ŝ_y(i) - s_y(i)‖²。用 AdamW 反传，<strong>只更新 context encoder θ 和 predictor φ</strong>。</p>
+              <p>target encoder θ̄ 不靠梯度，每步用 <strong>EMA 更新</strong>：θ̄ ← τ·θ̄ + (1-τ)·θ，τ 接近 1（论文 0.996→1.0）。这是防坍缩的核心，下一节展开。</p>
+            </div>
+          </div>
+        </div>
+
+        <details class="en-quote">
+          <summary>展开原文 · §3 Method 关键设计原则</summary>
+          <div class="quote-body">
+            <p>
+              "The target representations correspond to the outputs of the target-encoder, the weights of which are updated at each iteration via an exponential moving average of the context encoder weights."
+            </p>
+            <p>
+              "Note that the target blocks are obtained by masking the output of the target-encoder, not the input. This distinction is crucial to ensure target representations of a high semantic level."
+            </p>
+            <div class="quote-cite">— §3 Method, p.3-4</div>
+          </div>
+        </details>
+
+        <h2 id="ijepa-mask">§4.1 多块掩码（multi-block masking）· 让任务"够难也够语义"</h2>
+
+        <div class="cn-read">
+          <div class="cn-label">这一节解决什么</div>
+          <p>
+            上一节说"采 4 个大块、采一个大 context"——但<strong>为什么是 4 个？为什么是这个 scale？</strong>
+            这一节用 Fig 4 给你直觉，然后用消融表证明：换成别的策略 I-JEPA 会塌掉。掩码不是细节，是<strong>训练任务的本体</strong>。
+          </p>
+        </div>
+
+        <div class="fig-interactive">
+          <div class="fig-block">
+            <div class="hotspot-wrap" data-hotspot-group="fig4">
+              <img src="../assets/figures/ijepa/fig-4.png" alt="Figure 4: Multi-block masking examples">
+              <div class="hotspot" data-id="orig" style="left:14%; top:18%;"
+                   data-title="Original · 原图"
+                   data-body="第一列是原图。整张参与 target encoding（先编码整张，后切位置）。"></div>
+              <div class="hotspot" data-id="ctx" style="left:35%; top:18%;"
+                   data-title="Context · 上下文"
+                   data-body="第二列：白色 = 可见 context patch；黑色 = 被挖掉的 target 位置。注意 context 占了图的大部分（85%~100% 之前），但缺了 4 个大洞——这是因为 target 把它们挖走了。"></div>
+              <div class="hotspot" data-id="tgt" style="left:78%; top:18%;"
+                   data-title="Targets · 4 个目标块"
+                   data-body="后 4 列：每列高亮一个 target block。注意它们 scale ∈ [0.15, 0.2]，aspect ratio 各异，可以重叠。这种'大且多'的设计让模型必须看清楚整体语义才能预测。"></div>
+              <div class="hotspot" data-id="dog" style="left:50%; top:50%;"
+                   data-title="语义直觉"
+                   data-body="看第三行：context 大概只看到狗的腿和草地，要预测被遮掉的脸/耳朵区域的表征。如果不'看懂这是一只狗'，根本预测不准。这就是为什么 I-JEPA 的表征是语义的，而不是纹理的。"></div>
+            </div>
+            <div class="fig-cap">
+              <span class="fig-num">Fig 4 · p.4</span>
+              Examples of context and target-masking strategy.
+              <span class="fig-cn">
+                第一列：原图；第二列：context（白色可见）；后 4 列：4 个 target 块。
+                目标块大、稀疏、可重叠 → 任务既"语义"又"高效"。
+              </span>
+            </div>
+          </div>
+          <div class="hotspot-panel"></div>
+        </div>
+
+        <div class="callout amber">
+          <div class="callout-label">消融数据 · 掩码策略对结果是决定性的</div>
+          <p>论文 Table 6（ViT-B/16 在 ImageNet-1% 上线性评估）：</p>
+          <table class="kv-table">
+            <tr><td><strong>multi-block</strong>（本文）</td><td>4 个 block(0.15-0.2) · context block(0.85-1.0)</td><td><strong>Top-1 = 54.2%</strong></td></tr>
+            <tr><td>rasterized</td><td>四象限，1 块当 context 预测另 3 块</td><td>15.5%</td></tr>
+            <tr><td>block</td><td>1 个 block(0.6) · context = 补集</td><td>20.2%</td></tr>
+            <tr><td>random</td><td>随机 60% patch · context = 补集</td><td>17.6%</td></tr>
+          </table>
+          <p style="margin-top:10px;">
+            差距巨大——掩码策略设计错了，I-JEPA 几乎学不到东西。<strong>"大、多、稀疏"是三个并列的关键词</strong>。
+          </p>
+        </div>
+
+        <h2 id="ijepa-loss">§4.2 Loss · EMA · 为什么不会坍缩</h2>
+
+        <div class="cn-read">
+          <div class="cn-label">这一节解决什么</div>
+          <p>
+            上一节讲了任务怎么定。但 §3.3 提过<strong>表征坍缩</strong>这个老问题——只要 encoder 把所有输入映射到常数向量，
+            L2 loss 就能等于 0。LeCun 蓝图（§3.4）讨论过两条路：对比学习（拉远负样本）vs. 正则（VICReg 那套熵约束）。
+            I-JEPA<strong>哪条都没走</strong>，它走第三条：<strong>非对称架构 + EMA</strong>。
+          </p>
+        </div>
+
+        <div class="math-block">
+          $$\mathcal{L} = \frac{1}{M} \sum_i \sum_{j \in B_i} \big\|\,\hat{s}_y(i)_j\ -\ s_y(i)_j\,\big\|^2$$
+          <span class="math-label">论文公式 1 · I-JEPA 完整 loss · target patch 上的平均 L2</span>
+        </div>
+
+        <div class="math-explain">
+          <div class="me-title">逐项拆解</div>
+          <dl>
+            <dt>$\hat{s}_y(i)_j$</dt>
+            <dd>predictor 预测的第 $i$ 个 target block 里、第 $j$ 个 patch 的表征</dd>
+            <dt>$s_y(i)_j$</dt>
+            <dd>target encoder（EMA 网络）输出的对应"答案"表征</dd>
+            <dt>$B_i$</dt>
+            <dd>第 $i$ 个 target block 包含的所有 patch 索引集合</dd>
+            <dt>$M$</dt>
+            <dd>归一化常数——所有 target block 的 patch 总数</dd>
+          </dl>
+        </div>
+
+        <p style="margin-top:14px;"><strong>参数更新规则</strong>（注意非对称）：</p>
+
+        <div class="math-block">
+          $$\begin{aligned}
+            \theta,\,\phi\ &\leftarrow\ \text{AdamW}\!\left(\nabla \mathcal{L}\right) && \text{context encoder + predictor 走梯度} \\
+            \bar\theta\ &\leftarrow\ \tau\cdot\bar\theta + (1-\tau)\cdot\theta && \text{target encoder 走 EMA},\ \tau \approx 0.996 \to 1.0
+          \end{aligned}$$
+          <span class="math-label">非对称更新 · BYOL 风格的防坍缩配方</span>
+        </div>
+
+        <div class="callout">
+          <div class="callout-label">EMA 怎么防坍缩 · 直觉版</div>
+          <p>
+            如果 context encoder 想"偷懒"把所有 s_x 输出成常数，target encoder 通过 EMA 跟着也变常数 → loss 仍能为 0，看似没救。
+            <strong>但 EMA 有一个滞后</strong>：θ̄ 永远落后 θ 一拍。这意味着在任何瞬间，target encoder 的输出和 context encoder
+            的输出都<strong>不会完全一致</strong>。这种"动态不平衡"让 predictor 必须真的学习从 s_x 推断 s_y——常数解只在
+            θ=θ̄ 完全静止时才成立，而这种静止状态在 SGD 优化中是不稳定平衡点。
+          </p>
+          <p>
+            实验上：BYOL（2020）已经证明这套"非对称 + EMA"组合在视觉 SSL 上 work。I-JEPA 把它从 JEA 搬到 JEPA。
+          </p>
+        </div>
+
+        <details class="en-quote">
+          <summary>展开原文 · §3 Loss & 参数更新</summary>
+          <div class="quote-body">
+            <p>
+              "The use of an exponential moving average target-encoder has proven essential for training JEAs with Vision Transformers,
+              and we find the same to be true for I-JEPA."
+            </p>
+            <div class="quote-cite">— §3 Method, p.4</div>
+          </div>
+        </details>
+
+        <div class="quiz"
+             data-correct="b"
+             data-explain="正确。target encoder 用 EMA 更新（不走梯度），context encoder + predictor 走梯度。这种'非对称更新'是 BYOL 系列方法防坍缩的关键，I-JEPA 直接继承。"
+             data-explain-wrong="再看一眼 §4.2 的代码块。target encoder 的参数 θ̄ 不参与梯度计算，它只通过 EMA 公式 θ̄ ← τ·θ̄ + (1-τ)·θ 缓慢追随 context encoder。这是和 SimCLR / iBOT 不同的设计选择。">
+          <div class="q-label">🧠 理解检查</div>
+          <div class="q-text">关于 I-JEPA 的参数更新，下列哪个对？</div>
+          <div class="q-options">
+            <button class="q-opt" data-k="a">三个网络（context encoder / target encoder / predictor）都走标准梯度下降</button>
+            <button class="q-opt" data-k="b">只有 context encoder 和 predictor 走梯度；target encoder 通过 EMA 追随 context encoder</button>
+            <button class="q-opt" data-k="c">只有 predictor 走梯度，两个 encoder 都靠 EMA</button>
+            <button class="q-opt" data-k="d">目标 s_y 是固定的预训练特征（如 CLIP），不更新</button>
+          </div>
+          <div class="q-feedback"></div>
+        </div>
+
+        <!-- ═════════════════════════════════════════════════ -->
+        <h2 id="viz">§5.1 它真学到什么了？· Predictor 可视化</h2>
+
+        <div class="cn-read">
+          <div class="cn-label">承上启下</div>
+          <p>
+            上一节我们让模型在表征空间里预测 4 个目标块。但你可能怀疑——"<strong>它到底预测出了什么？</strong>"
+            毕竟我们既看不到像素也看不到标签。Fig 6 用一个巧妙的事后诊断回答了这个问题。
+          </p>
+        </div>
+
+        <div class="callout blue">
+          <div class="callout-label">技巧 · 事后训一个 decoder</div>
+          <p>
+            预训练完成后，<strong>冻住 context encoder 和 predictor</strong>，
+            另外训一个 decoder（用 RCDM 框架，一个生成模型）把 predictor 输出的<strong>表征反向映射回像素</strong>——
+            注意它不是 I-JEPA 的一部分，只是事后探针（probe）。decoder 对同一表征采样多个像素重建，
+            <strong>多次采样里"稳定不变的部分" = 表征里真正编码的信息</strong>。
+          </p>
+        </div>
+
+        <div class="fig-interactive panel-below">
+          <div class="fig-block">
+            <div class="hotspot-wrap" data-hotspot-group="fig6">
+              <img src="../assets/figures/ijepa/fig-6.png" alt="Figure 6: Predictor visualizations">
+              <div class="hotspot" data-id="orig" style="left:5%; top:30%;"
+                   data-title="第 1 列 · 原图"
+                   data-body="完整图片。包含被遮的 target 区域。"></div>
+              <div class="hotspot" data-id="ctx" style="left:13%; top:30%;"
+                   data-title="第 2 列 · 上下文"
+                   data-body="送给 context encoder 的可见区域。绿色框是稍后要预测的 target 位置。"></div>
+              <div class="hotspot" data-id="samples" style="left:40%; top:30%;"
+                   data-title="后 5 列 · 多次采样"
+                   data-body="同一个 predictor 输出，让 decoder 用不同 random seed 解码 5 次。'共同点'就是 predictor 表征里编码的信息。"></div>
+              <div class="hotspot" data-id="bird" style="left:60%; top:18%;"
+                   data-title="鸟那一行（第 1 行）"
+                   data-body="共同点：被遮区域稳定地长出'鸟的背部'，朝向、姿态正确。差异点：每次采样的具体羽毛颜色、纹理、背景细节都不同——说明这些低层信息被 predictor 主动丢弃了。"></div>
+              <div class="hotspot" data-id="car" style="left:88%; top:18%;"
+                   data-title="车那一行（第 2 行）"
+                   data-body="共同点：稳定预测出'车顶 + 引擎盖'结构，颜色对应正确。差异点：车牌、轮毂细节、反光每次都不一样。再次印证：表征 = 物体级语义，不是像素级。"></div>
+              <div class="hotspot" data-id="dog" style="left:60%; top:60%;"
+                   data-title="狗那一行（第 3 行）"
+                   data-body="共同点：狗的姿态、朝向、毛色大类（黑/棕）一致。差异点：胡须、舌头、眼神。位置感正确：predictor 知道'这块该长狗脸还是狗身'。"></div>
+            </div>
+            <div class="fig-cap">
+              <span class="fig-num">Fig 6 · p.8</span>
+              Visualization of I-JEPA predictor representations.
+              <span class="fig-cn">
+                每行：原图 → context → decoder 把同一 predictor 表征解码 5 次。
+                <strong>共同点 = 表征编码的信息（物体级、姿态、位置）；差异 = 被丢弃的低层细节</strong>。
+              </span>
+            </div>
+          </div>
+          <div class="hotspot-panel"></div>
+        </div>
+
+        <div class="callout">
+          <div class="callout-label">这张图的意义</div>
+          <p>
+            这是 I-JEPA <strong>学到语义而非像素</strong>的<em>视觉证据</em>。
+            ① predictor 正确捕获了"位置不确定性"（它知道该预测物体的哪一部分）；
+            ② 它产生<strong>带正确姿态的高层物体部件</strong>（鸟背、车顶、狗脸朝向）；
+            ③ 它<strong>主动丢弃</strong>纹理、颜色、背景这些不必要的细节。
+          </p>
+          <p>
+            如果换成 MAE，decoder 还原出来会强迫每个像素都准——这就是为什么 MAE 表征的语义性弱于 I-JEPA。
+          </p>
+        </div>
+
+        <!-- ═════════════════════════════════════════════════ -->
+        <h2 id="results">§5.2 实验结果 · 三个数字</h2>
+
+        <div class="cn-read">
+          <div class="cn-label">这一节解决什么</div>
+          <p>
+            概念讲完了，现在该看分数。本文实验非常多（Table 1-7），但只有三件事真正重要：
+            (1) 比同类无增广方法（MAE / data2vec）<strong>显著强</strong>；
+            (2) 接近甚至超过有增广方法（DINO / iBOT）<strong>但便宜得多</strong>；
+            (3) 在 low-level 任务（深度、计数）上反<strong>超过</strong>增广派（这是个意外）。
+          </p>
+        </div>
+
+        <div class="module-grid">
+          <div class="module-card">
+            <div class="module-card-name">TABLE 1 · ImageNet Linear</div>
+            <div class="module-card-title">无增广派内部排名</div>
+            <div class="module-card-desc">
+              I-JEPA ViT-H/14 (300 ep) = <strong>79.3%</strong>，比 MAE 同架构 (1600 ep) 的 77.2% 更高，<strong>训练 epoch 少 5×</strong>。
+              ViT-H/16₄₄₈ 直接到 81.1%，超过有增广派的 iBOT ViT-L/16 = 81.0%。
+            </div>
+          </div>
+          <div class="module-card">
+            <div class="module-card-name">TABLE 2 · ImageNet 1%</div>
+            <div class="module-card-title">小数据半监督</div>
+            <div class="module-card-desc">
+              只用 1% 标签微调。I-JEPA ViT-H/16₄₄₈ = <strong>77.3%</strong>，
+              首次让"无增广派"在 low-shot 上超越所有"有增广派"（之前最好 MSN ViT-B/4 = 75.7%）。
+            </div>
+          </div>
+          <div class="module-card">
+            <div class="module-card-name">TABLE 4 · Low-Level Tasks</div>
+            <div class="module-card-title">物体计数 / 深度估计</div>
+            <div class="module-card-desc">
+              在 Clevr/Count 和 Clevr/Dist 上，I-JEPA <strong>反超 DINO 和 iBOT</strong>——
+              因为后者的 view-invariance 训练把空间信息抹掉了，I-JEPA 没这个问题。
+            </div>
+          </div>
+          <div class="module-card">
+            <div class="module-card-name">FIG 5 · Scaling</div>
+            <div class="module-card-title">效率—精度 Pareto 前沿</div>
+            <div class="module-card-desc">
+              在所有 GPU 时长上，I-JEPA 都在 Pareto 前沿。
+              ViT-H/14 + I-JEPA 比 ViT-S/16 + iBOT 还便宜——这是个反直觉的结论。
+            </div>
+          </div>
+        </div>
+
+        <div class="fig-block" style="max-width:560px; margin:18px auto;">
+          <img src="../assets/figures/ijepa/fig-5.png" alt="Figure 5: Scaling efficiency">
+          <div class="fig-cap">
+            <span class="fig-num">Fig 5 · p.7</span>
+            Semi-supervised evaluation on ImageNet-1K 1% as a function of pretraining GPU hours.
+            <span class="fig-cn">
+              青绿色 I-JEPA 这条线在所有 GPU 预算下都站在最优位置——比 MAE / data2vec 更好的同时比 iBOT 更便宜。
+            </span>
+          </div>
+        </div>
+
+        <h3 id="ablations">§5.3 关键消融</h3>
+
+        <table class="kv-table">
+          <tr><td><strong>消融 1：在哪个空间算 loss</strong>（Table 7）</td>
+              <td>表征空间 = <strong>66.9%</strong> · 像素空间 = 40.7% → 差 26 个点。这是 JEPA 的灵魂——loss 必须算在表征上。</td></tr>
+          <tr><td><strong>消融 2：掩码策略</strong>（Table 6）</td>
+              <td>multi-block = <strong>54.2%</strong> · 第二名 block(0.6) = 20.2% → 差 34 个点。掩码设计也是灵魂。</td></tr>
+          <tr><td><strong>消融 3：预训练数据</strong>（Table 5）</td>
+              <td>IN1k → IN22k 后 ViT-H/14 在 INat18 从 47.6 → 50.5。I-JEPA 受益于规模。</td></tr>
+        </table>
+
+        <div class="callout red">
+          <div class="callout-label">两个"灵魂"不能动</div>
+          <p>
+            把 loss 从表征空间换成像素空间，或把多块掩码换成单块/随机——任一改动 I-JEPA 都会塌成不到一半的性能。
+            这两条说明：<strong>"在抽象空间预测、用结构化掩码"</strong>不是细节，是 I-JEPA 全部能量来源。
+          </p>
+        </div>
+
+        <!-- ═════════════════════════════════════════════════ -->
+        <h2 id="echo-lecun">§6 ★ 与 LeCun 蓝图的呼应</h2>
+
+        <div class="cn-read">
+          <div class="cn-label">这一节是这篇笔记的核心 · 把两篇论文串起来</div>
+          <p>
+            这一节回答你一开始的问题——<strong>这一篇和 LeCun 那篇怎么衔接？</strong>
+            按 LeCun 蓝图的章节顺序，I-JEPA 在每条主张上都是第一份"实证"答卷。
+          </p>
+        </div>
+
+        <table class="kv-table">
+          <tr>
+            <td style="width:38%;"><strong>LeCun 2022 §3.1（图 8）</strong><br>SSL 应该用 EBM 框架统一</td>
+            <td>I-JEPA Fig 2：把 JEA / Generative / JEPA 都画成 D(·,·) 红框 EBM。<strong>直接复用图谱</strong>。</td>
+          </tr>
+          <tr>
+            <td><strong>LeCun §3.4（图 11）</strong><br>对比 vs 正则两条防坍缩路径</td>
+            <td>I-JEPA <em>都没用</em>——走第三条：<strong>非对称架构 + EMA</strong>。把 BYOL 思路从 JEA 搬到 JEPA。</td>
+          </tr>
+          <tr>
+            <td><strong>LeCun §3.5（图 12）</strong><br>JEPA 抽象架构</td>
+            <td>I-JEPA = 这张抽象图的<strong>最简单图像版</strong>。x = context、y = target、z = mask token。</td>
+          </tr>
+          <tr>
+            <td><strong>LeCun §3.6（图 13）</strong><br>JEPA 必须丢弃不可预测细节</td>
+            <td>I-JEPA Fig 6 给出<strong>视觉证据</strong>：predictor 学会保留物体姿态、丢弃像素纹理。</td>
+          </tr>
+          <tr>
+            <td><strong>LeCun §3.8（图 15）</strong><br>H-JEPA：分层 JEPA 做长程预测</td>
+            <td>I-JEPA 是<strong>单层、单步</strong>。后续 V-JEPA / H-JEPA 才把时间和层级补上——这是路线图的下一步。</td>
+          </tr>
+          <tr>
+            <td><strong>LeCun §2.1</strong><br>World Model 是架构最大的模块</td>
+            <td>I-JEPA <strong>不直接做 World Model</strong>。它做的是 World Model 的<em>预训练表征</em>——
+                先学一个语义空间，然后在这个空间里预测、规划。这是 LeCun 路线的"第 0 步基础设施"。</td>
+          </tr>
+        </table>
+
+        <div class="callout purple">
+          <div class="callout-label">从 I-JEPA 走向 VLA · 这条路通到哪里</div>
+          <p>
+            I-JEPA 本身不预测动作，所以不是 VLA。但它对 VLA 的意义在于：
+            <strong>它给"在抽象空间预测未来"提供了第一个 scalable 的工程范式</strong>。
+            后续延伸：
+          </p>
+          <ul>
+            <li><strong>V-JEPA（2024）</strong>：把 I-JEPA 时间化——预测视频未来帧的表征，不是像素。</li>
+            <li><strong>ACT-JEPA（2024+）</strong>：再加上动作条件 z = a_t —— 这才是 World Model 的雏形。</li>
+            <li><strong>π₀ / π₀.₅ 系</strong>：虽然路线不同（用 flow matching 在动作空间预测），但思路上和 JEPA 互补：JEPA 预测"会发生什么"，flow matching 预测"我该做什么"。</li>
+          </ul>
+        </div>
+
+        <!-- ═════════════════════════════════════════════════ -->
+        <h2 id="takeaway">§7 关键收获</h2>
+
+        <div class="callout">
+          <div class="callout-label">如果只能记四件事</div>
+          <ol>
+            <li><strong>JEPA 不是新概念</strong>——LeCun 蓝图早讲过；I-JEPA 是它<strong>第一个工程实现</strong>。</li>
+            <li><strong>"在表征空间预测"</strong>是关键。换成像素空间 → 性能从 67% 掉到 41%。</li>
+            <li><strong>多块掩码</strong>是任务设计的灵魂。target 必须大、多、稀疏；context 必须大、informative。</li>
+            <li><strong>EMA + 非对称架构</strong>解决了表征坍缩，绕开了对比学习和 VICReg 那套熵约束的复杂度。</li>
+          </ol>
+        </div>
+
+        <div class="callout blue">
+          <div class="callout-label">读完这篇接着读什么</div>
+          <ul>
+            <li><strong>V-JEPA（Bardes et al. 2024）</strong>—— I-JEPA 的视频版，加入时间维度。</li>
+            <li><strong>VICReg（Bardes et al. 2021）</strong>—— LeCun 蓝图里另一条"正则防坍缩"路线的工程实现。</li>
+            <li><strong>BYOL（Grill et al. 2020）</strong>—— EMA + 非对称 trick 的源头，I-JEPA 的"灵感外祖"。</li>
+            <li><strong>MAE（He et al. 2021）</strong>—— 像素重建的代表，I-JEPA 全文都在和它对比。</li>
+          </ul>
+        </div>
+
+      </main>
+
+    </div>
+
+    <footer class="footer">
+      <a href="../index.html">← 返回首页</a>
+      &nbsp;·&nbsp;
+      <a href="../papers/lecun-autonomous-intelligence.html">← LeCun 蓝图（前一篇）</a>
+      &nbsp;·&nbsp;
+      <a href="https://arxiv.org/abs/2301.08243" target="_blank">arXiv ↗</a>
+    </footer>
+  </div>
+</body>
+</html>

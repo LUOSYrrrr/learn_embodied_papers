@@ -7,14 +7,18 @@
 
 ---
 
-## 已收录
+## 已收录（9 篇）
 
 ### 📄 论文精读
 
 | 论文 | 方向 | 状态 |
 |------|------|------|
 | [A Path Towards Autonomous Machine Intelligence](papers/lecun-autonomous-intelligence.html) · LeCun (2022) | 世界模型 / JEPA | ✅ 完成 |
+| [I-JEPA · Self-Supervised Learning from Images](papers/ijepa-self-supervised.html) · Assran et al. (2023) | JEPA / 自监督 | ✅ 完成 |
 | [π₀: A Vision-Language-Action Flow Model](papers/pi0-vla-flow-model.html) · Black et al. (2024) | VLA / Flow Matching | ✅ 完成 |
+| [π₀.₅: Open-World Generalization](papers/pi05-open-world.html) · Black et al. (2025) | VLA / Open-World | ✅ 完成 |
+| [π*₀.₆: RECAP · Learns from Experience](papers/pi06-recap-rl.html) · Physical Intelligence (2025) | VLA / RL | ✅ 完成 |
+| [π₀.₇: Steerable Generalist](papers/pi07-steerable-generalist.html) · Physical Intelligence (2026) | VLA / Steerable / Cross-Embodiment | ✅ 完成 |
 | [婴儿认知发育时间线](papers/infant-cognition-timeline.html) · Dupoux | 认知科学背景 | ✅ 完成 |
 
 ### 🔧 源码 / Pipeline 精读
@@ -28,14 +32,16 @@
 
 ## 内容组织方式
 
-每条方向按 "① 开山 / 主模型 → ② 横向扩展 / 基础组件 → ③ 改进 / 延伸" 三层组织。当前覆盖四个方向：
+每条方向按 "① 开山 / 主模型 → ② 横向扩展 / 基础组件 → ③ 改进 / 延伸" 三层组织。当前覆盖六个方向：
 
-- **世界模型 · JEPA 路线**（LeCun 2022 → I-JEPA / V-JEPA / MC-JEPA ···）
-- **VLA · 视觉-语言-动作**（π₀ → RT-2 / OpenVLA，配套 Flow Matching / PaliGemma / SigLIP）
-- **控制 · Policy & Planning**（Diffusion Policy / ACT / MPC / TD-MPC2）
+- **世界模型 · JEPA 路线**（LeCun 2022 → I-JEPA → V-JEPA / V-JEPA 2 / LeWorldModel ···）
+- **VLA · 视觉-语言-动作**（π₀ → π₀.₅ → π*₀.₆ → π₀.₇ / OpenVLA，配套 Flow Matching / PaliGemma）
+- **生成式基础 · 从 VAE 到 Flow**（VAE → DDPM → Score SDE → Flow Matching）
+- **控制 · Policy & Planning**（Diffusion Policy / ACT / TD-MPC2）
+- **WAM · 世界-动作模型**（SuSIE / UniPi / Dreamer v1-v3 / Genie / RT-1 / RT-2）
 - **认知科学 · 参考背景**（婴儿认知发育 / Core Knowledge / IntPhys）
 
-详细清单见 [首页](https://www.siyuanluoembodied.xin/) 右侧 "By Direction" 栏。
+详细清单及阅读状态见 [首页](https://www.siyuanluoembodied.xin/) "By Direction" 栏。
 
 ---
 
@@ -91,9 +97,13 @@ learn_embodied_papers/
 │       └── interactive.js              # Step walker / Hotspot / Quiz
 ├── papers/                             # 渲染页（HTML）
 │   ├── _template.html                  # 新论文页模板（模式 A）
-│   ├── lecun-autonomous-intelligence.html   # 模式 A
-│   ├── pi0-vla-flow-model.html              # 模式 A
-│   ├── infant-cognition-timeline.html       # 模式 A
+│   ├── lecun-autonomous-intelligence.html   # 模式 A · 世界模型
+│   ├── ijepa-self-supervised.html           # 模式 A · JEPA
+│   ├── pi0-vla-flow-model.html              # 模式 A · VLA
+│   ├── pi05-open-world.html                 # 模式 A · VLA
+│   ├── pi06-recap-rl.html                   # 模式 A · VLA + RL
+│   ├── pi07-steerable-generalist.html       # 模式 A · VLA + Steerable
+│   ├── infant-cognition-timeline.html       # 模式 A · 认知科学
 │   ├── pi0-code-reading.html                # 模式 B（壳 + marked）
 │   └── pi0-data-pipeline.html               # 模式 B（壳 + marked + mermaid）
 ├── notes/                              # 源笔记（Markdown，模式 B 的内容源）
@@ -102,6 +112,50 @@ learn_embodied_papers/
 ├── CLAUDE.md                           # AI 上下文（新对话时贴给 Claude）
 └── README.md
 ```
+
+---
+
+## 待读清单 · Reading List
+
+按推荐阅读顺序排列，📄 = 已下载 PDF。
+
+### 第一优先：生成式基础（理解 π₀ 的 flow matching）
+
+| # | 论文 | PDF 路径 | 一句话 |
+|---|------|---------|--------|
+| 1 | **Diffusion Policy** · Chi et al. 2024 | 📄 `pdfs/world-model/WAM/Chi 等 - 2024 - Diffusion Policy...pdf` | π₀ action expert 的前身，DDPM 做机器人策略 |
+| 2 | VAE · Kingma & Welling 2014 | 待下载 | latent space + reparameterization，Dreamer 的基础 |
+| 3 | DDPM · Ho et al. 2020 | 待下载 | 前向加噪→反向去噪，Diffusion Policy 的基础 |
+| 4 | Flow Matching · Lipman et al. 2023 | 待下载 | ODE 直线路径替代 SDE，π₀ 的核心 |
+| 5 | Score SDE · Song et al. 2021 | 待下载（或读博客替代） | 统一 DDPM 为连续 SDE，DDPM→Flow 的桥梁 |
+
+### 第二优先：WAM · 世界-动作模型
+
+| # | 论文 | PDF 路径 | 一句话 |
+|---|------|---------|--------|
+| 6 | **SuSIE** · Black et al. 2023 | 待下载 | 图编辑模型生成 subgoal，π₀.₇ world model 的直接来源 |
+| 7 | **RT-1** · Brohan et al. 2023 | 📄 `pdfs/world-model/WAM/Brohan 等 - 2023 - RT-1...pdf` | VLA 鼻祖，Robotics Transformer |
+| 8 | **RT-2** · Brohan et al. 2023 | 📄 `pdfs/world-model/WAM/Brohan 等 - 2023 - RT-2...pdf` | VLM 当策略，π₀ 的直接前身 |
+| 9 | **Genie** · Bruce et al. 2024 | 📄 `pdfs/world-model/WAM/Bruce 等 - 2024 - Genie...pdf` | 从单张图生成可交互环境 |
+
+### 第三优先：Dreamer 系列（latent world model）
+
+| # | 论文 | PDF 路径 | 一句话 |
+|---|------|---------|--------|
+| 10 | World Models · Ha & Schmidhuber 2018 | 📄 `pdfs/world-model/Ha和Schmidhuber - 2018 - World Models.pdf` | VAE+RNN 开山之作 |
+| 11 | PlaNet / RSSM · Hafner 2019 | 📄 `pdfs/world-model/Hafner 等 - 2019 - Learning Latent Dynamics...pdf` | Latent dynamics for planning |
+| 12 | Dreamer v1 · Hafner 2020 | 📄 `pdfs/world-model/dreamer/Hafner 等 - 2020 - Dream to Control...pdf` | 从 latent 想象中学策略 |
+| 13 | Dreamer v2 · Hafner 2022 | 📄 `pdfs/world-model/dreamer/Hafner 等 - 2022 - Mastering Atari...pdf` | 离散表征 + Atari |
+| 14 | Dreamer v3 · Hafner 2024 | 📄 `pdfs/world-model/dreamer/Hafner 等 - 2024 - Mastering Diverse Domains...pdf` | 跨域通用世界模型 |
+
+### 第四优先：JEPA 延续（已有基础）
+
+| # | 论文 | PDF 路径 | 一句话 |
+|---|------|---------|--------|
+| 15 | V-JEPA · Bardes et al. 2024 | 📄 `pdfs/world-model/Bardes 等 - 2024 - Revisiting Feature Prediction...pdf` | JEPA 从图片到视频 |
+| 16 | V-JEPA 2 · Assran et al. 2025 | 📄 `pdfs/world-model/Assran 等 - 2025 - V-JEPA 2...pdf` | 加上规划能力 |
+| 17 | V-JEPA 2.1 · Mur-Labadia et al. 2026 | 📄 `pdfs/world-model/Mur-Labadia 等 - 2026 - V-JEPA 2.1...pdf` | Dense feature 改进 |
+| 18 | LeWorldModel · Maes et al. 2026 | 📄 `pdfs/world-model/Maes 等 - 2026 - LeWorldModel...pdf` | 端到端 pixel→action JEPA |
 
 ---
 

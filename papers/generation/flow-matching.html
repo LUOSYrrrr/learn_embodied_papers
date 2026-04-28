@@ -1,0 +1,626 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Flow Matching for Generative Modeling · Paper Notes</title>
+  <link rel="stylesheet" href="../../assets/css/style.css">
+  <!-- KaTeX -->
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16/dist/katex.min.css">
+  <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16/dist/katex.min.js"></script>
+  <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16/dist/contrib/auto-render.min.js"
+          onload="renderMathInElement(document.body,{delimiters:[{left:'$$',right:'$$',display:true},{left:'$',right:'$',display:false}]})"></script>
+  <script src="../../assets/js/theme.js"></script>
+  <script src="../../assets/js/interactive.js" defer></script>
+</head>
+<body>
+  <nav class="nav">
+    <a class="nav-logo" href="../../index.html">Paper Notes</a>
+    <div class="nav-links">
+      <a href="../../index.html">← 返回首页</a>
+      <a href="../../papers/generation/Lipman 等 - 2023 - Flow Matching for Generative Modeling.pdf" target="_blank">📄 PDF</a>
+    </div>
+  </nav>
+
+  <div class="page">
+    <div class="docs-layout">
+
+      <!-- ─── 左：章节树 ─── -->
+      <aside class="docs-sidebar-left">
+        <div class="ds-title">Flow Matching · 生成式基础</div>
+
+        <a class="ds-leaf-top" href="#tldr">§1 一句话 + 你已经知道的</a>
+
+        <details open>
+          <summary>§2 前置：CNF 是什么</summary>
+          <a class="ds-leaf" href="#cnf-ode">2.1 ODE 定义 flow</a>
+          <a class="ds-leaf" href="#cnf-push">2.2 Push-forward：噪声→数据</a>
+        </details>
+
+        <details open>
+          <summary>§3 Flow Matching 目标</summary>
+          <a class="ds-leaf" href="#fm-loss">3.1 FM loss（Eq 5）</a>
+          <a class="ds-leaf" href="#fm-intractable">3.2 为什么直接用不了</a>
+          <a class="ds-leaf" href="#cfm">3.3 Conditional FM（Eq 9）· 核心突破</a>
+        </details>
+
+        <details>
+          <summary>§4 选路径：Diffusion vs OT</summary>
+          <a class="ds-leaf" href="#gaussian-path">4.1 Gaussian 条件路径</a>
+          <a class="ds-leaf" href="#diffusion-path">4.2 Diffusion 路径（弯曲）</a>
+          <a class="ds-leaf" href="#ot-path">4.3 OT 路径（直线）· π₀ 用的</a>
+          <a class="ds-leaf" href="#ot-loss">4.4 OT-CFM loss（Eq 23）</a>
+        </details>
+
+        <details>
+          <summary>§5 实验亮点</summary>
+          <a class="ds-leaf" href="#exp-quality">5.1 FID / NLL 全面领先</a>
+          <a class="ds-leaf" href="#exp-speed">5.2 训练快 + 采样省</a>
+        </details>
+
+        <a class="ds-leaf-top" href="#pi0-connection">§6 连接 π₀：从图片到机器人动作</a>
+        <a class="ds-leaf-top" href="#takeaway">§7 收获</a>
+      </aside>
+
+      <!-- ─── 中：正文 ─── -->
+      <main class="docs-content">
+
+        <div class="docs-breadcrumb">
+          <a href="../../index.html">paper-notes</a>
+          <span class="sep">/</span>
+          生成式基础
+          <span class="sep">/</span>
+          Flow Matching · 2023
+        </div>
+
+        <h1>Flow Matching for Generative Modeling</h1>
+        <p style="color:var(--text3); font-family:var(--font-mono); font-size:12px; margin-top:-12px;">
+          Yaron Lipman, Ricky T. Q. Chen, Heli Ben-Hamu, Maximilian Nickel, Matt Le · Meta AI (FAIR) + Weizmann · arXiv 2210.02747 · 2023
+        </p>
+
+        <div class="cn-read">
+          <div class="cn-label">这篇笔记怎么读</div>
+          <p>
+            你已经在 π₀ 里见过 flow matching loss 了——那一行代码
+            <code>||v_θ(x_t, t) - (x_1 - x_0)||²</code>。
+            这篇论文就是推导出那行代码的原始论文。读完你会明白三件事：
+          </p>
+          <p style="margin-top:6px;">
+            <strong>(1)</strong> 为什么 flow matching 比 diffusion（DDPM）更简洁——ODE 替代 SDE，直线替代曲线<br>
+            <strong>(2)</strong> "Conditional" FM 这一步怎么把不可计算的目标变成可训练的 loss<br>
+            <strong>(3)</strong> 为什么 π₀ 选 OT 路径而不是 diffusion 路径——更快收敛、更少采样步
+          </p>
+        </div>
+
+        <!-- ═════════════════════════════════════════════════ -->
+        <h2 id="tldr">§1 一句话 + 你已经知道的</h2>
+
+        <div class="callout">
+          <div class="callout-label">核心主张</div>
+          <p>
+            Flow Matching 是一种<strong>无需模拟 ODE</strong>的 CNF 训练方法：
+            通过回归<strong>条件速度场</strong>（conditional vector field），
+            让神经网络学会把噪声沿着"流"（flow）变换成数据。
+            配合 <strong>Optimal Transport 路径</strong>（直线插值），
+            训练更稳定、采样更快、效果全面优于 DDPM / Score Matching。
+          </p>
+        </div>
+
+        <details class="en-quote">
+          <summary>展开原文 · Abstract</summary>
+          <div class="quote-body">
+            <p>"We introduce a new paradigm for generative modeling built on Continuous Normalizing Flows (CNFs)... We present the notion of Flow Matching (FM), a simulation-free approach for training CNFs based on regressing vector fields of fixed conditional probability paths."</p>
+            <div class="quote-cite">— Abstract, p.1</div>
+          </div>
+        </details>
+
+        <div class="callout blue">
+          <div class="callout-label">你在 π₀ 里已经见过的</div>
+          <p>
+            π₀ 的 Action Expert 用 flow matching 训练：从噪声 $\mathbf{x}_0 \sim \mathcal{N}(0,I)$ 出发，
+            学一个速度场 $v_\theta(\mathbf{x}_t, t)$，沿着 ODE 走到真实动作 $\mathbf{x}_1$。
+            训练 loss 就是本文的 <strong>Eq 23</strong>（OT-CFM loss）。
+            这篇论文告诉你这个 loss <strong>为什么对</strong>、<strong>怎么推出来的</strong>、<strong>比 diffusion 好在哪</strong>。
+          </p>
+        </div>
+
+        <!-- ═════════════════════════════════════════════════ -->
+        <h2 id="cnf-ode">§2 前置：CNF 是什么</h2>
+
+        <div class="cn-read">
+          <div class="cn-label">这一节解决什么</div>
+          <p>
+            Flow Matching 是 CNF（Continuous Normalizing Flow）的一种训练方法。
+            在讲 FM 之前，先搞清楚 CNF 在做什么——用一个<strong>随时间变化的速度场</strong>，
+            把简单分布（高斯噪声）"推"成复杂分布（数据）。
+            如果你了解 ResNet 残差块，CNF 就是"连续版残差网络"。
+          </p>
+        </div>
+
+        <h3 style="margin-top:16px;">2.1 ODE 定义 flow</h3>
+
+        <p>
+          一个<span class="term" data-en="time-dependent vector field">随时间变化的速度场</span>
+          $v_t : \mathbb{R}^d \to \mathbb{R}^d$ 定义了一个 <strong>flow</strong>（流映射）$\phi_t$：
+        </p>
+
+        <div class="math-block">
+          $$\frac{d}{dt}\phi_t(x) = v_t(\phi_t(x)), \quad \phi_0(x) = x$$
+          <span class="math-label">Eq. 1–2 · p.2 · ODE 定义</span>
+        </div>
+
+        <div class="math-explain">
+          <div class="me-title">逐项拆解</div>
+          <dl>
+            <dt>$\phi_t(x)$</dt>
+            <dd><strong>Flow 映射</strong>：把初始点 $x$ 在时间 $t$ 时"搬运"到的位置。类比水流中的一个粒子——$t=0$ 时在 $x$，$t=1$ 时到了 $\phi_1(x)$</dd>
+            <dt>$v_t(\cdot)$</dt>
+            <dd><strong>速度场</strong>：在任意位置 $\phi_t(x)$，告诉粒子"现在往哪个方向走、走多快"。这就是神经网络要学的东西</dd>
+            <dt>$\phi_0(x) = x$</dt>
+            <dd>初始条件：$t=0$ 时粒子还在原位</dd>
+          </dl>
+        </div>
+
+        <div class="callout blue">
+          <div class="callout-label">类比 · 河流中的粒子</div>
+          <p>
+            想象一条河。$v_t$ 是河流在每个位置每个时刻的<strong>水流速度</strong>。
+            你扔一个乒乓球进去（$\phi_0(x) = x$），它随水流漂移，
+            $t=1$ 时到了 $\phi_1(x)$。CNF 的目标：<strong>设计一条"河流"（速度场），
+            让从高斯噪声出发的所有粒子在 $t=1$ 时恰好分布成训练数据</strong>。
+          </p>
+        </div>
+
+        <h3 id="cnf-push" style="margin-top:32px;">2.2 Push-forward：噪声→数据</h3>
+
+        <p>
+          如果 $t=0$ 时粒子服从简单分布 $p_0$（比如标准高斯），
+          那么 flow $\phi_t$ 把它们"推"到 $t$ 时刻的分布 $p_t$：
+        </p>
+
+        <div class="math-block">
+          $$p_t = [\phi_t]_* p_0$$
+          <span class="math-label">Eq. 3 · p.2 · Push-forward</span>
+        </div>
+
+        <div class="math-explain">
+          <div class="me-title">逐项拆解</div>
+          <dl>
+            <dt>$[\phi_t]_*$</dt>
+            <dd><strong>Push-forward 算子</strong>：把分布 $p_0$ 通过映射 $\phi_t$ "推"成新分布。直观理解：如果把每个噪声样本 $x$ 都送进 $\phi_t$，得到的一堆 $\phi_t(x)$ 的分布就是 $p_t$</dd>
+            <dt>$p_0$</dt>
+            <dd>起点分布，通常取标准高斯 $\mathcal{N}(0, I)$</dd>
+            <dt>$p_1 \approx q$</dt>
+            <dd>终点分布应该近似真实数据分布 $q$——这是 CNF 的训练目标</dd>
+          </dl>
+        </div>
+
+        <p>
+          <strong>CNF 的训练问题</strong>：传统方法（Chen et al. 2018）用 neural ODE 参数化 $v_t$，
+          但训练需要<strong>模拟整条 ODE 轨迹</strong>（simulation-based），计算量巨大。
+          Flow Matching 要解决的就是：<strong>不模拟 ODE，直接回归速度场</strong>。
+        </p>
+
+        <div class="quiz"
+             data-correct="b"
+             data-explain="CNF 用 ODE（常微分方程）而非 SDE（随机微分方程）。这是 flow matching 和 DDPM 的根本区别之一：DDPM 用的是 SDE（加了随机噪声项），flow matching 用的是确定性 ODE（没有随机性），所以采样时轨迹是确定的、可复现的。（§2, p.2）"
+             data-explain-wrong="SDE 是 diffusion model 用的，不是 CNF。GAN 用的是对抗训练，VAE 用的是 ELBO，都不是 ODE。">
+          <div class="q-label">🧠 理解检查</div>
+          <div class="q-text">CNF 用什么数学工具把噪声变成数据？</div>
+          <div class="q-options">
+            <button class="q-opt" data-k="a">SDE（随机微分方程）——加噪声再去噪</button>
+            <button class="q-opt" data-k="b">ODE（常微分方程）——确定性的速度场驱动粒子流动</button>
+            <button class="q-opt" data-k="c">对抗训练——生成器 vs 判别器</button>
+            <button class="q-opt" data-k="d">ELBO——变分下界最大化</button>
+          </div>
+          <div class="q-feedback"></div>
+        </div>
+
+        <!-- ═════════════════════════════════════════════════ -->
+        <h2 id="fm-loss">§3 Flow Matching 目标</h2>
+
+        <div class="cn-read">
+          <div class="cn-label">这一节解决什么</div>
+          <p>
+            上一节说了 CNF 用速度场 $v_t$ 驱动粒子，但怎么训练 $v_t$？
+            传统方法要模拟整条 ODE（很慢）。这一节推导出一个<strong>不用模拟 ODE</strong>的训练目标——
+            先给出理想 loss（FM），发现它算不了，然后用"条件化"技巧（CFM）绕过去。
+            这是本论文最核心的贡献。
+          </p>
+        </div>
+
+        <h3 style="margin-top:16px;">3.1 FM loss（Eq 5）</h3>
+
+        <p>
+          如果我们知道一个"理想速度场" $u_t(x)$，它恰好能生成目标概率路径 $p_t$
+          （即 $p_0 = \mathcal{N}(0,I)$，$p_1 \approx q$），那训练目标就是让神经网络 $v_t$ 去拟合它：
+        </p>
+
+        <div class="math-block">
+          $$\mathcal{L}_{\text{FM}}(\theta) = \mathbb{E}_{t, p_t(x)} \| v_t(x) - u_t(x) \|^2$$
+          <span class="math-label">Eq. 5 · p.3 · Flow Matching loss</span>
+        </div>
+
+        <div class="math-explain">
+          <div class="me-title">逐项拆解</div>
+          <dl>
+            <dt>$v_t(x)$</dt>
+            <dd>神经网络预测的速度场（learnable），即"模型觉得粒子在 $(x, t)$ 应该往哪走"</dd>
+            <dt>$u_t(x)$</dt>
+            <dd><strong>目标速度场</strong>（target）：真正能生成概率路径 $p_t$ 的速度场。如果 $v_t = u_t$，loss = 0，模型完美</dd>
+            <dt>$\mathbb{E}_{t, p_t(x)}$</dt>
+            <dd>对时间 $t \sim \mathcal{U}[0,1]$ 和空间 $x \sim p_t(x)$ 取期望</dd>
+          </dl>
+        </div>
+
+        <h3 id="fm-intractable" style="margin-top:32px;">3.2 为什么直接用不了</h3>
+
+        <p>
+          问题：$u_t(x)$ 和 $p_t(x)$ 都<strong>算不出来</strong>。
+          要构造一个能把高斯变成任意数据分布的速度场，需要知道整个数据分布——但我们只有有限样本。
+          直接用 Eq 5 训练是不可能的。
+        </p>
+
+        <h3 id="cfm" style="margin-top:32px;">3.3 Conditional FM（Eq 9）· 核心突破</h3>
+
+        <p>
+          <strong>关键想法</strong>：虽然全局的 $u_t(x)$ 算不出来，但如果我们固定一个数据样本 $x_1$，
+          就可以定义一条<strong>条件概率路径</strong> $p_t(x|x_1)$——从高斯 $p_0$ 到以 $x_1$ 为中心的窄分布。
+          这条路径及其对应的条件速度场 $u_t(x|x_1)$ 都有<strong>解析形式</strong>。
+        </p>
+
+        <div class="math-block">
+          $$\mathcal{L}_{\text{CFM}}(\theta) = \mathbb{E}_{t, q(x_1), p_t(x|x_1)} \| v_t(x) - u_t(x|x_1) \|^2$$
+          <span class="math-label">Eq. 9 · p.4 · Conditional Flow Matching loss</span>
+        </div>
+
+        <div class="math-explain">
+          <div class="me-title">逐项拆解</div>
+          <dl>
+            <dt>$q(x_1)$</dt>
+            <dd>从训练数据集中采一个真实样本 $x_1$</dd>
+            <dt>$p_t(x|x_1)$</dt>
+            <dd><strong>条件概率路径</strong>：给定 $x_1$ 后，在时间 $t$ 时 $x$ 的分布。$t=0$ 时是标准高斯，$t=1$ 时集中在 $x_1$ 附近</dd>
+            <dt>$u_t(x|x_1)$</dt>
+            <dd><strong>条件速度场</strong>：驱动 $p_t(x|x_1)$ 的速度场。有解析形式，可以直接算！</dd>
+          </dl>
+        </div>
+
+        <div class="callout">
+          <div class="callout-label">核心定理 · Theorem 2 (p.4)</div>
+          <p>
+            <strong>FM loss 和 CFM loss 有完全相同的梯度</strong>：$\nabla_\theta \mathcal{L}_{\text{FM}} = \nabla_\theta \mathcal{L}_{\text{CFM}}$。
+            也就是说，优化 CFM（能算）等价于优化 FM（想要但算不了）。
+            这意味着我们<strong>不需要知道全局速度场</strong>，只需要对每个数据样本分别构造条件路径，
+            然后让神经网络学会从所有这些条件路径中"平均"出一个全局速度场。
+          </p>
+        </div>
+
+        <details class="en-quote">
+          <summary>展开原文 · Theorem 2</summary>
+          <div class="quote-body">
+            <p>"Assuming that $p_t(x) > 0$ for all $x \in \mathbb{R}^d$ and $t \in [0,1]$, then, up to a constant independent of $\theta$, $\mathcal{L}_{\text{FM}}$ and $\mathcal{L}_{\text{CFM}}$ are equal. Hence, $\nabla_\theta \mathcal{L}_{\text{FM}}(\theta) = \nabla_\theta \mathcal{L}_{\text{CFM}}(\theta)$."</p>
+            <div class="quote-cite">— Theorem 2, §3.2, p.4</div>
+          </div>
+        </details>
+
+        <div class="callout blue">
+          <div class="callout-label">类比 · 拼图 vs 整幅画</div>
+          <p>
+            想画一幅"所有训练图片的分布"（全局速度场 $u_t$）——太难了，你甚至不知道画布有多大。
+            但如果你拿出每张训练图片 $x_1$，画一条"从随机涂鸦到这张图"的路径（条件速度场 $u_t(\cdot|x_1)$）——这很容易。
+            Theorem 2 说：<strong>所有这些小路径的加权平均，恰好就是你想要的那幅大画</strong>。
+          </p>
+        </div>
+
+        <div class="quiz"
+             data-correct="c"
+             data-explain="Theorem 2 证明 CFM loss 和 FM loss 的梯度完全相同（§3.2, p.4）。这意味着优化 CFM = 优化 FM，但 CFM 可以用采样估计（从 q(x₁) 采数据样本，从 p_t(x|x₁) 采中间点），不需要知道全局速度场。"
+             data-explain-wrong="FM loss 本身是对的（选项 a 错在'用不了'不是因为 loss 有问题，而是因为里面的量算不出来）。CFM 不是近似（选项 b），而是精确等价。选项 d 把因果搞反了。">
+          <div class="q-label">🧠 理解检查</div>
+          <div class="q-text">Conditional Flow Matching（CFM）为什么能替代原始 Flow Matching（FM）？</div>
+          <div class="q-options">
+            <button class="q-opt" data-k="a">CFM 用了更好的 loss function</button>
+            <button class="q-opt" data-k="b">CFM 是 FM 的近似，牺牲精度换速度</button>
+            <button class="q-opt" data-k="c">两者梯度完全相同（Theorem 2），但 CFM 里的量可以解析计算</button>
+            <button class="q-opt" data-k="d">CFM 先训练好再用 FM 微调</button>
+          </div>
+          <div class="q-feedback"></div>
+        </div>
+
+        <!-- ═════════════════════════════════════════════════ -->
+        <h2 id="gaussian-path">§4 选路径：Diffusion vs OT</h2>
+
+        <div class="cn-read">
+          <div class="cn-label">这一节解决什么</div>
+          <p>
+            上一节说 CFM 需要定义"条件概率路径" $p_t(x|x_1)$。
+            路径怎么选？本文给了两大类：<strong>Diffusion 路径</strong>（弯曲、复杂）和
+            <strong>Optimal Transport 路径</strong>（直线、简洁）。
+            <strong>这是本论文最有实际价值的部分</strong>——π₀ 选了 OT 路径，你读完就知道为什么。
+          </p>
+        </div>
+
+        <h3 style="margin-top:16px;">4.1 Gaussian 条件路径</h3>
+
+        <p>
+          论文考虑一大类 Gaussian 条件路径：
+        </p>
+
+        <div class="math-block">
+          $$p_t(x|x_1) = \mathcal{N}(x \mid \mu_t(x_1),\, \sigma_t(x_1)^2 I)$$
+          <span class="math-label">Eq. 10 · p.4 · Gaussian 条件路径</span>
+        </div>
+
+        <div class="math-explain">
+          <div class="me-title">逐项拆解</div>
+          <dl>
+            <dt>$\mu_t(x_1)$</dt>
+            <dd>高斯均值，随时间变化。边界条件：$\mu_0(x_1) = 0$（起点在原点），$\mu_1(x_1) = x_1$（终点在数据样本处）</dd>
+            <dt>$\sigma_t(x_1)$</dt>
+            <dd>高斯标准差，随时间变化。边界条件：$\sigma_0(x_1) = 1$（起点是标准高斯），$\sigma_1(x_1) = \sigma_{\min} \approx 0$（终点集中在 $x_1$）</dd>
+          </dl>
+        </div>
+
+        <p>
+          不同的 $\mu_t$ 和 $\sigma_t$ 选择 → 不同的路径形状。论文给出通用条件速度场（Theorem 3, p.5）：
+        </p>
+
+        <div class="math-block">
+          $$u_t(x|x_1) = \frac{\sigma_t'(x_1)}{\sigma_t(x_1)}(x - \mu_t(x_1)) + \mu_t'(x_1)$$
+          <span class="math-label">Eq. 15 · p.5 · 通用 Gaussian 条件 VF</span>
+        </div>
+
+        <h3 id="diffusion-path" style="margin-top:32px;">4.2 Diffusion 路径（弯曲）</h3>
+
+        <p>
+          如果选 $\mu_t(x_1) = \alpha_{1-t} x_1$，$\sigma_t(x_1) = \sqrt{1 - \alpha_{1-t}^2}$
+          （VP diffusion 的逆时间版本），得到的路径和 DDPM 等价。
+          但这些路径有一个问题：<strong>粒子的轨迹是弯曲的</strong>，会先"过头"再折回来。
+        </p>
+
+        <h3 id="ot-path" style="margin-top:32px;">4.3 OT 路径（直线）· π₀ 用的</h3>
+
+        <p>
+          如果选<strong>最简单的线性插值</strong>：
+        </p>
+
+        <div class="math-block">
+          $$\mu_t(x_1) = t \cdot x_1, \quad \sigma_t(x_1) = 1 - (1-\sigma_{\min})t$$
+          <span class="math-label">Eq. 20 · p.5 · OT 路径参数</span>
+        </div>
+
+        <div class="math-explain">
+          <div class="me-title">逐项拆解</div>
+          <dl>
+            <dt>$\mu_t = t \cdot x_1$</dt>
+            <dd>均值从 $0$ <strong>线性</strong>移动到 $x_1$。在 $t=0.5$ 时刚好在一半的位置</dd>
+            <dt>$\sigma_t = 1 - (1-\sigma_{\min})t$</dt>
+            <dd>标准差从 $1$（纯噪声）线性缩小到 $\sigma_{\min} \approx 0$（聚集在 $x_1$）</dd>
+          </dl>
+        </div>
+
+        <p>
+          对应的条件速度场：
+        </p>
+
+        <div class="math-block">
+          $$u_t(x|x_1) = \frac{x_1 - (1 - \sigma_{\min})x}{1 - (1 - \sigma_{\min})t}$$
+          <span class="math-label">Eq. 21 · p.5 · OT 条件速度场</span>
+        </div>
+
+        <p>
+          这个速度场的方向<strong>不随时间变化</strong>（只是大小变化）——
+          粒子沿着<strong>直线</strong>从噪声走到数据。这就是为什么叫"Optimal Transport"路径。
+        </p>
+
+        <!-- Fig 2: Diffusion vs OT -->
+        <div class="fig-interactive panel-below">
+          <div class="fig-block">
+            <div class="hotspot-wrap" data-hotspot-group="fig2">
+              <img src="../../assets/figures/flow-matching/fig-2.png" alt="Figure 2: Diffusion vs OT vector fields">
+              <div class="hotspot" data-id="diff-vf" style="left:25%; top:50%;"
+                   data-title="Diffusion path · 条件 score function"
+                   data-body="左半部分：Diffusion 路径的条件 score（梯度场）。注意箭头方向在不同时间步 t 会旋转——这意味着粒子轨迹是弯曲的。蓝色=大幅度，红色=小幅度。"></div>
+              <div class="hotspot" data-id="ot-vf" style="left:75%; top:50%;"
+                   data-title="OT path · 条件 vector field"
+                   data-body="右半部分：OT 路径的条件速度场。箭头方向在所有时间步 t 保持一致——粒子沿直线行进。而且场更均匀（颜色更一致），说明回归任务更简单。这就是 π₀ 选 OT 路径的原因。"></div>
+            </div>
+            <div class="fig-cap">
+              <span class="fig-num">Fig 2 · p.6</span>
+              Compared to the diffusion path's conditional score function, the OT path's conditional vector field has constant direction in time and is arguably simpler to fit with a parametric model.
+              <span class="fig-cn">左：Diffusion 路径——箭头方向随 $t$ 旋转，回归目标复杂。右：OT 路径——箭头方向恒定，回归目标简单。蓝=大幅度，红=小幅度。</span>
+            </div>
+          </div>
+          <div class="hotspot-panel"></div>
+        </div>
+
+        <h3 id="ot-loss" style="margin-top:32px;">4.4 OT-CFM loss（Eq 23）· π₀ 实际用的</h3>
+
+        <p>
+          把 OT 路径代入 CFM loss，得到 π₀ 实际使用的训练目标：
+        </p>
+
+        <div class="math-block">
+          $$\mathcal{L}_{\text{CFM}}(\theta) = \mathbb{E}_{t, q(x_1), p(x_0)} \left\| v_t(\psi_t(x_0)) - \big(x_1 - (1-\sigma_{\min})x_0\big) \right\|^2$$
+          <span class="math-label">Eq. 23 · p.6 · OT-CFM loss（π₀ 用的就是这个）</span>
+        </div>
+
+        <div class="math-explain">
+          <div class="me-title">逐项拆解</div>
+          <dl>
+            <dt>$x_0 \sim p(x_0) = \mathcal{N}(0, I)$</dt>
+            <dd>采一个噪声样本</dd>
+            <dt>$x_1 \sim q(x_1)$</dt>
+            <dd>采一个真实数据样本（在 π₀ 里是一段真实动作）</dd>
+            <dt>$\psi_t(x_0) = (1-(1-\sigma_{\min})t)x_0 + t x_1$</dt>
+            <dd><strong>线性插值</strong>：$t=0$ 时是纯噪声 $x_0$，$t=1$ 时是纯数据 $x_1$。这就是"OT 直线路径"</dd>
+            <dt>$v_t(\psi_t(x_0))$</dt>
+            <dd>模型在插值点处预测的速度</dd>
+            <dt>$x_1 - (1-\sigma_{\min})x_0$</dt>
+            <dd><strong>真实的"直线速度"</strong>——ground truth。当 $\sigma_{\min} \to 0$ 时就是 $x_1 - x_0$（从噪声到数据的方向）</dd>
+          </dl>
+        </div>
+
+        <div class="callout">
+          <div class="callout-label">这就是 π₀ 代码里的那一行</div>
+          <p>
+            当 $\sigma_{\min} \approx 0$ 时，Eq 23 简化为：<br>
+            <strong>采噪声 $x_0$，采数据 $x_1$，做线性插值 $x_t = (1-t)x_0 + t x_1$，
+            让模型预测 $v_\theta(x_t, t) \approx x_1 - x_0$</strong>。<br>
+            这就是 π₀ 的 <code>pi0_pytorch.py</code> 里 flow matching loss 的完整含义。
+          </p>
+        </div>
+
+        <div class="quiz"
+             data-correct="d"
+             data-explain="OT 路径 $\psi_t(x_0) = (1-t)x_0 + tx_1$ 就是从噪声 $x_0$ 到数据 $x_1$ 的线性插值。模型的训练目标是预测速度 $x_1 - x_0$（直线方向），这比 diffusion 路径的旋转方向要简单得多。（Eq 20-23, §4.1, p.5-6）"
+             data-explain-wrong="选项 a 描述的是 DDPM 的 score function。选项 b 是 VAE 的做法。选项 c 太笼统了——关键是'线性插值 + 直线速度'这个具体形式。">
+          <div class="q-label">🧠 理解检查</div>
+          <div class="q-text">π₀ 的 flow matching loss 在做什么？</div>
+          <div class="q-options">
+            <button class="q-opt" data-k="a">预测加在数据上的噪声量</button>
+            <button class="q-opt" data-k="b">最大化数据的 log-likelihood</button>
+            <button class="q-opt" data-k="c">最小化生成样本和真实数据之间的距离</button>
+            <button class="q-opt" data-k="d">在噪声-数据的线性插值点上，让模型预测的速度接近"从噪声指向数据"的直线方向</button>
+          </div>
+          <div class="q-feedback"></div>
+        </div>
+
+        <!-- ═════════════════════════════════════════════════ -->
+        <h2 id="exp-quality">§5 实验亮点</h2>
+
+        <div class="cn-read">
+          <div class="cn-label">这一节解决什么</div>
+          <p>
+            公式推完了，效果到底怎么样？两个关键结论：
+            (1) FM + OT 在 FID/NLL 上全面优于 DDPM 和 Score Matching，
+            (2) 训练收敛更快、采样需要的步数更少。
+          </p>
+        </div>
+
+        <!-- Fig 4: Checkerboard trajectories -->
+        <div class="fig-interactive panel-below">
+          <div class="fig-block">
+            <div class="hotspot-wrap" data-hotspot-group="fig4">
+              <img src="../../assets/figures/flow-matching/fig-4.png" alt="Figure 4: Checkerboard trajectories">
+              <div class="hotspot" data-id="sm-diff" style="left:22%; top:30%;"
+                   data-title="Score Matching w/ Diffusion"
+                   data-body="第一行：传统 DDPM/Score Matching + Diffusion 路径。棋盘格模式形成很慢，到 $t=2/3$ 还是模糊的。右侧 NFE=4/8 时几乎不可用。"></div>
+              <div class="hotspot" data-id="fm-diff" style="left:22%; top:55%;"
+                   data-title="Flow Matching w/ Diffusion"
+                   data-body="第二行：FM + Diffusion 路径。同样的路径，但用 FM 训练比 Score Matching 更稳定。格子形成更早。"></div>
+              <div class="hotspot" data-id="fm-ot" style="left:22%; top:80%;"
+                   data-title="Flow Matching w/ OT · 最佳"
+                   data-body="第三行：FM + OT 路径。棋盘格模式最早形成，右侧低 NFE 采样质量也最好。这就是 π₀ 选择 FM+OT 的原因——训练快、采样省。"></div>
+              <div class="hotspot" data-id="nfe-right" style="left:85%; top:50%;"
+                   data-title="Low-NFE 采样质量"
+                   data-body="右侧列：固定步数采样（NFE=4/8/10/20）。FM+OT（第三行）在仅 4 步时就已经清晰，而 Score Matching 在 20 步时还有明显噪声。这直接影响 π₀ 部署时的推理速度。"></div>
+            </div>
+            <div class="fig-cap">
+              <span class="fig-num">Fig 4 · p.7</span>
+              Trajectories of CNFs trained on 2D checkerboard data. The OT path introduces the checkerboard pattern much earlier, while FM results in more stable training.
+              <span class="fig-cn">棋盘格数据上三种方法对比。FM+OT（第三行）收敛最快，低步数采样质量最好。</span>
+            </div>
+          </div>
+          <div class="hotspot-panel"></div>
+        </div>
+
+        <h3 style="margin-top:16px;">5.1 FID / NLL 全面领先（Table 1）</h3>
+
+        <table class="kv-table" style="margin-top:10px;">
+          <tr>
+            <td><strong>方法</strong></td>
+            <td><strong>CIFAR-10 FID↓</strong></td>
+            <td><strong>ImageNet 64 FID↓</strong></td>
+            <td><strong>NFE↓</strong></td>
+          </tr>
+          <tr><td>DDPM</td><td>7.48</td><td>17.36</td><td>264</td></tr>
+          <tr><td>Score Matching</td><td>19.94</td><td>19.74</td><td>441</td></tr>
+          <tr><td>FM w/ Diffusion</td><td>8.06</td><td>16.88</td><td>187</td></tr>
+          <tr><td><strong>FM w/ OT</strong></td><td><strong>6.35</strong></td><td><strong>14.45</strong></td><td><strong>138</strong></td></tr>
+        </table>
+
+        <p style="margin-top:10px;">
+          FM+OT 在三个指标上全面领先：更好的 FID（样本质量）、更好的 NLL（似然）、
+          <strong>更少的 NFE</strong>（采样需要的函数评估次数，直接决定推理速度）。
+        </p>
+
+        <h3 id="exp-speed" style="margin-top:32px;">5.2 训练快 + 采样省</h3>
+
+        <div class="fig-block">
+          <img src="../../assets/figures/flow-matching/fig-5.png" alt="Figure 5: FID training curves" style="max-width:450px;">
+          <div class="fig-cap">
+            <span class="fig-num">Fig 5 · p.8</span>
+            Image quality during training, ImageNet 64×64.
+            <span class="fig-cn">FM+OT（蓝线）在同样的训练 epoch 下 FID 最低，收敛速度最快。</span>
+          </div>
+        </div>
+
+        <!-- ═════════════════════════════════════════════════ -->
+        <h2 id="pi0-connection">§6 连接 π₀：从图片到机器人动作</h2>
+
+        <div class="cn-read">
+          <div class="cn-label">这一节解决什么</div>
+          <p>
+            Flow Matching 原论文是在图片生成上验证的。π₀ 把它搬到了<strong>机器人动作生成</strong>——
+            $x_1$ 不再是图片像素，而是一段 50 步的关节角度序列。
+            核心 loss 完全一样，只是"数据空间"从 $\mathbb{R}^{3 \times H \times W}$ 变成了 $\mathbb{R}^{50 \times \text{DoF}}$。
+          </p>
+        </div>
+
+        <table class="kv-table" style="margin-top:10px;">
+          <tr><td style="width:160px;"><strong>对应关系</strong></td><td><strong>Flow Matching 原论文</strong></td><td><strong>π₀</strong></td></tr>
+          <tr><td>数据 $x_1$</td><td>图片像素</td><td>50-step action chunk（关节角度）</td></tr>
+          <tr><td>噪声 $x_0$</td><td>$\mathcal{N}(0,I)$</td><td>同</td></tr>
+          <tr><td>速度场 $v_\theta$</td><td>U-Net</td><td>860M Action Expert transformer</td></tr>
+          <tr><td>条件信息</td><td>类别标签（conditional generation）</td><td>VLM backbone 的激活（图像+语言+metadata）</td></tr>
+          <tr><td>路径类型</td><td>OT 直线（Eq 20）</td><td>同 OT 直线</td></tr>
+          <tr><td>采样步数</td><td>~100 NFE（图片生成）</td><td><strong>5 步</strong>（机器人需要实时性）</td></tr>
+          <tr><td>时间步注入</td><td>U-Net 的 timestep embedding</td><td>Adaptive RMSNorm（类似 DiT）</td></tr>
+        </table>
+
+        <!-- ═════════════════════════════════════════════════ -->
+        <h2 id="takeaway">§7 收获</h2>
+
+        <div class="callout">
+          <div class="callout-label">核心收获</div>
+          <p>
+            <strong>1. 关键突破是 Conditional FM</strong>——把不可计算的全局速度场分解成可计算的条件速度场。这让 CNF 训练不再需要模拟 ODE。<br>
+            <strong>2. OT 路径 = 直线 = 更简单的回归目标</strong>——速度场方向恒定，神经网络更容易学，采样步数更少。<br>
+            <strong>3. 从 Diffusion 到 Flow Matching 是"去随机化"</strong>——DDPM 用 SDE（加随机噪声），FM 用 ODE（确定性）。路径更直、训练更稳、采样更快。<br>
+            <strong>4. π₀ 的 loss 就是 Eq 23</strong>——线性插值 + 预测直线方向，整个 flow matching 管线的核心就这一行。
+          </p>
+        </div>
+
+        <div class="callout red">
+          <div class="callout-label">局限</div>
+          <p>
+            <strong>1. 条件 OT ≠ 全局 OT</strong>——每条"条件路径"是 OT 最优的，但所有路径合在一起的 marginal flow 不一定是全局 OT。论文自己也承认这一点。<br>
+            <strong>2. 只在图片上验证</strong>——2023 年论文发布时还没有在机器人/策略上的应用。π₀（2024）才把它搬过去。<br>
+            <strong>3. 对 ODE solver 的依赖</strong>——采样需要用 dopri5 等 ODE solver，步数虽然比 DDPM 少，但不像 GAN 那样一步出结果。
+          </p>
+        </div>
+
+        <div class="callout blue">
+          <div class="callout-label">对你下一步学习的启示</div>
+          <p>
+            现在你有了完整的知识链：<br>
+            <strong>DDPM</strong>（加噪去噪、SDE）→ <strong>Flow Matching</strong>（确定性 ODE、直线路径）→
+            <strong>Diffusion Policy</strong>（DDPM 做机器人策略）→ <strong>π₀</strong>（FM+OT 做机器人策略）<br>
+            下一篇可以读 <strong>Dreamer v1</strong>（世界模型路线），或者 <strong>SuSIE</strong>（π₀.₇ 的 subgoal 生成来源）。
+          </p>
+        </div>
+
+      </main>
+
+    </div>
+
+    <footer class="footer">
+      <a href="../../index.html">← 返回首页</a>
+      &nbsp;·&nbsp;
+      <a href="https://arxiv.org/abs/2210.02747" target="_blank">arXiv 2210.02747 ↗</a>
+    </footer>
+  </div>
+</body>
+</html>

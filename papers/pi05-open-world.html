@@ -5,14 +5,18 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>π₀.₅ · A Vision-Language-Action Model with Open-World Generalization</title>
   <link rel="stylesheet" href="../assets/css/style.css">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16/dist/katex.min.css">
   <script src="../assets/js/theme.js"></script>
   <script src="../assets/js/interactive.js" defer></script>
   <script src="https://cdn.jsdelivr.net/npm/prismjs@1.29.0/components/prism-core.min.js" defer></script>
   <script src="https://cdn.jsdelivr.net/npm/prismjs@1.29.0/components/prism-python.min.js" defer></script>
+  <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16/dist/katex.min.js"></script>
+  <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16/dist/contrib/auto-render.min.js"
+          onload="renderMathInElement(document.body,{delimiters:[{left:'$$',right:'$$',display:true},{left:'$',right:'$',display:false}]})"></script>
 </head>
 <body>
   <nav class="nav">
-    <a class="nav-logo" href="../index.html">~/paper-notes</a>
+    <a class="nav-logo" href="../index.html">Paper Notes</a>
     <div class="nav-links">
       <a href="../index.html">← 返回首页</a>
       <a href="../pdfs/vla/pi0.5.pdf" target="_blank">📄 PDF</a>
@@ -305,7 +309,10 @@ pi05: bool = False</code></pre>
 
         <div class="callout">
           <div class="callout-label">公式（论文 §III Preliminaries）</div>
-          <div class="code-block" style="margin-top:8px;"><code>max<sub>θ</sub>  E<sub>(a<sub>t:t+H</sub>, o<sub>t</sub>, l) ~ D</sub>  log π<sub>θ</sub>(a<sub>t:t+H</sub> | o<sub>t</sub>, l)</code></div>
+          <div class="math-block" style="margin-top:8px;">
+            $$\max_\theta\ \mathbb{E}_{(a_{t:t+H},\,o_t,\,l)\sim\mathcal{D}}\ \log \pi_\theta(a_{t:t+H} \mid o_t, l)$$
+            <span class="math-label">论文 §III · imitation learning 的核心目标（MLE）</span>
+          </div>
           <p style="margin-top:12px;">一项一项拆：</p>
           <table class="kv-table" style="margin-top:8px;">
             <tr><td style="width:160px;"><code>π<sub>θ</sub></code></td><td>策略（policy），就是这个 VLA 模型本身。θ 是它所有可学习参数（PaliGemma + action expert 加起来 ~3B）。</td></tr>
@@ -350,12 +357,18 @@ pi05: bool = False</code></pre>
             ① 里只写了"<em>给观察出动作</em>"。但 π₀.₅ 还要同时输出文本子任务 <code>l̂</code>（"<em>pick up the pillow</em>"）。
             所以论文写的更完整的联合分布是：
           </p>
-          <div class="code-block" style="margin-top:8px;"><code>π<sub>θ</sub>(a<sub>t:t+H</sub>, l̂ | o<sub>t</sub>, l)</code></div>
+          <div class="math-block" style="margin-top:8px;">
+            $$\pi_\theta(a_{t:t+H},\,\hat\ell \mid o_t,\,l)$$
+            <span class="math-label">联合分布：动作 + 自产子任务 同时建模</span>
+          </div>
           <p style="margin-top:10px;">
-            其中 <code>l</code> 是用户给的高层任务（"<em>clean the bedroom</em>"），<code>l̂</code> 是模型自己产出的子任务文本。
+            其中 $l$ 是用户给的高层任务（"<em>clean the bedroom</em>"），$\hat\ell$ 是模型自己产出的子任务文本。
             关键一步是论文把这个联合分布<strong>拆成两个条件分布</strong>：
           </p>
-          <div class="code-block" style="margin-top:8px;"><code>π<sub>θ</sub>(a<sub>t:t+H</sub>, l̂ | o<sub>t</sub>, l) = π<sub>θ</sub>(a<sub>t:t+H</sub> | o<sub>t</sub>, l̂) · π<sub>θ</sub>(l̂ | o<sub>t</sub>, l)</code></div>
+          <div class="math-block" style="margin-top:8px;">
+            $$\pi_\theta(a_{t:t+H},\,\hat\ell \mid o_t, l) = \underbrace{\pi_\theta(a_{t:t+H} \mid o_t, \hat\ell)}_{\text{LL · 低层动作}} \cdot \underbrace{\pi_\theta(\hat\ell \mid o_t, l)}_{\text{HL · 高层子任务}}$$
+            <span class="math-label">链式法则拆解 · §IV-A · HL/LL 分工的数学根据</span>
+          </div>
           <p style="margin-top:12px;">
             <strong>注意右边第一项的条件是 <code>l̂</code> 不是 <code>l</code>！</strong>这背后的假设是：
             <em>给定具体子任务 l̂ 后，动作分布就和原始高层指令 l 无关了</em>——
@@ -382,13 +395,19 @@ pi05: bool = False</code></pre>
         <div class="callout">
           <div class="callout-label">论文 §IV-A 后半段</div>
           <p><strong>观察的具体组成：</strong></p>
-          <div class="code-block" style="margin-top:8px;"><code>o<sub>t</sub> = [ I<sub>t</sub><sup>1</sup>, ..., I<sub>t</sub><sup>n</sup>, q<sub>t</sub> ]</code></div>
+          <div class="math-block" style="margin-top:8px;">
+            $$o_t = [\,I_t^{1},\ \ldots,\ I_t^{n},\ q_t\,]$$
+            <span class="math-label">观察组成 · n 路图像 + 离散化关节状态</span>
+          </div>
           <p style="margin-top:10px;">
             n 路相机图像 + 当前关节状态 q<sub>t</sub>（含关节角、夹爪、躯干升降、底盘速度）。
             <strong>q<sub>t</sub> 离散化后作为文本 token 输入</strong>——这就是 §3.4 "state 进 prompt" 的实现细节。
           </p>
           <p style="margin-top:12px;"><strong>Transformer 函数：</strong></p>
-          <div class="code-block" style="margin-top:8px;"><code>y<sub>1:N</sub> = f( x<sub>1:N</sub>, A(x<sub>1:N</sub>), ρ(x<sub>1:N</sub>) )</code></div>
+          <div class="math-block" style="margin-top:8px;">
+            $$y_{1:N} = f\!\left(\,x_{1:N},\ A(x_{1:N}),\ \rho(x_{1:N})\,\right)$$
+            <span class="math-label">通用 transformer · token 序列 + 注意力矩阵 + 类型函数</span>
+          </div>
           <table class="kv-table" style="margin-top:8px;">
             <tr><td style="width:140px;"><code>x<sub>1:N</sub></code></td><td>N 个输入 token（"token" 用得宽松，包括离散和连续）</td></tr>
             <tr><td><code>ρ(x<sub>i</sub>)</code></td><td>token 类型，3 种：<code>x<sub>i</sub><sup>w</sup> ∈ ℕ</code>（文本）/ <code>x<sub>i</sub><sup>I</sup> ∈ ℝ<sup>p×p×3</sup></code>（图像 patch）/ <code>x<sub>i</sub><sup>a</sup> ∈ ℝ<sup>d</sup></code>（动作的 flow 中间值）</td></tr>
@@ -396,7 +415,10 @@ pi05: bool = False</code></pre>
             <tr><td><code>不同 expert 权重</code></td><td>动作 token 走 action expert（独立一组权重），其他 token 走 PaliGemma 主干</td></tr>
           </table>
           <p style="margin-top:12px;"><strong>输出分两路：</strong></p>
-          <div class="code-block" style="margin-top:8px;"><code>y<sub>1:N</sub> = ( y<sup>l</sup><sub>1:M</sub>,  y<sup>a</sup><sub>1:H</sub> ),    M + H ≤ N</code></div>
+          <div class="math-block" style="margin-top:8px;">
+            $$y_{1:N} = \big(\,y^{l}_{1:M},\ y^{a}_{1:H}\,\big), \qquad M + H \leq N$$
+            <span class="math-label">输出分两路 · 文本 logits + action expert 输出</span>
+          </div>
           <p style="margin-top:10px;">
             前 M 个是<strong>文本 logits</strong>（用来 sample 出 l̂）；
             后 H 个是 <strong>action expert 的输出</strong>（线性投影成 a<sub>t:t+H</sub>）。
@@ -411,7 +433,10 @@ pi05: bool = False</code></pre>
           <p>
             工程上不写 max（梯度下降天然是 minimize），所以加个负号：
           </p>
-          <div class="code-block" style="margin-top:8px;"><code>L(θ) = − E<sub>(a, o, l) ~ D</sub>  log π<sub>θ</sub>(a | o, l)</code></div>
+          <div class="math-block" style="margin-top:8px;">
+            $$\mathcal{L}(\theta) = -\,\mathbb{E}_{(a,\,o,\,l)\sim\mathcal{D}}\ \log \pi_\theta(a \mid o, l)$$
+            <span class="math-label">NLL ≡ Cross-Entropy · 加负号把 max 变 min</span>
+          </div>
           <p style="margin-top:12px;">
             这就是 <strong>negative log-likelihood (NLL)</strong>，等价于<strong>交叉熵（cross-entropy, CE）</strong>损失。
             实现上对每条样本算一次，然后在 batch 上平均。
@@ -432,9 +457,15 @@ pi05: bool = False</code></pre>
             <code>(τ<sub>1</sub>, τ<sub>2</sub>, ..., τ<sub>N</sub>)</code>，
             和文本 token 共用一个词表。这样动作的概率可以拆成 next-token 连乘：
           </p>
-          <div class="code-block" style="margin-top:8px;"><code>π<sub>θ</sub>(a | o, l) = Π<sub>i</sub> π<sub>θ</sub>(τ<sub>i</sub> | τ<sub>&lt;i</sub>, o, l)</code></div>
+          <div class="math-block" style="margin-top:8px;">
+            $$\pi_\theta(a \mid o, l) = \prod_{i} \pi_\theta(\tau_i \mid \tau_{<i},\,o,\,l)$$
+            <span class="math-label">FAST token 上的自回归分解（链式法则）</span>
+          </div>
           <p style="margin-top:12px;">取 log 把连乘变求和：</p>
-          <div class="code-block" style="margin-top:8px;"><code>log π<sub>θ</sub>(a | o, l) = Σ<sub>i</sub> log π<sub>θ</sub>(τ<sub>i</sub> | τ<sub>&lt;i</sub>, o, l)</code></div>
+          <div class="math-block" style="margin-top:8px;">
+            $$\log \pi_\theta(a \mid o, l) = \sum_{i} \log \pi_\theta(\tau_i \mid \tau_{<i},\,o,\,l)$$
+            <span class="math-label">和 GPT 训练目标完全一致 · per-token CE 求和</span>
+          </div>
           <p style="margin-top:12px;">
             这就是标准的 <strong>autoregressive CE loss</strong>——和 GPT 训练用的目标函数<strong>一字不差</strong>。
             对所有 token（动作 + 文本 subtask + caption + bbox 坐标）都用这同一个公式。
@@ -450,12 +481,32 @@ pi05: bool = False</code></pre>
             它<strong>不直接</strong>建模 π(a|o,l)——而是建模一个<strong>速度场</strong> v<sub>θ</sub>：
           </p>
           <p style="margin-top:10px;"><strong>线性插值（论文写法）</strong>：</p>
-          <div class="code-block" style="margin-top:8px;"><code>a<sup>τ,ω</sup><sub>t:t+H</sub> = τ · a<sub>t:t+H</sub> + (1 − τ) · ω,    ω ~ N(0, I),    τ ∈ [0, 1]</code></div>
+          <div class="math-block" style="margin-top:8px;">
+            $$a^{\tau,\omega}_{t:t+H} = \tau \cdot a_{t:t+H} + (1-\tau) \cdot \omega, \qquad \omega \sim \mathcal{N}(0, I),\ \tau \in [0, 1]$$
+            <span class="math-label">flow matching 线性插值 · 噪声 → 干净的直线路径</span>
+          </div>
           <p style="margin-top:10px;">
-            注意约定：<strong>τ = 1 是干净数据，τ = 0 是纯噪声</strong>（和 diffusion 的常见约定相反）。
+            注意约定：<strong>$\tau = 1$ 是干净数据，$\tau = 0$ 是纯噪声</strong>（和 diffusion 的常见约定相反）。
           </p>
-          <p style="margin-top:12px;"><strong>训练目标 = 预测向量场 ω − a</strong>：</p>
-          <div class="code-block" style="margin-top:8px;"><code>L<sub>flow</sub>(θ) = E<sub>D, τ, ω</sub>  ‖ ω − a<sub>t:t+H</sub> − f<sup>a</sup><sub>θ</sub>(a<sup>τ,ω</sup><sub>t:t+H</sub>, o<sub>t</sub>, l) ‖²</code></div>
+          <p style="margin-top:12px;"><strong>训练目标 = 预测向量场 $\omega - a$</strong>：</p>
+          <div class="math-block" style="margin-top:8px;">
+            $$\mathcal{L}_\text{flow}(\theta) = \mathbb{E}_{\mathcal{D},\,\tau,\,\omega}\ \big\|\,\omega - a_{t:t+H} - f^a_\theta(a^{\tau,\omega}_{t:t+H},\,o_t,\,l)\,\big\|^2$$
+            <span class="math-label">flow MSE loss · 目标速度 $\omega - a$ 是常数（直线路径）</span>
+          </div>
+
+          <div class="math-explain">
+            <div class="me-title">逐项拆解</div>
+            <dl>
+              <dt>$\omega - a_{t:t+H}$</dt>
+              <dd><strong>目标向量场</strong>——从干净端 $a$ 指向噪声端 $\omega$ 的常数速度（注意符号方向）</dd>
+              <dt>$f^a_\theta(\cdot)$</dt>
+              <dd>action expert 网络的输出，预测的速度场</dd>
+              <dt>$\|\cdot\|^2$</dt>
+              <dd>MSE，让预测速度尽量接近目标速度</dd>
+              <dt>$\mathbb{E}_{\tau,\,\omega}$</dt>
+              <dd>对随机采的清洁度 $\tau$ 和噪声 $\omega$ 取期望——一个样本贡献多个 $(\tau, \omega)$ 组合</dd>
+            </dl>
+          </div>
           <p style="margin-top:12px;">
             <code>(ω − a)</code> 是恒定的"目标速度"，与 τ 无关。
             模型学会预测它后，推理时从纯噪声 ω 出发、沿向量场积分 10 步即可还原 a。
@@ -474,7 +525,10 @@ pi05: bool = False</code></pre>
           <p>
             把 ⑤ 的文本 CE 和 ⑥ 的 flow MSE 用一个超参数 α 合在一起，就是论文里编号的 Eq. (1)：
           </p>
-          <div class="code-block" style="margin-top:8px;"><code>L(θ) = E<sub>D, τ, ω</sub> [ H(x<sub>1:M</sub>, f<sup>l</sup><sub>θ</sub>(o<sub>t</sub>, l))  +  α · ‖ ω − a<sub>t:t+H</sub> − f<sup>a</sup><sub>θ</sub>(a<sup>τ,ω</sup><sub>t:t+H</sub>, o<sub>t</sub>, l) ‖² ]</code></div>
+          <div class="math-block" style="margin-top:8px;">
+            $$\mathcal{L}(\theta) = \mathbb{E}_{\mathcal{D},\,\tau,\,\omega}\!\left[\,\underbrace{H\!\left(x_{1:M},\,f^l_\theta(o_t, l)\right)}_{\text{文本 CE}}\ +\ \alpha\cdot \underbrace{\big\|\,\omega - a_{t:t+H} - f^a_\theta(a^{\tau,\omega}_{t:t+H},\,o_t,\,l)\,\big\|^2}_{\text{flow MSE}}\,\right]$$
+            <span class="math-label">论文 §IV-B Eq.(1) · pre/post-train 共用，仅靠 α 切换阶段</span>
+          </div>
           <table class="kv-table" style="margin-top:12px;">
             <tr><td style="width:200px;"><code>H(x<sub>1:M</sub>, f<sup>l</sup><sub>θ</sub>(...))</code></td><td>所有<strong>文本 token</strong>上的 cross-entropy（包括 FAST 编码的动作 token、subtask、caption、bbox）</td></tr>
             <tr><td><code>‖ω − a − f<sup>a</sup><sub>θ</sub>(...)‖²</code></td><td>action expert 上的 flow matching MSE</td></tr>
@@ -495,7 +549,10 @@ pi05: bool = False</code></pre>
             上面 Eq. (1) 描述的是"<em>一个样本如何算 loss</em>"。但 π₀.₅ 一个 batch 里同时有 6 种数据源，
             最终损失是按数据源加权的混合：
           </p>
-          <div class="code-block" style="margin-top:8px;"><code>L<sub>total</sub> = w<sub>MM</sub>·L<sub>MM</sub> + w<sub>ME</sub>·L<sub>ME</sub> + w<sub>CE</sub>·L<sub>CE</sub> + w<sub>HL</sub>·L<sub>HL</sub> + w<sub>WD</sub>·L<sub>WD</sub> + w<sub>VI</sub>·L<sub>VI</sub></code></div>
+          <div class="math-block" style="margin-top:8px;">
+            $$\mathcal{L}_\text{total} = w_\text{MM}\,\mathcal{L}_\text{MM} + w_\text{ME}\,\mathcal{L}_\text{ME} + w_\text{CE}\,\mathcal{L}_\text{CE} + w_\text{HL}\,\mathcal{L}_\text{HL} + w_\text{WD}\,\mathcal{L}_\text{WD} + w_\text{VI}\,\mathcal{L}_\text{VI}$$
+            <span class="math-label">co-training 配方 · §IV-D · 6 个数据源的加权和</span>
+          </div>
           <table class="kv-table" style="margin-top:12px;">
             <tr><td style="width:80px;"><strong>L<sub>MM</sub></strong></td><td>mobile manipulation —— 移动机器人示教（主力数据）</td></tr>
             <tr><td><strong>L<sub>ME</sub></strong></td><td>multi-embodiment —— 多机器人本体（OXE 等公开数据）</td></tr>
@@ -1206,8 +1263,10 @@ else:
 
         <div class="callout">
           <div class="callout-label">公式 · 论文 Eq.(1)</div>
-          <div class="code-block" style="margin-top:8px;"><code>L = E[ H(x_{1:M}, f_θ^ℓ(o_t, ℓ))             ← 文本 token 的交叉熵（含 FAST 编码的动作 token）
-       + α · ‖ω − a_{t:t+H} − f_θ^{τ,ω}(a_t^{τ,ω}, o_t, ℓ)‖² ]   ← action expert 的 flow MSE</code></div>
+          <div class="math-block" style="margin-top:8px;">
+            $$\mathcal{L} = \mathbb{E}\!\left[\,\underbrace{H\!\left(x_{1:M},\,f^\ell_\theta(o_t, \ell)\right)}_{\text{文本 CE · 含 FAST 动作 token}}\ +\ \alpha\cdot \underbrace{\big\|\,\omega - a_{t:t+H} - f^{\tau,\omega}_\theta(a^{\tau,\omega}_t,\,o_t,\,\ell)\,\big\|^2}_{\text{action expert flow MSE}}\,\right]$$
+            <span class="math-label">论文 Eq.(1) · 同一公式驱动 pre / post 两阶段</span>
+          </div>
           <p style="margin-top:8px;">
             <strong>Pre-training</strong>：α = 0，纯 next-token；保留语言能力 + 学动作的离散表征。
           </p>

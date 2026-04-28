@@ -1,0 +1,16 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(ls /Users/siyuanluo/STUDY/paper/learn_embodied_papers/papers/*.html)",
+      "Bash(grep -n 'katex\\\\|mathjax\\\\|MathJax\\\\|KaTeX' /Users/siyuanluo/STUDY/paper/learn_embodied_papers/assets/css/style.css /Users/siyuanluo/STUDY/paper/learn_embodied_papers/papers/*.html)",
+      "Bash(pdftoppm -png -r 300 -f 1 -l 1 \"/Users/siyuanluo/STUDY/paper/learn_embodied_papers/papers/generation/Lipman 等 - 2023 - Flow Matching for Generative Modeling.pdf\" assets/figures/flow-matching/p1)",
+      "Bash(pdftoppm -png -r 300 -f 6 -l 6 \"/Users/siyuanluo/STUDY/paper/learn_embodied_papers/papers/generation/Lipman 等 - 2023 - Flow Matching for Generative Modeling.pdf\" assets/figures/flow-matching/p6)",
+      "Bash(pdftoppm -png -r 300 -f 7 -l 7 \"/Users/siyuanluo/STUDY/paper/learn_embodied_papers/papers/generation/Lipman 等 - 2023 - Flow Matching for Generative Modeling.pdf\" assets/figures/flow-matching/p7)",
+      "Bash(pdftoppm -png -r 300 -f 8 -l 8 \"/Users/siyuanluo/STUDY/paper/learn_embodied_papers/papers/generation/Lipman 等 - 2023 - Flow Matching for Generative Modeling.pdf\" assets/figures/flow-matching/p8)",
+      "Bash(python3:*)",
+      "Bash(pdftoppm:*)",
+      "Bash(ls -la /Users/siyuanluo/STUDY/paper/learn_embodied_papers/assets/figures/openvla/fig-*.png)",
+      "Bash(find papers:*)"
+    ]
+  }
+}

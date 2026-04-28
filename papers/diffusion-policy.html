@@ -1,0 +1,929 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Diffusion Policy · Visuomotor Policy Learning via Action Diffusion</title>
+  <link rel="stylesheet" href="../assets/css/style.css">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16/dist/katex.min.css">
+  <script src="../assets/js/theme.js"></script>
+  <script src="../assets/js/interactive.js" defer></script>
+  <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16/dist/katex.min.js"></script>
+  <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16/dist/contrib/auto-render.min.js"
+          onload="renderMathInElement(document.body,{delimiters:[{left:'$$',right:'$$',display:true},{left:'$',right:'$',display:false}]})"></script>
+</head>
+<body>
+  <nav class="nav">
+    <a class="nav-logo" href="../index.html">Paper Notes</a>
+    <div class="nav-links">
+      <a href="../index.html">← 返回首页</a>
+      <a href="../pdfs/world-model/WAM/Chi 等 - 2024 - Diffusion Policy Visuomotor Policy Learning via Action Diffusion.pdf" target="_blank">📄 PDF</a>
+    </div>
+  </nav>
+
+  <div class="page">
+    <div class="docs-layout">
+
+      <!-- ─── 左：章节树 ─── -->
+      <aside class="docs-sidebar-left">
+        <div class="ds-title">Diffusion Policy · IJRR 2024</div>
+
+        <a class="ds-leaf-top" href="#tldr">§1 一句话总览（Fig 1）</a>
+        <a class="ds-leaf-top" href="#why">§2 为什么策略学习这么难</a>
+
+        <details open>
+          <summary>§3 DDPM 数学基础</summary>
+          <a class="ds-leaf" href="#ddpm-langevin">3.1 朗之万动力学采样</a>
+          <a class="ds-leaf" href="#ddpm-grad">3.2 噪声预测 = score 估计</a>
+          <a class="ds-leaf" href="#ddpm-train">3.3 训练目标</a>
+        </details>
+
+        <details open>
+          <summary>§4 三个工程关键</summary>
+          <a class="ds-leaf" href="#cond-vision">4.1 把视觉作为条件</a>
+          <a class="ds-leaf" href="#action-seq">4.2 预测动作序列</a>
+          <a class="ds-leaf" href="#receding">4.3 滚动时域控制</a>
+        </details>
+
+        <details open>
+          <summary>§5 网络架构（Fig 2）</summary>
+          <a class="ds-leaf" href="#arch-overview">5.1 总览</a>
+          <a class="ds-leaf" href="#arch-cnn">5.2 CNN-based · FiLM 条件</a>
+          <a class="ds-leaf" href="#arch-transformer">5.3 Transformer-based · 交叉注意力</a>
+          <a class="ds-leaf" href="#arch-vision">5.4 视觉编码器</a>
+        </details>
+
+        <details open>
+          <summary>§6 它好在哪？</summary>
+          <a class="ds-leaf" href="#prop-multimodal">6.1 多模态分布（Fig 3）</a>
+          <a class="ds-leaf" href="#prop-position">6.2 位置控制 + 序列预测</a>
+          <a class="ds-leaf" href="#prop-stable">6.3 训练稳定（Fig 6）</a>
+          <a class="ds-leaf" href="#prop-horizon">6.4 动作horizon 与延迟（Fig 5）</a>
+        </details>
+
+        <a class="ds-leaf-top" href="#results">§7 实验结果</a>
+        <a class="ds-leaf-top" href="#takeaway">§8 ★ 与 π₀ / VLA 的关系</a>
+      </aside>
+
+      <!-- ─── 中：正文 ─── -->
+      <main class="docs-content">
+
+        <div class="docs-breadcrumb">
+          <a href="../index.html">paper-notes</a>
+          <span class="sep">/</span>
+          <a href="../index.html">世界模型 / 动作生成</a>
+          <span class="sep">/</span>
+          Diffusion Policy · Chi et al. 2024
+        </div>
+
+        <h1>Diffusion Policy: Visuomotor Policy Learning via Action Diffusion</h1>
+        <p style="color:var(--text3); font-family:var(--font-mono); font-size:12px; margin-top:-12px;">
+          Cheng Chi, Zhenjia Xu, Siyuan Feng, Eric Cousineau, Yilun Du, Benjamin Burchfiel,
+          <strong>Russ Tedrake</strong>, Shuran Song · Columbia / TRI / MIT · IJRR 2024 (extended from RSS 2023)
+        </p>
+
+        <div class="cn-read">
+          <div class="cn-label">为什么这篇必看</div>
+          <p>
+            如果你已经读过 <a href="pi0-vla-flow-model.html" style="color:var(--accent);">π₀</a>，
+            你应该会有一个疑问：<strong>π₀ 的 action expert 为什么用 flow matching 生成动作？</strong>
+            而不是直接 MSE 回归一个动作向量？这篇论文（2023 RSS best paper）就是回答这个问题的<strong>原点</strong>——
+            它第一次系统地把<strong>扩散模型搬进机器人策略</strong>，证明：
+          </p>
+          <p>
+            把 "policy(o) → a" 这件事，从"<span class="term" data-en="regression">回归</span>"重新建模成
+            "从噪声里去噪出一个动作序列"，整个机器人模仿学习的基线就被推到了一个新高度——
+            <strong>15 个任务平均提升 46.9%</strong>，并且训练稳定、能表达多模态、能处理 action sequence。
+            π₀ / Octo / RDT 这一波 VLA，本质上都是把 Diffusion Policy 的"动作头"<strong>嫁接到</strong>
+            一个 VLM 后面。
+          </p>
+          <p>
+            读完这篇你能拿到三件事：(1) 为什么 BC 任务里 MSE 回归会失败；
+            (2) DDPM 怎么改成 conditional policy；(3) 三个工程关键（visual conditioning / action sequence / receding horizon）
+            是怎么让它真的能在物理机器人上 0.1s 闭环跑起来的。
+          </p>
+        </div>
+
+        <!-- ═════════════════════════════════════════════════ -->
+        <h2 id="tldr">§1 一句话总览</h2>
+
+        <div class="cn-read">
+          <div class="cn-label">这篇论文做了什么</div>
+          <p>
+            过去模仿学习把 "状态 → 动作" 当成一个<strong>函数</strong>来学（像 LSTM-GMM、BC-RNN）。
+            但人的 demonstration 不是一个函数：同一个状态下，绕开 T 形块从左边走还是右边走都对——
+            这叫<strong>多模态</strong>。MSE 回归在多模态分布上会输出"两条路的平均"，结果就卡死中间。
+          </p>
+          <p>
+            Diffusion Policy 的解法：<strong>把动作分布 p(a|o) 用 DDPM 表达</strong>。
+            训练时学"如何给一段动作加噪 → 预测噪声"；推理时从一段高斯噪声出发，
+            按 score field 一步步把它"导航"成一段合法动作序列。
+            <strong>分布是 implicit 的</strong>，所以左右两条路都能保留。
+          </p>
+        </div>
+
+        <div class="fig-interactive panel-below">
+          <div class="fig-block">
+            <div class="hotspot-wrap" data-hotspot-group="fig1">
+              <img src="../assets/figures/diffusion-policy/fig-1.png" alt="Figure 1: Three policy representations">
+              <div class="hotspot" data-id="explicit" style="left:11%; top:48%;"
+                   data-title="(a) Explicit Policy · 显式回归"
+                   data-body="最简单的形式：神经网络 F_θ(o) 直接吐一个动作 a。代表：BC-RNN / LSTM-GMM。变种是输出多个高斯分量（GMM）或离散分类（categorical）。问题：要表达多模态必须事先指定模式数；scalar regression 在多模态下输出'平均动作'，会卡死。"></div>
+              <div class="hotspot" data-id="implicit" style="left:36%; top:55%;"
+                   data-title="(b) Implicit Policy · 隐式能量模型"
+                   data-body="代表：IBC（Florence et al. 2021）。学一个能量函数 E_θ(o,a)，推理时枚举/优化 a* = argmin E。能表达多模态分布（中间能量图就显示了一个圆环 = 一个连续模态）。问题：训练靠 InfoNCE 负采样，归一化常数 Z 是 intractable 的，训练不稳定（看 Fig 6）。"></div>
+              <div class="hotspot" data-id="diffusion" style="left:71%; top:55%;"
+                   data-title="(c) Diffusion Policy · 本文方案"
+                   data-body="不学能量 E_θ(o,a)，而是学它的梯度 ∇E_θ(o,a)（也就是 score）。推理时从噪声 a^K 出发，沿梯度场迭代 K 步降噪到 a^0。右边那张箭头图就是学到的 gradient field。绕开了 Z 的问题，训练稳定。"></div>
+              <div class="hotspot" data-id="gradient-field" style="left:88%; top:35%;"
+                   data-title="梯度场 ∇E(a)"
+                   data-body="图(c)右侧的箭头矩阵就是 score field：每个 (a) 位置都有一个箭头指向'更可能是合法动作'的方向。从黑色噪声起点出发，跟着箭头走 K 步就到合法动作的'谷底'（图中那个黑色圆环）。这正是 Stochastic Langevin Dynamics 在做的事。"></div>
+              <div class="hotspot" data-id="energy-shape" style="left:54%; top:35%;"
+                   data-title="能量地形（图 b 中间）"
+                   data-body="蓝色亮带 = 低能量（合法动作）；周围深色 = 高能量。注意它是一个圆环 —— 这是一个连续多模态：圆环上的每个点都是合法动作。这正是 BC 任务真实的难度。"></div>
+            </div>
+            <div class="fig-cap">
+              <span class="fig-num">Fig 1 · p.1</span>
+              Policy Representations. (a) Explicit policy with different action representations. (b) Implicit policy learns an energy function. (c) Diffusion policy refines noise into actions via a learned gradient field.
+              <span class="fig-cn">
+                三种策略表达。(a) 直接吐动作；(b) 学能量函数找最小值；(c) 学梯度场从噪声中迭代降噪。
+                点上面的圆点对照看每种方法的代表 + 痛点。
+              </span>
+            </div>
+          </div>
+          <div class="hotspot-panel"></div>
+        </div>
+
+        <details class="en-quote">
+          <summary>展开原文 · Abstract 关键句</summary>
+          <div class="quote-body">
+            <p>
+              "Diffusion Policy learns the gradient of the action-distribution score function and iteratively
+              optimizes with respect to this gradient field during inference via a series of stochastic Langevin
+              dynamics steps. We find that the diffusion formulation yields powerful advantages when used for robot policies,
+              including gracefully handling multimodal action distributions, being suitable for high-dimensional action spaces,
+              and exhibiting impressive training stability."
+            </p>
+            <div class="quote-cite">— Abstract, p.1</div>
+          </div>
+        </details>
+
+        <div class="callout">
+          <div class="callout-label">三个数字记住就够了</div>
+          <p>
+            ① 在 <strong>15 个任务、4 个 benchmark</strong> 上，平均成功率提升 <strong>46.9%</strong>；<br>
+            ② 推理只要 <strong>10 步 DDIM</strong>，单帧 <strong>0.1 秒</strong>（3080 GPU），够闭环控制；<br>
+            ③ 在 Block Push 长 horizon 多模态任务上，p4 指标提升 <strong>213%</strong>（0.32 → 1.00）。
+          </p>
+        </div>
+
+        <!-- ═════════════════════════════════════════════════ -->
+        <h2 id="why">§2 为什么策略学习比"普通监督"难</h2>
+
+        <div class="cn-read">
+          <div class="cn-label">这一节解决什么</div>
+          <p>
+            上一节给出了"diffusion 是答案"——但答案为什么是 diffusion？为什么不是普通 MLP 或 BC-RNN？
+            这一节先讲清楚<strong>问题</strong>：从 demonstration 学动作有三个特性，
+            让它和普通的"图像分类"完全不是一码事。
+          </p>
+        </div>
+
+        <table class="kv-table">
+          <tr><td>① 多模态（Multimodal）</td><td>同一个状态下，可以有多种合法动作。绕开 T 块从左走或右走都对。MSE 回归会输出两个动作的平均。</td></tr>
+          <tr><td>② 时序相关（Sequential）</td><td>动作之间有强时间依赖。前一步推到这里，下一步只能往这个方向，不是独立同分布。</td></tr>
+          <tr><td>③ 高精度（High Precision）</td><td>机器人操作对动作精度要求高。误差 1cm 在视觉分类里没事，但能让一个抓取任务整体失败。</td></tr>
+        </table>
+
+        <div class="callout amber">
+          <div class="callout-label">为什么 MSE 回归在多模态上必崩</div>
+          <p>
+            假设一个状态 o 对应两个合法动作 a₁ = 左、a₂ = 右。MSE 损失最小化的是
+            <code>E[(a - μ(o))²]</code>，最优的 μ(o) = (a₁+a₂)/2 = "中间"。
+            而"中间"在 push-T 这种任务里是<strong>非法动作</strong>（直直怼上 T 块）。
+            这就是为什么 BC-RNN 在多模态任务上经常"画饼" / "犹豫" / 卡死。
+          </p>
+        </div>
+
+        <div class="callout blue">
+          <div class="callout-label">先驱 IBC 解决了多模态，但留下了新坑</div>
+          <p>
+            <span class="term" data-en="Implicit Behavior Cloning">IBC</span>（Florence 2021）用 EBM 解决了多模态——但训 EBM 要靠 InfoNCE
+            负采样，归一化常数 <code>Z(o,θ) = ∫ exp(-E(o,a)) da</code> 是 intractable 的。
+            实际训出来的 IBC <strong>训练损失下降但 success rate 振荡</strong>（Fig 6 右）。
+            Diffusion Policy 就是要绕开这个坑：<strong>不学能量本身，只学能量的梯度</strong>。
+          </p>
+        </div>
+
+        <div class="quiz"
+             data-correct="b"
+             data-explain="选 (b)。MSE 优化的最优解是分布的均值；当真实分布是双峰的（左/右两种合法动作），均值落在两个峰之间——通常是非法动作。这是为什么 push-T 上 LSTM-GMM 表现远差于 Diffusion Policy。"
+             data-explain-wrong="再想一下：MSE 学的是输出与目标的平方差期望最小，对应的最优解是哪个统计量？">
+          <div class="q-label">🧠 理解检查</div>
+          <div class="q-text">为什么 MSE 回归在多模态动作分布上会失败？</div>
+          <div class="q-options">
+            <button class="q-opt" data-k="a">MSE 收敛速度太慢</button>
+            <button class="q-opt" data-k="b">MSE 最优解是分布均值，落在多个模态之间，常常是非法动作</button>
+            <button class="q-opt" data-k="c">MSE 不能处理高维输出</button>
+            <button class="q-opt" data-k="d">MSE 需要负采样</button>
+          </div>
+          <div class="q-feedback"></div>
+        </div>
+
+        <!-- ═════════════════════════════════════════════════ -->
+        <h2 id="ddpm-langevin">§3 DDPM 怎么变成机器人策略</h2>
+
+        <div class="cn-read">
+          <div class="cn-label">这一节解决什么</div>
+          <p>
+            上一节说"用 diffusion 可以避开 IBC 的坑"。但 DDPM 原本是给图像生成用的（<code>x</code> 是一张图），
+            怎么改造成 policy？这一节回答两件事：
+            <strong>(a) 朗之万动力学怎么把噪声变成动作</strong>，
+            <strong>(b) DDPM 的 loss 怎么改成 conditional 形式 p(a|o)</strong>。
+            读完这节你能写出训练 loss 和推理流程。
+          </p>
+        </div>
+
+        <h3 id="ddpm-langevin">3.1 朗之万动力学：去噪 = 沿梯度场下山</h3>
+
+        <p>
+          DDPM 是一族<span class="term" data-en="generative model">生成模型</span>，
+          采样过程被建模成 <strong>K 步朗之万动力学（Stochastic Langevin Dynamics）</strong>。
+          从纯高斯噪声 $\mathbf{x}^K$ 出发，每一步都做一次"<strong>预测噪声 → 减掉 → 加一点扰动</strong>"，
+          K 步之后得到干净样本 $\mathbf{x}^0$。
+        </p>
+
+        <div class="callout blue">
+          <div class="callout-label">类比 · 蒙眼下山</div>
+          <p>
+            把 $\mathbf{x}^K$ 想成你被丢在一个有雾的山顶（高斯噪声），目标是走到山谷（合法动作）。
+            每一步 $\varepsilon_\theta$ 告诉你"<strong>当前最陡的下山方向</strong>"，
+            $\gamma$ 决定迈多大一步，
+            末尾那项 $\mathcal{N}(0, \sigma^2 I)$ 是<em>脚滑一下</em>——避免你被困在小坑里，
+            也是采样能采出多模态分布的原因。
+          </p>
+        </div>
+
+        <div class="math-block">
+          $$\mathbf{x}^{k-1} = \alpha \left( \mathbf{x}^k - \gamma \, \varepsilon_\theta(\mathbf{x}^k, k) \right) + \mathcal{N}(0, \sigma^2 I)$$
+          <span class="math-label">Eq. 1 · DDPM 朗之万采样 · §2.2 p.4</span>
+        </div>
+
+        <div class="math-explain">
+          <div class="me-title">逐项拆解</div>
+          <dl>
+            <dt>$\mathbf{x}^k$</dt>
+            <dd>第 $k$ 步的"被噪声污染"样本——$k$ 越大越接近纯噪声，$k=0$ 是干净数据</dd>
+            <dt>$\varepsilon_\theta(\mathbf{x}^k, k)$</dt>
+            <dd><strong>噪声预测网络</strong>——看着当前样本和当前步数，预测里面有多少噪声。这是整个 DDPM 唯一要训练的东西</dd>
+            <dt>$\alpha,\ \gamma,\ \sigma$</dt>
+            <dd>noise schedule 系数，论文用 <strong>Square Cosine Schedule</strong>。$\gamma$ 起的是"学习率"作用，$\sigma$ 控制每步注入多少随机性</dd>
+            <dt>$\mathcal{N}(0,\sigma^2 I)$</dt>
+            <dd>每步追加的高斯扰动——保证采样过程是<strong>随机的</strong>而不是确定性梯度下降</dd>
+          </dl>
+        </div>
+
+        <h3 id="ddpm-grad">3.2 一行代数：噪声预测 = 学一个梯度场</h3>
+
+        <p>
+          上一节给了采样公式，但没说 $\varepsilon_\theta$ <strong>到底在学什么</strong>。
+          论文用一行代数把 Eq. 1 拆开（让 $\sigma = 0$ 暂时忽略随机扰动项），
+          就能看清它和经典梯度下降的关系。回忆一下普通梯度下降的更新公式：
+        </p>
+
+        <div class="math-block">
+          $$\mathbf{x}' = \mathbf{x} - \gamma \, \nabla E(\mathbf{x})$$
+          <span class="math-label">Eq. 2 · 梯度下降（用来对比 Eq. 1）</span>
+        </div>
+
+        <div class="math-explain">
+          <div class="me-title">Eq. 1 ↔ Eq. 2 逐项对照</div>
+          <dl>
+            <dt>$\mathbf{x}^{k-1}$ ↔ $\mathbf{x}'$</dt>
+            <dd>下一步位置</dd>
+            <dt>$\gamma$ ↔ $\gamma$</dt>
+            <dd>步长（学习率）</dd>
+            <dt>$\varepsilon_\theta(\mathbf{x}^k, k)$ ↔ $\nabla E(\mathbf{x})$</dt>
+            <dd><strong>这就是关键</strong>：噪声预测网络扮演的角色，正是某个能量函数的梯度</dd>
+          </dl>
+        </div>
+
+        <p>
+          对照下来，$\varepsilon_\theta(\mathbf{x}, k)$ 实际上就在拟合 $\nabla E(\mathbf{x})$——
+          也就是<strong>学一个梯度场</strong>（也叫 score）。这是连接
+          <em>DDPM ↔ EBM ↔ score-matching</em> 的核心一步，也是下面要解释"为什么 IBC 不稳、Diffusion 稳"的入口。
+        </p>
+
+        <div class="callout">
+          <div class="callout-label">为什么这件事能绕开 IBC 的归一化坑</div>
+          <p>
+            EBM 的真实分布是 $p(\mathbf{a}\mid\mathbf{o}) = \exp(-E_\theta(\mathbf{o},\mathbf{a})) / Z(\mathbf{o},\theta)$，
+            分母 $Z$ 是个对所有动作积分的常数——<strong>算不出来</strong>。
+            但只要看 score（log 概率对 $\mathbf{a}$ 的梯度），$Z$ 就消失了：
+          </p>
+
+          <div class="math-block">
+            $$\nabla_{\mathbf{a}} \log p(\mathbf{a}\mid\mathbf{o}) = -\nabla_{\mathbf{a}} E_\theta(\mathbf{o},\mathbf{a}) \;-\; \underbrace{\nabla_{\mathbf{a}} \log Z(\mathbf{o},\theta)}_{=\,0}$$
+            <span class="math-label">score 分解 · 关键消项</span>
+          </div>
+
+          <p>
+            因为 $Z$ 不依赖 $\mathbf{a}$，<strong>第二项恒为 0</strong>。
+            所以 score 等于 $-\nabla_{\mathbf{a}} E_\theta(\mathbf{o},\mathbf{a})$——和 $Z$ 无关。
+            既然只学 score（即 $\varepsilon_\theta$），就不用估 $Z$，<strong>训练自然稳定</strong>。
+            IBC 之所以训练崩，就是因为它非要在分母里算 $Z$。
+          </p>
+        </div>
+
+        <h3 id="ddpm-train">3.3 训练目标：MSE on noise</h3>
+
+        <p>
+          上节说 $\varepsilon_\theta$ 在<strong>学梯度场</strong>，但具体怎么训？
+          DDPM 的训练其实非常朴素——比 IBC 的对比学习简单一个数量级。
+        </p>
+
+        <div class="callout blue">
+          <div class="callout-label">类比 · 猜骰子里掺进去多少作弊量</div>
+          <p>
+            一个干净动作 $\mathbf{a}^0$ 被人偷偷掺进了一团高斯噪声 $\boldsymbol{\varepsilon}^k$，
+            给你看混合后的 $\mathbf{a}^k$。你要<strong>猜回掺进去的那团噪声长啥样</strong>。
+            猜得越准，模型对"什么是干净动作"理解得越好。这就是 DDPM 训练的全部。
+          </p>
+        </div>
+
+        <p>训练循环：</p>
+        <ol>
+          <li>从数据集采一段干净动作 $\mathbf{a}^0$；</li>
+          <li>随机选一个 denoising step $k \sim \mathrm{Uniform}\{1,\ldots,K\}$；</li>
+          <li>采一团高斯噪声 $\boldsymbol{\varepsilon}^k \sim \mathcal{N}(0, I)$，加到 $\mathbf{a}^0$ 上得到 $\mathbf{a}^k = \mathbf{a}^0 + \boldsymbol{\varepsilon}^k$；</li>
+          <li>让网络看着 $(O_t, \mathbf{a}^k, k)$ 预测 $\boldsymbol{\varepsilon}^k$，loss 是 <strong>MSE</strong>：</li>
+        </ol>
+
+        <div class="math-block">
+          $$\mathcal{L} = \mathrm{MSE}\!\left(\boldsymbol{\varepsilon}^k,\ \varepsilon_\theta(O_t,\ \mathbf{a}^0 + \boldsymbol{\varepsilon}^k,\ k)\right)$$
+          <span class="math-label">Eq. 4 · 训练 loss · §2.3 p.5</span>
+        </div>
+
+        <div class="math-explain">
+          <div class="me-title">逐项拆解</div>
+          <dl>
+            <dt>$\boldsymbol{\varepsilon}^k$</dt>
+            <dd><strong>真实加上去的</strong>那团高斯噪声——这就是 ground truth</dd>
+            <dt>$\varepsilon_\theta(O_t,\ \mathbf{a}^0 + \boldsymbol{\varepsilon}^k,\ k)$</dt>
+            <dd>网络看着"被污染的样本 + 观察 + 步数"，<strong>猜回</strong>那团噪声</dd>
+            <dt>$O_t$</dt>
+            <dd>条件（observation）——视觉/状态特征，告诉模型"在这种环境下应该做什么"</dd>
+            <dt>$\mathrm{MSE}(\cdot, \cdot)$</dt>
+            <dd>均方误差。和 InfoNCE 不一样，这里只有"猜的噪声 vs 真实噪声"两个量，<strong>没有负样本</strong></dd>
+          </dl>
+        </div>
+
+        <p>
+          相比之下，IBC 的 InfoNCE loss 要在分母里堆 $N_\text{neg}$ 个负样本，
+          每个负样本都要前向跑一遍能量函数。
+          DDPM 的 MSE 训练只有一个前向 + 一个反向——<strong>简单稳定</strong>。
+        </p>
+
+        <details class="en-quote">
+          <summary>展开原文 · §2.3 训练简化为何稳定</summary>
+          <div class="quote-body">
+            <p>
+              "Diffusion Policy and DDPMs sidestep the issue of estimating Z(a, θ) altogether by modeling the
+              score function ... where the noise-prediction network ε_θ(a, o) is approximating the negative of the
+              score function ∇_a log p(a|o), which is independent of the normalization constant Z(o, θ).
+              As a result, neither the inference nor training process of Diffusion Policy involves evaluating Z(o, θ),
+              thus making Diffusion Policy training more stable."
+            </p>
+            <div class="quote-cite">— §4.4, p.6</div>
+          </div>
+        </details>
+
+        <!-- ═════════════════════════════════════════════════ -->
+        <h2 id="cond-vision">§4 三个工程关键：让它真能上机器人</h2>
+
+        <div class="cn-read">
+          <div class="cn-label">这一节解决什么</div>
+          <p>
+            上一节给出了"diffusion 头"在数学上为什么稳。但<strong>从一个能 work 的图像生成 DDPM
+            到一个能在机器人上闭环跑的 policy，论文做了三件关键工程改造</strong>。
+            这三件事缺一不可——这也是你读 π₀ / Octo / RDT 时会反复看到的同一组设计选择，
+            它们的根都在这一节。
+          </p>
+        </div>
+
+        <h3 id="cond-vision">4.1 视觉作为条件，不作为联合分布</h3>
+
+        <p>
+          原本的 Diffuser（Janner 2022）做 plan diffusion，输入输出都是 <code>(s_t, a_t)</code>——
+          建的是<strong>联合分布</strong> <code>p(A, S)</code>。
+          这意味着推理时<strong>视觉特征也要每一步去噪</strong>，慢得离谱。
+        </p>
+
+        <p>
+          Diffusion Policy 的关键改动：把 $O_t$ 当成<strong>条件</strong>——
+          只建 $p(A_t \mid O_t)$。
+          视觉编码器对每一帧观察<strong>只前向一次</strong>，
+          然后把得到的 feature 注入每一步的 $\varepsilon_\theta$。
+          推理速度从"K 次视觉编码"降到"<strong>1 次视觉编码 + K 次 action 去噪</strong>"。
+        </p>
+
+        <div class="math-block">
+          $$A_t^{k-1} = \alpha \left( A_t^k - \gamma \, \varepsilon_\theta(O_t, A_t^k, k) \right) + \mathcal{N}(0, \sigma^2 I)$$
+          <span class="math-label">Eq. 5 · 条件采样（visual conditioning）· §3.1 p.5</span>
+        </div>
+
+        <div class="math-explain">
+          <div class="me-title">和 §3.1 的 Eq. 1 对比，只有两处变化</div>
+          <dl>
+            <dt>$\mathbf{x} \to A_t$</dt>
+            <dd>被去噪的对象从"图像"换成<strong>动作序列</strong> $A_t = (\mathbf{a}_t, \mathbf{a}_{t+1}, \ldots, \mathbf{a}_{t+T_p-1})$</dd>
+            <dt>$\varepsilon_\theta(\cdot, k) \to \varepsilon_\theta(O_t, \cdot, k)$</dt>
+            <dd>噪声预测网络多接一个条件 $O_t$（视觉+状态特征），决定"在这个环境下该往哪去噪"</dd>
+          </dl>
+        </div>
+
+        <p>训练 loss 同步改成动作序列版本：</p>
+
+        <div class="math-block">
+          $$\mathcal{L} = \mathrm{MSE}\!\left(\boldsymbol{\varepsilon}^k,\ \varepsilon_\theta(O_t,\ A_t^0 + \boldsymbol{\varepsilon}^k,\ k)\right)$$
+          <span class="math-label">Eq. 6 · 条件训练 loss · §3.1 p.5</span>
+        </div>
+
+        <p>
+          注意：Eq. 4 是单步动作 $\mathbf{a}$ 的训练 loss，Eq. 6 把它升级到动作序列 $A_t$。
+          其他全保持原样——这就是为什么 Diffusion Policy 能<strong>原封不动地继承 DDPM 的训练稳定性</strong>，
+          只在输入/输出维度上做了机器人特化。
+        </p>
+
+        <h3 id="action-seq">4.2 输出动作序列，不是单步</h3>
+
+        <p>
+          每次推理预测<strong>一段长度为 T_p 的动作序列</strong> <code>A_t = (a_t, a_{t+1}, ..., a_{t+T_p-1})</code>，
+          而不是单个 a_t。这件事的意义有三层：
+        </p>
+
+        <div class="module-grid">
+          <div class="module-card">
+            <div class="module-card-name">TEMPORAL CONSISTENCY · 时序一致</div>
+            <div class="module-card-title">前后动作不会跳模态</div>
+            <div class="module-card-desc">单步策略每步独立采样，可能这一步选"左路"、下一步选"右路"，输出 jitter。序列预测一次性确定整段轨迹，逻辑闭环。</div>
+          </div>
+          <div class="module-card">
+            <div class="module-card-name">IDLE-ROBUSTNESS · 抗静止动作</div>
+            <div class="module-card-title">遥操作中的暂停不会"卡死"</div>
+            <div class="module-card-desc">人在示教时常会暂停（拍照、思考），这些 idle 帧让单步 BC 学到"原地不动"。序列预测覆盖整段时间，不会因为单帧静止而过拟合。</div>
+          </div>
+          <div class="module-card">
+            <div class="module-card-name">HIGH-DIM TARGET · 高维输出</div>
+            <div class="module-card-title">DDPM 天生擅长高维</div>
+            <div class="module-card-desc">图像生成 DDPM 输出是 256×256×3=196608 维。预测 16 步 7 自由度动作只有 112 维，对 DDPM 是小菜。这是它独有的优势。</div>
+          </div>
+        </div>
+
+        <h3 id="receding">4.3 滚动时域控制（Receding Horizon Control）</h3>
+
+        <p>
+          预测一段 T_p 步动作，但只<strong>真正执行其中前 T_a 步</strong>，然后用最新的观察重新预测。
+          这是经典 MPC（<span class="term" data-en="Model Predictive Control">模型预测控制</span>）的思路。
+        </p>
+
+        <div class="callout">
+          <div class="callout-label">为什么这样最稳</div>
+          <p>
+            T_a 太小 → 等同于单步，浪费了序列预测的好处；<br>
+            T_a 太大 → 不能及时反应环境变化，动作"陈旧"；<br>
+            实验最佳：<strong>T_a = 8</strong> 步左右（Fig 5 左）。
+          </p>
+        </div>
+
+        <div class="quiz"
+             data-correct="c"
+             data-explain="选 (c)。论文 §2.3 明确说：把 O_t 设为条件而不是建联合分布 p(A,O)，意味着视觉编码器在每一次 inference call 只跑一次，K 步去噪只在 action 上做。这把 inference 速度提到了 0.1s/step，够闭环。"
+             data-explain-wrong="想想 K 步迭代里，哪个组件如果每步都跑会拖累速度？">
+          <div class="q-label">🧠 理解检查</div>
+          <div class="q-text">把 O_t 作为"条件"而不是"联合分布的一部分"，最直接的好处是什么？</div>
+          <div class="q-options">
+            <button class="q-opt" data-k="a">视觉特征更准</button>
+            <button class="q-opt" data-k="b">能解决多模态问题</button>
+            <button class="q-opt" data-k="c">视觉编码器每帧只跑一次，inference 大幅加速</button>
+            <button class="q-opt" data-k="d">不需要 noise schedule</button>
+          </div>
+          <div class="q-feedback"></div>
+        </div>
+
+        <!-- ═════════════════════════════════════════════════ -->
+        <h2 id="arch-overview">§5 网络架构 · 一张图看懂</h2>
+
+        <div class="cn-read">
+          <div class="cn-label">这一节解决什么</div>
+          <p>
+            上一节把"为什么这么设计"讲清楚了——这一节讲<strong>具体的神经网络长什么样</strong>。
+            论文同时给了 CNN-based 和 Transformer-based 两个版本，二者公用 §4 的训练目标，
+            只在"动作 + 时间步 + 观察"怎么融合上不同。
+            读完你能在 Fig 2 上指出每根箭头是什么。
+          </p>
+        </div>
+
+        <div class="fig-interactive panel-below">
+          <div class="fig-block">
+            <div class="hotspot-wrap" data-hotspot-group="fig2">
+              <img src="../assets/figures/diffusion-policy/fig-2.png" alt="Figure 2: Diffusion Policy Overview">
+              <div class="hotspot" data-id="obs-input" style="left:8%; top:30%;"
+                   data-title="Image Observation Sequence · 输入观察"
+                   data-body="过去 T_o 帧（论文用 2 帧）的 RGB + 机器人 proprioception。每帧用一个 ResNet-18 编码（多个相机各自一个 encoder）。这部分只跑 1 次，得到 O_t。"></div>
+              <div class="hotspot" data-id="ot-feature" style="left:24%; top:32%;"
+                   data-title="O_t · 观察特征"
+                   data-body="把所有视觉特征 + 机器人 pose concat 成一个向量。在 K 步去噪过程中，这个向量是常量（条件），只前向一次。"></div>
+              <div class="hotspot" data-id="diffusion-fn" style="left:35%; top:55%;"
+                   data-title="ε_θ(O_t, A_t, k) · 噪声预测网络"
+                   data-body="核心：输入'当前噪声动作 A_t^k + 观察 O_t + diffusion step k'，输出'本步要减掉的噪声'。这就是 §3 的 score function。具体结构看(b) CNN 或 (c) Transformer。"></div>
+              <div class="hotspot" data-id="action-seq" style="left:25%; top:73%;"
+                   data-title="Action Sequence · 动作序列 A_t"
+                   data-body="预测的不是单个 a_t，而是 T_p 步动作（论文用 16 步）。其中前 T_a=8 步会被真正执行（receding horizon）。注意：A_t 是被去噪的对象，从高斯噪声开始，K 步迭代后变成合法动作。"></div>
+              <div class="hotspot" data-id="film" style="left:55%; top:78%;"
+                   data-title="(b) FiLM 条件注入 · CNN 版本"
+                   data-body="FiLM (Feature-wise Linear Modulation, Perez 2018) = 用 O_t 生成 channel-wise 的缩放和偏置 (a, b)，作用到 1D Conv 的 feature map 上：x → a·x + b。每个 conv 层都注入一次。这是 Janner 2022 Diffuser 的方式。"></div>
+              <div class="hotspot" data-id="cnn-blocks" style="left:62%; top:35%;"
+                   data-title="1D Conv Blocks · 时序卷积栈"
+                   data-body="Action sequence 沿时间轴做 1D 卷积。优点：天然光滑、容易训练；缺点：当动作高频变化时（如 velocity control），会出现 over-smoothing，跟不上变化。"></div>
+              <div class="hotspot" data-id="transformer-arch" style="left:85%; top:30%;"
+                   data-title="(c) Transformer · 用 cross-attention 注入"
+                   data-body="基于 minGPT decoder。Action embedding 排成序列做 self-attn（causal mask 让每个 a_t 只能看前面），观察 O_t 通过 cross-attention 注入。优点：高频变化没有 over-smoothing。缺点：超参数更敏感。"></div>
+              <div class="hotspot" data-id="cross-attn" style="left:91%; top:48%;"
+                   data-title="Cross Attention 层"
+                   data-body="O_t 经过一个共享 MLP 投影成 query/key 给 cross-attn，action embedding 是 value。这就是把'观察影响动作生成'这件事，转化成注意力。和 π₀ 的 action expert 注入观察的方式如出一辙。"></div>
+              <div class="hotspot" data-id="k-times" style="left:75%; top:18%;"
+                   data-title="×K 次去噪迭代"
+                   data-body="不管 CNN 还是 Transformer，整个网络要前向 K 次（论文训练 100 次、推理 DDIM 10 次）。每次得到本步的预测噪声 ∇E，从 A_t 里减掉，再加一点扰动，进入下一步。"></div>
+            </div>
+            <div class="fig-cap">
+              <span class="fig-num">Fig 2 · p.3</span>
+              Diffusion Policy Overview. (a) General formulation. (b) CNN-based with FiLM conditioning. (c) Transformer-based with cross-attention.
+              <span class="fig-cn">
+                左：总体输入输出（观察→动作序列）。中：CNN 版本用 FiLM 把观察按通道注入。
+                右：Transformer 版本用 cross-attention 把观察注入。两者公用同一个 §4 训练目标。
+              </span>
+            </div>
+          </div>
+          <div class="hotspot-panel"></div>
+        </div>
+
+        <div class="step-walker" data-hotspot-group="fig2">
+          <div class="sw-header">
+            <div class="sw-title">🪜 跟着信号走一遍 inference</div>
+            <div class="sw-controls">
+              <button class="sw-btn prev">◀</button>
+              <span class="sw-counter">1 / 5</span>
+              <button class="sw-btn next">▶</button>
+            </div>
+          </div>
+          <div class="sw-progress">
+            <div class="sw-dot"></div><div class="sw-dot"></div><div class="sw-dot"></div><div class="sw-dot"></div><div class="sw-dot"></div>
+          </div>
+          <div class="sw-body">
+            <div class="sw-step active" data-hotspot="obs-input">
+              <h4>第 1 步：观察输入（只跑 1 次）</h4>
+              <p>当前时刻 t，拿过去 T_o=2 帧的图像 + 机器人 pose，喂进视觉编码器。注意：这一步在整个 K 次去噪中<strong>只做一次</strong>，因为 O_t 是条件而非生成对象。</p>
+            </div>
+            <div class="sw-step" data-hotspot="ot-feature">
+              <h4>第 2 步：拿到条件向量 O_t</h4>
+              <p>把所有视觉特征和机器人 pose concat 成一个向量。这个向量在接下来的 K 次去噪里都不会变。</p>
+            </div>
+            <div class="sw-step" data-hotspot="action-seq">
+              <h4>第 3 步：从高斯噪声起步</h4>
+              <p>采一个 A_t^K ~ 𝒩(0, I)——一段长度 T_p=16 的"纯噪声动作序列"。我们的目标是把它一步步导成合法动作。</p>
+            </div>
+            <div class="sw-step" data-hotspot="diffusion-fn">
+              <h4>第 4 步：K 次迭代去噪</h4>
+              <p>每一步喂 (O_t, A_t^k, k) 进 ε_θ，得到该步的"梯度"，按式(4) 更新：A_t^(k-1) = α·(A_t^k − γ·ε_θ) + 高斯扰动。论文训练 100 步、推理 DDIM 加速到 10 步。</p>
+            </div>
+            <div class="sw-step" data-hotspot="action-seq">
+              <h4>第 5 步：拿到 A_t^0，执行前 T_a=8 步</h4>
+              <p>K 步降噪后得到合法动作序列 A_t^0。机器人执行前 T_a=8 步，然后回到第 1 步用最新的观察重新启动整个流程。这就是 receding horizon。</p>
+            </div>
+          </div>
+        </div>
+
+        <h3 id="arch-cnn">5.2 CNN 版本：FiLM 条件 + 时序 1D 卷积</h3>
+
+        <p>
+          基础结构是 Janner 2022 Diffuser 的 1D temporal CNN。
+          论文做了三个修改：
+        </p>
+        <ol>
+          <li>只建 conditional <code>p(A | O)</code>，<strong>用 FiLM 把 O_t 注入每一层卷积</strong>；</li>
+          <li>不预测 concat 的 (obs, action)，<strong>只预测 action</strong>；</li>
+          <li>去掉 inpainting 形式的 goal conditioning（和 receding horizon 不兼容）；</li>
+        </ol>
+
+        <div class="callout amber">
+          <div class="callout-label">CNN 版本的局限</div>
+          <p>
+            1D 卷积的 inductive bias 偏好<strong>低频信号</strong>（Tancik 2020）。
+            在 velocity control / 高频抖动任务上会 over-smoothing——预测的动作"太平滑"跟不上目标变化。
+            这是论文为什么又做了 transformer 版的根本原因。
+          </p>
+        </div>
+
+        <h3 id="arch-transformer">5.3 Transformer 版本：cross-attention 注入</h3>
+
+        <p>
+          基于 minGPT 风格 decoder：
+        </p>
+        <ul>
+          <li><strong>Input tokens</strong>：T_p 个 noisy action embedding + 1 个 sinusoidal 表达 step k 的 token；</li>
+          <li><strong>Self-attention</strong>：causal mask 保证每个 action token 只看到前面的；</li>
+          <li><strong>Cross-attention</strong>：每层把 O_t（经过共享 MLP 投影）当作 K/V 注入；</li>
+          <li><strong>Output</strong>：每个 token 位置预测对应那一步的 ε_θ。</li>
+        </ul>
+
+        <div class="callout blue">
+          <div class="callout-label">📌 这就是 π₀ "action expert" 的原型</div>
+          <p>
+            如果你已经熟悉 π₀：π₀ 的 action expert = 一个独立的小 transformer，
+            通过 cross-attention 从主 VLM 那里获取观察上下文，输出一段动作序列。
+            这跟 Diffusion Policy 的 transformer 版是<strong>同一个想法</strong>——
+            只是 π₀ 把 ε_θ 换成 flow vector field（flow matching）、
+            把 O_t 换成 PaliGemma 的视觉语言特征。骨架完全一样。
+          </p>
+        </div>
+
+        <h3 id="arch-vision">5.4 视觉编码器：标准 ResNet-18，但有三个细节</h3>
+
+        <ol>
+          <li>用 spatial softmax pooling 替代 global average pooling（保留空间位置信息）；</li>
+          <li>用 GroupNorm 替代 BatchNorm（DDPM 训练常用 EMA，BN 不稳定）；</li>
+          <li>多个相机各自独立 encoder，特征 concat 之后再喂给 ε_θ；</li>
+          <li>视觉编码器和 diffusion 网络<strong>端到端联合训练</strong>（论文实测：finetune > frozen，from-scratch ≈ pretrained）。</li>
+        </ol>
+
+        <!-- ═════════════════════════════════════════════════ -->
+        <h2 id="prop-multimodal">§6 它好在哪？</h2>
+
+        <div class="cn-read">
+          <div class="cn-label">这一节解决什么</div>
+          <p>
+            到目前为止论文讲了"是什么"和"怎么做"。这一节讲<strong>"为什么 work"</strong>——
+            把 Diffusion Policy 的四个独有性质<strong>逐一拆开来用图证明</strong>：
+            (a) 多模态、(b) 适配位置控制、(c) 训练稳定、(d) action horizon 调起来不挑。
+            每一项都有一张图作证据，看完你就知道它在哪些场景下比 BC-RNN / IBC / BET 强、为什么强。
+          </p>
+        </div>
+
+        <h3 id="prop-multimodal">6.1 多模态：左右两条路都能保留</h3>
+
+        <div class="fig-interactive panel-below">
+          <div class="fig-block">
+            <div class="hotspot-wrap" data-hotspot-group="fig3">
+              <img src="../assets/figures/diffusion-policy/fig-3.png" alt="Figure 3: Multimodal behavior comparison">
+              <div class="hotspot" data-id="dp" style="left:13%; top:50%;"
+                   data-title="Diffusion Policy"
+                   data-body="每一次 rollout 选择一种模态（左或右），并且<strong>整段动作都坚持这一选择</strong>——红黄轨迹清晰分成左/右两簇，没有中间犹豫。"></div>
+              <div class="hotspot" data-id="lstm-gmm" style="left:38%; top:50%;"
+                   data-title="LSTM-GMM"
+                   data-body="即 BC-RNN + GMM 输出。轨迹明显偏向某一侧（比如全部走左），失去了右路这个模态——这是显式回归 + GMM 模式有限的代价。"></div>
+              <div class="hotspot" data-id="bet" style="left:63%; top:50%;"
+                   data-title="BET"
+                   data-body="Behavior Transformer (Shafiullah 2022) 用聚类 + 残差。可以表达多模态，但<strong>每一步独立采样</strong>——所以同一段轨迹里前半步走左、后半步走右，最后 jitter 卡死。这就是序列预测的重要性。"></div>
+              <div class="hotspot" data-id="ibc" style="left:88%; top:50%;"
+                   data-title="IBC"
+                   data-body="Implicit BC. 看起来好一点但训练不稳定，鲁棒性远不如 Diffusion Policy。"></div>
+            </div>
+            <div class="fig-cap">
+              <span class="fig-num">Fig 3 · p.5</span>
+              Multimodal behavior. The end-effector (blue) can either go left or right to push the block.
+              <span class="fig-cn">
+                Push-T 同一初始状态下连续 40 步 rollout 的轨迹叠加。
+                只有 Diffusion Policy 同时表达了"左路"和"右路"两种合法策略，且每次 rollout 内部一致不抖。
+              </span>
+            </div>
+          </div>
+          <div class="hotspot-panel"></div>
+        </div>
+
+        <h3 id="prop-position">6.2 适配位置控制（不是速度控制）</h3>
+
+        <p>
+          多数 BC 方法（BC-RNN / BET / IBC）<strong>必须用 velocity control</strong>——
+          因为 position control 多模态更明显，它们扛不住。
+          Diffusion Policy 反过来：<strong>position control 比 velocity control 平均提升更大</strong>（Fig 4）。
+          原因有两条：
+        </p>
+
+        <ul>
+          <li>position control 对多模态更敏感，但 Diffusion Policy 本来就擅长多模态——劣势消失；</li>
+          <li>position control 没有累积误差（velocity 要积分），更适合<strong>动作序列预测</strong>，下一段可以从准确的目标位置 warm-start。</li>
+        </ul>
+
+        <h3 id="prop-stable">6.3 训练稳定 vs IBC 的振荡</h3>
+
+        <div class="fig-interactive">
+          <div class="fig-block">
+            <div class="hotspot-wrap" data-hotspot-group="fig6">
+              <img src="../assets/figures/diffusion-policy/fig-6.png" alt="Figure 6: Training stability">
+              <div class="hotspot" data-id="ibc-loss" style="left:25%; top:35%;"
+                   data-title="IBC 训练 loss（左图灰色）"
+                   data-body="train action prediction MSE 一直高位震荡——energy function 的 loss 在降，但实际预测 action 的精度不收敛。这是 InfoNCE 负采样不准的副作用。"></div>
+              <div class="hotspot" data-id="dp-loss" style="left:25%; top:65%;"
+                   data-title="Diffusion Policy 训练 loss（左图蓝色）"
+                   data-body="平滑下降到接近 0 并稳定。简单 MSE on noise，没有负采样的麻烦。"></div>
+              <div class="hotspot" data-id="ibc-success" style="left:75%; top:55%;"
+                   data-title="IBC 成功率（右图灰色）"
+                   data-body="成功率上下振荡 0.6-0.95——这意味着选择哪个 checkpoint 部署是个赌博。论文里 IBC 报的是'每个 checkpoint 都跑一遍 rollout 然后挑最好的'，工业界根本不可行。"></div>
+              <div class="hotspot" data-id="dp-success" style="left:75%; top:30%;"
+                   data-title="Diffusion Policy 成功率（右图蓝色）"
+                   data-body="100 epoch 后稳定在 ~0.99，曲线平滑。可以放心选最后一个 checkpoint 直接部署。"></div>
+            </div>
+            <div class="fig-cap">
+              <span class="fig-num">Fig 6 · p.6</span>
+              Training Stability. Left: IBC fails to infer training actions with increasing accuracy. Right: IBC's evaluation success rate oscillates.
+              <span class="fig-cn">
+                左图：训练动作预测 MSE 随 epoch 的变化。右图：仿真 rollout 成功率。
+                Diffusion Policy 平滑收敛，IBC 在两张图上都振荡——这是工程意义上巨大的差距。
+              </span>
+            </div>
+          </div>
+          <div class="hotspot-panel"></div>
+        </div>
+
+        <h3 id="prop-horizon">6.4 Action horizon 不挑、对延迟鲁棒</h3>
+
+        <div class="fig-interactive">
+          <div class="fig-block">
+            <div class="hotspot-wrap" data-hotspot-group="fig5">
+              <img src="../assets/figures/diffusion-policy/fig-5.png" alt="Figure 5: Action horizon and latency ablation">
+              <div class="hotspot" data-id="horizon-sweet" style="left:24%; top:25%;"
+                   data-title="T_a = 8 是甜点"
+                   data-body="X 轴是 receding horizon 中"实际执行的步数 T_a"。1 步太短（每步重新规划，浪费序列预测）；128 步太长（环境变化跟不上）。8 步左右是最佳。"></div>
+              <div class="hotspot" data-id="horizon-square" style="left:24%; top:65%;"
+                   data-title="Square 任务对 horizon 更敏感"
+                   data-body="灰线（Square）在 64/128 时跌到 -0.5——精密装配任务对反应延迟非常敏感。蓝线（PushT）耐受性更好。"></div>
+              <div class="hotspot" data-id="latency-square" style="left:75%; top:65%;"
+                   data-title="Latency 影响：position control 更耐受"
+                   data-body="右图：随系统延迟增加，PushT 蓝线几乎不变，Square 灰线下降但平缓。整体说明 Diffusion Policy + position control 对系统延迟有很强的容忍度，可以承受真实机器人的图像处理 + 网络延迟。"></div>
+            </div>
+            <div class="fig-cap">
+              <span class="fig-num">Fig 5 · p.5</span>
+              Diffusion Policy Ablation. Left: action horizon trade-off. Right: latency robustness.
+              <span class="fig-cn">
+                左：execution horizon T_a 从 1 到 128，最佳点在 ~8 步。
+                右：人为加 0-7 步延迟，Diffusion Policy 仍保持成功率，证明它适合真实闭环控制。
+              </span>
+            </div>
+          </div>
+          <div class="hotspot-panel"></div>
+        </div>
+
+        <div class="quiz"
+             data-correct="d"
+             data-explain="选 (d)。论文 §4.4 + Fig 6 重点说明：IBC 的 InfoNCE loss 依赖负采样估算 Z(o,θ)，负采样不准导致训练 loss 在降但实际策略不收敛。Diffusion Policy 直接学 score（与 Z 无关），用 MSE 训练所以稳定。"
+             data-explain-wrong="再回到 §3.2：Diffusion Policy 学的是什么？为什么这件事天然绕开了 EBM 的最大坑？">
+          <div class="q-label">🧠 理解检查</div>
+          <div class="q-text">为什么 Diffusion Policy 比 IBC 训练更稳定？</div>
+          <div class="q-options">
+            <button class="q-opt" data-k="a">DDPM 用 transformer，IBC 用 MLP</button>
+            <button class="q-opt" data-k="b">Diffusion Policy 用了 GroupNorm 而 IBC 用 BatchNorm</button>
+            <button class="q-opt" data-k="c">Diffusion Policy 数据量更大</button>
+            <button class="q-opt" data-k="d">Diffusion Policy 直接学 score（与归一化常数 Z 无关），不需要 InfoNCE 负采样</button>
+          </div>
+          <div class="q-feedback"></div>
+        </div>
+
+        <!-- ═════════════════════════════════════════════════ -->
+        <h2 id="results">§7 实验结果（一句话总结即可）</h2>
+
+        <div class="cn-read">
+          <div class="cn-label">这一节解决什么</div>
+          <p>
+            前面讲清了"为什么"——这里给"做到了多少"的数字。Diffusion Policy 的实验跨度极广：
+            <strong>15 个仿真任务（Robomimic / Push-T / BlockPush / Franka Kitchen）+ 4 个真实机器人任务（Push-T / 6DoF Pour / Spread / Mug Flip）+ 3 个双臂任务（Egg Beater / Mat Unrolling / Shirt Folding）</strong>。
+            这是当年 BC 领域最大规模的对照实验之一。
+          </p>
+        </div>
+
+        <table class="kv-table">
+          <tr><td>仿真总成绩（Tab 1, 2, 4）</td><td>15 个任务平均成功率比 best baseline 提升 <strong>46.9%</strong>。所有任务都赢。</td></tr>
+          <tr><td>多模态长 horizon（Block Push p4）</td><td>从 LSTM-GMM 0.34 → Diffusion Policy 0.99。这是 213% 提升。</td></tr>
+          <tr><td>真实 Push-T</td><td>IoU 0.84（接近人类 0.95），succ rate 1.00。LSTM-GMM 仅 0.20。</td></tr>
+          <tr><td>6DoF Mug Flip</td><td>20 次试验 18 次成功（90%）。LSTM-GMM 0%——根本无法对齐 mug。</td></tr>
+          <tr><td>Bimanual Shirt Folding</td><td>9 步长流程 75% 成功率，284 个 demos。</td></tr>
+          <tr><td>视觉 encoder 消融</td><td>end-to-end 训练 ResNet-18 from scratch ≈ pretrained finetune；frozen pretrained 远差。说明 BC 任务需要"任务相关的视觉表征"，pretrained 做 frozen 不够。</td></tr>
+          <tr><td>架构选择建议</td><td>大多数任务从 CNN-based 开始；高频/velocity 任务用 Transformer。</td></tr>
+        </table>
+
+        <div class="callout">
+          <div class="callout-label">论文承认的局限</div>
+          <p>
+            ① 仍然继承 BC 的限制：demo 不好就学不好；可以扩展到 RL（后续工作）。<br>
+            ② 计算成本和推理延迟比 LSTM-GMM 高，对超高频控制任务（如 1kHz）还不够；
+            未来可以用 consistency model / 新 noise schedule 进一步加速。
+          </p>
+        </div>
+
+        <!-- ═════════════════════════════════════════════════ -->
+        <h2 id="takeaway">§8 ★ 与 π₀ / VLA 的关系</h2>
+
+        <div class="cn-read">
+          <div class="cn-label">这一节解决什么</div>
+          <p>
+            读完前面，你应该有一个直觉：<strong>Diffusion Policy 是 π₀ 的 action expert 的"前身"</strong>。
+            这一节把两者放一起看，让你彻底理清"diffusion / flow → action"这条技术路线的传承。
+          </p>
+        </div>
+
+        <table class="kv-table">
+          <tr>
+            <td><strong>组件</strong></td>
+            <td><strong>Diffusion Policy (2023)</strong></td>
+            <td><strong>π₀ (2024)</strong></td>
+          </tr>
+          <tr>
+            <td>视觉/语言条件</td>
+            <td>ResNet-18 多相机特征 concat，从头训</td>
+            <td>PaliGemma（SigLIP + Gemma）预训练 VLM 特征</td>
+          </tr>
+          <tr>
+            <td>动作生成头</td>
+            <td>独立 transformer / 1D CNN，cross-attn 接收观察</td>
+            <td>独立 action expert transformer，block-wise causal attn 看 VLM</td>
+          </tr>
+          <tr>
+            <td>生成范式</td>
+            <td>DDPM（学 score / 噪声预测）</td>
+            <td><span class="term" data-en="flow matching">流匹配</span>（学 vector field，本质是 DDPM 的连续时间版）</td>
+          </tr>
+          <tr>
+            <td>训练 loss</td>
+            <td>MSE on ε</td>
+            <td>MSE on velocity field（同样是 MSE，没有归一化常数问题）</td>
+          </tr>
+          <tr>
+            <td>动作输出</td>
+            <td>T_p=16 步 action chunk</td>
+            <td>action chunk（同样的 receding horizon 思路）</td>
+          </tr>
+          <tr>
+            <td>推理</td>
+            <td>DDIM 10 步</td>
+            <td>flow matching 通常 4-10 步 ODE 积分</td>
+          </tr>
+        </table>
+
+        <div class="callout purple">
+          <div class="callout-label">一句话联系</div>
+          <p>
+            <strong>π₀ = (PaliGemma 视觉语言主干) + (Diffusion Policy 风格的动作生成头，loss 换成 flow matching)</strong>。<br>
+            这一篇是"动作头"的奠基；π₀ 是把它接到大脑（VLM）后面的成熟产品。
+            读完这篇你再回头看 π₀ 的 action expert 设计——<strong>所有疑问都消失了</strong>。
+          </p>
+        </div>
+
+        <div class="callout blue">
+          <div class="callout-label">为什么后续 VLA 都选这条路</div>
+          <p>
+            因为 Diffusion / Flow 同时解决了 BC 的三个老问题——多模态、训练稳定、序列预测——
+            而且<strong>规模化能力强（高维输出）</strong>。这是 VLM 对接动作时唯一不需要重新发明轮子的方案。
+            Octo / RDT / RT-2 / OpenVLA 各有取舍，但"用生成模型生成动作"这一招几乎是共识。
+          </p>
+        </div>
+
+        <h3>下一步该读什么</h3>
+
+        <div class="module-grid">
+          <div class="module-card">
+            <div class="module-card-name">FOUNDATION · Flow Matching</div>
+            <div class="module-card-title">Lipman 2023, Flow Matching</div>
+            <div class="module-card-desc">DDPM 的连续时间版本。π₀ 用的就是这个。理解了 score → 自然能理解 vector field。</div>
+          </div>
+          <div class="module-card">
+            <div class="module-card-name">VLA · π₀</div>
+            <div class="module-card-title"><a href="pi0-vla-flow-model.html" style="color:var(--accent);">π₀: A VLA Flow Model</a></div>
+            <div class="module-card-desc">把 Diffusion Policy 的动作头接到 VLM 上的最重要工作。读完本篇再读 π₀ 会非常顺。</div>
+          </div>
+          <div class="module-card">
+            <div class="module-card-name">EXTENSION · 3D / Equivariant</div>
+            <div class="module-card-title">3D Diffusion Policy / Equibot</div>
+            <div class="module-card-desc">把 Diffusion Policy 推广到点云输入和等变性。同一框架的延伸。</div>
+          </div>
+          <div class="module-card">
+            <div class="module-card-name">ACCELERATION · Consistency</div>
+            <div class="module-card-title">Consistency Policy / 1-step</div>
+            <div class="module-card-desc">把 K=10 推理压成 K=1，让高频控制可行。论文 §9 提的"未来工作"方向。</div>
+          </div>
+        </div>
+
+        <div class="callout">
+          <div class="callout-label">关键收获 · 一行总结</div>
+          <p>
+            <strong>BC 不是函数学习，是分布学习。</strong>
+            Diffusion Policy 把这件事做对了——通过学 score 而不是学 action。
+            后面的 π₀ / Octo 都是站在这个肩膀上。
+          </p>
+        </div>
+
+      </main>
+    </div>
+  </div>
+
+</body>
+</html>

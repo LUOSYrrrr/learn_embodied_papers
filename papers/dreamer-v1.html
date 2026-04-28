@@ -1,0 +1,997 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Dreamer · Dream to Control: Learning Behaviors by Latent Imagination</title>
+  <link rel="stylesheet" href="../assets/css/style.css">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16/dist/katex.min.css">
+  <script src="../assets/js/theme.js"></script>
+  <script src="../assets/js/interactive.js" defer></script>
+  <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16/dist/katex.min.js"></script>
+  <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16/dist/contrib/auto-render.min.js"
+          onload="renderMathInElement(document.body,{delimiters:[{left:'$$',right:'$$',display:true},{left:'$',right:'$',display:false}]})"></script>
+</head>
+<body>
+  <nav class="nav">
+    <a class="nav-logo" href="../index.html">Paper Notes</a>
+    <div class="nav-links">
+      <a href="../index.html">← 返回首页</a>
+      <a href="../pdfs/world-model/dreamer/Hafner 等 - 2020 - Dream to Control Learning Behaviors by Latent Imagination.pdf" target="_blank">📄 PDF</a>
+      <a href="https://danijar.com/dreamer" target="_blank">🌐 项目页</a>
+    </div>
+  </nav>
+
+  <div class="page">
+    <div class="docs-layout">
+
+      <!-- ─── 左：章节树 ─── -->
+      <aside class="docs-sidebar-left">
+        <div class="ds-title">Dreamer · ICLR 2020</div>
+
+        <a class="ds-leaf-top" href="#tldr">§1 一句话定位</a>
+
+        <details open>
+          <summary>§2 世界模型：在哪里"做梦"</summary>
+          <a class="ds-leaf" href="#mdp">2.1 POMDP 设定 · 三件事</a>
+          <a class="ds-leaf" href="#components">2.2 三个学出来的模型</a>
+          <a class="ds-leaf" href="#fig3">2.3 Fig 3：三阶段拼起来怎么跑</a>
+          <a class="ds-leaf" href="#rssm">2.4 RSSM · Markov 性 + 循环骨架</a>
+        </details>
+
+        <details>
+          <summary>§3 在梦里学策略</summary>
+          <a class="ds-leaf" href="#actor-critic">3.1 为什么需要 actor-critic</a>
+          <a class="ds-leaf" href="#value-est">3.2 三种 value 估计 · V_R / V_N^k / V_λ</a>
+          <a class="ds-leaf" href="#analytic-grad">3.3 关键武器 · 解析梯度反传</a>
+          <a class="ds-leaf" href="#objective">3.4 Actor / Value 学习目标</a>
+          <a class="ds-leaf" href="#fig4">3.5 Fig 4 · 为什么 value model 让 horizon 不再敏感</a>
+        </details>
+
+        <details>
+          <summary>§4 representation 怎么学</summary>
+          <a class="ds-leaf" href="#three-obj">4.1 三种可选目标对比</a>
+          <a class="ds-leaf" href="#recon">4.2 Pixel reconstruction（默认）</a>
+          <a class="ds-leaf" href="#contrast">4.3 Contrastive estimation</a>
+          <a class="ds-leaf" href="#reward-only">4.4 Reward only</a>
+        </details>
+
+        <details>
+          <summary>§5 实验结论</summary>
+          <a class="ds-leaf" href="#fig6">5.1 Fig 6 · 跨 20 任务全面赢</a>
+          <a class="ds-leaf" href="#fig8">5.2 Fig 8 · 三种 rep 学法对比</a>
+        </details>
+
+        <a class="ds-leaf-top" href="#vla-link">§6 与世界模型 / VLA 的连接</a>
+        <a class="ds-leaf-top" href="#takeaway">§7 收获与局限</a>
+      </aside>
+
+      <!-- ─── 中：正文 ─── -->
+      <main class="docs-content">
+
+        <div class="docs-breadcrumb">
+          <a href="../index.html">paper-notes</a>
+          <span class="sep">/</span>
+          World Model
+          <span class="sep">/</span>
+          Dreamer · 2020
+        </div>
+
+        <h1>Dream to Control: Learning Behaviors by Latent Imagination</h1>
+        <p style="color:var(--text3); font-family:var(--font-mono); font-size:12px; margin-top:-12px;">
+          Hafner, Lillicrap, Ba, Norouzi · Toronto / DeepMind / Google Brain · ICLR 2020 · arXiv 1912.01603
+        </p>
+
+        <div class="cn-read">
+          <div class="cn-label">这篇笔记怎么读</div>
+          <p>
+            Dreamer 是<strong>世界模型谱系（World Models → PlaNet → Dreamer → DreamerV2/V3）</strong>里
+            "把训练完全搬进想象里"的关键一步。它的前身 PlaNet 已经能从像素学一个紧凑的 latent 动力学，
+            但用法是<strong>每一步在线 CEM 规划</strong>——慢、视野短、还得手动调规划 horizon。
+            Dreamer 把规划换成<strong>actor-critic：在 latent 空间里推 H 步想象、用 value model 估算 horizon 之外的回报、
+            把 value 的梯度沿着可微动力学一路反传回 actor</strong>。
+            这一脚下去就同时拿到了：① 模型自由（model-free）方法的最终性能；
+            ② 模型为本（model-based）方法的样本效率；③ 短想象 horizon 也不再短视。
+          </p>
+          <p style="margin-top:8px;">
+            阅读路径：先 §1 看清楚它为啥重要 → §2 把世界模型的"骨架"搭起来（核心是 Fig 3 那三幅图）→
+            §3 是论文真正的贡献（怎么在梦里学 policy + value）→ §4 representation 是 plug-in，三种都试过了 →
+            §5 实验 → §6 把它放回 embodied AI / VLA 大图里。
+          </p>
+        </div>
+
+        <!-- ═════════════════════════════════════════════════ -->
+        <h2 id="tldr">§1 一句话定位</h2>
+
+        <div class="cn-read">
+          <div class="cn-label">这一节解决什么</div>
+          <p>
+            先把"它和别人都不一样的那一句话"锁住——后面所有章节都是在展开这一句。
+          </p>
+        </div>
+
+        <div class="callout">
+          <div class="callout-label">核心主张（Abstract）</div>
+          <p>
+            Dreamer 是一个<strong>从图像学控制</strong>的强化学习智能体。它先学一个<strong>compact latent dynamics</strong>，
+            然后<strong>纯粹靠在 latent 空间里"做梦"（rollout）</strong>来学行为——
+            通过把<strong>学到的 value 估计沿着可微神经动力学反传梯度</strong>，
+            得到 long-horizon 的 action。20 个 DeepMind Control Suite 视觉任务上，
+            Dreamer 在<strong>样本效率、训练时长、最终性能</strong>三项全部领先现有 model-based / model-free 方法。
+          </p>
+        </div>
+
+        <details class="en-quote">
+          <summary>展开原文 · Abstract 核心句</summary>
+          <div class="quote-body">
+            <p>"We present Dreamer, a reinforcement learning agent that solves long-horizon tasks from images purely by latent imagination. We efficiently learn behaviors by propagating analytic gradients of learned state values back through trajectories imagined in the compact state space of a learned world model."</p>
+            <div class="quote-cite">— Abstract, p.1</div>
+          </div>
+        </details>
+
+        <div class="fig-interactive">
+          <div class="fig-block">
+            <div class="hotspot-wrap" data-hotspot-group="fig1">
+              <img src="../assets/figures/dreamer-v1/fig-1.png" alt="Figure 1: Dreamer overview teaser">
+              <div class="hotspot" data-id="dataset" style="left:50%; top:13%;"
+                   data-title="Dataset of Experience · 真实经验缓冲"
+                   data-body="第一阶段产物：agent 在真环境里执行当前 policy（带探索噪声）攒下来的 (o, a, r) 序列。和 DQN/SAC 的 replay buffer 是同一个东西，只是 Dreamer 用它训世界模型，不是直接训 policy。"></div>
+              <div class="hotspot" data-id="latent" style="left:50%; top:45%;"
+                   data-title="Learned Latent Dynamics · 紧凑潜在动力学"
+                   data-body="蓝色梯形是 encoder，绿色圆圈是 latent state s_t，joystick 是动作 a_t，星星是预测的 reward。Dreamer 学一个 transition q(s_t | s_{t-1}, a_{t-1})，让它能在 latent 空间里向前推演而不需要再生成 pixel。"></div>
+              <div class="hotspot" data-id="imagine" style="left:50%; top:82%;"
+                   data-title="Value & Action Learned by Latent Imagination · 想象里学策略"
+                   data-body="奖杯是 value model v_ψ(s)，joystick 是 action model q_φ(a|s)。两条彩色箭头表示：value 的梯度沿动力学反传去更新 actor。这一格是 Dreamer 的真正贡献——其他 world model 论文最多走到中间那格。"></div>
+            </div>
+            <div class="fig-cap">
+              <span class="fig-num">Fig 1 · p.1</span>
+              Dreamer learns a world model from past experience and efficiently learns farsighted behaviors in its latent space by backpropagating value estimates back through imagined trajectories.
+              <span class="fig-cn">三段式：从经验里学世界模型 → 在 latent 空间里想象 rollout → 把 value 梯度沿动力学反传到 policy。三件事循环交替。</span>
+            </div>
+          </div>
+          <div class="hotspot-panel"></div>
+        </div>
+
+        <div class="callout blue">
+          <div class="callout-label">类比 · 像不像下棋时"在脑里推几步"</div>
+          <p>
+            人类高手下棋时<strong>不会真把棋子推过去试</strong>，而是在脑子里"想象棋盘 5-10 步"，
+            脑里那盘棋每一步还会估个"局势分"，反过来指导现在该走哪。
+            Dreamer 做的就是这件事的可微版本——latent 空间里 rollout = 在脑里推棋，
+            value model = 局势分，<strong>关键</strong>是这条想象链每个环节都是神经网络，
+            所以可以把"局势分变化"沿着推演链<strong>解析地求导</strong>，
+            告诉 actor "把第 1 步往左挪一点点，最终局势分会涨多少"。
+            这是 model-free RL 做不到的——它们只能用 noisy Monte Carlo 估计 + REINFORCE 类方差爆炸的梯度。
+          </p>
+        </div>
+
+        <div class="callout purple">
+          <div class="callout-label">对应 VLA / 世界模型谱系</div>
+          <p>
+            把 Dreamer 放进光谱里看一下：
+          </p>
+          <ul style="margin-top:8px; line-height:1.85; color:var(--text2);">
+            <li><strong>World Models</strong> (Ha & Schmidhuber, 2018)：先无监督学 VAE+RNN 的世界模型，再 evolutionary search 一个 controller。<em>两阶段、不端到端。</em></li>
+            <li><strong>PlaNet</strong> (Hafner, 2018)：同一组人。学 RSSM 后用 <strong>online CEM</strong> 在 latent 空间规划。<em>性能不错，但每步慢、horizon 受限。</em></li>
+            <li><strong>Dreamer</strong>（本文）：<strong>策略</strong>也搬进 latent 空间，靠想象训。<em>这是从"规划派"到"想象派"的拐点。</em></li>
+            <li><strong>DreamerV2/V3</strong> (2021/2023)：换离散 latent + 一组 hyperparams 通吃多个域，到 V3 直接通关 Minecraft 钻石。</li>
+            <li><strong>JEPA / V-JEPA / LeCun WM</strong>：换思路——不让世界模型重建 pixel，让它在<em>表示空间</em>预测未来。但"用 value 沿动力学反传训 policy"的 Dreamer 思路依然适用。</li>
+          </ul>
+        </div>
+
+        <!-- ═════════════════════════════════════════════════ -->
+        <h2 id="mdp">§2 世界模型：在哪里"做梦"</h2>
+
+        <div class="cn-read">
+          <div class="cn-label">这一节解决什么</div>
+          <p>
+            §1 反复用了 "latent space" / "imagine" / "world model" 三个词，但还没说清楚它们到底是<strong>哪几个神经网络</strong>。
+            这一节把世界模型拆成<strong>3 个分布 + 1 个 RSSM 骨架</strong>，然后用 Fig 3 把 "如何收集数据 / 如何学 policy / 如何在真环境跑"拼回来。
+            读完这一节你应该能回答：Dreamer 在每一步 update 里到底前向了哪些网络、loss 是什么。
+          </p>
+        </div>
+
+        <h3 id="mdp-detail" style="margin-top:24px;">2.1 POMDP 设定 · 三件事</h3>
+
+        <p>
+          论文把视觉控制建模成一个 <span class="term" data-en="Partially Observable Markov Decision Process">POMDP</span>：
+          离散时间步 $t \in [1; T]$，每一步发生<strong>三件事</strong>。
+        </p>
+
+        <table class="kv-table" style="margin-top:14px;">
+          <tr>
+            <td style="width:32%;"><strong>事件</strong></td>
+            <td><strong>在 Dreamer 里对应</strong></td>
+          </tr>
+          <tr>
+            <td>① agent 给出 action $a_t \sim p(a_t \mid o_{\le t}, a_{<t})$</td>
+            <td>action model <code>q_φ(a_t | s_t)</code>（learned policy）</td>
+          </tr>
+          <tr>
+            <td>② 环境返回 observation + reward $o_t, r_t \sim p(o_t, r_t \mid o_{<t}, a_{<t})$</td>
+            <td>真实环境（在想象里换成<strong>世界模型</strong>预测）</td>
+          </tr>
+          <tr>
+            <td>③ 目标是最大化 $\mathbb{E}_p\!\left[\sum_{t=1}^{T} r_t\right]$</td>
+            <td>实际算的是 <strong>imagined</strong> 期望折扣回报（§3 给公式）</td>
+          </tr>
+        </table>
+
+        <details class="en-quote">
+          <summary>展开原文 · POMDP 形式化</summary>
+          <div class="quote-body">
+            <p>"We formulate visual control as a partially observable Markov decision process (POMDP) with discrete time step $t \in [1; T]$, continuous vector-valued actions $a_t \sim p(a_t \mid o_{\le t}, a_{<t})$ generated by the agent, and high-dimensional observations and scalar rewards $o_t, r_t \sim p(o_t, r_t \mid o_{<t}, a_{<t})$ generated by the unknown environment."</p>
+            <div class="quote-cite">— §2 Reinforcement learning, p.2</div>
+          </div>
+        </details>
+
+        <h3 id="components" style="margin-top:24px;">2.2 三个学出来的模型</h3>
+
+        <p>
+          上一段讲了什么是"环境"。现在替换它——把环境的 transition 和 reward 都<strong>用神经网络学出来</strong>，
+          这个由 3 个分布拼出来的东西就是 Dreamer 的世界模型：
+        </p>
+
+        <div class="math-block">
+          $$\begin{aligned}
+            \text{Representation model:} &\quad p_\theta(s_t \mid s_{t-1}, a_{t-1}, o_t) \\
+            \text{Transition model:} &\quad q_\theta(s_t \mid s_{t-1}, a_{t-1}) \\
+            \text{Reward model:} &\quad q_\theta(r_t \mid s_t)
+          \end{aligned}$$
+          <span class="math-label">Eq. 1 · Latent dynamics 三件套 · §2 p.2</span>
+        </div>
+
+        <div class="math-explain">
+          <div class="me-title">逐项拆解</div>
+          <dl>
+            <dt>$p_\theta(s_t \mid s_{t-1}, a_{t-1}, o_t)$</dt>
+            <dd><strong>Representation model</strong>——"看到当前 observation 后，更新 latent 信念"。用 $p$ 表示因为它从真环境采样（看了真 $o_t$）。在 RSSM 里它是 GRU + CNN encoder。</dd>
+            <dt>$q_\theta(s_t \mid s_{t-1}, a_{t-1})$</dt>
+            <dd><strong>Transition model</strong>——"不看图也能预测下一步 latent"。这是想象阶段唯一靠的东西，论文反复强调它<strong>不需要 observation</strong>，所以可以在 latent 里成千上万条并行 rollout。</dd>
+            <dt>$q_\theta(r_t \mid s_t)$</dt>
+            <dd><strong>Reward model</strong>——"从 latent 直接预测当前奖励"。这是 RL signal 进入想象的唯一通道。</dd>
+            <dt>$\theta$</dt>
+            <dd>三个网络共享一组参数（说"组"是因为它们当然是不同的层，但训练时一起优化同一个目标，§4 给具体 loss）。</dd>
+            <dt>$p$ vs $q$ 的约定</dt>
+            <dd>论文用 $p$ 标"在真环境里能采样的真分布"，$q$ 标"做近似 / 想象用的"。这个区分在 §4 的 ELBO loss 里很关键。</dd>
+          </dl>
+        </div>
+
+        <div class="callout">
+          <div class="callout-label">为什么这三个就够了</div>
+          <p>
+            如果你想让 agent 在 latent 空间里独立 rollout 而不再看图——你需要：
+            <strong>(1) 怎么从图变 latent</strong>（representation）→
+            <strong>(2) 没图时怎么继续往前推 latent</strong>（transition）→
+            <strong>(3) 在每个 latent 上能拿到 reward</strong>（reward）。
+            少一个都跑不动。这就是为什么不需要 observation/decoder——它<em>只用于训练时</em>提供监督，§4 会讲。
+          </p>
+        </div>
+
+        <h3 id="fig3" style="margin-top:24px;">2.3 Fig 3 · 三阶段拼起来怎么跑</h3>
+
+        <p>
+          §2.2 给的是世界模型的"零件"。把它们和 actor / value 拼回去，得到 Dreamer 的<strong>三阶段循环</strong>。
+          这是全文最关键的一张图，下面用热点逐块讲。
+        </p>
+
+        <div class="fig-interactive panel-below">
+          <div class="fig-block">
+            <div class="hotspot-wrap" data-hotspot-group="fig3">
+              <img src="../assets/figures/dreamer-v1/fig-3.png" alt="Figure 3: Components of Dreamer">
+
+              <!-- (a) Learn dynamics from experience -->
+              <div class="hotspot" data-id="a-obs" style="left:8%; top:80%;"
+                   data-title="(a) 真实 obs 序列 o_1, o_2, o_3"
+                   data-body="左半边底排的<strong>清晰图</strong>：从 replay buffer 取的真实经验。注意每两个 o 之间还插了一个 ô——那是 decoder 重建出来的预测 obs，§4.2 会用它做 reconstruction loss。"></div>
+              <div class="hotspot" data-id="a-encoder" style="left:6%; top:55%;"
+                   data-title="(a) Encoder · 蓝色梯形"
+                   data-body="CNN encoder。把 64×64×3 的图压成低维 vector，然后和上一时刻 latent + action 一起喂给 representation model 得到 s_t。在 (a) 里它每一步都用——这是真实经验的 encoding 阶段。"></div>
+              <div class="hotspot" data-id="a-decoder" style="left:14%; top:55%;"
+                   data-title="(a) Decoder · 灰色梯形（可选）"
+                   data-body="用 transposed CNN 把 s_t 反向投回 ô_t（重建 pixel）。这是 §4.2 reconstruction objective 的产物。如果用 contrastive (§4.3) 或 reward-only (§4.4)，灰色梯形就不存在。<strong>注意只有 (a) 里有它</strong>——(b)(c) 不需要 decode。"></div>
+              <div class="hotspot" data-id="a-latent" style="left:9%; top:30%;"
+                   data-title="(a) Latent state · 绿色圆"
+                   data-body="紧凑的 latent state s_t（论文里就是 RSSM 的 deterministic h_t + stochastic z_t 拼接）。整张 Fig 3 全程都是这同一个东西在沿水平箭头流。"></div>
+              <div class="hotspot" data-id="a-reward" style="left:14%; top:14%;"
+                   data-title="(a) 预测奖励 r̂_t · 橙色星"
+                   data-body="reward model q(r_t | s_t) 的输出。在 (a) 里它和真实 r_t 算 MSE 作为训练信号；在 (b) 里它用作 imagined reward。"></div>
+              <div class="hotspot" data-id="a-action" style="left:19%; top:14%;"
+                   data-title="(a) 真实 action a_t · 黑色 joystick"
+                   data-body="从 buffer 取的真实动作（当时由 policy + 探索噪声产生）。在 (a) 里 action 是<strong>已知输入</strong>，喂给 transition model 推下一时刻 latent，不需要 action model 介入。"></div>
+
+              <!-- (b) Learn behavior in imagination -->
+              <div class="hotspot" data-id="b-start" style="left:39%; top:80%;"
+                   data-title="(b) 起点 · 唯一一帧真 obs o_1"
+                   data-body="想象阶段<strong>只用一帧真图开个头</strong>。具体做法：从 buffer 抽 batch，对每个序列里的每个 s_t 当作起点，往后 rollout H 步纯想象。"></div>
+              <div class="hotspot" data-id="b-rollout" style="left:50%; top:38%;"
+                   data-title="(b) 想象 rollout · 三个 latent 串联"
+                   data-body="不再看 observation！从 s_1 开始：① action model q_φ(a|s_1) 采 a_1 → ② transition model q_θ(s_2|s_1,a_1) 推 s_2 → ③ reward model 给 r̂_2 → ④ value model 给 v̂_2 → 重复 H 次。整条链<strong>全部可微</strong>。"></div>
+              <div class="hotspot" data-id="b-value" style="left:42%; top:13%;"
+                   data-title="(b) 想象 value v̂_τ · 奖杯"
+                   data-body="value model v_ψ(s_τ) 在每个想象 latent 上估"未来折现回报"。这是 Dreamer 比 PlaNet 的关键武器：horizon 之外的 reward 不再丢失，全部塞进这一个标量里。"></div>
+              <div class="hotspot" data-id="b-imagaction" style="left:49%; top:13%;"
+                   data-title="(b) 想象 action â_τ · joystick"
+                   data-body="action model q_φ(a_τ|s_τ) 用 reparameterized sampling 产生的连续动作，能往回求导。这是 Dreamer 能"<strong>沿动力学反传</strong>"的前提（§3.3）。"></div>
+              <div class="hotspot" data-id="b-imagreward" style="left:46%; top:13%;"
+                   data-title="(b) 想象 reward r̂_τ · 星"
+                   data-body="reward model q_θ(r_τ|s_τ) 在想象 latent 上的预测。它的总和（沿 horizon 折扣累加）就是 §3.2 公式里的 V_R。"></div>
+
+              <!-- (c) Act in environment -->
+              <div class="hotspot" data-id="c-history" style="left:80%; top:80%;"
+                   data-title="(c) 全段真 obs o_1..o_T · 历史回放"
+                   data-body="部署时按真实顺序看到 o_1, o_2, o_3, ...。每来一帧都用 representation model 更新 latent state（filtering，类似 Kalman 后验更新）。"></div>
+              <div class="hotspot" data-id="c-state" style="left:80%; top:42%;"
+                   data-title="(c) 当前 latent · 绿圆"
+                   data-body="只用最新 latent s_t，不再做想象 rollout。"></div>
+              <div class="hotspot" data-id="c-act" style="left:97%; top:14%;"
+                   data-title="(c) 输出 action â_t · 红箭头"
+                   data-body="action model q_φ(a_t|s_t) 给当前应该执行的动作（部署时通常加少量 exploration noise）。把它喂回真环境，env 返回新 o, r → 进 dataset → 更新世界模型。三阶段闭环。"></div>
+            </div>
+            <div class="fig-cap">
+              <span class="fig-num">Fig 3 · p.3</span>
+              Components of Dreamer. (a) Dynamics learning from past experience. (b) Behavior learning in compact latent space via imagined rollouts. (c) Acting in the environment by encoding history and predicting next action.
+              <span class="fig-cn">三件事循环交替：(a) 从真经验里学世界模型 → (b) 在 latent 里想象 rollout 学 actor/value → (c) 用学好的 actor 在真环境采新数据。</span>
+            </div>
+          </div>
+          <div class="hotspot-panel"></div>
+        </div>
+
+        <div class="step-walker" data-hotspot-group="fig3">
+          <div class="sw-header">
+            <div class="sw-title">🪜 跟着信号走一遍 Algorithm 1</div>
+            <div class="sw-controls">
+              <button class="sw-btn prev">◀</button>
+              <span class="sw-counter">1 / 6</span>
+              <button class="sw-btn next">▶</button>
+            </div>
+          </div>
+          <div class="sw-progress">
+            <div class="sw-dot"></div><div class="sw-dot"></div><div class="sw-dot"></div>
+            <div class="sw-dot"></div><div class="sw-dot"></div><div class="sw-dot"></div>
+          </div>
+          <div class="sw-body">
+            <div class="sw-step active" data-hotspot="a-obs">
+              <h4>第 1 步 · 取真实经验 batch</h4>
+              <p>从 dataset $\mathcal{D}$ 抽 $B$ 个长度 $L$ 的真实序列 $\{(a_t, o_t, r_t)\}$。这是 (a) 左下排的清晰 $o_1, o_2, o_3$。</p>
+            </div>
+            <div class="sw-step" data-hotspot="a-encoder">
+              <h4>第 2 步 · encode 出真实 latent 序列</h4>
+              <p>沿时间用 representation model $p_\theta(s_t | s_{t-1}, a_{t-1}, o_t)$ 算出 model state $s_1, ..., s_L$。CNN encoder + GRU 一起跑。</p>
+            </div>
+            <div class="sw-step" data-hotspot="a-decoder">
+              <h4>第 3 步 · 训世界模型 · update θ</h4>
+              <p>用 reconstruction loss（让 ô ≈ o）+ reward loss（让 r̂ ≈ r）+ KL 正则（让 q(s|s,a) 接近 p(s|s,a,o)），一起反传更新 θ。Fig 3a 就是这一步。</p>
+            </div>
+            <div class="sw-step" data-hotspot="b-rollout">
+              <h4>第 4 步 · 在每个 s_τ 上 rollout H 步想象</h4>
+              <p>对每个真实 latent $s_t$，从这里出发用<strong>transition model + action model</strong>纯想象向前 $H$ 步（论文 H=15）。整段不看图。Fig 3b 就是这条 rollout。</p>
+            </div>
+            <div class="sw-step" data-hotspot="b-value">
+              <h4>第 5 步 · 算 V_λ 并更新 actor / value</h4>
+              <p>沿想象链每步算 $\hat r_\tau$ 和 $v_\psi(s_\tau)$，组合成 V_λ（§3.2 公式）。<strong>actor</strong> 上升 $\nabla_\phi \sum V_\lambda$（解析梯度沿动力学反传），<strong>value</strong> 下降 $\|v_\psi - V_\lambda\|^2$ 回归 target。</p>
+            </div>
+            <div class="sw-step" data-hotspot="c-act">
+              <h4>第 6 步 · 用 actor 在真环境采新数据</h4>
+              <p>初始化 $o_1$，每步用 representation 更新 latent，action model 出 $a_t$，加 exploration noise 后 step env，把新轨迹加进 $\mathcal{D}$。回到第 1 步。</p>
+            </div>
+          </div>
+        </div>
+
+        <div class="callout amber">
+          <div class="callout-label">最容易踩的混淆点</div>
+          <p>
+            <strong>"latent imagination" 不是部署时做的事，是训练时做的事。</strong>
+            部署阶段（Fig 3c）<em>没有</em>想象 rollout——agent 看到一帧就编码一帧，
+            直接用 action model 出动作。想象只在 (b) 训练时发生，目的是<strong>给 actor / value 提供训练信号</strong>。
+            如果你和 MPC / online planning（如 PlaNet 部署时还在 plan）混淆了，会觉得 Dreamer 部署很慢——其实它部署时<strong>极快</strong>，
+            因为只走一遍 encoder + actor。
+          </p>
+        </div>
+
+        <h3 id="rssm" style="margin-top:24px;">2.4 RSSM · Markov 性 + 循环骨架</h3>
+
+        <p>
+          论文一句话带过 transition 模型用 <span class="term" data-en="Recurrent State Space Model">RSSM</span>，
+          实际上这是 PlaNet 的产物（Hafner 2018），值得单独说一下——因为它解释了
+          "<strong>latent state s_t 为什么能 Markov</strong>"这个看起来反直觉的事。
+        </p>
+
+        <details class="en-quote">
+          <summary>展开原文 · 为什么 Markov</summary>
+          <div class="quote-body">
+            <p>"Dreamer uses a latent dynamics model that consists of three components. The representation model encodes observations and actions to create continuous vector-valued model states $s_t$ with Markovian transitions."</p>
+            <div class="quote-cite">— §2 Latent dynamics, p.2</div>
+          </div>
+        </details>
+
+        <p style="margin-top:14px;">
+          关键技巧：RSSM 把 latent 拆成两部分：
+        </p>
+
+        <div class="module-grid">
+          <div class="module-card">
+            <div class="module-card-name">DETERMINISTIC · h_t</div>
+            <div class="module-card-title">"GRU 隐藏态"——记忆通道</div>
+            <div class="module-card-desc">$h_t = f(h_{t-1}, s_{t-1}, a_{t-1})$，确定性递推，承担 long-term memory，让 transition 不至于一步丢光历史。</div>
+          </div>
+          <div class="module-card">
+            <div class="module-card-name">STOCHASTIC · z_t</div>
+            <div class="module-card-title">"高斯潜变量"——不确定性通道</div>
+            <div class="module-card-desc">prior $p(z_t|h_t)$，posterior $q(z_t|h_t, o_t)$。承担"看到/没看到 obs 的差异"，配合 KL 正则训出来。</div>
+          </div>
+        </div>
+
+        <p style="margin-top:14px;">
+          所谓"Markov" 是说 $s_t = (h_t, z_t)$ 这个组合状态<strong>已经吸收了所有相关历史</strong>——
+          从它推 $s_{t+1}$ 不再需要原始 obs。这是后面能在 latent 空间纯粹想象的<em>理论前提</em>。
+          论文用一行话挂了 "non-linear Kalman filter / HMM with real-valued states" 的类比：
+          $h_t$ 像 Kalman 的均值传播，$z_t$ 像协方差通道。
+        </p>
+
+        <div class="callout blue">
+          <div class="callout-label">类比 · GRU + VAE 拼一起</div>
+          <p>
+            $h_t$ 是 GRU——保证有一条干净的时间线性递推；$z_t$ 是 VAE 的潜变量——保证表示有足够<strong>随机性</strong>容纳建模不确定。
+            "为什么不能只用 GRU？"——因为纯 deterministic 拟合会 overfit 到看到的轨迹，generation 时差。"为什么不能只用 VAE？"——纯 stochastic 没记忆。两个互补。
+          </p>
+        </div>
+
+        <div class="quiz"
+             data-correct="b"
+             data-explain="正确。Dreamer 的 transition model q(s_t|s_{t-1}, a_{t-1}) 是想象阶段（Fig 3b）唯一在用的递推——它不需要 obs，所以可以并行万条 latent rollout。representation model 只在 (a) 训练和 (c) 部署时编码真实 obs 时用。"
+             data-explain-wrong="不太对。representation model 需要 obs（它是 p(s|s,a,o)，多吃了一个 o），所以想象阶段没法用。reward 和 value model 不负责递推，只负责"看一眼 latent 给个标量"。">
+          <div class="q-label">🧠 理解检查</div>
+          <div class="q-text">想象 rollout（Fig 3b）里，<strong>负责往前推 latent</strong> 的是哪个模型？</div>
+          <div class="q-options">
+            <button class="q-opt" data-k="a">representation model p(s_t | s_{t-1}, a_{t-1}, o_t)</button>
+            <button class="q-opt" data-k="b">transition model q(s_t | s_{t-1}, a_{t-1})</button>
+            <button class="q-opt" data-k="c">reward model q(r_t | s_t)</button>
+            <button class="q-opt" data-k="d">value model v_ψ(s_t)</button>
+          </div>
+          <div class="q-feedback"></div>
+        </div>
+
+        <!-- ═════════════════════════════════════════════════ -->
+        <h2 id="actor-critic">§3 在梦里学策略</h2>
+
+        <div class="cn-read">
+          <div class="cn-label">这一节解决什么</div>
+          <p>
+            §2 把"梦境"造好了——可以在 latent 空间里任意 rollout。但<strong>怎么用这场梦</strong>训出一个好的 policy？
+            朴素办法：rollout 一段、把 reward 加起来、当 policy gradient 的 return。但这又落回 model-free 的老坑——
+            <strong>视野只能到 horizon H 步，H 之外的 reward 全丢了；想增大 H 就指数增加方差</strong>。
+            §3 是论文真正的贡献，三步走：① 用 value model 把 horizon 之外的 reward 救回来 →
+            ② 用解析梯度沿可微动力学反传，干掉高方差 → ③ actor / value 联合优化。
+          </p>
+        </div>
+
+        <h3 id="why-actor-critic" style="margin-top:24px;">3.1 为什么需要 actor-critic（不是仅仅 imagined return）</h3>
+
+        <p>
+          一个 imagined trajectory 只有 $H$ 步（论文 $H=15$），但 episode 可能上千步。如果 actor 只对"前 H 步 imagined reward 之和"求导：
+        </p>
+
+        <ul style="margin-top:8px; line-height:1.85; color:var(--text2);">
+          <li>遇到 sparse reward 任务，前 15 步可能<strong>什么都没发生</strong>，actor 学不到东西；</li>
+          <li>就算 reward 不稀疏，也只能学到"短视"的 policy（Hopper 跳一步而不规划落地）；</li>
+          <li>想加大 H 就<strong>三次方递增</strong>计算和方差。</li>
+        </ul>
+
+        <p style="margin-top:8px;">
+          Dreamer 的做法：在 imagined trajectory 末端<strong>挂一个 value model</strong>把 horizon 之外的 reward 用一个标量收回来。
+          这就是经典 actor-critic 的招——但配合可微 world model 还能再升级（§3.3）。
+        </p>
+
+        <h3 id="value-est" style="margin-top:24px;">3.2 三种 value 估计 · V_R / V_N^k / V_λ</h3>
+
+        <p>
+          论文给了三种 imagined return 的估计方式（Eq. 4/5/6），<strong>偏差—方差</strong>权衡逐级提升：
+        </p>
+
+        <div class="math-block">
+          $$V_{\text{R}}(s_\tau) \doteq \mathbb{E}_{q_\theta, q_\phi}\!\left[\sum_{n=\tau}^{t+H} r_n\right]$$
+          <span class="math-label">Eq. 4 · 纯 imagined reward 求和（无 value）</span>
+        </div>
+
+        <div class="math-explain">
+          <div class="me-title">这是什么</div>
+          <dl>
+            <dt>含义</dt>
+            <dd>从 $s_\tau$ 起在想象里走到 horizon 末端，把 imagined reward 直接相加。<strong>不用 value model</strong>。</dd>
+            <dt>问题</dt>
+            <dd>horizon 之外完全丢失。这是 <strong>"No value"</strong> ablation 用的版本（Fig 4 绿线）。</dd>
+          </dl>
+        </div>
+
+        <div class="math-block">
+          $$V_{\text{N}}^{k}(s_\tau) \doteq \mathbb{E}_{q_\theta, q_\phi}\!\left[\sum_{n=\tau}^{h-1} \gamma^{n-\tau} r_n + \gamma^{h-\tau} v_\psi(s_h)\right] \quad \text{with}\ h = \min(\tau + k, t + H)$$
+          <span class="math-label">Eq. 5 · k-step return（前 k 步用 reward，第 k 步起接 value）</span>
+        </div>
+
+        <div class="math-explain">
+          <div class="me-title">逐项拆解</div>
+          <dl>
+            <dt>$\sum \gamma^{n-\tau} r_n$</dt>
+            <dd>前 $k$ 步用 imagined reward 折扣相加（短期信号准）。</dd>
+            <dt>$\gamma^{h-\tau} v_\psi(s_h)$</dt>
+            <dd>第 $k$ 步起<strong>挂上 value model</strong>把 horizon 后面的 reward 收尾——避免视野丢失。</dd>
+            <dt>$h = \min(\tau+k, t+H)$</dt>
+            <dd>遇到 horizon 边界就停（防止越界），其他时候用 $\tau+k$。</dd>
+            <dt>权衡</dt>
+            <dd>$k$ 越大越接近 $V_R$（偏差小但方差大）；$k$ 越小越靠 value model（方差小但偏差大）。</dd>
+          </dl>
+        </div>
+
+        <div class="math-block">
+          $$V_\lambda(s_\tau) \doteq (1-\lambda) \sum_{n=1}^{H-1} \lambda^{n-1} V_{\text{N}}^n(s_\tau) + \lambda^{H-1} V_{\text{N}}^H(s_\tau)$$
+          <span class="math-label">Eq. 6 · GAE 风格的 λ-return（Dreamer 实际用的）</span>
+        </div>
+
+        <div class="math-explain">
+          <div class="me-title">为什么 V_λ 是 sweet spot</div>
+          <dl>
+            <dt>本质</dt>
+            <dd>把<strong>不同 $k$ 的 V_N^k 用 $\lambda$ 加权平均</strong>——既不全偏向 reward 也不全偏向 value，而是按 $\lambda$ 平滑插值。</dd>
+            <dt>$\lambda \to 0$</dt>
+            <dd>退化成 1-step return（全靠 value），偏差最大、方差最小。</dd>
+            <dt>$\lambda \to 1$</dt>
+            <dd>退化成 Monte Carlo（全靠 imagined reward），偏差最小、方差最大。</dd>
+            <dt>论文取值</dt>
+            <dd>实验里用 $\lambda = 0.95$（细节在 Appendix A），靠近 MC 端但留一手 value。</dd>
+            <dt>家族传承</dt>
+            <dd>这就是 Schulman 2015 的 GAE 公式，搬到 imagined trajectory 上。Sutton 1988 的 TD(λ) 也是这个套路。</dd>
+          </dl>
+        </div>
+
+        <h3 id="analytic-grad" style="margin-top:24px;">3.3 关键武器 · 解析梯度反传</h3>
+
+        <p>
+          §3.2 给的 V_λ <strong>怎么对 actor 参数 $\phi$ 求导</strong>？这才是 Dreamer 拉开和 model-free / 早期 model-based 的真正距离。
+        </p>
+
+        <p style="margin-top:10px;">
+          一条想象 trajectory 长这样：
+        </p>
+
+        <div class="math-block">
+          $$\underbrace{s_\tau}_{\text{真实起点}} \xrightarrow{q_\phi(a|s)}\ a_\tau \xrightarrow{q_\theta(s'|s,a)}\ s_{\tau+1} \xrightarrow{q_\phi}\ a_{\tau+1} \xrightarrow{q_\theta}\ s_{\tau+2} \cdots \xrightarrow{}\ s_{\tau+H}$$
+          <span class="math-label">想象链 · 全部由 $\phi, \theta$ 参数化</span>
+        </div>
+
+        <p>
+          整条链上：① action 用 reparameterized sampling（Eq. 3，$a_\tau = \tanh(\mu_\phi(s_\tau) + \sigma_\phi(s_\tau)\epsilon)$）所以对 $\phi$ 可微；
+          ② transition / reward / value 都是 NN 所以对 $\phi$ 可微（通过 $s$ 间接）。
+          于是：
+        </p>
+
+        <div class="math-block">
+          $$\nabla_\phi \mathbb{E}_{q_\theta, q_\phi}\!\left[\sum_{\tau=t}^{t+H} V_\lambda(s_\tau)\right]$$
+          <span class="math-label">Actor 目标梯度 · 直接 stochastic backprop（不需要 REINFORCE）</span>
+        </div>
+
+        <div class="math-explain">
+          <div class="me-title">为什么这是大事</div>
+          <dl>
+            <dt>对比 model-free actor-critic</dt>
+            <dd>A3C/PPO/SAC 用 REINFORCE 或 reparameterized Q 学一步——只能反传 1 步。Dreamer 反传<strong>整条 H 步链 + 末端 value</strong>。</dd>
+            <dt>对比 derivative-free model-based</dt>
+            <dd>PETS/POPLIN/PlaNet 用 CEM 在 latent 里黑箱搜——不利用神经网络可微性，每一步要重新 search。</dd>
+            <dt>对比 Q-learning + multi-step</dt>
+            <dd>MVE/STEVE 用 multi-step Q target 但只对 1-step Q 梯度——没把动力学的梯度纳入。</dd>
+            <dt>本质收益</dt>
+            <dd>把"动作怎么改 → reward / value 怎么变"这条链<strong>显式地、解析地</strong>告诉 actor，方差比 REINFORCE 低几个数量级。</dd>
+          </dl>
+        </div>
+
+        <details class="en-quote">
+          <summary>展开原文 · 解析梯度的论点</summary>
+          <div class="quote-body">
+            <p>"In comparison to actor critic algorithms that learn online or by experience replay (Lillicrap et al., 2015; ...), world models can interpolate past experience and offer analytic gradients of multi-step returns for efficient policy optimization."</p>
+            <div class="quote-cite">— §1 Introduction, p.1</div>
+          </div>
+        </details>
+
+        <div class="callout blue">
+          <div class="callout-label">类比 · 编译器 vs 解释器</div>
+          <p>
+            REINFORCE / CEM 像<strong>解释器</strong>：每一步盲采、看结果再回头猜该往哪。
+            Dreamer 的解析梯度像<strong>编译器</strong>：整段程序（H 步 rollout + value）一次性符号微分，
+            告诉你"参数改 0.001 → 总回报涨 0.7"，没有蒙特卡洛噪声。当然代价是要求 world model 可微——这正是为什么需要 latent dynamics。
+          </p>
+        </div>
+
+        <h3 id="objective" style="margin-top:24px;">3.4 Actor / Value 学习目标</h3>
+
+        <p>
+          把 §3.2 的 $V_\lambda$ 和 §3.3 的可微链拼起来，就得到论文 Eq. 7/8：
+        </p>
+
+        <div class="math-block">
+          $$\max_\phi \mathbb{E}_{q_\theta, q_\phi}\!\left[\sum_{\tau=t}^{t+H} V_\lambda(s_\tau)\right]
+            \quad ; \quad
+            \min_\psi \mathbb{E}_{q_\theta, q_\phi}\!\left[\sum_{\tau=t}^{t+H} \tfrac{1}{2}\bigl\|v_\psi(s_\tau) - V_\lambda(s_\tau)\bigr\|^2\right]$$
+          <span class="math-label">Eq. 7 / 8 · Actor 上升 V_λ；Value 回归 V_λ（target stop-grad）</span>
+        </div>
+
+        <div class="math-explain">
+          <div class="me-title">逐项拆解</div>
+          <dl>
+            <dt>actor $\phi$ 上升</dt>
+            <dd>把 $V_\lambda$ 当回报来 maximize，<strong>梯度沿 transition / reward / value 一路反传</strong>。</dd>
+            <dt>value $\psi$ 下降</dt>
+            <dd>典型 TD：<strong>$V_\lambda$ 上 stop-gradient</strong>当 target，让 $v_\psi$ 拟合它。否则会自我塌缩。</dd>
+            <dt>world model 怎么办</dt>
+            <dd>"<strong>The world model is fixed while learning behaviors</strong>"——actor/value 这一轮 update 时 $\theta$ 冻住。$\theta$ 在 (a) 那一轮单独更新（dynamics learning step）。</dd>
+            <dt>discrete action 怎么办</dt>
+            <dd>continuous actions + latent state 用 reparameterization；discrete actions 用 <strong>straight-through estimator</strong>（Bengio 2013）。</dd>
+            <dt>early termination</dt>
+            <dd>有终止的任务额外预测 discount factor，乘进 Eq. 7/8 sum 里——避免 imagine 越过 episode 边界。</dd>
+          </dl>
+        </div>
+
+        <h3 id="fig4" style="margin-top:24px;">3.5 Fig 4 · 为什么 value model 让 horizon 不再敏感</h3>
+
+        <p>
+          §3.1 讲的是动机（短视），§3.2-3.4 讲的是方法。Fig 4 是<strong>实证</strong>：
+          把 $V_\lambda$（Dreamer，蓝） vs $V_R$（"No value"，绿） vs PlaNet 在线规划（紫）四个任务画在一起。
+        </p>
+
+        <div class="fig-interactive panel-below">
+          <div class="fig-block">
+            <div class="hotspot-wrap" data-hotspot-group="fig4">
+              <img src="../assets/figures/dreamer-v1/fig-4.png" alt="Figure 4: Imagination horizons">
+              <div class="hotspot" data-id="dreamer-line" style="left:14%; top:18%;"
+                   data-title="Dreamer (V_λ) · 蓝线"
+                   data-body="带 value model 的版本。<strong>关键观察：horizon=10 就饱和</strong>——再加横轴长度也基本不动。说明 value model 已经把"horizon 之外的回报"吸收完了。"></div>
+              <div class="hotspot" data-id="novalue-line" style="left:48%; top:55%;"
+                   data-title="No value (V_R) · 绿线"
+                   data-body="同样 actor-critic 设置但去掉 value model（直接对 imagined reward 求和）。<strong>必须走到 horizon=40 才追上 Dreamer</strong>——视野必须长到任务的实际尺度。Cheetah Run 这种长任务尤其明显。"></div>
+              <div class="hotspot" data-id="planet-line" style="left:80%; top:55%;"
+                   data-title="PlaNet (V_R) · 紫线"
+                   data-body="同样无 value，但用 online CEM 而不是 actor。横轴变化也敏感。说明<strong>"短视"问题不是 actor 独有的，规划派也跑不掉</strong>。Quadruped Walk 上 PlaNet 几乎全程贴底。"></div>
+              <div class="hotspot" data-id="quad-divergence" style="left:65%; top:30%;"
+                   data-title="Quadruped Walk · 最戏剧的差距"
+                   data-body="蓝在 horizon=15 就破 900，紫绿全程在 200 以下。这个任务步态切换需要长视野——value model 让 Dreamer 不需要扛长 horizon 也能学到。"></div>
+            </div>
+            <div class="fig-cap">
+              <span class="fig-num">Fig 4 · p.4</span>
+              Imagination horizons. Learning a state value model to estimate rewards beyond the imagination horizon makes Dreamer more robust to the horizon length.
+              <span class="fig-cn">蓝（Dreamer 带 value）几乎平的——short horizon 就够；绿/紫（无 value）必须把 horizon 拉到 30-40 才追平。</span>
+            </div>
+          </div>
+          <div class="hotspot-panel"></div>
+        </div>
+
+        <div class="callout">
+          <div class="callout-label">这张图的真正含义</div>
+          <p>
+            它不是说"Dreamer 总比对手强"——是说<strong>带不带 value 决定了你需不需要扛 long horizon</strong>。
+            如果 H=10 就够了，rollout 计算少 4 倍、方差小一个数量级。
+            后面 DreamerV2/V3 把 H 设得更短也能 work，根源就在这。
+          </p>
+        </div>
+
+        <div class="quiz"
+             data-correct="c"
+             data-explain="正确。Eq. 6 的 V_λ 是各种 V_N^k（k=1..H）的 λ 指数加权平均，权衡偏差/方差。"
+             data-explain-wrong="不太对。V_R 是无 value 版本（Eq. 4）；V_N^k 是固定 k 步 bootstrap（Eq. 5）；V_λ 才是把它们加权融合的那个。">
+          <div class="q-label">🧠 理解检查</div>
+          <div class="q-text">Dreamer 实际训 actor / value 时用的 return target 是？</div>
+          <div class="q-options">
+            <button class="q-opt" data-k="a">$V_R$（imagined reward 直接求和）</button>
+            <button class="q-opt" data-k="b">$V_N^k$（固定 $k$ 步 bootstrap）</button>
+            <button class="q-opt" data-k="c">$V_\lambda$（不同 $k$ 的 $\lambda$-加权平均）</button>
+            <button class="q-opt" data-k="d">环境真实 episodic return</button>
+          </div>
+          <div class="q-feedback"></div>
+        </div>
+
+        <!-- ═════════════════════════════════════════════════ -->
+        <h2 id="three-obj">§4 representation 怎么学</h2>
+
+        <div class="cn-read">
+          <div class="cn-label">这一节解决什么</div>
+          <p>
+            §3 讲了"<strong>如果世界模型已经学好了</strong>"怎么用它训 policy。但 §2 那三个分布<strong>具体的训练目标</strong>是什么？
+            论文给了<strong>三种可选 representation 学法</strong>，§5 实验里都试过——结果是 pixel reconstruction 最强，
+            contrastive 次之、reward-only 最弱。这一节把三个目标的 loss 公式分别讲清楚。
+          </p>
+        </div>
+
+        <h3 id="three-obj-table" style="margin-top:24px;">4.1 三种可选目标对比</h3>
+
+        <table class="kv-table" style="margin-top:14px;">
+          <tr>
+            <td style="width:18%;"><strong>名字</strong></td>
+            <td><strong>额外网络</strong></td>
+            <td><strong>训练信号</strong></td>
+            <td><strong>实验表现</strong></td>
+          </tr>
+          <tr>
+            <td>Reward only</td>
+            <td>无</td>
+            <td>只让 reward model 拟合 r</td>
+            <td>大部分任务过不去（Fig 8 紫线）</td>
+          </tr>
+          <tr>
+            <td>Reconstruction</td>
+            <td>+ observation decoder $q(o_t|s_t)$</td>
+            <td>ELBO（recon + reward + KL）</td>
+            <td><strong>主力</strong>，多数任务最优（Fig 8 蓝）</td>
+          </tr>
+          <tr>
+            <td>Contrastive (NCE)</td>
+            <td>+ state model $q(s_t|o_t)$</td>
+            <td>NCE 上界（reward + state + KL）</td>
+            <td>~50% 任务可比，剩下落后（Fig 8 绿）</td>
+          </tr>
+        </table>
+
+        <h3 id="recon" style="margin-top:24px;">4.2 Pixel reconstruction · ELBO（默认）</h3>
+
+        <p>
+          Dreamer 默认用的就是 PlaNet 的世界模型。这是一个 sequential VAE，目标是 ELBO（也就是 VIB）：
+        </p>
+
+        <div class="math-block">
+          $$\mathcal{J}_{\text{REC}} \doteq \mathbb{E}_p\!\left[\sum_t \bigl(\mathcal{J}_O^t + \mathcal{J}_R^t + \mathcal{J}_D^t\bigr)\right] + \text{const}$$
+          <span class="math-label">Eq. 10 · Reconstruction objective（PlaNet 同款）</span>
+        </div>
+
+        <div class="math-explain">
+          <div class="me-title">三项分别是什么</div>
+          <dl>
+            <dt>$\mathcal{J}_O^t \doteq \ln q(o_t \mid s_t)$</dt>
+            <dd><strong>Observation likelihood</strong>——decoder 用 $s_t$ 重建 $o_t$ 的高斯/伯努利对数似然，对应 Fig 3a 那个灰色 transposed CNN。</dd>
+            <dt>$\mathcal{J}_R^t \doteq \ln q(r_t \mid s_t)$</dt>
+            <dd><strong>Reward likelihood</strong>——dense network 从 $s_t$ 预测 $r_t$。这是 §3 想象阶段唯一的 reward 通道。</dd>
+            <dt>$\mathcal{J}_D^t \doteq -\beta\, \mathrm{KL}\!\bigl[p(s_t \mid s_{t-1}, a_{t-1}, o_t)\,\big\|\,q(s_t \mid s_{t-1}, a_{t-1})\bigr]$</dt>
+            <dd><strong>KL 正则</strong>——让"看了 $o_t$ 的 posterior $p$"和"没看 $o_t$ 的 prior $q$"靠近。这是想象阶段能跑的关键：训练时让 $q$ 不输给 $p$。</dd>
+            <dt>$\beta$</dt>
+            <dd>VIB / β-VAE 的超参，论文用调好的常数（默认 1）。</dd>
+          </dl>
+        </div>
+
+        <details class="en-quote">
+          <summary>展开原文 · 为什么这就是 ELBO</summary>
+          <div class="quote-body">
+            <p>"The components are optimized jointly to increase the variational lower bound (ELBO) or more generally the variational information bottleneck (VIB)... As derived in Appendix B, the bound includes reconstruction terms for observations and rewards and a KL regularizer."</p>
+            <div class="quote-cite">— §4 Reconstruction, p.6</div>
+          </div>
+        </details>
+
+        <div class="callout">
+          <div class="callout-label">为什么 reconstruction 在 RL 里反而最强</div>
+          <p>
+            常识是"<em>预测 pixel 浪费容量、应该预测语义</em>"——这是 JEPA 谱系的卖点。
+            但 Dreamer 的 setting 里：① 任务图像<strong>简单干净</strong>（DM Control 是 64×64 卡通色调）；
+            ② reward 信号稀疏（如果只让模型拟合 r 它学不出 useful representation）；
+            ③ pixel reconstruction 提供<strong>密集的 per-pixel 监督</strong>，足够让 latent 编码物理状态。
+            真实图像 / 复杂场景里 contrastive 或者 JEPA 的优势会回来——但 2020 年的 DM Control 上 reconstruction 仍最强。
+          </p>
+        </div>
+
+        <h3 id="contrast" style="margin-top:24px;">4.3 Contrastive estimation · NCE</h3>
+
+        <p>
+          想避开 pixel decode（生成图像计算重 + 高维监督有时浪费），论文给了<strong>替代方案</strong>：
+          把 $q(o_t|s_t)$ 换成 $q(s_t|o_t)$，再用 NCE 估计互信息：
+        </p>
+
+        <div class="math-block">
+          $$\mathcal{J}_{\text{NCE}} \doteq \mathbb{E}\!\left[\sum_t \bigl(\mathcal{J}_S^t + \mathcal{J}_R^t + \mathcal{J}_D^t\bigr)\right] \quad ; \quad
+            \mathcal{J}_S^t \doteq \ln q(s_t \mid o_t) - \ln \!\sum_{o'} q(s_t \mid o')$$
+          <span class="math-label">Eq. 12 · NCE objective（替换 reconstruction 项）</span>
+        </div>
+
+        <div class="math-explain">
+          <div class="me-title">逐项拆解</div>
+          <dl>
+            <dt>$\ln q(s_t|o_t)$</dt>
+            <dd>"<strong>正样本</strong>"项：当前 image 应该能预测 latent state。</dd>
+            <dt>$\ln \sum_{o'} q(s_t|o')$</dt>
+            <dd>"<strong>负样本</strong>"项：把 batch 内其他时间的 image 当对照，用它们平均预测 $s_t$ 的概率作分母。</dd>
+            <dt>直觉</dt>
+            <dd>让 $s_t$ 能从当前 image 预测出来，但<strong>不能</strong>从无关 image 预测出来——逼 latent 包含图像可区分信息。</dd>
+            <dt>缺点</dt>
+            <dd>论文引 McAllester & Statos 2018：<strong>NCE 提取的互信息有上限</strong>，所以效果不及 reconstruction。Fig 8 验证了。</dd>
+          </dl>
+        </div>
+
+        <h3 id="reward-only" style="margin-top:24px;">4.4 Reward only · 基线</h3>
+
+        <p>
+          把上面两个 objective 的<strong>第一项整个删掉</strong>，只留 reward + KL。让模型从 reward 信号里反推表示。
+          论文当 ablation 跑了——<strong>大部分任务过不去</strong>。原因显然：稀疏 reward 不足以驱动 64×64×3 输入空间的表示学习。
+        </p>
+
+        <div class="callout amber">
+          <div class="callout-label">这条 ablation 的真正用法</div>
+          <p>
+            它说明：<strong>世界模型不能完全只靠 reward 学</strong>——你必须给一个额外的"图像-状态"对齐信号（reconstruction 或 contrastive 二选一）。
+            这也是为什么后续 DreamerV2/V3 仍保留 image decoder。
+          </p>
+        </div>
+
+        <!-- ═════════════════════════════════════════════════ -->
+        <h2 id="fig6">§5 实验结论</h2>
+
+        <div class="cn-read">
+          <div class="cn-label">这一节解决什么</div>
+          <p>
+            前面四章是方法。§5 用<strong>两张图</strong>把"Dreamer 是 SOTA"和"reconstruction 是当时最好"两个论点钉死。
+            其他实验细节（具体训练曲线、Atari 离散、DM Lab 早终止）见 Appendix C-E，这里只取最关键两张。
+          </p>
+        </div>
+
+        <h3 id="fig6-content" style="margin-top:24px;">5.1 Fig 6 · 跨 20 任务全面赢</h3>
+
+        <div class="fig-interactive panel-below">
+          <div class="fig-block">
+            <div class="hotspot-wrap" data-hotspot-group="fig6">
+              <img src="../assets/figures/dreamer-v1/fig-6.png" alt="Figure 6: Performance comparison">
+              <div class="hotspot" data-id="dreamer-bar" style="left:8%; top:24%;"
+                   data-title="Dreamer · 5×10⁶ steps · 蓝"
+                   data-body="只用 5M 环境步达到平均回报 823。注意它<strong>横扫前半部分简单任务</strong>，后半 Acrobot Swingup / Hopper Hop 这种难任务其他 model 全跪。"></div>
+              <div class="hotspot" data-id="planet-bar" style="left:18%; top:50%;"
+                   data-title="PlaNet · 同模型 + 在线规划 · 绿"
+                   data-body="同 5M 步、同世界模型，但用 CEM 在 latent 在线 plan。<strong>平均 332</strong>——差不多 Dreamer 的 40%。说明把规划换成 actor-critic 是巨大提升。"></div>
+              <div class="hotspot" data-id="d4pg-bar" style="left:30%; top:24%;"
+                   data-title="D4PG · 1×10⁸ steps · 橙"
+                   data-body="model-free 强基线。用了<strong>20 倍数据量</strong>才到 786。Dreamer 用 5% 数据就超过它——这就是世界模型带来的样本效率。"></div>
+              <div class="hotspot" data-id="a3c-bar" style="left:50%; top:65%;"
+                   data-title="A3C · 1×10⁸ steps + proprio · 红"
+                   data-body="经典 model-free。即使输入用了<strong>状态向量</strong>（不是图像），也只能赢 Cartpole Balance 一类的简单任务。"></div>
+              <div class="hotspot" data-id="hard-tasks" style="left:90%; top:50%;"
+                   data-title="最右 5 列 · Hopper / Acrobot Swingup / Cartpole Sparse 等长视野/稀疏任务"
+                   data-body="只剩 Dreamer 还在 200+，其他都贴底。这正是 §3 一开始定位的 long-horizon credit assignment 问题——value model + analytic gradient 把它解决了。"></div>
+            </div>
+            <div class="fig-cap">
+              <span class="fig-num">Fig 6 · p.6</span>
+              Performance comparison to existing methods. Dreamer inherits PlaNet's data-efficiency while exceeding model-free agents' asymptotic performance.
+              <span class="fig-cn">Dreamer 用 5M 步达到 823 平均回报，比 D4PG 用 100M 步的 786 还高。同时 PlaNet 同模型只到 332——证明拐点在 actor-critic / 解析梯度，不在世界模型本身。</span>
+            </div>
+          </div>
+          <div class="hotspot-panel"></div>
+        </div>
+
+        <h3 id="fig8" style="margin-top:24px;">5.2 Fig 8 · 三种 representation 学法对比</h3>
+
+        <p>
+          §4 列了三种 representation 目标，到底哪个最好——这张图给答案。结论一句话：
+          <strong>Reconstruction &gt; Contrastive &gt; Reward only</strong>。这条结论被后续 DreamerV2/V3 沿用。
+        </p>
+
+        <div class="callout">
+          <div class="callout-label">作者自己的总结（§6 Representation learning）</div>
+          <p>
+            "Pixel reconstruction outperforms contrastive estimation on most tasks. Reward prediction alone was not sufficient. This suggests that future improvements in representation learning are likely to translate to higher task performance with Dreamer."
+            <br><span style="color:var(--text3); font-family:var(--font-mono); font-size:12px;">— §6 Representation learning, p.9</span>
+          </p>
+        </div>
+
+        <div class="callout purple">
+          <div class="callout-label">这话留下来的钩子</div>
+          <p>
+            "future improvements in representation learning are likely to translate to higher task performance" ——
+            这就是 V-JEPA / DINO-WM 等论文的入口：<strong>把 Dreamer 的 (pixel) reconstruction 换成 (feature) prediction</strong>，
+            是不是能在更复杂的真实场景里反超？答案在 V-JEPA 2 / DINO-WM 2025 的实验里——能。
+          </p>
+        </div>
+
+        <!-- ═════════════════════════════════════════════════ -->
+        <h2 id="vla-link">§6 与世界模型 / VLA 的连接</h2>
+
+        <div class="cn-read">
+          <div class="cn-label">这一节解决什么</div>
+          <p>
+            把 Dreamer 放回我们关心的 embodied AI 大图里。它和 LeCun 自主智能架构、π₀ VLA、JEPA 都有具体连接点——
+            读完才能解释"为啥 2026 年还要读 2020 的 RL 论文"。
+          </p>
+        </div>
+
+        <table class="kv-table" style="margin-top:14px;">
+          <tr>
+            <td style="width:22%;"><strong>对应概念</strong></td>
+            <td><strong>在 Dreamer 里</strong></td>
+            <td><strong>在它们里</strong></td>
+          </tr>
+          <tr>
+            <td>世界模型</td>
+            <td>RSSM ($h, z$) 在 latent 里 forward</td>
+            <td>LeCun WM = JEPA encoder + predictor；π₀ 没有显式世界模型，靠 imitation 学</td>
+          </tr>
+          <tr>
+            <td>Cost / Reward</td>
+            <td>reward model $q(r|s)$（task reward）</td>
+            <td>LeCun = task cost + intrinsic cost；VLA = imitation loss（无显式 reward）</td>
+          </tr>
+          <tr>
+            <td>Actor</td>
+            <td>action model $q_\phi(a|s)$（用 V_λ 训）</td>
+            <td>LeCun Mode-2 actor；π₀ action expert（flow matching）</td>
+          </tr>
+          <tr>
+            <td>核心招数</td>
+            <td><strong>沿可微动力学反传 value 梯度</strong></td>
+            <td>LeCun §6 直接 cite Dreamer 作为 Mode-2 reasoning 候选；π₀ 没用，因为不是 RL</td>
+          </tr>
+        </table>
+
+        <div class="callout purple">
+          <div class="callout-label">读 LeCun 论文的同学注意</div>
+          <p>
+            LeCun 2022 "A Path Towards Autonomous Machine Intelligence" §6.4 提到 actor 训练有几条路：
+            <strong>direct gradient through differentiable world model</strong>（即 Dreamer 思路），
+            或<strong>amortized inference</strong>（distill 一个 plan 进 policy）。
+            Dreamer 是前一条路目前最干净的实现——所以 LeCun 直接 cite。
+          </p>
+        </div>
+
+        <div class="callout purple">
+          <div class="callout-label">VLA 视角 · 为什么不直接搬</div>
+          <p>
+            VLA（π₀, OpenVLA, RT-2）走的是<strong>纯模仿</strong>路线，没有 reward signal、没有 value model、不需要 imagination。
+            但<strong>当 imitation 数据不够、要在线探索补</strong>的时候，
+            你就需要 Dreamer 这套：world model + actor-critic + analytic gradient。
+            π₀.₆（Recap RL）就是 PI 在这个方向的尝试——但他们没用 latent imagination，
+            而是用 sparse-reward + offline RL。Dreamer 这条路在 VLA 里还没有人真正接通，是个 open problem。
+          </p>
+        </div>
+
+        <!-- ═════════════════════════════════════════════════ -->
+        <h2 id="takeaway">§7 收获与局限</h2>
+
+        <div class="callout">
+          <div class="callout-label">三句话总结</div>
+          <ol style="margin-top:8px; line-height:1.85; color:var(--text2);">
+            <li>
+              <strong>Dreamer = PlaNet 的世界模型 + actor-critic 替代在线规划 + 解析梯度替代黑箱搜索</strong>。
+              三件事缺一不可——拿掉 value 是 PlaNet（Fig 4 紫绿线），拿掉解析梯度就是 MVE/STEVE 那一类。
+            </li>
+            <li>
+              真正的核心贡献是<strong>"沿可微 latent dynamics 把 value 梯度反传到 actor"</strong>——
+              这条思路 2020 年首次干净跑通，被 LeCun 在自主智能架构里直接 cite。
+            </li>
+            <li>
+              Representation 学法是 plug-in：默认 pixel reconstruction，contrastive 次之。
+              这一层<strong>留给后续 JEPA / DINO-WM 替换</strong>，但 actor 训练那一层（V_λ + analytic grad）至今没被显著改进。
+            </li>
+          </ol>
+        </div>
+
+        <div class="callout amber">
+          <div class="callout-label">局限（论文没明说但看得出来）</div>
+          <ul style="margin-top:8px; line-height:1.8; color:var(--text2);">
+            <li><strong>continuous action 才能 reparameterize</strong>——离散 action 用 straight-through，效果会打折（Atari 表现一般，要等 DreamerV2 离散 latent 才补）。</li>
+            <li><strong>Reward signal 必须存在</strong>——所以不能直接搬到 imitation-only 的 VLA。</li>
+            <li><strong>世界模型不准会传染</strong>——actor 沿一个错的动力学反传梯度会越练越偏。论文实验 sparse reward / 极长 horizon 偶尔崩，根源在此。</li>
+            <li><strong>Image observation 假设</strong>——64×64 图够 RSSM hold 住，复杂场景需要更强 encoder（V-JEPA）。</li>
+            <li><strong>Generalization 没测</strong>——所有训练 / 测试都是同一任务、同一物理场景。VLA 关心的"换家泛化"它没回答。</li>
+          </ul>
+        </div>
+
+        <div class="callout blue">
+          <div class="callout-label">配套阅读</div>
+          <p>
+            <a href="lecun-autonomous-intelligence.html" style="color:var(--accent);">LeCun 自主智能架构</a>：
+            §6 的 Mode-2 actor 训练直接 cite 本文；
+            <a href="ijepa-self-supervised.html" style="color:var(--accent);">I-JEPA</a>：
+            把 reconstruction 换成 feature prediction 的源头；
+            <a href="pi06-recap-rl.html" style="color:var(--accent);">π₀.₆ Recap RL</a>：
+            VLA 第一次真正引入 RL，但思路和 Dreamer 不一样（offline / sparse reward 而不是 imagination）。
+          </p>
+        </div>
+
+        <p style="margin-top:32px; color:var(--text3); font-size:13px; text-align:center; border-top:1px solid var(--border); padding-top:24px;">
+          ↑ 本笔记基于 arXiv:1912.01603v3（2020-03-17）。
+          后续：<strong>DreamerV2</strong> (Hafner 2021, 离散 latent + Atari 通关) →
+          <strong>DreamerV3</strong> (Hafner 2023, 一组超参通吃 + Minecraft 钻石)。
+        </p>
+
+      </main>
+    </div>
+  </div>
+</body>
+</html>
