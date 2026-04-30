@@ -702,10 +702,18 @@ flowchart LR
         </table>
 
         <div class="callout purple">
-          <div class="callout-label">类比 MoE</div>
+          <div class="callout-label">不是 MoE，是 MoT (Mixture of Transformers)</div>
           <p>
-            可以理解为"模态 MoE"：token 根据类型（文本图像 vs 状态动作）被路由到不同专家的权重。
-            只是这里路由规则是<strong>静态的</strong>——token 是什么类型从一开始就定了，不是学出来的 gate。
+            论文原文用了"<em>analogous to a mixture of experts</em>"的类比，但严格来说<strong>这不是 MoE</strong>——
+            MoE 的核心特征是 <strong>router 在 token 级动态选 expert</strong>（learned gate + top-k 路由），
+            π₀ 没有 router，每个 token 走哪套权重完全由它的<strong>类型</strong>（图像/语言 vs 状态/动作）<strong>静态</strong>决定。
+          </p>
+          <p style="margin-top:10px;">
+            这种"双 transformer 栈 + 共享 attention + 无 router + 类型静态路由"的结构，
+            在后续工作
+            <a href="https://arxiv.org/abs/2411.04996" target="_blank" style="color:var(--accent); text-decoration:none; border-bottom:1px dashed var(--accent);">Liang et al., <em>Mixture-of-Transformers</em>, 2024</a>
+            里被正式归类为 <strong>MoT (Mixture of Transformers)</strong>——
+            π₀ 论文写得早，借用了 MoE 的措辞方便读者理解，但实现就是 MoT。
           </p>
         </div>
 

@@ -19,6 +19,7 @@
       <a href="../index.html">← 返回首页</a>
       <a href="../pdfs/vla/pi0.6.pdf" target="_blank">📄 PDF</a>
       <a href="https://pi.website/blog/pistar06" target="_blank">🌐 Blog</a>
+      <a href="https://website.pi-asset.com/pi06star/PI06_model_card.pdf" target="_blank">📋 π₀.₆ Model Card</a>
     </div>
   </nav>
 
@@ -169,7 +170,7 @@
           <tr>
             <td style="width:90px;"><strong>代际</strong></td>
             <td style="width:30%;"><strong>π₀.₅（2025-04）</strong></td>
-            <td style="width:30%;"><strong>π₀.₆（2025-?, model card）</strong></td>
+            <td style="width:30%;"><strong>π₀.₆</strong>（2025-11，<a href="https://website.pi-asset.com/pi06star/PI06_model_card.pdf" target="_blank" style="color:var(--accent);">model card</a>）</td>
             <td><strong>π*₀.₆（本论文）</strong></td>
           </tr>
           <tr>
@@ -211,7 +212,7 @@
           <tr>
             <td>典型成果</td>
             <td>新家 zero-shot 干 10–15 min</td>
-            <td>更强的基线（细节见 model card）</td>
+            <td>新基线（详见独立 model card PDF）</td>
             <td><strong>13h 连续做 espresso · 工厂组装纸箱 · 折新衣物 2x throughput</strong></td>
           </tr>
         </table>
@@ -222,6 +223,13 @@
             带星号 <strong>π*</strong> 在论文里专指<strong>引入了 advantage conditioning 的版本</strong>——
             没星号的 π₀.₆ 只是"更大的 π₀.₅"，不会做 RL。
             后面所有方法章节谈的都是 π*₀.₆。
+          </p>
+          <p style="margin-top:8px;">
+            🔍 <strong>关于 π₀.₆ 的来源</strong>：它<strong>不在 arXiv</strong>，所以按"论文"搜不到——
+            PI 在 2025-11-17 单独放出了一份 PDF 形式的 model card：
+            <a href="https://website.pi-asset.com/pi06star/PI06_model_card.pdf" target="_blank" style="color:var(--accent);">PI06_model_card.pdf</a>。
+            π*₀.₆ 主论文的参考文献 [6] 就是引用的它（"Physical Intelligence Team. π0.6 model card. 2025"）。
+            架构、训练数据、推理速度（H100 上 63ms / chunk）等细节全部出自这份 model card。
           </p>
         </div>
 
