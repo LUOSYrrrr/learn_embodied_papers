@@ -1,0 +1,951 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Consistency Models · Song et al. 2023</title>
+  <link rel="stylesheet" href="../assets/css/style.css">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16/dist/katex.min.css">
+  <script src="../assets/js/theme.js"></script>
+  <script src="../assets/js/interactive.js" defer></script>
+  <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16/dist/katex.min.js"></script>
+  <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16/dist/contrib/auto-render.min.js"
+          onload="renderMathInElement(document.body,{delimiters:[{left:'$$',right:'$$',display:true},{left:'$',right:'$',display:false}]})"></script>
+</head>
+<body>
+  <nav class="nav">
+    <a class="nav-logo" href="../index.html">Paper Notes</a>
+    <div class="nav-links">
+      <a href="../index.html">← 返回首页</a>
+      <a href="../pdfs/components/consistency-models.pdf" target="_blank">📄 PDF</a>
+      <a href="https://arxiv.org/abs/2303.01469" target="_blank">🔗 arXiv</a>
+    </div>
+  </nav>
+
+  <div class="page">
+    <div class="docs-layout">
+
+      <!-- ─── 左：章节树 ─── -->
+      <aside class="docs-sidebar-left">
+        <div class="ds-title">Consistency Models</div>
+
+        <a class="ds-leaf-top" href="#tldr">§1 一句话 + 你已经知道的</a>
+
+        <details open>
+          <summary>§2 前置 · Diffusion 与 PF ODE</summary>
+          <a class="ds-leaf" href="#sde-ode">2.1 从 SDE 到 ODE（Eq 1-2）</a>
+          <a class="ds-leaf" href="#empirical-pf">2.2 Empirical PF ODE（Eq 3）</a>
+          <a class="ds-leaf" href="#why-slow">2.3 为什么慢 · 多步 ODE 求解</a>
+        </details>
+
+        <details>
+          <summary>§3 Consistency Model 是什么</summary>
+          <a class="ds-leaf" href="#cm-def">3.1 一致性函数 · 自一致性</a>
+          <a class="ds-leaf" href="#boundary">3.2 边界条件 + skip 参数化（Eq 4-5）</a>
+          <a class="ds-leaf" href="#sampling">3.3 单步 / 多步采样（Alg 1）</a>
+          <a class="ds-leaf" href="#zero-shot">3.4 零样本编辑</a>
+        </details>
+
+        <details>
+          <summary>§4 训练 (1) · 蒸馏 CD</summary>
+          <a class="ds-leaf" href="#cd-intuition">4.1 直觉 · 跟着老师沿 ODE 走</a>
+          <a class="ds-leaf" href="#cd-loss">4.2 CD loss + EMA target（Eq 6-8）</a>
+          <a class="ds-leaf" href="#cd-alg">4.3 Algorithm 2</a>
+        </details>
+
+        <details>
+          <summary>§5 训练 (2) · 独立 CT</summary>
+          <a class="ds-leaf" href="#ct-trick">5.1 摆脱 teacher 的关键技巧</a>
+          <a class="ds-leaf" href="#ct-loss">5.2 CT loss（Eq 9-10）</a>
+          <a class="ds-leaf" href="#ct-alg">5.3 Algorithm 3 + 自适应 N/μ</a>
+        </details>
+
+        <details>
+          <summary>§6 实验</summary>
+          <a class="ds-leaf" href="#exp-ablation">6.1 消融 · LPIPS / Heun（Fig 3）</a>
+          <a class="ds-leaf" href="#exp-vs-pd">6.2 CD vs PD（Fig 4 + Tables）</a>
+          <a class="ds-leaf" href="#exp-zeroshot">6.3 零样本图像编辑（Fig 6）</a>
+        </details>
+
+        <a class="ds-leaf-top" href="#takeaway">§7 收获 · 局限 · 与 VLA / π₀ 的联系</a>
+      </aside>
+
+      <!-- ─── 中：正文 ─── -->
+      <main class="docs-content">
+
+        <div class="docs-breadcrumb">
+          <a href="../index.html">paper-notes</a>
+          <span class="sep">/</span>
+          生成式基础
+          <span class="sep">/</span>
+          Consistency Models · 2023
+        </div>
+
+        <h1>Consistency Models</h1>
+        <p style="color:var(--text3); font-family:var(--font-mono); font-size:12px; margin-top:-12px;">
+          Yang Song, Prafulla Dhariwal, Mark Chen, Ilya Sutskever · OpenAI · arXiv 2303.01469 · ICML 2023
+        </p>
+
+        <div class="cn-read">
+          <div class="cn-label">这篇笔记怎么读</div>
+          <p>
+            你之前问"<strong>π₀.₆ 用 Consistency Model 吗</strong>"——答案是没有，但如果你想给 flow matching VLA 配一篇推理加速笔记，
+            一切都得从这篇 <strong>原始 Consistency Models（Song et al. 2023）</strong>开始。
+          </p>
+          <p style="margin-top:8px;">
+            读完你会拿到三件事：
+          </p>
+          <p style="margin-top:6px;">
+            <strong>(1)</strong> Diffusion 为什么慢——它的 sampling 是一段沿 PF ODE 走 N 步的轨迹<br>
+            <strong>(2)</strong> Consistency Model 怎么把"<em>沿轨迹走 N 步</em>" 蒸馏成"<em>从轨迹任意一点直接跳到起点</em>"——
+            这是一个简单到让人怀疑能不能 work 的几何性质<br>
+            <strong>(3)</strong> 同一套自一致性约束既能<strong>蒸馏</strong>已有 diffusion (CD)，
+            也能<strong>从零训练</strong>独立模型 (CT)
+          </p>
+          <p style="margin-top:8px;">
+            阅读路径：<strong>§1-§3</strong> 是概念/数学骨架（必读），
+            <strong>§4-§5</strong> 是两种训练方法（CD / CT 二选一即可，先看 §4），
+            <strong>§6</strong> 实验快速扫，<strong>§7</strong> 拉回到具身 AI 视角。
+          </p>
+        </div>
+
+        <!-- ═════════════════════════════════════════════════ -->
+        <h2 id="tldr">§1 一句话 + 你已经知道的</h2>
+
+        <div class="callout">
+          <div class="callout-label">核心主张（Abstract）</div>
+          <p>
+            Diffusion 模型质量好，但 sampling 要 <strong>10-2000 次网络前向</strong>。
+            Consistency Model 训练一个函数 $f_\theta(x_t, t)$，让它把<strong>任意时刻 $t$ 的噪声样本</strong>
+            <strong>直接映射回干净样本 $x_\epsilon$</strong>——所以 sampling 只要 <strong>1 次前向</strong>就够。
+            既能由现成 diffusion 蒸馏出来 (CD)，也能从零训练 (CT)；
+            CIFAR-10 上 1-step FID = <strong>3.55</strong>，是当时一步生成的 SOTA。
+          </p>
+        </div>
+
+        <details class="en-quote">
+          <summary>展开原文 · Abstract 核心句</summary>
+          <div class="quote-body">
+            <p>"We propose <em>consistency models</em>, a new family of models that generate high quality samples by directly mapping noise to data. They support fast one-step generation by design, while still allowing multistep sampling to trade compute for sample quality."</p>
+            <div class="quote-cite">— Abstract, p.1</div>
+          </div>
+        </details>
+
+        <h3 id="prereq" style="margin-top:24px;">1.1 你已经知道的（在我们之前的笔记里见过）</h3>
+
+        <table class="kv-table">
+          <tr>
+            <td style="width:170px;"><strong>Flow Matching</strong></td>
+            <td>π₀ 的 Action Expert 用的就是它——<strong>训练时回归速度场</strong> $v_\theta(x_t, t) \approx x_1 - x_0$，
+            <strong>推理时 N 步 Euler 积分</strong>从噪声走到样本。Consistency Model 想替代的就是"<em>N 步积分</em>" 这一步。</td>
+          </tr>
+          <tr>
+            <td><strong>Probability Flow ODE</strong></td>
+            <td>注意原生方程的不对称：<strong>Diffusion 原生是 SDE</strong>（前向加噪是布朗运动），PF ODE 是它的<em>派生</em>形式（Song 2021 证明同分布）；<strong>Flow Matching 原生就是 ODE</strong>，没有 SDE。
+            Consistency Model 工作在<strong>这条 ODE 上</strong>——所以原版套在 diffusion 时实际是用它的 PF ODE，后续 Consistency Flow Matching 直接套 flow matching 的原生 ODE。</td>
+          </tr>
+          <tr>
+            <td><strong>π₀ 推理流程</strong></td>
+            <td>10 步 Euler。每一步都过一遍 Action Expert——这就是机器人控制实时性的瓶颈。</td>
+          </tr>
+        </table>
+
+        <div class="callout blue">
+          <div class="callout-label">类比 · 一图说穿</div>
+          <p>
+            想象一条山路，从山顶（噪声 $x_T$）到山脚（数据 $x_0$）。
+          </p>
+          <ul style="margin-left:18px; line-height:1.85; margin-top:6px;">
+            <li><strong>Diffusion / Flow Matching</strong>：教模型在<strong>每一段路</strong>上"<em>下一步往哪走</em>"——你必须沿路一段一段走 N 步</li>
+            <li><strong>Consistency Model</strong>：教模型从<strong>路上任何一点</strong>都能"<em>直接传送回山脚</em>"——一步到位</li>
+          </ul>
+          <p style="margin-top:8px;">
+            "<em>沿同一条山路上任意两点都能传送到同一个山脚</em>" 就是论文标题里的 <strong>self-consistency（自一致性）</strong>。
+          </p>
+        </div>
+
+        <h3 style="margin-top:32px;">1.2 这篇论文做了什么</h3>
+
+        <div class="module-grid">
+          <div class="module-card">
+            <div class="module-card-name">DEFINITION · 自一致性</div>
+            <div class="module-card-title">把"沿 ODE 走"变"传送到起点"</div>
+            <div class="module-card-desc">
+              定义 $f_\theta(x_t, t) = x_\epsilon$；同一条 ODE 轨迹上任意两点必须输出相同的 $x_\epsilon$。
+            </div>
+          </div>
+          <div class="module-card">
+            <div class="module-card-name">TRAINING-1 · 蒸馏 CD</div>
+            <div class="module-card-title">从已有 diffusion 蒸馏</div>
+            <div class="module-card-desc">
+              用 teacher diffusion 模型生成"<em>同一条轨迹上的相邻两点</em>"，强制 student 输出一致。
+            </div>
+          </div>
+          <div class="module-card">
+            <div class="module-card-name">TRAINING-2 · 独立 CT</div>
+            <div class="module-card-title">不要 teacher，从零训</div>
+            <div class="module-card-desc">
+              用一个 score 的<strong>无偏估计</strong>（$\propto -(x_t - x)/t^2$）替代 teacher——
+              把 CM 变成独立的生成式模型族。
+            </div>
+          </div>
+          <div class="module-card">
+            <div class="module-card-name">SAMPLING · 灵活</div>
+            <div class="module-card-title">1 步够、N 步更好</div>
+            <div class="module-card-desc">
+              一步生成保速度；多步迭代（去噪 + 加噪）保质量；零样本支持 inpainting / colorization / super-resolution。
+            </div>
+          </div>
+        </div>
+
+        <!-- Fig 1 · teaser -->
+        <div class="fig-interactive panel-below" style="margin-top:24px;">
+          <div class="fig-block">
+            <div class="hotspot-wrap" data-hotspot-group="fig1">
+              <img src="../assets/figures/consistency-models/fig-1.png" alt="Figure 1: PF ODE trajectory mapping">
+              <div class="hotspot" data-id="data" style="left:11%; top:38%;"
+                   data-title="$\mathbf{x}_0$ · 数据端"
+                   data-body="ODE 轨迹的起点——干净的图像（实际上论文里取 $x_\epsilon$，$\epsilon=0.002$ 避免数值不稳）。所有箭头都指向这里。"></div>
+              <div class="hotspot" data-id="xt" style="left:35%; top:38%;"
+                   data-title="$\mathbf{x}_t$ · 中间噪声样本"
+                   data-body="轨迹中段。Consistency Model $f_\theta(x_t, t)$ 接收这个中间样本 + 时间 $t$，<strong>直接</strong>预测出 $x_0$。"></div>
+              <div class="hotspot" data-id="xt-prime" style="left:62%; top:38%;"
+                   data-title="$\mathbf{x}_{t'}$ · 同轨迹另一点"
+                   data-body="同一条 ODE 轨迹上更靠近噪声的另一点。$f_\theta(x_{t'}, t')$ 也必须输出<strong>同一个</strong> $x_0$——这就是自一致性。"></div>
+              <div class="hotspot" data-id="noise" style="left:88%; top:38%;"
+                   data-title="$\mathbf{x}_T$ · 纯噪声端"
+                   data-body="$T = 80$（论文取 Karras 的设定）。从这个高斯噪声出发，$f_\theta(x_T, T)$ 一步就出图——<strong>这就是单步生成</strong>。"></div>
+              <div class="hotspot" data-id="arrows" style="left:50%; top:75%;"
+                   data-title="红色箭头 · $f_\theta(\cdot, t)$"
+                   data-body="三个红色箭头表示同一个 $f_\theta$ 在三个不同时间被调用——<strong>都指向同一个 $x_0$</strong>。这是图里最关键的视觉信息。"></div>
+            </div>
+            <div class="fig-cap">
+              <span class="fig-num">Fig 1 · p.1</span>
+              Given a Probability Flow (PF) ODE that smoothly converts data to noise, we learn to map any point ($x_t$, $x_{t'}$, $x_T$) on the ODE trajectory to its origin ($x_0$). Models of these mappings are called <em>consistency models</em>.
+              <span class="fig-cn">这张图是论文最核心的视觉总结：<strong>同一条轨迹上的所有点，过一遍 $f_\theta$ 都要到同一个起点</strong>。整篇论文就是在讨论这条性质怎么训出来。</span>
+            </div>
+          </div>
+          <div class="hotspot-panel"></div>
+        </div>
+
+        <!-- ═════════════════════════════════════════════════ -->
+        <h2 id="background">§2 前置 · Diffusion 与 PF ODE</h2>
+
+        <div class="cn-read">
+          <div class="cn-label">这一节解决什么</div>
+          <p>
+            §1 给出了直觉。但要理解"<em>$f_\theta$ 把 $x_t$ 映回 $x_\epsilon$</em>" 里的 $x_t$ 究竟是什么，得先把 diffusion 的<strong>前向加噪过程（SDE）</strong>和<strong>反向去噪轨迹（PF ODE）</strong>讲清楚。
+            这一节是论文 §2 的浓缩——<strong>三组等式 + 一个直觉</strong>就够。看完之后，§3 的"<em>consistency function</em>" 就只是给这条 ODE 加一个新约束。
+          </p>
+        </div>
+
+        <h3 id="sde-ode" style="margin-top:24px;">2.1 从 SDE 到 ODE</h3>
+
+        <p>Diffusion 的前向过程是<strong>不断往数据加高斯噪声</strong>，写成连续时间随机微分方程：</p>
+
+        <div class="math-block">
+          $$d\mathbf{x}_t = \boldsymbol{\mu}(\mathbf{x}_t, t)\,dt + \sigma(t)\,d\mathbf{w}_t$$
+          <span class="math-label">Eq. 1 · 前向 SDE · 沿时间向噪声扩散</span>
+        </div>
+
+        <div class="math-explain">
+          <div class="me-title">逐项拆解</div>
+          <dl>
+            <dt>$\mathbf{x}_t$</dt>
+            <dd>时刻 $t$ 的样本。$t=0$ 是干净数据，$t=T$ 是纯噪声</dd>
+            <dt>$\boldsymbol{\mu}(\mathbf{x}_t, t)$</dt>
+            <dd><strong>drift 漂移项</strong>——确定性的"<em>往哪走</em>"</dd>
+            <dt>$\sigma(t)\,d\mathbf{w}_t$</dt>
+            <dd><strong>diffusion 扩散项</strong>——随机的高斯噪声注入。$d\mathbf{w}_t$ 是布朗运动微元</dd>
+            <dt>论文 Karras 设定</dt>
+            <dd>$\boldsymbol{\mu} = \mathbf{0}$，$\sigma(t) = \sqrt{2t}$——所以 $\mathbf{x}_t \sim \mathcal{N}(\mathbf{x}_0, t^2 \mathbf{I})$，$t$ 直接就是噪声标准差</dd>
+          </dl>
+        </div>
+
+        <div class="callout blue">
+          <div class="callout-label">关键洞察 · Song 2021 · 这一步是 CM 的物理基础</div>
+          <p>
+            Diffusion <strong>原生是 SDE</strong>（Eq.1）——但 Song 2021 证明：上面这个 SDE 有一个对应的<strong>确定性 ODE</strong>，跑出来的<strong>边缘分布</strong> $p_t(x)$ 一模一样：
+          </p>
+          <p style="margin-top:8px;">
+            <strong>Consistency Model 工作在这条派生出来的 ODE 上，不是原生 SDE 上</strong>——
+            如果 diffusion 只有 SDE 没有 PF ODE，CM 根本无从下手（因为 SDE 的"<em>同一条轨迹</em>" 本来就是随机的，没法定义自一致性）。
+            Flow Matching 因为<strong>原生就是 ODE</strong>，所以 self-consistency 可以直接套，不需要先做这一步派生。
+          </p>
+        </div>
+
+        <div class="math-block">
+          $$d\mathbf{x}_t = \left[\boldsymbol{\mu}(\mathbf{x}_t, t) - \tfrac{1}{2}\sigma(t)^2 \nabla \log p_t(\mathbf{x}_t)\right] dt$$
+          <span class="math-label">Eq. 2 · Probability Flow ODE · 同分布的确定性版本</span>
+        </div>
+
+        <div class="math-explain">
+          <div class="me-title">逐项拆解</div>
+          <dl>
+            <dt>$\nabla \log p_t(\mathbf{x}_t)$</dt>
+            <dd><strong>score function</strong>——$\mathbf{x}_t$ 在噪声分布 $p_t$ 下的"<em>密度梯度</em>"，告诉你"<em>往哪走概率更大</em>"</dd>
+            <dt>整个方括号</dt>
+            <dd>SDE 的漂移 - 半个噪声方差 × score = ODE 的"<em>等效速度场</em>"</dd>
+            <dt>没有 $d\mathbf{w}_t$</dt>
+            <dd>这是关键——<strong>纯确定性</strong>。从同一个噪声出发，永远走到同一个数据</dd>
+          </dl>
+        </div>
+
+        <h3 id="empirical-pf" style="margin-top:32px;">2.2 Empirical PF ODE</h3>
+
+        <p>
+          score 不可知——所以训一个网络 $\mathbf{s}_\phi(\mathbf{x}, t) \approx \nabla \log p_t(\mathbf{x})$ 去近似。
+          代回 Eq.2，加上 Karras 简化（$\boldsymbol{\mu}=0, \sigma = \sqrt{2t}$），得到论文实际用的版本：
+        </p>
+
+        <div class="math-block">
+          $$\frac{d\mathbf{x}_t}{dt} = -t\,\mathbf{s}_\phi(\mathbf{x}_t, t)$$
+          <span class="math-label">Eq. 3 · Empirical PF ODE · sampling 实际跑的方程</span>
+        </div>
+
+        <div class="math-explain">
+          <div class="me-title">逐项拆解</div>
+          <dl>
+            <dt>$\mathbf{s}_\phi$</dt>
+            <dd>预训练好的 score model（diffusion 的标准产物）</dd>
+            <dt>$-t \cdot \mathbf{s}_\phi$</dt>
+            <dd>"<em>逆着 score 方向 + 按时间 $t$ 缩放</em>" 的速度——把这个速度从 $T \to \epsilon$ 反向积分，就得到一张干净图像</dd>
+            <dt>$\hat{\mathbf{x}}_T \sim \mathcal{N}(\mathbf{0}, T^2 \mathbf{I})$</dt>
+            <dd>采样起点：纯高斯噪声</dd>
+            <dt>$\epsilon = 0.002$</dt>
+            <dd>积分终点不取 $0$，避免 score 在 $t \to 0$ 时数值爆炸</dd>
+          </dl>
+        </div>
+
+        <h3 id="why-slow" style="margin-top:32px;">2.3 为什么慢 · 多步 ODE 求解</h3>
+
+        <div class="callout amber">
+          <div class="callout-label">瓶颈来源</div>
+          <p>
+            Eq.3 是个 ODE，要数值求解。最简单的 <strong>Euler 法</strong>：
+          </p>
+          <div class="code-block" style="margin-top:8px;"><code>x = sample N(0, T²I)
+for t = T, T-Δt, ..., ε:
+    x = x - Δt · t · s_phi(x, t)    # 每一步都过一次网络
+return x</code></div>
+          <p style="margin-top:10px;">
+            想要质量好（FID 低），就得 $\Delta t$ 小——意味着 N 大。
+            实测 EDM 在 ImageNet 64 上要 <strong>NFE = 79 次</strong>评估才能拿到 FID 2.44。
+            <strong>每张图过 79 次 U-Net</strong>——慢的本质就在这。
+          </p>
+        </div>
+
+        <div class="callout">
+          <div class="callout-label">Consistency Model 的破局思路（预告 §3）</div>
+          <p>
+            既然 Eq.3 给定起点 $\mathbf{x}_T$ 后，<strong>整条轨迹都是确定的</strong>——
+            那干嘛非要一步一步走完？训一个 $f_\theta$ 直接学"<em>$\mathbf{x}_t \mapsto \mathbf{x}_\epsilon$</em>" 这个映射不就完了？
+            <strong>这就是 §3 的全部内容。</strong>
+          </p>
+        </div>
+
+        <div class="quiz" style="margin-top:24px;"
+             data-correct="c"
+             data-explain="正确。PF ODE 是 Song 2021 给 diffusion SDE 的确定性等价；Eq.3 是把 score 网络代进去的可计算版本。Consistency Model 是建立在这条 ODE 上的"快速求解器"——直接学起点映射，绕开数值积分。"
+             data-explain-wrong="再读一次 §2.2——PF ODE 是 diffusion 的确定性等价；Consistency Model 不是发明它，而是把它的求解从 N 步压成 1 步。">
+          <div class="q-label">🧠 理解检查</div>
+          <div class="q-text">PF ODE 在 Consistency Model 里扮演什么角色？</div>
+          <div class="q-options">
+            <button class="q-opt" data-k="a">PF ODE 是 Consistency Model 的损失函数</button>
+            <button class="q-opt" data-k="b">PF ODE 是 Consistency Model 的网络结构</button>
+            <button class="q-opt" data-k="c">PF ODE 定义了"<em>正确轨迹</em>"——CM 学的就是把这条轨迹上任意一点映回起点</button>
+            <button class="q-opt" data-k="d">PF ODE 是 Consistency Model 推理时跑的方程</button>
+          </div>
+          <div class="q-feedback"></div>
+        </div>
+
+        <!-- ═════════════════════════════════════════════════ -->
+        <h2 id="cm-def-section">§3 Consistency Model 是什么</h2>
+
+        <div class="cn-read">
+          <div class="cn-label">这一节解决什么</div>
+          <p>
+            §2 把"<em>正确轨迹</em>" 写出来了——一条 PF ODE，从噪声 $\mathbf{x}_T$ 确定性地走到样本 $\mathbf{x}_\epsilon$。
+            这一节正面回答：<strong>$f_\theta$ 是怎么定义的？怎么保证它在 $t=\epsilon$ 时是 identity？怎么从 $f_\theta$ 采样？</strong>
+            读完 §3 你已经能写出 inference code——<strong>训练放在 §4-§5</strong>。
+          </p>
+        </div>
+
+        <h3 id="cm-def" style="margin-top:24px;">3.1 一致性函数 · 自一致性</h3>
+
+        <div class="callout">
+          <div class="callout-label">Definition · Consistency Function</div>
+          <p>给定一条 PF ODE 轨迹 $\{\mathbf{x}_t\}_{t \in [\epsilon, T]}$，<strong>一致性函数</strong>定义为：</p>
+          <div class="math-block" style="margin-top:8px;">
+            $$\mathbf{f}: (\mathbf{x}_t, t) \mapsto \mathbf{x}_\epsilon$$
+            <span class="math-label">同一条轨迹上任何点都映射到起点 $\mathbf{x}_\epsilon$</span>
+          </div>
+          <p style="margin-top:10px;">
+            <strong>self-consistency 性质</strong>：对同一条轨迹上的任意两个时刻 $t, t' \in [\epsilon, T]$，
+          </p>
+          <div class="math-block" style="margin-top:6px;">
+            $$\mathbf{f}(\mathbf{x}_t, t) = \mathbf{f}(\mathbf{x}_{t'}, t')$$
+            <span class="math-label">论文 §3 · self-consistency · 名字的由来</span>
+          </div>
+        </div>
+
+        <div class="fig-interactive">
+          <div class="fig-block">
+            <div class="hotspot-wrap" data-hotspot-group="fig2">
+              <img src="../assets/figures/consistency-models/fig-2.png" alt="Figure 2: Self-consistency">
+              <div class="hotspot" data-id="data-side" style="left:8%; top:42%;"
+                   data-title="Data 端 · 紫色密度"
+                   data-body="左侧紫色曲线代表数据分布 $p_{data}$。三条 ODE 轨迹（绿色）的<strong>起点</strong>都在这里——但起点不同。"></div>
+              <div class="hotspot" data-id="noise-side" style="left:90%; top:42%;"
+                   data-title="Noise 端 · 黄色密度"
+                   data-body="右侧黄色曲线代表 $T$ 时刻的高斯噪声分布 $\mathcal{N}(0, T^2 I)$。三条轨迹的<strong>终点</strong>都在这里——但终点也不同。"></div>
+              <div class="hotspot" data-id="green-trajs" style="left:50%; top:25%;"
+                   data-title="绿色 · ODE 轨迹"
+                   data-body="<strong>三条不同的 PF ODE 轨迹</strong>（不同初始数据出发）。每条轨迹自己内部是确定性的——给定起点，所有 $\mathbf{x}_t$ 都唯一确定。"></div>
+              <div class="hotspot" data-id="red-arrows" style="left:42%; top:55%;"
+                   data-title="红色 · 自一致性映射"
+                   data-body="$f_\theta(\mathbf{x}_t, t)$ 和 $f_\theta(\mathbf{x}_{t'}, t')$——同一条轨迹上的不同点都<strong>箭头指向同一个 $\mathbf{x}_0$</strong>。这就是 self-consistency 的视觉化。"></div>
+              <div class="hotspot" data-id="multi-traj" style="left:50%; top:80%;"
+                   data-title="不同轨迹 · 不同起点"
+                   data-body="注意：不同<strong>轨迹之间</strong>不要求一致——它们的起点本来就不同。<strong>self-consistency 只在同一条轨迹内部要求</strong>。这是训练 loss 的关键。"></div>
+            </div>
+            <div class="fig-cap">
+              <span class="fig-num">Fig 2 · p.3</span>
+              Consistency models are trained to map points on any trajectory of the PF ODE to the trajectory's origin.
+              <span class="fig-cn">三条轨迹各自独立——但<strong>每条轨迹内部</strong>所有点都被 $f_\theta$ 映回它自己的起点。</span>
+            </div>
+          </div>
+          <div class="hotspot-panel"></div>
+        </div>
+
+        <h3 id="boundary" style="margin-top:32px;">3.2 边界条件 + skip 参数化</h3>
+
+        <div class="callout amber">
+          <div class="callout-label">Boundary Condition · 必须满足</div>
+          <p>
+            $f_\theta$ 的<strong>形式约束</strong>：在 $t = \epsilon$ 时必须是恒等映射——
+          </p>
+          <div class="math-block" style="margin-top:8px;">
+            $$\mathbf{f}_\theta(\mathbf{x}_\epsilon, \epsilon) = \mathbf{x}_\epsilon$$
+            <span class="math-label">论文 §3 · Boundary Condition · 必须是 identity</span>
+          </div>
+          <p style="margin-top:10px;">
+            为什么必要？因为 $\mathbf{x}_\epsilon$ 已经是干净样本了——再过 $f_\theta$ 不能改变它。
+            如果模型不满足这个，self-consistency 一个 trivial 解就是 $f_\theta \equiv \mathbf{0}$（所有输入都映到 0），完全不可用。
+          </p>
+        </div>
+
+        <p>论文给两种<strong>架构层面</strong>满足这个边界条件的方法：</p>
+
+        <div class="math-block">
+          $$\mathbf{f}_\theta(\mathbf{x}, t) = \begin{cases} \mathbf{x} & t = \epsilon \\ F_\theta(\mathbf{x}, t) & t \in (\epsilon, T] \end{cases}$$
+          <span class="math-label">Eq. 4 · 朴素分段 · $t=\epsilon$ 直接 skip 网络</span>
+        </div>
+
+        <div class="math-block">
+          $$\mathbf{f}_\theta(\mathbf{x}, t) = c_\text{skip}(t) \cdot \mathbf{x} + c_\text{out}(t) \cdot F_\theta(\mathbf{x}, t)$$
+          <span class="math-label">Eq. 5 · Skip 参数化（实际用的） · $c_\text{skip}(\epsilon)=1, c_\text{out}(\epsilon)=0$</span>
+        </div>
+
+        <div class="math-explain">
+          <div class="me-title">逐项拆解（Eq.5）</div>
+          <dl>
+            <dt>$F_\theta(\mathbf{x}, t)$</dt>
+            <dd>真正的神经网络（U-Net / Transformer），输出形状和 $\mathbf{x}$ 一样</dd>
+            <dt>$c_\text{skip}(t)$</dt>
+            <dd>"<em>残差权重</em>"——$t=\epsilon$ 时取 1（保留原样），$t$ 大时减小</dd>
+            <dt>$c_\text{out}(t)$</dt>
+            <dd>"<em>修正权重</em>"——$t=\epsilon$ 时取 0（不动），$t$ 大时增大</dd>
+            <dt>整体结构</dt>
+            <dd>形如 ResNet 的 skip connection。$t=\epsilon$ 时退化成恒等映射；$t$ 越大，网络贡献越大。<strong>边界条件 almost for free 满足</strong>，不需要额外 loss</dd>
+          </dl>
+        </div>
+
+        <div class="callout blue">
+          <div class="callout-label">类比 · 这就是 EDM 的 preconditioning</div>
+          <p>
+            Karras EDM 论文里的 preconditioning（$D_\theta(x, \sigma) = c_\text{skip}\cdot x + c_\text{out}\cdot F_\theta$）和 Eq.5 形式完全一样。
+            Consistency Model <strong>直接复用</strong>这套架构——这就是为什么作者说 CM "<em>borrow powerful diffusion model architectures</em>" 几乎零成本。
+          </p>
+        </div>
+
+        <h3 id="sampling" style="margin-top:32px;">3.3 单步 / 多步采样</h3>
+
+        <div class="callout">
+          <div class="callout-label">单步采样 · 1 NFE</div>
+          <div class="code-block" style="margin-top:8px;"><code>x_T = sample N(0, T²·I)        # 高斯噪声
+x_eps = f_theta(x_T, T)         # <strong>一次前向</strong>就出图</code></div>
+          <p style="margin-top:10px;">
+            就这么直接。<strong>1 NFE</strong>（Number of Function Evaluations）—— 比 EDM 79 步快了 79 倍。
+          </p>
+        </div>
+
+        <div class="callout">
+          <div class="callout-label">Algorithm 1 · 多步采样（trade compute for quality）</div>
+          <pre style="background:var(--bg3); padding:16px; border-radius:8px; font-family:var(--font-mono); font-size:12px; line-height:1.65; overflow-x:auto;"><code>Input: 模型 f_θ, 中间时间点 τ_1 &gt; τ_2 &gt; ... &gt; τ_{N-1}, 噪声 x̂_T
+
+x ← f_θ(x̂_T, T)                    # ① 先一步出粗结果
+for n = 1 to N-1:
+    z ~ N(0, I)                      # ② 重新加噪声
+    x̂_{τ_n} ← x + √(τ_n² - ε²) z    #    噪声水平降到 τ_n
+    x ← f_θ(x̂_{τ_n}, τ_n)           # ③ 再一步去噪
+return x</code></pre>
+          <p style="margin-top:10px;">
+            一步出粗结果 → 加少量噪声 → 再一步去噪 → 加更少噪声 → ... 这是 <strong>"去噪/加噪交替"</strong> 的迭代。
+            $N=2$ 通常就比 $N=1$ FID 好不少（CIFAR-10：3.55 → 2.93）；$N=4$ 之后边际收益很小。
+          </p>
+        </div>
+
+        <div class="callout amber">
+          <div class="callout-label">中间时间点怎么选？</div>
+          <p>
+            $\{\tau_1, \tau_2, \dots, \tau_{N-1}\}$ <strong>不是均匀分</strong>的——
+            论文用 <strong>greedy ternary search</strong>，一个一个挑出能让 FID 最小的中间点。
+            假设 FID 关于"<em>下一个时间点</em>" 是单峰的（实测成立），就能 $O(\log)$ 找到最优。
+          </p>
+        </div>
+
+        <h3 id="zero-shot" style="margin-top:32px;">3.4 零样本编辑（一次训练，免费送的能力）</h3>
+
+        <p>因为 $f_\theta$ 学到的是"<em>把任意噪声水平的 $\mathbf{x}_t$ 去噪到 $\mathbf{x}_\epsilon$</em>"，所以<strong>不需要重新训练</strong>就能做：</p>
+
+        <table class="kv-table">
+          <tr><td style="width:140px;"><strong>插值（Interpolation）</strong></td><td>在两个噪声向量之间走直线 → 得到样本之间的平滑过渡</td></tr>
+          <tr><td><strong>去噪（Denoising）</strong></td><td>给一张被加了任意噪声的图，一步出干净版本</td></tr>
+          <tr><td><strong>Inpainting / 上色 / 超分</strong></td><td>用<strong>迭代替换</strong>方案（Algorithm 1 + 已知像素 mask）</td></tr>
+          <tr><td><strong>Stroke-guided 生成</strong></td><td>用户涂个粗笔触 → 模型生成符合该笔触的高质量图（SDEdit 风格）</td></tr>
+        </table>
+
+        <p>具体编辑结果在 <a href="#exp-zeroshot" style="color:var(--accent);">§6.3</a> 看 Fig 6。</p>
+
+        <div class="quiz" style="margin-top:24px;"
+             data-correct="b"
+             data-explain="正确。skip 参数化（Eq.5）让 $f_\theta(x_\epsilon, \epsilon) = x_\epsilon$ 在架构层面自动成立——不需要额外 loss、不需要训练、不会被优化破坏。"
+             data-explain-wrong="再读一次 §3.2——边界条件是通过 $c_\text{skip}/c_\text{out}$ 的设计在架构层面"几乎免费"满足的，不是靠 loss 罚出来的。">
+          <div class="q-label">🧠 理解检查</div>
+          <div class="q-text">为什么 CM 不需要额外的 loss 来强制 boundary condition $f_\theta(x_\epsilon, \epsilon) = x_\epsilon$？</div>
+          <div class="q-options">
+            <button class="q-opt" data-k="a">因为 self-consistency loss 自然包含了这一项</button>
+            <button class="q-opt" data-k="b">因为 skip 参数化（Eq.5）让 $c_\text{skip}(\epsilon)=1, c_\text{out}(\epsilon)=0$，架构层面自动成立</button>
+            <button class="q-opt" data-k="c">因为训练数据已经包含 $x_\epsilon$，模型会自动学会</button>
+            <button class="q-opt" data-k="d">因为 EMA target network 会逼近 identity</button>
+          </div>
+          <div class="q-feedback"></div>
+        </div>
+
+        <!-- ═════════════════════════════════════════════════ -->
+        <h2 id="cd-section">§4 训练 (1) · Consistency Distillation</h2>
+
+        <div class="cn-read">
+          <div class="cn-label">这一节解决什么</div>
+          <p>
+            §3 给出了 $f_\theta$ 的<strong>定义和架构</strong>——但<strong>怎么训出来</strong>没说。
+            最直接的办法：手上已经有一个训好的 diffusion 模型（teacher），用它来"<em>制造同一条轨迹上的相邻两点</em>"，
+            然后让 $f_\theta$ 在这两点上输出一致——这就是 <strong>Consistency Distillation (CD)</strong>。
+            §5 再讲怎么把 teacher 也甩掉。
+          </p>
+        </div>
+
+        <h3 id="cd-intuition" style="margin-top:24px;">4.1 直觉 · 跟着老师沿 ODE 走一小步</h3>
+
+        <div class="callout blue">
+          <div class="callout-label">三步直觉</div>
+          <ol style="margin-left:18px; line-height:1.85;">
+            <li>真实数据 $\mathbf{x} \sim p_{data}$，加高斯噪声 → $\mathbf{x}_{t_{n+1}} \sim \mathcal{N}(\mathbf{x}, t_{n+1}^2 \mathbf{I})$（轨迹后段一点）</li>
+            <li><strong>用 teacher diffusion + 一步 ODE solver 反向走 $\Delta t$</strong> → 得到同一条轨迹的前一点 $\hat{\mathbf{x}}_{t_n}^{\boldsymbol\phi}$</li>
+            <li>强制 $f_\theta(\mathbf{x}_{t_{n+1}}, t_{n+1}) \approx f_{\theta^-}(\hat{\mathbf{x}}_{t_n}^{\boldsymbol\phi}, t_n)$ —— self-consistency</li>
+          </ol>
+        </div>
+
+        <h3 id="cd-loss" style="margin-top:32px;">4.2 CD loss + EMA target</h3>
+
+        <p>用 teacher score $\mathbf{s}_\phi$ 走<strong>一步数值 ODE</strong>得到 $\hat{\mathbf{x}}_{t_n}^{\boldsymbol\phi}$：</p>
+
+        <div class="math-block">
+          $$\hat{\mathbf{x}}_{t_n}^{\boldsymbol\phi} := \mathbf{x}_{t_{n+1}} + (t_n - t_{n+1})\, \Phi(\mathbf{x}_{t_{n+1}}, t_{n+1}; \boldsymbol\phi)$$
+          <span class="math-label">Eq. 6 · 一步 ODE solver · Euler 时 $\Phi = -t \mathbf{s}_\phi$</span>
+        </div>
+
+        <p>然后定义 <strong>Consistency Distillation Loss</strong>：</p>
+
+        <div class="math-block">
+          $$\mathcal{L}_{CD}^N(\theta, \theta^-; \boldsymbol\phi) = \mathbb{E}\!\left[\lambda(t_n)\, d\!\left(\mathbf{f}_\theta(\mathbf{x}_{t_{n+1}}, t_{n+1}),\ \mathbf{f}_{\theta^-}(\hat{\mathbf{x}}_{t_n}^{\boldsymbol\phi}, t_n)\right)\right]$$
+          <span class="math-label">Eq. 7 · CD loss · 同轨迹相邻两点的输出距离</span>
+        </div>
+
+        <div class="math-explain">
+          <div class="me-title">逐项拆解</div>
+          <dl>
+            <dt>$\mathbf{f}_\theta$（online）</dt>
+            <dd>正在被梯度更新的<strong>当前模型</strong> · 接收 $t_{n+1}$ 时刻的样本</dd>
+            <dt>$\mathbf{f}_{\theta^-}$（target）</dt>
+            <dd><strong>目标模型</strong>，权重是 online 的 EMA · 接收 ODE 反推的 $t_n$ 时刻样本 · 不接收梯度（stop-grad）</dd>
+            <dt>$d(\cdot, \cdot)$</dt>
+            <dd>距离函数：$\ell_2$ / $\ell_1$ / <strong>LPIPS</strong>（实测 LPIPS 远胜，§6.1 Fig 3a）</dd>
+            <dt>$\lambda(t_n)$</dt>
+            <dd>时间相关的权重系数 · 论文实验里直接取 $\lambda \equiv 1$ 就行</dd>
+            <dt>$n \sim \mathcal{U}\{1, N-1\}$</dt>
+            <dd>时间索引均匀采样 · $N$ 是把 $[\epsilon, T]$ 分成几段</dd>
+          </dl>
+        </div>
+
+        <div class="callout">
+          <div class="callout-label">EMA target 更新（Eq.8）</div>
+          <div class="math-block" style="margin-top:8px;">
+            $$\theta^- \leftarrow \text{stopgrad}(\mu \theta^- + (1 - \mu) \theta)$$
+            <span class="math-label">Eq. 8 · target 是 online 的指数滑动平均</span>
+          </div>
+          <p style="margin-top:10px;">
+            为什么要 EMA？如果 target 直接用 $\theta$，loss 同时更新两端 → 训练塌缩到 trivial 解。
+            stop-grad + EMA 是<strong>从 BYOL / MoCo 借来的稳定技巧</strong>——论文里也明说类似 deep RL 的 target network。
+          </p>
+        </div>
+
+        <h3 id="cd-alg" style="margin-top:32px;">4.3 Algorithm 2 · CD 完整流程</h3>
+
+        <div class="callout">
+          <div class="callout-label">Algorithm 2 · 翻译版</div>
+          <pre style="background:var(--bg3); padding:16px; border-radius:8px; font-family:var(--font-mono); font-size:12px; line-height:1.65; overflow-x:auto;"><code>Input: 数据 D, 学习率 η, ODE solver Φ(·;φ), 距离 d, 权重 λ, EMA decay μ
+1: θ⁻ ← θ                                    # target = online 初始化
+2: repeat
+3:   x ~ D, n ~ U{1, N-1}                    # 采数据 + 时间索引
+4:   x_{t_{n+1}} ~ N(x; t²_{n+1} I)          # 在 t_{n+1} 加噪声
+5:   x̂_{t_n}^φ ← x_{t_{n+1}} + (t_n - t_{n+1}) Φ(x_{t_{n+1}}, t_{n+1}; φ)
+                                              # 用 teacher 反推一步到 t_n
+6:   L ← λ(t_n) d(f_θ(x_{t_{n+1}}, t_{n+1}), f_{θ⁻}(x̂_{t_n}^φ, t_n))
+7:   θ ← θ - η ∇_θ L                          # 更新 online
+8:   θ⁻ ← stopgrad(μθ⁻ + (1-μ)θ)              # EMA 更新 target
+9: until convergence</code></pre>
+        </div>
+
+        <div class="callout amber">
+          <div class="callout-label">Theorem 1 · 为什么这样训能 work</div>
+          <p>
+            假设 $f_\theta$ Lipschitz 连续 + ODE solver 局部误差 $O((\Delta t)^{p+1})$。
+            如果 CD loss 收敛到 0，那么 <strong>$\sup |f_\theta(x, t_n) - f(x, t_n; \phi)| = O((\Delta t)^p)$</strong>——
+            即 student 与"<em>沿 PF ODE 真实积分到 $\epsilon$ 的结果</em>" 的误差是 ODE solver 阶数 $p$ 的多项式。
+          </p>
+          <p style="margin-top:8px;">
+            <strong>实践含义</strong>：用 Heun (二阶, $p=2$) 比 Euler (一阶, $p=1$) 误差小一阶——这就是 §6 实验里 Heun 大胜 Euler 的理论解释。
+          </p>
+        </div>
+
+        <!-- ═════════════════════════════════════════════════ -->
+        <h2 id="ct-section">§5 训练 (2) · Consistency Training（独立）</h2>
+
+        <div class="cn-read">
+          <div class="cn-label">这一节解决什么</div>
+          <p>
+            §4 的 CD 有一个尴尬：<strong>必须先有一个训好的 diffusion teacher</strong>。
+            那 CM 就只是 diffusion 的"<em>压缩器</em>"，不是独立的生成式模型族。
+            §5 给出一个简洁到几乎像作弊的技巧——<strong>用一个无偏估计替代 teacher 的 score</strong>，
+            把整个流程<strong>不依赖任何预训练模型</strong>。这是 CM 论文真正的"<em>独立宣言</em>"。
+          </p>
+        </div>
+
+        <h3 id="ct-trick" style="margin-top:24px;">5.1 摆脱 teacher 的关键技巧</h3>
+
+        <div class="callout">
+          <div class="callout-label">Lemma 1 · score 的无偏估计</div>
+          <p>给定 $\mathbf{x} \sim p_{data}, \mathbf{x}_t \sim \mathcal{N}(\mathbf{x}, t^2 \mathbf{I})$：</p>
+          <div class="math-block" style="margin-top:8px;">
+            $$\nabla \log p_t(\mathbf{x}_t) = -\mathbb{E}\!\left[\frac{\mathbf{x}_t - \mathbf{x}}{t^2}\,\Big|\, \mathbf{x}_t\right]$$
+            <span class="math-label">论文 Appendix A · 单样本 $-(\mathbf{x}_t - \mathbf{x})/t^2$ 就是 score 的无偏估计</span>
+          </div>
+        </div>
+
+        <div class="callout blue">
+          <div class="callout-label">类比 · 这就是 score matching 的本质</div>
+          <p>
+            score matching 训练目标本来就等价于<strong>"<em>预测从 $\mathbf{x}_t$ 回到 $\mathbf{x}$ 的方向</em>"</strong>。
+            既然单样本 $-(\mathbf{x}_t - \mathbf{x})/t^2$ 就是 score 的无偏估计——那训 CM 时<strong>根本不需要先训一个 score 网络</strong>，
+            直接<strong>用真实 $\mathbf{x}$ 和加噪 $\mathbf{x}_t$ 算一个差</strong>就行。teacher 被替代了。
+          </p>
+        </div>
+
+        <h3 id="ct-loss" style="margin-top:32px;">5.2 CT loss</h3>
+
+        <p>把 score 估计代回 Eq.6（Euler 时 $\Phi = -t \mathbf{s}_\phi$）：</p>
+
+        <div class="math-block">
+          $$\hat{\mathbf{x}}_{t_n} \approx \mathbf{x}_{t_{n+1}} - (t_n - t_{n+1}) \cdot t_{n+1} \cdot \frac{-(\mathbf{x}_{t_{n+1}} - \mathbf{x})}{t_{n+1}^2} = \mathbf{x} + t_n \mathbf{z}$$
+          <span class="math-label">代入后 · 同样的 $\mathbf{z} \sim \mathcal{N}(0, I)$ 用在两个时刻</span>
+        </div>
+
+        <p>所以 CD loss 退化成<strong>不需要 teacher 的形式</strong>：</p>
+
+        <div class="math-block">
+          $$\mathcal{L}_{CT}^N(\theta, \theta^-) = \mathbb{E}\!\left[\lambda(t_n)\, d\!\left(\mathbf{f}_\theta(\mathbf{x} + t_{n+1}\mathbf{z}, t_{n+1}),\ \mathbf{f}_{\theta^-}(\mathbf{x} + t_n\mathbf{z}, t_n)\right)\right]$$
+          <span class="math-label">Eq. 10 · CT loss · 同一个 $\mathbf{z}$ 加两种噪声水平</span>
+        </div>
+
+        <div class="math-explain">
+          <div class="me-title">逐项拆解</div>
+          <dl>
+            <dt>$\mathbf{x} + t_{n+1}\mathbf{z}$</dt>
+            <dd>大噪声水平的样本（轨迹后段）</dd>
+            <dt>$\mathbf{x} + t_n\mathbf{z}$</dt>
+            <dd>小噪声水平的样本（轨迹前段）—— <strong>注意 $\mathbf{z}$ 是同一个</strong>，所以这两个样本"<em>在统计意义上</em>" 是同一条轨迹上的</dd>
+            <dt>整个 loss</dt>
+            <dd>同一条隐含轨迹上相邻两点的输出要一致——和 CD loss 几何意义完全相同，只是不需要 teacher</dd>
+            <dt>Theorem 2</dt>
+            <dd>$N \to \infty$ 时 $\mathcal{L}_{CT}^N = \mathcal{L}_{CD}^N + o(\Delta t)$——CT 在极限下就是 CD，CT 是 CD 的 teacher-free 等价</dd>
+          </dl>
+        </div>
+
+        <h3 id="ct-alg" style="margin-top:32px;">5.3 Algorithm 3 + 自适应 N/μ</h3>
+
+        <div class="callout">
+          <div class="callout-label">Algorithm 3 · CT 完整流程</div>
+          <pre style="background:var(--bg3); padding:16px; border-radius:8px; font-family:var(--font-mono); font-size:12px; line-height:1.65; overflow-x:auto;"><code>Input: 数据 D, 学习率 η, step schedule N(·), EMA schedule μ(·), d, λ
+1: θ⁻ ← θ; k ← 0                              # 初始化
+2: repeat
+3:   x ~ D, n ~ U{1, N(k)-1}                  # <strong>N 随训练步数 k 增长</strong>
+4:   z ~ N(0, I)                              # 单一噪声向量
+5:   L ← λ(t_n) d(f_θ(x + t_{n+1}z, t_{n+1}), f_{θ⁻}(x + t_n z, t_n))
+6:   θ ← θ - η ∇_θ L
+7:   θ⁻ ← stopgrad(μ(k)θ⁻ + (1-μ(k))θ)         # μ 也随 k 变
+8:   k ← k + 1
+9: until convergence</code></pre>
+        </div>
+
+        <div class="callout amber">
+          <div class="callout-label">为什么 N 和 μ 必须自适应</div>
+          <p>
+            CT 有一个 bias-variance trade-off（Fig 3d）：
+          </p>
+          <ul style="margin-left:18px; line-height:1.85;">
+            <li><strong>$N$ 小（$\Delta t$ 大）</strong>：variance 低（噪声两点差大、信号清晰）但 bias 高（CT loss 偏离 CD loss）</li>
+            <li><strong>$N$ 大（$\Delta t$ 小）</strong>：bias 低（更接近 CD）但 variance 高（两点几乎一样、梯度信号弱）</li>
+          </ul>
+          <p style="margin-top:8px;">
+            <strong>解</strong>：训练初期用小 $N$（快速收敛），后期用大 $N$（精细化）——schedule $N(k)$ 和 $\mu(k)$ 都随训练步 $k$ 渐变。
+            Fig 3d 显示 adaptive 比 fixed 收敛快好几倍。
+          </p>
+        </div>
+
+        <div class="quiz" style="margin-top:24px;"
+             data-correct="d"
+             data-explain="正确。Lemma 1 给的无偏估计 $-(x_t - x)/t^2$ 让我们不需要训一个 score 网络——直接用真实 $x$ 和加噪 $x_t$ 算差就行。这就是 CT 摆脱 teacher 的关键。"
+             data-explain-wrong="再读一次 §5.1——CT 的关键不是 EMA 也不是新架构，而是用单样本无偏估计代替了 teacher 的 score 网络。">
+          <div class="q-label">🧠 理解检查</div>
+          <div class="q-text">CT 相比 CD 的核心创新是？</div>
+          <div class="q-options">
+            <button class="q-opt" data-k="a">用更大的 EMA decay μ 让训练更稳定</button>
+            <button class="q-opt" data-k="b">用 Heun 二阶 ODE solver 替代 Euler</button>
+            <button class="q-opt" data-k="c">引入 adversarial loss 让生成质量更好</button>
+            <button class="q-opt" data-k="d">用 score 的单样本无偏估计 $-(x_t - x)/t^2$ 替代 teacher diffusion 模型</button>
+          </div>
+          <div class="q-feedback"></div>
+        </div>
+
+        <!-- ═════════════════════════════════════════════════ -->
+        <h2 id="exp-section">§6 实验</h2>
+
+        <div class="cn-read">
+          <div class="cn-label">这一节解决什么</div>
+          <p>
+            §3-§5 给了方法。这一节回答三个具体问题：
+            <strong>(1)</strong> 距离 $d$、ODE solver、$N$ 怎么选最好？（消融）
+            <strong>(2)</strong> CD/CT 比当时 SOTA 的 Progressive Distillation 强多少？（横向比较）
+            <strong>(3)</strong> 零样本编辑实际效果如何？
+          </p>
+        </div>
+
+        <h3 id="exp-ablation" style="margin-top:24px;">6.1 消融 · LPIPS / Heun / 自适应 schedule（Fig 3）</h3>
+
+        <div class="fig-block">
+          <img src="../assets/figures/consistency-models/fig-3.png" alt="Figure 3: Ablation studies">
+          <div class="fig-cap">
+            <span class="fig-num">Fig 3 · p.7</span>
+            Various factors that affect CD and CT on CIFAR-10. Best for CD: LPIPS metric, Heun ODE solver, $N=18$. Adaptive $N(k), \mu(k)$ make CT converge much faster than fixed.
+            <span class="fig-cn">四个面板对应四个消融——蓝/绿曲线越靠下越好（FID 越小）。</span>
+          </div>
+        </div>
+
+        <table class="kv-table" style="margin-top:14px;">
+          <tr>
+            <td style="width:140px;"><strong>消融维度</strong></td>
+            <td><strong>结论</strong></td>
+          </tr>
+          <tr>
+            <td>距离函数 $d$（Fig 3a）</td>
+            <td><strong>LPIPS 完胜</strong> $\ell_1, \ell_2$。原因：CM 的输出是图像，LPIPS 是为感知相似度设计的</td>
+          </tr>
+          <tr>
+            <td>ODE solver（Fig 3b/c）</td>
+            <td>Heun（二阶）&gt; Euler（一阶），与 Theorem 1 的 $O((\Delta t)^p)$ 一致</td>
+          </tr>
+          <tr>
+            <td>$N$ 的选择（Fig 3c）</td>
+            <td>CIFAR-10 上 $N=18$ 最优；$N$ 大到一定程度后边际收益消失</td>
+          </tr>
+          <tr>
+            <td>CT 的 $N(k), \mu(k)$（Fig 3d）</td>
+            <td>固定 $\mu=0.99$ 不论 $N$ 多少都不如 adaptive；adaptive 收敛速度快 2-3 倍</td>
+          </tr>
+        </table>
+
+        <h3 id="exp-vs-pd" style="margin-top:32px;">6.2 CD vs Progressive Distillation（Fig 4 + Tables）</h3>
+
+        <div class="fig-block">
+          <img src="../assets/figures/consistency-models/fig-4.png" alt="Figure 4: CD vs PD across datasets">
+          <div class="fig-cap">
+            <span class="fig-num">Fig 4 · p.7</span>
+            Multistep image generation with CD. CD outperforms PD across all datasets and sampling steps. Only exception: single-step on Bedroom 256×256.
+            <span class="fig-cn">四个数据集 × 4 种 sampling 步数 × 4 种 method 配置——<strong>绿色（CD with LPIPS）几乎永远最矮</strong>，即 FID 最低。</span>
+          </div>
+        </div>
+
+        <div class="callout">
+          <div class="callout-label">关键 SOTA 数字（Tables 1, 2）</div>
+          <table class="kv-table">
+            <tr><td style="width:200px;"><strong>任务 / 方法</strong></td><td><strong>NFE</strong></td><td><strong>FID</strong></td></tr>
+            <tr><td>CIFAR-10 · CD 1-step</td><td>1</td><td><strong>3.55</strong>（当时 1-step SOTA）</td></tr>
+            <tr><td>CIFAR-10 · CD 2-step</td><td>2</td><td><strong>2.93</strong></td></tr>
+            <tr><td>CIFAR-10 · CT 1-step（独立训）</td><td>1</td><td>8.70（不如 CD，但已超 GAN baseline）</td></tr>
+            <tr><td>ImageNet 64 · CD 1-step</td><td>1</td><td><strong>6.20</strong>（当时 1-step SOTA）</td></tr>
+            <tr><td>ImageNet 64 · CD 2-step</td><td>2</td><td><strong>4.70</strong></td></tr>
+            <tr><td>ImageNet 64 · EDM（参照）</td><td>79</td><td>2.44</td></tr>
+          </table>
+          <p style="margin-top:10px;">
+            <strong>读法</strong>：CD 1-step 比 EDM 79-step 慢慢追——FID 3.55 vs EDM CIFAR-10 2.04，
+            但 NFE 从 79 降到 <strong>1</strong>，<strong>速度提升 79 倍</strong>。
+          </p>
+        </div>
+
+        <div class="fig-block" style="margin-top:18px;">
+          <img src="../assets/figures/consistency-models/fig-5.png" alt="Figure 5: Sample quality comparison">
+          <div class="fig-cap">
+            <span class="fig-num">Fig 5 · p.8</span>
+            Samples generated by EDM (top), CT 1-step (middle), CT 2-step (bottom). All from the same initial noise.
+            <span class="fig-cn">同一个噪声 → 三种方法的输出。可见 CT 1-step 和 EDM 在<strong>结构</strong>上相似——证明 CT 学到的是 PF ODE 的"<em>正确</em>" 端点，不是随机模式塌缩。</span>
+          </div>
+        </div>
+
+        <h3 id="exp-zeroshot" style="margin-top:32px;">6.3 零样本图像编辑（Fig 6）</h3>
+
+        <div class="fig-interactive panel-below">
+          <div class="fig-block">
+            <div class="hotspot-wrap" data-hotspot-group="fig6">
+              <img src="../assets/figures/consistency-models/fig-6.png" alt="Figure 6: Zero-shot image editing">
+              <div class="hotspot" data-id="colorization" style="left:50%; top:18%;"
+                   data-title="(a) 上色 · Colorization"
+                   data-body="左：灰度图（输入）。中：CM 上色结果（多个 sample）。右：ground truth。<strong>模型完全没有在上色任务上训练过</strong>——靠的是 multistep 采样里"<em>固定灰度通道、采样彩色通道</em>" 的迭代替换。"></div>
+              <div class="hotspot" data-id="superres" style="left:50%; top:50%;"
+                   data-title="(b) 超分辨率 · Super-resolution"
+                   data-body="左：32×32 低分图。中：CM 重建的 256×256（多个 sample）。右：ground truth 256×256。同样是 multistep 采样里固定低频、采样高频。"></div>
+              <div class="hotspot" data-id="stroke" style="left:50%; top:80%;"
+                   data-title="(c) 笔触引导生成 · Stroke-guided"
+                   data-body="左：用户随手画的色块。右：CM 据此生成的高质量图（SDEdit 风格）。<strong>整套图像编辑能力都是 free 的</strong>——一次蒸馏，多种应用。"></div>
+            </div>
+            <div class="fig-cap">
+              <span class="fig-num">Fig 6 · p.9</span>
+              Zero-shot image editing with a CM trained by consistency distillation on LSUN Bedroom 256×256.
+              <span class="fig-cn">三类编辑能力 <strong>都来自同一个模型权重</strong>——这是 diffusion 留给 CM 的最大遗产，GAN 做不到。</span>
+            </div>
+          </div>
+          <div class="hotspot-panel"></div>
+        </div>
+
+        <!-- ═════════════════════════════════════════════════ -->
+        <h2 id="takeaway">§7 收获 · 局限 · 与 VLA / π₀ 的联系</h2>
+
+        <div class="cn-read">
+          <div class="cn-label">这一节解决什么</div>
+          <p>
+            把整篇压成一张卡片——<strong>三条 takeaway + 论文自承的局限 + 对 VLA 推理加速这条线的具体启示</strong>。
+            读完你应该能回答："<em>这篇论文对 π₀ 系列的 flow matching 加速有什么直接借鉴？</em>"
+          </p>
+        </div>
+
+        <h3 style="margin-top:24px;">7.1 三条 takeaway</h3>
+
+        <div class="callout">
+          <div class="callout-label">1 · 自一致性是一条"<em>免费的几何性质</em>"</div>
+          <p>
+            PF ODE 的轨迹是确定性的——所以同一条轨迹上任意点都映到起点这件事<strong>本来就成立</strong>，
+            CM 只是把它做成<strong>显式的训练目标</strong>。这是为什么训练稳定（vs GAN 的 minimax）、不需要 adversarial loss 的根本原因。
+          </p>
+        </div>
+
+        <div class="callout">
+          <div class="callout-label">2 · CD 是"<em>diffusion 加速器</em>"，CT 是"<em>独立模型族</em>"</div>
+          <p>
+            CD 的定位是<strong>把已有 diffusion 蒸馏成 1-2 step</strong>——产业最容易直接采用。
+            CT 的定位是<strong>不依赖 diffusion 也能从零训</strong>——把 CM 抬升为和 diffusion / GAN / VAE 并列的<strong>新生成式模型族</strong>。
+            两者同构，但商业落地价值完全不同。
+          </p>
+        </div>
+
+        <div class="callout">
+          <div class="callout-label">3 · 零样本编辑能力是"<em>送的</em>"</div>
+          <p>
+            因为 $f_\theta$ 学的是"<em>任意噪声水平 → 干净样本</em>" 的映射，所以 multistep + iterative replacement 能直接做 inpainting / colorization / super-resolution。
+            <strong>这是 GAN 永远拿不到的能力</strong>，也是 CM 和 diffusion 的共同优势。
+          </p>
+        </div>
+
+        <h3 style="margin-top:32px;">7.2 论文自承的局限（§7）</h3>
+
+        <table class="kv-table">
+          <tr><td style="width:160px;"><strong>CT 在高分辨率上慢</strong></td><td>LSUN Bedroom/Cat 256 上 CT 的 FID 明显落后 CD——独立训练没那么容易在大图上 work</td></tr>
+          <tr><td><strong>连续时间 CT 难实现</strong></td><td>Theorems 3-6 给了 $N \to \infty$ 的连续时间版本，但需要 forward-mode autodiff，主流框架支持差</td></tr>
+          <tr><td><strong>多步 ODE solver 未集成</strong></td><td>Eq.6 只用了一步 solver；高阶多步 solver 接进 CM 是 future work</td></tr>
+          <tr><td><strong>Adversarial 不被采纳</strong></td><td>论文刻意避开 GAN-style 训练——但后续工作（如 LCM-LoRA、Latent Consistency Model）有把 adversarial 加回来的</td></tr>
+        </table>
+
+        <h3 style="margin-top:32px;">7.3 与 VLA / π₀ 的联系</h3>
+
+        <div class="callout purple">
+          <div class="callout-label">对 π₀ 系列的直接启示</div>
+          <p>
+            π₀ / π₀.₅ / π₀.₆ 的 Action Expert 都是 <strong>flow matching</strong>，推理 10 步 Euler。
+            放到 50 Hz 实时控制场景，这个延迟是真实瓶颈。Consistency 思路给的解决路径有三个层次：
+          </p>
+          <ol style="margin-left:18px; line-height:1.95; margin-top:8px;">
+            <li><strong>直接套 CD（蒸馏）</strong>：把训好的 π₀ flow matching action expert 当 teacher，蒸馏一个 1-step student。
+              <em>风险</em>：原版 CM 的 PF ODE 来自 diffusion，flow matching 直接套要走 <strong>Consistency Flow Matching</strong>（Yang et al. 2024）的变体</li>
+            <li><strong>CT-style 从零训</strong>：用 §5 的无偏估计技巧，让 action expert 直接学自一致性，绕过 flow matching 的 multi-step 推理</li>
+            <li><strong>架构层面借鉴 Eq.5</strong>：skip parameterization 让 boundary condition 几乎免费——这一点对任何"<em>$t$ 条件去噪网络</em>" 都适用，包括机器人 policy</li>
+          </ol>
+        </div>
+
+        <div class="callout amber">
+          <div class="callout-label">已经发生的事</div>
+          <p>
+            <strong>Consistency Policy</strong>（Prasad et al. 2024）已经把 Consistency 思路套到了 <strong>Diffusion Policy</strong> 上——
+            机器人控制延迟从 10 步降到 1-2 步。但<strong>π₀ 系列截至 π₀.₆ 仍未公开</strong>用这套加速。
+            合理推测：PI 把"<em>从经验里学</em>"（RECAP RL）放在<strong>采样加速</strong>之前，因为前者解决的是"<em>能不能用</em>"，后者只优化"<em>用得快不快</em>"。
+          </p>
+        </div>
+
+        <div class="quiz" style="margin-top:24px;"
+             data-correct="c"
+             data-explain="正确。原始 CM 是 diffusion 的 PF ODE 上的；要套到 flow matching 的原生 ODE 上需要 Consistency Flow Matching (Yang et al. 2024) 的扩展。直接套原版会出问题。"
+             data-explain-wrong="再读一次 §1.1 / §2.1 / §7.3——原版 CM 写在 diffusion 的 PF ODE 上，flow matching 的原生 ODE 需要后续工作的扩展。">
+          <div class="q-label">🧠 最终理解检查</div>
+          <div class="q-text">假设你想给 π₀ 的 flow matching action expert 做 1-step 加速——下面哪条路径最合理？</div>
+          <div class="q-options">
+            <button class="q-opt" data-k="a">直接复用原版 Consistency Models 代码 + π₀ 的 flow matching teacher</button>
+            <button class="q-opt" data-k="b">先把 flow matching action expert 改写成 diffusion，再套 CD</button>
+            <button class="q-opt" data-k="c">用 Consistency Flow Matching (Yang et al. 2024) 的扩展，它把自一致性套在 flow matching 的原生 ODE 上</button>
+            <button class="q-opt" data-k="d">放弃 consistency 思路，直接用 progressive distillation</button>
+          </div>
+          <div class="q-feedback"></div>
+        </div>
+
+        <p style="margin-top:48px; padding:16px; background:var(--bg2); border-radius:8px; color:var(--text2); font-size:14px;">
+          📄 原文：<a href="../pdfs/components/consistency-models.pdf" style="color:var(--accent);">consistency-models.pdf</a> ·
+          🔗 <a href="https://arxiv.org/abs/2303.01469" target="_blank" style="color:var(--accent);">arXiv 2303.01469</a> ·
+          🔗 相关：<a href="generation/flow-matching.html" style="color:var(--accent);">Flow Matching</a> ·
+          <a href="pi0-vla-flow-model.html" style="color:var(--accent);">π₀ VLA</a> ·
+          <a href="pi06-recap-rl.html" style="color:var(--accent);">π₀.₆ RECAP</a>
+        </p>
+
+      </main>
+
+    </div>
+  </div>
+</body>
+</html>
