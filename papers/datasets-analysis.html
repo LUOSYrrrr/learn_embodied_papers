@@ -1,0 +1,775 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>MotionWAM 数据集分析 · Paper Notes</title>
+  <link rel="stylesheet" href="../assets/css/style.css">
+  <script src="../assets/js/theme.js"></script>
+  <style>
+    .ds-header {
+      background: var(--bg2);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 20px 24px;
+      margin-bottom: 28px;
+    }
+    .ds-domain-bar {
+      display: flex;
+      gap: 12px;
+      margin: 20px 0;
+      flex-wrap: wrap;
+    }
+    .ds-domain-pill {
+      padding: 8px 18px;
+      border-radius: 20px;
+      font-family: var(--font-mono);
+      font-size: 12px;
+      font-weight: 600;
+      letter-spacing: 0.04em;
+    }
+    .ds-domain-pill.human { background: rgba(74,222,154,0.15); color: var(--accent); border: 1px solid rgba(74,222,154,0.3); }
+    .ds-domain-pill.g1 { background: rgba(96,165,250,0.15); color: var(--blue); border: 1px solid rgba(96,165,250,0.3); }
+    .ds-domain-pill.other { background: rgba(167,139,250,0.15); color: var(--purple); border: 1px solid rgba(167,139,250,0.3); }
+
+    .dataset-card {
+      background: var(--bg2);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 24px 28px;
+      margin: 24px 0;
+    }
+    .dataset-card-header {
+      display: flex;
+      align-items: flex-start;
+      gap: 16px;
+      margin-bottom: 16px;
+      flex-wrap: wrap;
+    }
+    .dataset-name {
+      font-family: var(--font-mono);
+      font-size: 17px;
+      font-weight: 700;
+      color: var(--accent);
+    }
+    .dataset-source {
+      font-size: 12px;
+      color: var(--text3);
+      font-family: var(--font-mono);
+      margin-top: 2px;
+    }
+    .dataset-weight {
+      margin-left: auto;
+      font-family: var(--font-mono);
+      font-size: 22px;
+      font-weight: 700;
+      color: var(--text2);
+    }
+    .usage-tag {
+      display: inline-block;
+      padding: 3px 10px;
+      border-radius: 12px;
+      font-family: var(--font-mono);
+      font-size: 11px;
+      font-weight: 600;
+      margin: 2px;
+    }
+    .usage-tag.s1 { background: rgba(74,222,154,0.15); color: var(--accent); }
+    .usage-tag.s2 { background: rgba(96,165,250,0.15); color: var(--blue); }
+    .usage-tag.s3 { background: rgba(245,158,11,0.15); color: var(--amber); }
+    .usage-tag.no { background: rgba(255,107,107,0.1); color: var(--accent3); }
+
+    .hdf5-tree {
+      background: var(--bg3);
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      padding: 16px 20px;
+      font-family: var(--font-mono);
+      font-size: 12px;
+      line-height: 1.8;
+      color: var(--text2);
+      overflow-x: auto;
+      margin: 12px 0;
+      white-space: pre;
+    }
+    .hdf5-tree .hl { color: var(--accent); }
+    .hdf5-tree .comment { color: var(--text3); }
+
+    .usage-table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 13px;
+      margin: 12px 0;
+    }
+    .usage-table th {
+      background: var(--bg3);
+      color: var(--text3);
+      font-family: var(--font-mono);
+      font-size: 11px;
+      letter-spacing: 0.06em;
+      text-align: left;
+      padding: 8px 14px;
+      border-bottom: 1px solid var(--border);
+    }
+    .usage-table td {
+      padding: 9px 14px;
+      border-bottom: 1px solid var(--border);
+      color: var(--text2);
+      vertical-align: top;
+    }
+    .usage-table tr:last-child td { border-bottom: none; }
+    .usage-table td:first-child { font-family: var(--font-mono); font-size: 12px; }
+    .check { color: var(--accent); font-weight: 700; }
+    .cross { color: var(--accent3); font-weight: 700; }
+
+    .domain-section-label {
+      font-family: var(--font-mono);
+      font-size: 11px;
+      letter-spacing: 0.10em;
+      text-transform: uppercase;
+      padding: 4px 14px;
+      border-radius: 4px;
+      display: inline-block;
+      margin-bottom: 20px;
+    }
+    .domain-section-label.human { background: rgba(74,222,154,0.12); color: var(--accent); }
+    .domain-section-label.g1 { background: rgba(96,165,250,0.12); color: var(--blue); }
+    .domain-section-label.other { background: rgba(167,139,250,0.12); color: var(--purple); }
+
+    .task-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+      gap: 8px;
+      margin: 12px 0;
+    }
+    .task-item {
+      background: var(--bg3);
+      border-radius: 6px;
+      padding: 7px 12px;
+      font-family: var(--font-mono);
+      font-size: 11px;
+      color: var(--text2);
+    }
+  </style>
+</head>
+<body>
+  <nav class="nav">
+    <a class="nav-logo" href="../index.html">Paper Notes</a>
+    <div class="nav-links">
+      <a href="../index.html">← 返回首页</a>
+    </div>
+  </nav>
+
+  <div class="page">
+    <div class="paper-page">
+      <a class="back-link" href="../index.html">← 所有笔记</a>
+
+      <div class="paper-header">
+        <div class="paper-venue">// 数据集分析 · MotionWAM 配套</div>
+        <h1 class="paper-title">MotionWAM 数据集深度分析</h1>
+        <div class="paper-authors">6 个开源数据集 · 2,136 小时 · 三类数据来源</div>
+        <div class="paper-badges">
+          <span class="badge badge-green">Human 30%</span>
+          <span class="badge badge-blue">G1-class Humanoid 50%</span>
+          <span class="badge badge-amber">Other Real Robots 20%</span>
+        </div>
+      </div>
+
+      <!-- TOC -->
+      <div class="toc">
+        <div class="toc-title">// 目录</div>
+        <ol>
+          <li><a href="#overview">总览：三类数据来源</a></li>
+          <li><a href="#human">Human 类（~30%，~641h）</a></li>
+          <li><a href="#g1">G1-class Humanoid（~50%，~1,068h）</a></li>
+          <li><a href="#other">Other Real Robots（~20%）</a></li>
+          <li><a href="#hdf5">附录：HDF5 格式详解</a></li>
+        </ol>
+      </div>
+
+      <!-- §01 Overview -->
+      <div class="section" id="overview">
+        <div class="section-num">§ 01</div>
+        <h2>总览：三类数据来源</h2>
+
+        <div class="callout">
+          <div class="callout-label">核心设计</div>
+          <p>MotionWAM 使用 <strong>2,136 小时</strong> egocentric 视频进行 Stage 1 视频预训练（动作标签忽略），旨在学习动作感知的视觉表征。数据集分三大类：Human 30%、G1 类人形机器人 50%、Other Real Robots 20%。</p>
+        </div>
+
+        <img src="../assets/image-20260614150434535.png" alt="MotionWAM 数据集分布总览" style="width:100%; max-width:720px; border-radius:8px; margin:16px 0; display:block;">
+
+        <div class="ds-domain-bar">
+          <div class="ds-domain-pill human">Human · 30% · ~641h</div>
+          <div class="ds-domain-pill g1">G1-class Humanoid · 50% · ~1,068h</div>
+          <div class="ds-domain-pill other">Other Real Robots · 20%</div>
+        </div>
+
+        <table class="related-work-table">
+          <tr>
+            <th>数据集</th>
+            <th>Domain</th>
+            <th>本体</th>
+            <th>权重</th>
+            <th>Stage 使用</th>
+          </tr>
+          <tr>
+            <td><a href="#egodex" style="color:var(--accent)">EgoDex</a></td>
+            <td>Human</td>
+            <td>人类双手（egocentric）</td>
+            <td>30.0%</td>
+            <td><span class="usage-tag s1">S1</span></td>
+          </tr>
+          <tr>
+            <td><a href="#groot-sim" style="color:var(--accent)">GR00T-X-Embodiment-Sim</a></td>
+            <td>G1-class</td>
+            <td>Fourier GR1（sim）</td>
+            <td>25.5%</td>
+            <td><span class="usage-tag s1">S1</span><span class="usage-tag s2">S2</span></td>
+          </tr>
+          <tr>
+            <td><a href="#robocoin-g1" style="color:var(--accent)">RoboCOIN (G1edu/Galbot/Leju)</a></td>
+            <td>G1-class</td>
+            <td>G1edu / Galbot / Leju</td>
+            <td>8.0%</td>
+            <td><span class="usage-tag s1">S1</span><span class="usage-tag s2">S2</span></td>
+          </tr>
+          <tr>
+            <td><a href="#groot-teleop" style="color:var(--accent)">GR00T-Teleop-GR1</a></td>
+            <td>G1-class</td>
+            <td>Fourier GR1（real）</td>
+            <td>7.1%</td>
+            <td><span class="usage-tag s1">S1</span><span class="usage-tag s2">S2</span></td>
+          </tr>
+          <tr>
+            <td><a href="#humanoid-everyday" style="color:var(--accent)">Humanoid-Everyday</a></td>
+            <td>G1-class</td>
+            <td>Unitree G1 / H1</td>
+            <td>4.7%</td>
+            <td><span class="usage-tag s1">S1</span><span class="usage-tag s2">S2</span></td>
+          </tr>
+          <tr>
+            <td><a href="#unifolm" style="color:var(--accent)">UnifoLM-WBT</a></td>
+            <td>G1-class</td>
+            <td>Unitree G1（WBT）</td>
+            <td>2.3%</td>
+            <td><span class="usage-tag s1">S1</span><span class="usage-tag s2">S2</span></td>
+          </tr>
+          <tr>
+            <td><a href="#psi" style="color:var(--accent)">PSI-Real</a></td>
+            <td>G1-class</td>
+            <td>Unitree G1（real）</td>
+            <td>1.3%</td>
+            <td><span class="usage-tag s1">S1</span><span class="usage-tag s2">S2</span></td>
+          </tr>
+          <tr>
+            <td><a href="#psi" style="color:var(--accent)">PSI-Simple</a></td>
+            <td>G1-class</td>
+            <td>Unitree G1（sim）</td>
+            <td>1.1%</td>
+            <td><span class="usage-tag s1">S1</span><span class="usage-tag s2">S2</span></td>
+          </tr>
+          <tr>
+            <td><a href="#robocoin-other" style="color:var(--accent)">RoboCOIN (R1 Lite + RMC-AIDA-L)</a></td>
+            <td>Other Real</td>
+            <td>R1 Lite / AIDA-L</td>
+            <td>20.0%</td>
+            <td><span class="usage-tag s1">S1</span><span class="usage-tag s2">S2</span></td>
+          </tr>
+        </table>
+
+        <div class="callout amber">
+          <div class="callout-label">权重分配策略</div>
+          <p>三类来源固定占比：Human 30%、G1 类人形 50%、其他真实机器人 20%。每类内部按 <strong>√episodes</strong> 进一步分配，防止单一数据集主导。Stage 1 训练时，所有带动作标注的来源只读取视频流，动作标签完全忽略——这是"廉价预训练"的核心。</p>
+        </div>
+      </div>
+
+      <!-- §02 Human -->
+      <div class="section" id="human">
+        <div class="section-num">§ 02</div>
+        <h2>Human 类（~30%，~641h）</h2>
+        <div class="domain-section-label human">Human Domain · 30%</div>
+
+        <!-- EgoDex -->
+        <div class="dataset-card" id="egodex">
+          <div class="dataset-card-header">
+            <div>
+              <div class="dataset-name">EgoDex</div>
+              <div class="dataset-source">Apple Research · ICLR 2026 · arXiv:2505.11709</div>
+            </div>
+            <div class="dataset-weight">30.0%</div>
+          </div>
+
+          <table class="kv-table">
+            <tr><td>规模</td><td><strong>829h</strong>，338K episode，90M 帧，194 tasks，500+ objects</td></tr>
+            <tr><td>存储</td><td>约 2 TB</td></tr>
+            <tr><td>采集设备</td><td>Apple Vision Pro（头戴式，第一人称）</td></tr>
+            <tr><td>分辨率/频率</td><td>1080p，<strong>30 FPS</strong></td></tr>
+            <tr><td>本体</td><td>人类双手（非机器人）</td></tr>
+            <tr><td>任务类型</td><td>日常灵巧操作（厨房/工具/家务），全为 in-the-wild</td></tr>
+            <tr><td>骨骼标注</td><td>完整<strong>上半身运动链</strong> 3D 位姿（30 Hz）：camera（6-DoF）+ neck×4 + spine×7 + shoulders×2 + arms×2 + forearms×2 + <strong>每手 25 关节</strong>（共 68 关节）</td></tr>
+            <tr><td>置信度</td><td>每关节逐帧 ARKit 遮挡置信值（0–1）</td></tr>
+            <tr><td>语言标注</td><td>GPT-4 清洗后的任务描述</td></tr>
+            <tr><td>格式</td><td>MP4（1080p 30fps）+ <strong>HDF5</strong>（骨骼 SE(3) 位姿 N×4×4）</td></tr>
+            <tr><td>开源</td><td><a href="https://github.com/apple/ml-egodex" target="_blank" style="color:var(--accent)">github.com/apple/ml-egodex</a></td></tr>
+          </table>
+
+          <img src="../assets/image-20260614151758526.png" alt="EgoDex 完整上半身骨骼结构" style="max-width:600px; width:100%; border-radius:8px; margin:12px 0; display:block;">
+          <p style="font-size:13px; color:var(--text3); margin:0 0 16px;">上图：EgoDex 完整上半身骨骼结构（ARKit 标注）。注意 spine1–7 / neck1–4 全部有 3D 位姿，不只是手部。</p>
+
+          <img src="../assets/image-20260614151707728.png" alt="EgoDex 灵巧操作示例" style="max-width:600px; width:100%; border-radius:8px; margin:12px 0; display:block;">
+          <p style="font-size:13px; color:var(--text3); margin:0 0 16px;">上图：EgoDex 灵巧操作行为示例。任务包括拉 Ziploc 袋、从书架取书、拧螺丝、折叠 T 恤、整理杂物、打开箱子、拧瓶盖、系鞋带、清洗杯子。</p>
+
+          <h3>MotionWAM 怎么用 EgoDex</h3>
+          <div class="callout amber">
+            <div class="callout-label">只有 Stage 1</div>
+            <p><strong>只有 Stage 1 使用 EgoDex，Stage 2/3 完全不用。</strong>Stage 2 需要机器人关节命令作为监督（29-DoF G1 动作），EgoDex 只有人类上半身骨骼，无法直接 retarget，因此被排除在外。</p>
+          </div>
+
+          <p>Stage 1 的 Video DiT 做的事是：给定当前帧 + 语言，预测下一帧（flow-matching）。从 EgoDex 实际读取的内容：</p>
+
+          <table class="usage-table">
+            <tr><th>数据</th><th>来源</th><th>用途</th></tr>
+            <tr><td>✅ 视频帧 z<sub>t</sub></td><td>.mp4</td><td>当前帧 condition</td></tr>
+            <tr><td>✅ 下一帧（加噪）z<sub>t+1</sub></td><td>.mp4</td><td>待去噪目标</td></tr>
+            <tr><td>✅ 语言描述 l</td><td>f.attrs['llm_description']</td><td>语言 condition</td></tr>
+            <tr><td><span class="cross">❌</span> 骨骼 transforms/（68 关节 SE(3)）</td><td>HDF5</td><td><strong>完全不读</strong></td></tr>
+            <tr><td><span class="cross">❌</span> 置信度 confidences/</td><td>HDF5</td><td><strong>完全不读</strong></td></tr>
+            <tr><td><span class="cross">❌</span> 相机内参 camera/intrinsic</td><td>HDF5</td><td><strong>完全不读</strong></td></tr>
+          </table>
+
+          <div class="callout blue">
+            <div class="callout-label">注意</div>
+            <p>语言标注虽然存在 HDF5 属性里，但读取成本极低（不需要加载骨骼数组）。HDF5 文件中真正昂贵的部分（N×4×4 的关节变换矩阵）在 Stage 1 训练时<strong>从未被打开</strong>。</p>
+          </div>
+
+          <div class="module-grid" style="margin-top:16px;">
+            <div class="module-card">
+              <div class="module-card-name">STRENGTH</div>
+              <div class="module-card-title">被动可扩展</div>
+              <div class="module-card-desc">用户正常佩戴 AVP 操作即可积累数据，边际成本极低</div>
+            </div>
+            <div class="module-card">
+              <div class="module-card-name">STRENGTH</div>
+              <div class="module-card-title">标注最完整</div>
+              <div class="module-card-desc">完整上半身运动链（camera + spine + 手部 25 关节），比 EgoMimic 只有腕部位置丰富得多</div>
+            </div>
+            <div class="module-card">
+              <div class="module-card-name">LIMITATION</div>
+              <div class="module-card-title">纯人类数据</div>
+              <div class="module-card-desc">无机器人动作标签，但这正是它能被 Stage 1 大量使用的原因</div>
+            </div>
+            <div class="module-card">
+              <div class="module-card-name">LIMITATION</div>
+              <div class="module-card-title">坐标系不统一</div>
+              <div class="module-card-desc">ARKit 初始化漂移，跨 episode 不保证坐标一致</div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- §03 G1-class Humanoid -->
+      <div class="section" id="g1">
+        <div class="section-num">§ 03</div>
+        <h2>G1-class Humanoid（~50%，~1,068h）</h2>
+        <div class="domain-section-label g1">G1-class Humanoid · 50%</div>
+
+        <!-- GR00T-Sim -->
+        <div class="dataset-card" id="groot-sim">
+          <div class="dataset-card-header">
+            <div>
+              <div class="dataset-name">GR00T-X-Embodiment-Sim</div>
+              <div class="dataset-source">NVIDIA · arXiv:2503.14734 · HuggingFace: nvidia/PhysicalAI-Robotics-GR00T-X-Embodiment-Sim</div>
+            </div>
+            <div class="dataset-weight">25.5%</div>
+          </div>
+
+          <table class="kv-table">
+            <tr><td>采集方式</td><td>Isaac Lab 仿真 + DexMimicGen 自动扩增</td></tr>
+            <tr><td>动作标注</td><td>仿真 GT 动作（joint positions + EEF poses）</td></tr>
+            <tr><td>语言标注</td><td>自动生成任务描述</td></tr>
+            <tr><td>格式</td><td>LeRobot 兼容，HDF5</td></tr>
+            <tr><td>开源</td><td><a href="https://huggingface.co/datasets/nvidia/PhysicalAI-Robotics-GR00T-X-Embodiment-Sim" target="_blank" style="color:var(--accent)">HuggingFace</a></td></tr>
+          </table>
+
+          <h3>数据集实际结构（HuggingFace）</h3>
+
+          <table class="usage-table">
+            <tr><th>子集</th><th>本体</th><th>轨迹数</th><th>任务数</th><th>MotionWAM 使用？</th></tr>
+            <tr>
+              <td>Humanoid robot tabletop manipulation</td>
+              <td>Fourier GR1（gr1_arms_waist）</td>
+              <td><strong>240k</strong></td>
+              <td>24</td>
+              <td><span class="check">✅ 主力</span></td>
+            </tr>
+            <tr>
+              <td>Humanoid robot tabletop - downsampled</td>
+              <td>Fourier GR1（gr1_unified）</td>
+              <td>24k</td>
+              <td>24</td>
+              <td><span class="cross">❌</span> 240k 的 10% 子集，调试用</td>
+            </tr>
+            <tr>
+              <td>Cross-embodied bimanual manipulation</td>
+              <td>Panda 双臂 + GR1 变体</td>
+              <td>9k</td>
+              <td>9</td>
+              <td>未知</td>
+            </tr>
+            <tr>
+              <td>Robot Arm Kitchen Manipulation</td>
+              <td>Panda 单臂</td>
+              <td>72k</td>
+              <td>24</td>
+              <td><span class="cross">❌</span> 非人形</td>
+            </tr>
+            <tr>
+              <td>Unitree G1 Loco-Manipulation</td>
+              <td><strong>Unitree G1</strong></td>
+              <td>102</td>
+              <td>1</td>
+              <td>未知</td>
+            </tr>
+          </table>
+
+          <div class="callout blue">
+            <div class="callout-label">关键澄清</div>
+            <p>HuggingFace 上总计约 <strong>321k 唯一轨迹</strong>（240k+9k+72k+102，下采样版不算）。MotionWAM 重点用的是 <strong>Humanoid 240k</strong>（24 个 pick-and-place 任务，每任务 10k 条）。Fourier GR-1 是<strong>傅利叶智能</strong>（Fourier Intelligence）的机器人，非 NVIDIA 自有硬件；NVIDIA 是数据集/模型发布方。</p>
+          </div>
+
+          <h3>240k 子集任务（`gr1_arms_waist`，每任务 10,000 条）</h3>
+          <div class="task-grid">
+            <div class="task-item">CanToDrawer</div>
+            <div class="task-item">CupToDrawer</div>
+            <div class="task-item">CuttingboardToBasket</div>
+            <div class="task-item">CuttingboardToCardboardBox</div>
+            <div class="task-item">CuttingboardToPan</div>
+            <div class="task-item">CuttingboardToPot</div>
+            <div class="task-item">CuttingboardToTieredBasket</div>
+            <div class="task-item">PlaceBottleToCabinet</div>
+            <div class="task-item">PlaceMilkToMicrowave</div>
+            <div class="task-item">PlacematToBasket</div>
+            <div class="task-item">PlacematToBowl</div>
+            <div class="task-item">PlacematToPlate</div>
+            <div class="task-item">PlacematToTieredShelf</div>
+            <div class="task-item">PlateToBowl</div>
+            <div class="task-item">PlateToCardboardBox</div>
+            <div class="task-item">PlateToPan</div>
+            <div class="task-item">PlateToPlate</div>
+            <div class="task-item">PotatoToMicrowave</div>
+            <div class="task-item">TrayToCardboardBox</div>
+            <div class="task-item">TrayToPlate</div>
+            <div class="task-item">TrayToPot</div>
+            <div class="task-item">TrayToTieredBasket</div>
+            <div class="task-item">TrayToTieredShelf</div>
+            <div class="task-item">WineToCabinet</div>
+          </div>
+
+          <h3>MotionWAM 怎么用 GR00T-Sim</h3>
+          <table class="usage-table">
+            <tr><th>Stage</th><th>用途</th></tr>
+            <tr><td>Stage 1</td><td>读视频帧，忽略动作标签，Video DiT 学习 GR1 机器人视角的视觉动力学先验</td></tr>
+            <tr><td>Stage 2</td><td>240k 轨迹是最大体量的有标签数据源，驱动 Motion DiT trunk 学习跨任务机器人手臂运动表示</td></tr>
+          </table>
+
+          <div class="callout amber">
+            <div class="callout-label">Sim-to-Real Gap</div>
+            <p>全部是桌面 pick-place，无 locomotion，任务多样性有限。GR1 本体（傅利叶智能）≠ Unitree G1，动作空间需 per-embodiment projector 对齐。sim-to-real gap 由 Stage 3 少量真实遥操作数据弥补。</p>
+          </div>
+        </div>
+
+        <!-- RoboCOIN G1 -->
+        <div class="dataset-card" id="robocoin-g1">
+          <div class="dataset-card-header">
+            <div>
+              <div class="dataset-name">RoboCOIN（G1edu / Galbot / Leju 子集）</div>
+              <div class="dataset-source">多机构 · arXiv:2511.17441 · flagopen.github.io/RoboCOIN-DataManager</div>
+            </div>
+            <div class="dataset-weight">8.0%</div>
+          </div>
+
+          <table class="kv-table">
+            <tr><td>规模</td><td><strong>180K+ 轨迹</strong>，421 tasks，16 scenarios（全数据集）</td></tr>
+            <tr><td>本体</td><td>15 种本体（双臂 / 半人形 / 全人形）：G1edu, Galbot, Leju RMC, R1 Lite, RMC-AIDA-L 等</td></tr>
+            <tr><td>采集方式</td><td>遥操作（CoRobot 采集流水线，基于 LeRobot）</td></tr>
+            <tr><td>任务标注层级</td><td>轨迹级 / 片段级 / 帧级三层标注（Capability Pyramid）</td></tr>
+            <tr><td>G1edu/Galbot/Leju 子集大小</td><td>约 1.2 TB</td></tr>
+            <tr><td>格式</td><td>LeRobot 格式（Parquet + video MP4），统一动作空间</td></tr>
+          </table>
+
+          <div class="callout blue">
+            <div class="callout-label">RoboCOIN 在 MotionWAM 的拆分使用</div>
+            <p>RoboCOIN 在 Table 5 里被<strong>拆成两个条目</strong>，分属不同 domain：<br>
+            • <strong>G1edu/Galbot/Leju</strong> → G1-class humanoid（本页）权重 <strong>0.080</strong><br>
+            • <strong>R1 Lite + RMC-AIDA-L</strong> → Other real robots（§04）权重 <strong>0.200</strong>
+            </p>
+          </div>
+
+          <img src="../assets/image-20260615093332313.png" alt="RoboCOIN G1 子集截图" style="max-width:700px; width:100%; border-radius:8px; margin:12px 0; display:block;">
+          <p style="font-size:13px; color:var(--text3);">G1edu/Galbot/Leju 筛选结果（约 1.2 TB）</p>
+        </div>
+
+        <!-- GR00T-Teleop -->
+        <div class="dataset-card" id="groot-teleop">
+          <div class="dataset-card-header">
+            <div>
+              <div class="dataset-name">GR00T-Teleop-GR1（真实遥操作）</div>
+              <div class="dataset-source">NVIDIA · HuggingFace: nvidia/PhysicalAI-Robotics-GR00T-Teleop-GR1</div>
+            </div>
+            <div class="dataset-weight">7.1%</div>
+          </div>
+
+          <table class="kv-table">
+            <tr><td>规模</td><td><strong>88h 真实遥操作</strong>（GR00T N1 论文 §2.2 确认）</td></tr>
+            <tr><td>神经增强后</td><td>827h（由视频生成模型 10× 扩充）</td></tr>
+            <tr><td>本体</td><td>Fourier GR-1 真实人形机器人</td></tr>
+            <tr><td>采集设备</td><td>VIVE Ultimate Tracker（手腕）+ Xsens Metagloves（手指）</td></tr>
+            <tr><td>频率</td><td>20Hz 控制，RGB + 本体感知</td></tr>
+            <tr><td>标注层级</td><td>细粒度（grasping/moving/placing）+ 粗粒度任务级</td></tr>
+            <tr><td>格式</td><td>HDF5，joint positions + EEF poses</td></tr>
+          </table>
+
+          <table class="usage-table">
+            <tr><th>Stage</th><th>用途</th></tr>
+            <tr><td>Stage 1（7.1%）</td><td>视频帧训练 Video DiT</td></tr>
+            <tr><td>Stage 2</td><td><strong>真实动作锚点</strong>——VIVE tracker + Metagloves 采集的精密动作，让 Motion DiT 学到高精度 Fourier GR1 本体的真实动作分布</td></tr>
+          </table>
+
+          <div class="callout">
+            <div class="callout-label">NVIDIA GR00T N1 训练核心</div>
+            <p>作为 data pyramid 顶层，88h 原始数据通过视频生成模型扩充 10× 得到 827h 神经轨迹。质量最高：精密 MoCap 设备 + IK retargeting。规模相对小但人工成本高，场景集中于桌面操作。</p>
+          </div>
+        </div>
+
+        <!-- Humanoid-Everyday -->
+        <div class="dataset-card" id="humanoid-everyday">
+          <div class="dataset-card-header">
+            <div>
+              <div class="dataset-name">Humanoid-Everyday</div>
+              <div class="dataset-source">USC PSI-Lab + Toyota Research Institute · arXiv:2510.08807</div>
+            </div>
+            <div class="dataset-weight">4.7%</div>
+          </div>
+
+          <table class="kv-table">
+            <tr><td>规模</td><td>~500 GB，250 tasks，100,000+ time-steps</td></tr>
+            <tr><td>本体</td><td>Unitree <strong>G1</strong>（29-DoF, Dex3-1 手）+ <strong>H1</strong>（27-DoF, INSPIRE 手）</td></tr>
+            <tr><td>采集设备</td><td>Apple Vision Pro（手腕/手指 keypoints）+ IK</td></tr>
+            <tr><td>频率</td><td>30 Hz</td></tr>
+            <tr><td>感知模态</td><td>9 种：RGB / 深度 / LiDAR / 触觉 / IMU / 关节状态 / 人类动作 / EEF</td></tr>
+            <tr><td>任务类别</td><td>260 diverse scenarios（loco-manipulation, basic manipulation, tool use, deformables, articulated objects, HRI）</td></tr>
+            <tr><td>开源</td><td><a href="https://huggingface.co/datasets/USC-PSI-Lab/humanoid-everyday" target="_blank" style="color:var(--accent)">HuggingFace</a> · <a href="https://humanoideveryday.github.io" target="_blank" style="color:var(--accent)">网站</a></td></tr>
+          </table>
+
+          <img src="../assets/image-20260615093703029.png" alt="Humanoid-Everyday 任务示例" style="max-width:700px; width:100%; border-radius:8px; margin:12px 0; display:block;">
+
+          <table class="usage-table">
+            <tr><th>Stage</th><th>用途</th></tr>
+            <tr><td>Stage 1（4.7%）</td><td>视频帧训练 Video DiT</td></tr>
+            <tr><td>Stage 2</td><td>最接近 MotionWAM 目标本体（Unitree G1），直接提供 29-DoF G1 动作分布；9 种模态中 Stage 2 只用 RGB + 关节状态</td></tr>
+          </table>
+
+          <div class="callout">
+            <div class="callout-label">亮点</div>
+            <p>模态最丰富（9 种传感器同步）；含 Loco-Manip；G1（29-DoF）和 H1（27-DoF）两种配置；提供标准化在线评测平台。</p>
+          </div>
+        </div>
+
+        <!-- UnifoLM-WBT -->
+        <div class="dataset-card" id="unifolm">
+          <div class="dataset-card-header">
+            <div>
+              <div class="dataset-name">UnifoLM-WBT（全身遥操作）</div>
+              <div class="dataset-source">Unitree Robotics · HuggingFace Collection: unitreerobotics/unifolm-wbt-dataset</div>
+            </div>
+            <div class="dataset-weight">2.3%</div>
+          </div>
+
+          <table class="kv-table">
+            <tr><td>规模</td><td>约 170 GB，14 个 HuggingFace 库</td></tr>
+            <tr><td>本体</td><td>Unitree <strong>G1</strong>（whole-body）</td></tr>
+            <tr><td>采集方式</td><td>全身遥操作（WBT = Whole-Body Teleoperation）</td></tr>
+            <tr><td>频率</td><td><strong>50 Hz</strong>（高频控制，MotionWAM Stage 3 标准）</td></tr>
+            <tr><td>动作空间</td><td><strong>29-DoF</strong>，SMPL-24 骨骼对齐</td></tr>
+            <tr><td>格式</td><td><strong>LeRobot 格式</strong>，与 MotionWAM Stage 2/3 直接兼容</td></tr>
+            <tr><td>开源</td><td><a href="https://huggingface.co/collections/unitreerobotics/unifolm-wbt-dataset" target="_blank" style="color:var(--accent)">HuggingFace Collection</a></td></tr>
+          </table>
+
+          <img src="../assets/image-20260615094301817.png" alt="UnifoLM-WBT 数据集预览" style="max-width:700px; width:100%; border-radius:8px; margin:12px 0; display:block;">
+
+          <table class="usage-table">
+            <tr><th>Stage</th><th>用途</th></tr>
+            <tr><td>Stage 1（2.3%）</td><td>全身运动视频正是 Stage 1 需要的"机器人第一人称全身运动视觉先验"</td></tr>
+            <tr><td>Stage 2</td><td>格式兼容——LeRobot + 50Hz + 29-DoF 与 MotionWAM Stage 3 标准完全一致，无需格式转换；是 Stage 2 中极少数包含 locomotion 的数据</td></tr>
+          </table>
+
+          <div class="callout">
+            <div class="callout-label">格式零迁移成本</div>
+            <p>官方 LeRobot 格式，50Hz，29-DoF，与 MotionWAM 完全匹配。全身运动（行走+操作）覆盖 Stage 2 中唯一强调 locomotion 的开源数据集。</p>
+          </div>
+        </div>
+
+        <!-- PSI-Real + PSI-Simple -->
+        <div class="dataset-card" id="psi">
+          <div class="dataset-card-header">
+            <div>
+              <div class="dataset-name">PSI-Real &amp; PSI-Simple</div>
+              <div class="dataset-source">USC Physical Superintelligence (PSI) Lab · MotionWAM ref [10] = Ψ₀ 论文（arXiv:2603.12263, RSS 2026）</div>
+            </div>
+            <div class="dataset-weight" style="font-size:16px;">1.3% + 1.1%</div>
+          </div>
+
+          <div class="callout blue">
+            <div class="callout-label">来源关系梳理</div>
+            <p>MotionWAM ref [10] 指向 <strong>Ψ₀（Psi-Zero）论文</strong>，来自 USC Physical Superintelligence Lab。PSI-Real 和 PSI-Simple 是两个不同子集：</p>
+            <table class="usage-table" style="margin-top:8px;">
+              <tr><th>MotionWAM 条目</th><th>对应来源</th><th>文件夹</th><th>论文</th></tr>
+              <tr>
+                <td><strong>PSI-Real</strong></td>
+                <td>Ψ₀ 论文自采真实遥操作数据</td>
+                <td><code>real/</code></td>
+                <td><a href="https://psi-lab.ai/Psi0/" target="_blank" style="color:var(--accent)">psi-lab.ai/Psi0</a> · arXiv:2603.12263</td>
+              </tr>
+              <tr>
+                <td><strong>PSI-Simple</strong></td>
+                <td>SIMPLE 仿真评测数据集</td>
+                <td><code>simple/ simple-teleop/ simple-eval/</code></td>
+                <td><a href="https://github.com/physical-superintelligence-lab/SIMPLE" target="_blank" style="color:var(--accent)">SIMPLE GitHub</a> · arXiv:2606.08278</td>
+              </tr>
+            </table>
+            <p style="margin-top:8px; margin-bottom:0;">两者都托管在同一 HuggingFace 仓库：<a href="https://huggingface.co/datasets/USC-PSI-Lab/psi-data" target="_blank" style="color:var(--accent)">USC-PSI-Lab/psi-data</a>（422 GB）</p>
+          </div>
+
+          <h3>Ψ₀ 论文简介</h3>
+          <table class="kv-table">
+            <tr><td>论文</td><td>Ψ₀: An Open Foundation Model Towards Universal Humanoid Loco-Manipulation · RSS 2026</td></tr>
+            <tr><td>本体</td><td>Unitree G1（全身）</td></tr>
+            <tr><td>Ψ₀ 使用的数据</td><td>EgoDex（829h，预训练）+ Humanoid Everyday（31h，post-training）+ 自采遥操作数据（fine-tune）</td></tr>
+            <tr><td>三阶段训练</td><td>① VLM backbone 在 EgoDex 预训练 → ② action expert 在 Humanoid Everyday post-train → ③ 少量任务数据微调</td></tr>
+            <tr><td>成绩</td><td>仅 800h 人类视频 + 30h 机器人数据，胜过用 10× 以上数据的 baseline 超 40%</td></tr>
+          </table>
+
+          <h3>SIMPLE 仿真数据集</h3>
+          <table class="kv-table">
+            <tr><td>论文</td><td>SIMPLE: Simulation-Based Policy Learning and Evaluation for Humanoid Loco-manipulation · arXiv:2606.08278</td></tr>
+            <tr><td>内容</td><td>50 个室内场景、随机 episode 条件的大规模人形 loco-manipulation 仿真 benchmark</td></tr>
+            <tr><td>子文件夹</td><td><code>simple/</code>（仿真轨迹）、<code>simple-teleop/</code>（遥操作变体）、<code>simple-eval/</code>（评测子集）</td></tr>
+            <tr><td>代码</td><td><a href="https://github.com/physical-superintelligence-lab/SIMPLE" target="_blank" style="color:var(--accent)">github.com/physical-superintelligence-lab/SIMPLE</a></td></tr>
+          </table>
+
+          <div class="callout amber">
+            <div class="callout-label">合计仅 2.4%</div>
+            <p>PSI-Real（1.3%）+ PSI-Simple（1.1%）权重最小，是 Stage 1/2 的辅助来源。注意 Ψ₀ 本身用的 EgoDex 和 Humanoid Everyday 在 MotionWAM Table 5 里已单独列出——PSI-Real/Simple 是 Ψ₀ 的<strong>自采数据</strong>，不与上面两个重复。</p>
+          </div>
+
+          <table class="usage-table">
+            <tr><th>Stage</th><th>用途</th></tr>
+            <tr><td>Stage 1（合计 2.4%）</td><td>视频帧训练 Video DiT，补充 Unitree G1 本体的视觉先验</td></tr>
+            <tr><td>Stage 2</td><td>提供 G1 动作标签，与其他 G1-class 数据共享 per-embodiment projector</td></tr>
+          </table>
+        </div>
+      </div>
+
+      <!-- §04 Other Real Robots -->
+      <div class="section" id="other">
+        <div class="section-num">§ 04</div>
+        <h2>Other Real Robots（~20%）</h2>
+        <div class="domain-section-label other">Other Real Robots · 20%</div>
+
+        <div class="callout amber">
+          <div class="callout-label">唯一来源</div>
+          <p>MotionWAM Table 5 中明确标注的唯一来源：<strong>RoboCOIN (R1 Lite + RMC-AIDA-L)</strong>，权重 0.200。这个 domain 里没有其他数据集（Open X-Embodiment / DROID / Bridge-v2 均不在 MotionWAM 的使用范围内）。</p>
+        </div>
+
+        <!-- RoboCOIN Other -->
+        <div class="dataset-card" id="robocoin-other">
+          <div class="dataset-card-header">
+            <div>
+              <div class="dataset-name">RoboCOIN（R1 Lite + RMC-AIDA-L 子集）</div>
+              <div class="dataset-source">多机构 · arXiv:2511.17441 · 同一 RoboCOIN 数据集，非人形本体子集</div>
+            </div>
+            <div class="dataset-weight">20.0%</div>
+          </div>
+
+          <table class="kv-table">
+            <tr><td>本体</td><td>Unitree R1 Lite + RMC-AIDA-L（非人形机械臂配置）</td></tr>
+            <tr><td>子集大小</td><td>约 700 GB</td></tr>
+            <tr><td>格式</td><td>LeRobot 格式（Parquet + video MP4）</td></tr>
+          </table>
+
+          <table class="usage-table">
+            <tr><th>Table 5 条目</th><th>本体子集</th><th>Domain</th><th>权重</th></tr>
+            <tr>
+              <td>RoboCOIN (G1edu/Galbot/Leju)</td>
+              <td>人形机器人子集</td>
+              <td>G1-class humanoid</td>
+              <td>0.080</td>
+            </tr>
+            <tr>
+              <td><strong>RoboCOIN (R1 Lite + RMC-AIDA-L)</strong></td>
+              <td>非人形机械臂子集</td>
+              <td><strong>Other real robots</strong></td>
+              <td><strong>0.200</strong></td>
+            </tr>
+          </table>
+
+          <p>R1 Lite 和 RMC-AIDA-L 形态上更接近桌面操作臂而非全身人形机器人。把它们单独归入"other real robots" domain，是为了在 Stage 1 视频预训练时引入更多样的视觉动力学先验，同时在 Stage 2 中通过 per-embodiment projector 接入不同动作空间。</p>
+
+          <img src="../assets/image-20260615094400233.png" alt="RoboCOIN Other 子集截图" style="max-width:700px; width:100%; border-radius:8px; margin:12px 0; display:block;">
+        </div>
+      </div>
+
+      <!-- §05 HDF5 Appendix -->
+      <div class="section" id="hdf5">
+        <div class="section-num">§ 05</div>
+        <h2>附录：HDF5 格式详解</h2>
+
+        <div class="callout blue">
+          <div class="callout-label">什么是 HDF5</div>
+          <p><strong>HDF5（Hierarchical Data Format v5）</strong>是一种<strong>层级化二进制数据格式</strong>，类似于"文件系统嵌在一个文件里"——可以在单个 .hdf5 文件内存储多维数组（如 N×4×4 变换矩阵）、元数据（语言标注）和分组（按关节名分"文件夹"）。特点：随机访问快、支持压缩、PyTorch/NumPy 原生支持（<code>h5py</code> 库）。</p>
+        </div>
+
+        <h3>EgoDex HDF5 内部结构</h3>
+        <p>EgoDex 每条 episode 由一个 <code>.mp4</code> + 一个 <code>.hdf5</code> 组成，帧级对齐（N = 30 × T 秒）：</p>
+
+        <div class="hdf5-tree"><span class="hl">part1/</span>
+└── task_name/
+    ├── <span class="hl">0.mp4</span>          <span class="comment"># 原始 1080p 视频（T 秒）</span>
+    ├── <span class="hl">0.hdf5</span>         <span class="comment"># 骨骼标注（N = 30×T 帧）</span>
+    ├── 1.mp4
+    ├── 1.hdf5
+    ...
+
+<span class="hl">0.hdf5</span> 内部结构：
+├── camera/
+│   └── intrinsic          <span class="comment"># 3×3 相机内参（每文件固定不变）</span>
+├── transforms/            <span class="comment"># 所有关节的 SE(3) 变换矩阵，shape [N, 4, 4]</span>
+│   ├── camera             <span class="comment"># 头部位姿（= 相机外参，ARKit 世界坐标系）</span>
+│   ├── leftHand / rightHand
+│   ├── leftIndexFingerTip / leftIndexFingerKnuckle
+│   ├── leftMiddleFingerTip / ...（共 68 个关节）
+│   └── ...
+└── confidences/           <span class="comment"># 可选，每关节标量置信度 [N]</span>
+    ├── leftHand / rightHand
+    └── ...（共 68 个关节）</div>
+
+        <h3>读取语言标注</h3>
+        <div class="code-block"><code><span style="color:var(--text3)"># 语言标注在 HDF5 属性里</span>
+f.attrs['llm_description']        <span style="color:var(--text3)"># 任务描述</span>
+f.attrs['llm_description2']       <span style="color:var(--text3)"># 可逆任务的反向描述</span>
+f.attrs['which_llm_description']  <span style="color:var(--text3)"># 1 或 2，指示当前 episode 用哪条</span></code></div>
+
+        <div class="callout amber">
+          <div class="callout-label">坐标系说明</div>
+          <p>所有 <code>transforms</code> 均在 <strong>ARKit origin frame</strong> 下表达（录制开始时设定的地面固定坐标系）。同一 session 内帧间一致，但<strong>跨 episode 不保证一致</strong>（设备重新初始化时原点会漂移）。</p>
+        </div>
+
+        <h3>EgoDex Action 表示（benchmark 用，非 MotionWAM）</h3>
+        <p>每时刻动作 = 2 只手 × (腕部 3D 位置 + 腕部 6D 朝向 + 5 指尖 3D 位置) = <strong>48 维</strong>。注意：EgoDex 自己的 benchmark 只用这 48 维，而完整 HDF5 里有 68 个关节的完整 SE(3) 位姿——MotionWAM 两者都不用。</p>
+      </div>
+
+    </div>
+  </div>
+</body>
+</html>

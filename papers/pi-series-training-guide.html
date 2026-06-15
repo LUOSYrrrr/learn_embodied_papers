@@ -1,0 +1,589 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>π₀ 系列训练指南：预训练、后训练与 Human-in-the-Loop · Paper Notes</title>
+  <link rel="stylesheet" href="../assets/css/style.css">
+  <script src="../assets/js/theme.js"></script>
+  <style>
+    .diagram-container {
+      background: var(--bg2);
+      border-radius: 12px;
+      padding: 24px;
+      margin: 20px 0;
+      overflow-x: auto;
+    }
+    .flow-step {
+      display: flex;
+      align-items: center;
+      margin: 16px 0;
+      flex-wrap: wrap;
+      gap: 12px;
+    }
+    .flow-box {
+      background: var(--bg3);
+      border: 1px solid var(--accent);
+      border-radius: 8px;
+      padding: 12px 20px;
+      font-family: var(--font-mono);
+      font-size: 13px;
+      min-width: 140px;
+      text-align: center;
+    }
+    .flow-box.green {
+      border-color: var(--accent);
+      background: rgba(74, 222, 154, 0.1);
+    }
+    .flow-box.blue {
+      border-color: var(--blue);
+      background: rgba(96, 165, 250, 0.1);
+    }
+    .flow-box.amber {
+      border-color: var(--amber);
+      background: rgba(245, 158, 11, 0.1);
+    }
+    .flow-box.purple {
+      border-color: var(--purple);
+      background: rgba(167, 139, 250, 0.1);
+    }
+    .flow-arrow {
+      color: var(--text3);
+      font-size: 20px;
+    }
+    .comparison-table {
+      width: 100%;
+      border-collapse: collapse;
+      margin: 20px 0;
+      font-size: 14px;
+    }
+    .comparison-table th {
+      background: var(--bg3);
+      padding: 12px;
+      text-align: left;
+      border-bottom: 2px solid var(--accent);
+      font-family: var(--font-mono);
+    }
+    .comparison-table td {
+      padding: 12px;
+      border-bottom: 1px solid var(--bg3);
+      vertical-align: top;
+    }
+    .comparison-table tr:hover td {
+      background: rgba(74, 222, 154, 0.05);
+    }
+    .highlight-box {
+      background: linear-gradient(135deg, rgba(74, 222, 154, 0.1), rgba(46, 196, 182, 0.1));
+      border-left: 3px solid var(--accent);
+      padding: 16px 20px;
+      margin: 20px 0;
+      border-radius: 0 8px 8px 0;
+    }
+    .step-number {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      width: 28px;
+      height: 28px;
+      background: var(--accent);
+      color: var(--bg);
+      border-radius: 50%;
+      font-family: var(--font-mono);
+      font-size: 14px;
+      font-weight: 600;
+      margin-right: 12px;
+    }
+    .math-block {
+      background: var(--bg3);
+      padding: 16px;
+      border-radius: 8px;
+      font-family: var(--font-mono);
+      font-size: 13px;
+      margin: 16px 0;
+      overflow-x: auto;
+    }
+  </style>
+</head>
+<body>
+  <nav class="nav">
+    <a class="nav-logo" href="../index.html">Paper Notes</a>
+    <div class="nav-links">
+      <a href="../index.html">← 返回首页</a>
+    </div>
+  </nav>
+
+  <div class="page">
+    <div class="paper-page">
+      <a class="back-link" href="../index.html">← 所有笔记</a>
+
+      <!-- 头部信息 -->
+      <div class="paper-header">
+        <div class="paper-venue">// VLA 训练指南 · 技术解析</div>
+        <h1 class="paper-title">π₀ 系列训练全解析</h1>
+        <div class="paper-authors">预训练 vs 后训练 · Human-in-the-Loop · π₀.6* ReCAP</div>
+        <div class="paper-badges">
+          <span class="badge badge-green">训练流程</span>
+          <span class="badge badge-blue">VLA</span>
+          <span class="badge badge-amber">Physical Intelligence</span>
+        </div>
+      </div>
+
+      <!-- 目录 -->
+      <div class="toc">
+        <div class="toc-title">// 目录</div>
+        <ol>
+          <li><a href="#overview">π₀ 系列概览</a></li>
+          <li><a href="#pretraining">预训练：π₀.5 的 Behavior Cloning</a></li>
+          <li><a href="#posttraining">后训练：π₀.6* 的 ReCAP</a></li>
+          <li><a href="#hitl">Human-in-the-Loop 详解</a></li>
+          <li><a href="#comparison">π₀.5 vs π₀.6 对比</a></li>
+          <li><a href="#evorl">Evo-RL 复现分析</a></li>
+        </ol>
+      </div>
+
+      <!-- 概览 -->
+      <div class="section" id="overview">
+        <div class="section-num">§ 01</div>
+        <h2>π₀ 系列概览</h2>
+
+        <div class="highlight-box">
+          <strong>一句话总结：</strong>π₀.5 是基础 VLA（纯模仿学习），π₀.6* 是在 π₀.5 基础上增加了离线 RL 预训练 + 迭代后训练（ReCAP），实现从真实部署经验中持续学习。
+        </div>
+
+        <p>Physical Intelligence 的 π₀ 系列是具身智能领域最具影响力的 VLA（Vision-Language-Action）模型系列。理解它们的训练流程差异，对复现和部署至关重要。</p>
+
+        <div class="module-grid">
+          <div class="module-card">
+            <div class="module-card-name">π₀.5 · BASE VLA</div>
+            <div class="module-card-title">基础视觉-语言-动作模型</div>
+            <div class="module-card-desc">基于 Flow Matching 的 Behavior Cloning，从 demonstration 数据学习多任务策略。</div>
+          </div>
+          <div class="module-card">
+            <div class="module-card-name">π₀.6* · RECAP</div>
+            <div class="module-card-title">从经验中学习的 VLA</div>
+            <div class="module-card-desc">在 π₀.5 基础上增加 Value Function 和 Advantage Conditioning，支持迭代改进。</div>
+          </div>
+        </div>
+
+        <h3>整体训练流程图</h3>
+        <div class="diagram-container">
+          <div class="flow-step">
+            <div class="flow-box green">π₀.5<br>预训练</div>
+            <span class="flow-arrow">→</span>
+            <div class="flow-box blue">π₀.6*<br>Offline RL</div>
+            <span class="flow-arrow">→</span>
+            <div class="flow-box amber">SFT 微调</div>
+            <span class="flow-arrow">→</span>
+            <div class="flow-box purple">ReCAP<br>迭代改进</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- 预训练 -->
+      <div class="section" id="pretraining">
+        <div class="section-num">§ 02</div>
+        <h2>预训练：π₀.5 的 Behavior Cloning</h2>
+
+        <div class="callout">
+          <div class="callout-label">核心方法</div>
+          <p><strong>Behavior Cloning（行为克隆）</strong> = 监督学习，让模型模仿人类专家的动作。</p>
+        </div>
+
+        <h3>π₀.5 训练三要素</h3>
+        <table class="kv-table">
+          <tr><td>架构</td><td>PaliGemma (SigLIP + Gemma 2B) + Action Expert (300M)</td></tr>
+          <tr><td>数据</td><td>多任务、多机器人的 demonstration 数据（视觉+语言指令+动作）</td></tr>
+          <tr><td>目标</td><td>预测动作块（action chunk）的 Flow Matching 损失</td></tr>
+        </table>
+
+        <h3>Flow Matching 简述</h3>
+        <p>π₀.5 不使用传统的 MSE 损失预测动作，而是采用 Flow Matching：</p>
+        <div class="math-block">
+          L = E[||v_θ(x_t, t) - (x_1 - x_0)||²]<br><br>
+          其中 x_t = t·x_1 + (1-t)·x_0，t ∈ [0,1]<br>
+          x_1 = 专家动作，x_0 = 噪声
+        </div>
+
+        <div class="callout blue">
+          <div class="callout-label">类比理解</div>
+          <p>传统 BC 是直接"背答案"，Flow Matching 是学习"从噪声到动作的路径"，类似扩散模型，生成更平滑、多样的动作。</p>
+        </div>
+
+        <h3>关键特点</h3>
+        <ul>
+          <li><strong>无奖励信号</strong>：只需要 (obs, action) 对，不需要任务成功与否的标注</li>
+          <li><strong>开环训练</strong>：每个训练样本独立，不考虑动作对环境的长期影响</li>
+          <li><strong>数据饥渴</strong>：需要大量高质量 demonstration 数据</li>
+        </ul>
+      </div>
+
+      <!-- 后训练 -->
+      <div class="section" id="posttraining">
+        <div class="section-num">§ 03</div>
+        <h2>后训练：π₀.6* 的 ReCAP</h2>
+
+        <div class="callout purple">
+          <div class="callout-label">ReCAP 核心</div>
+          <p><strong>RL with Experience and Corrections via Advantage-conditioned Policies</strong><br>
+          通过优势条件策略，利用经验数据和人工纠正进行强化学习。</p>
+        </div>
+
+        <h3>为什么需要后训练？</h3>
+        <p>π₀.5 的问题：</p>
+        <ul>
+          <li>只能在 demonstration 数据分布内表现良好</li>
+          <li>无法从自己的错误中学习</li>
+          <li>难以适应新任务或环境变化</li>
+        </ul>
+
+        <h3>π₀.6* 解决方案：三组件架构</h3>
+        <div class="diagram-container">
+          <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; margin-bottom: 20px;">
+            <div style="text-align: center; padding: 16px; background: var(--bg); border-radius: 8px;">
+              <div style="font-family: var(--font-mono); color: var(--accent); font-size: 12px; margin-bottom: 8px;">COMPONENT 1</div>
+              <div style="font-size: 16px; font-weight: 600; margin-bottom: 8px;">VLA Policy</div>
+              <div style="font-size: 13px; color: var(--text2);">生成动作策略<br>（继承 π₀.5）</div>
+            </div>
+            <div style="text-align: center; padding: 16px; background: var(--bg); border-radius: 8px;">
+              <div style="font-family: var(--font-mono); color: var(--blue); font-size: 12px; margin-bottom: 8px;">COMPONENT 2</div>
+              <div style="font-size: 16px; font-weight: 600; margin-bottom: 8px;">Value Function</div>
+              <div style="font-size: 13px; color: var(--text2);">预测"距离成功还有几步"<br>（新增）</div>
+            </div>
+            <div style="text-align: center; padding: 16px; background: var(--bg); border-radius: 8px;">
+              <div style="font-family: var(--font-mono); color: var(--amber); font-size: 12px; margin-bottom: 8px;">COMPONENT 3</div>
+              <div style="font-size: 16px; font-weight: 600; margin-bottom: 8px;">Advantage</div>
+              <div style="font-size: 13px; color: var(--text2);">动作质量评估<br>（新增）</div>
+            </div>
+          </div>
+        </div>
+
+        <h3>Value Function 详解</h3>
+        <p>Value Function V(s,ℓ) 预测在给定状态 s 和语言指令 ℓ 下，<strong>距离任务完成还有多少个时间步</strong>。</p>
+
+        <div class="math-block">
+          <strong>奖励设计（稀疏奖励）：</strong><br><br>
+          r_t = {<br>
+          &nbsp;&nbsp;0&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;if t = T 且任务成功<br>
+          &nbsp;&nbsp;-C_fail&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;if t = T 且任务失败<br>
+          &nbsp;&nbsp;-1&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;otherwise（每步惩罚）<br>
+          }<br><br>
+          返回值：R(τ) = Σ r_t（累积奖励）
+        </div>
+
+        <div class="callout amber">
+          <div class="callout-label">关键洞察</div>
+          <p>Value Function 不是预测"任务能成功吗"，而是预测<strong>"还要多久"</strong>。这使得模型能区分"快成功了"和"还很远"的状态。</p>
+        </div>
+
+        <h3>Advantage 与 Advantage-Conditioning</h3>
+        <p>Advantage A(s,a) 衡量<strong>采取动作 a 比平均水平好多少</strong>：</p>
+        <div class="math-block">
+          A(s_t, a_t) = Q(s_t, a_t) - V(s_t)<br><br>
+          离散化为二值：<br>
+          I_t = 𝟙[A(s_t, a_t) > ε]（优势指示器）<br><br>
+          ε 是任务相关的阈值（通常取 value 预测的 30% 分位数）
+        </div>
+
+        <p>在训练时，<strong>I_t 作为文本标签注入到语言指令中</strong>：</p>
+        <div class="code-block">
+          <code>任务文本: "pick up the cup"<br>
+          ↓ 注入优势标签<br>
+          训练文本: "pick up the cup. Advantage: positive"（如果 I_t = 1）<br>
+          或: "pick up the cup. Advantage: negative"（如果 I_t = 0）</code>
+        </div>
+
+        <h3>ReCAP 完整流程</h3>
+        <div class="diagram-container">
+          <div style="margin-bottom: 24px;">
+            <div style="display: flex; align-items: center; margin: 12px 0;">
+              <span class="step-number">1</span>
+              <div>
+                <strong>数据收集（Data Collection）</strong>
+                <p style="margin: 4px 0; color: var(--text2); font-size: 13px;">部署当前策略 π_k，收集 rollout 数据。专家可在需要时干预（intervention）。</p>
+              </div>
+            </div>
+            <div style="display: flex; align-items: center; margin: 12px 0;">
+              <span class="step-number">2</span>
+              <div>
+                <strong>价值函数训练（Value Function Training）</strong>
+                <p style="margin: 4px 0; color: var(--text2); font-size: 13px;">用所有数据训练/更新 Value Function，预测 return-to-go。</p>
+              </div>
+            </div>
+            <div style="display: flex; align-items: center; margin: 12px 0;">
+              <span class="step-number">3</span>
+              <div>
+                <strong>优势计算与二值化</strong>
+                <p style="margin: 4px 0; color: var(--text2); font-size: 13px;">计算 advantage，二值化为指示器标签 I_t。</p>
+              </div>
+            </div>
+            <div style="display: flex; align-items: center; margin: 12px 0;">
+              <span class="step-number">4</span>
+              <div>
+                <strong>策略训练（Policy Training）</strong>
+                <p style="margin: 4px 0; color: var(--text2); font-size: 13px;">用 advantage-conditioned 数据训练策略，得到 π_{k+1}。</p>
+              </div>
+            </div>
+          </div>
+          <div style="text-align: center; padding: 12px; background: var(--bg); border-radius: 8px; font-size: 13px; color: var(--text2);">
+            ↑ 重复 K 次迭代，直到性能饱和
+          </div>
+        </div>
+      </div>
+
+      <!-- Human-in-the-Loop -->
+      <div class="section" id="hitl">
+        <div class="section-num">§ 04</div>
+        <h2>Human-in-the-Loop 详解</h2>
+
+        <div class="callout">
+          <div class="callout-label">定义</div>
+          <p><strong>Human-in-the-Loop (HITL)</strong> 指在自主执行过程中，人类专家可以随时接管控制权，纠正机器人的错误动作。</p>
+        </div>
+
+        <h3>为什么需要 HITL？</h3>
+        <ul>
+          <li><strong>数据效率</strong>：完全自主收集的失败数据价值低，专家干预提供高质量的纠正样本</li>
+          <li><strong>安全性</strong>：防止机器人在危险状态下继续执行</li>
+          <li><strong>标注质量</strong>：专家即时标记 episode 成功与否</li>
+        </ul>
+
+        <h3>HITL 在 ReCAP 中的工作流程</h3>
+        <div class="diagram-container">
+          <div class="flow-step">
+            <div class="flow-box">机器人执行<br>策略动作</div>
+            <span class="flow-arrow">→</span>
+            <div class="flow-box amber">检测异常<br>或失败风险</div>
+            <span class="flow-arrow">→</span>
+            <div class="flow-box blue">专家干预<br>（按热键）</div>
+            <span class="flow-arrow">→</span>
+            <div class="flow-box green">专家纠正动作<br>（遥控）</div>
+            <span class="flow-arrow">→</span>
+            <div class="flow-box purple">恢复自主<br>+ 标记数据</div>
+          </div>
+        </div>
+
+        <h3>数据标注细节</h3>
+        <p>HITL 过程中会记录以下信息：</p>
+        <table class="kv-table">
+          <tr><td>complementary_info.policy_action</td><td>策略输出的原始动作</td></tr>
+          <tr><td>complementary_info.is_intervention</td><td>当前步是否在干预状态</td></tr>
+          <tr><td>complementary_info.collector_policy_id</td><td>动作来源（human 或 policy ID）</td></tr>
+          <tr><td>episode_success</td><td>episode 级别成功/失败标记</td></tr>
+        </table>
+
+        <div class="callout blue">
+          <div class="callout-label">类比理解</div>
+          <p>HITL 类似于驾校教练坐在副驾驶：学员（机器人）自己开车，但教练（专家）随时准备踩刹车、接管方向盘，并在事后指出哪里做错了。</p>
+        </div>
+
+        <h3>热键设计（Evo-RL 实现）</h3>
+        <div class="code-block">
+          <code>i: 切换干预模式（策略 ↔ 遥控接管）<br>
+          s: 标记成功并结束当前 episode<br>
+          f: 标记失败并结束当前 episode<br>
+          →: 提前结束当前 loop<br>
+          ←: 提前结束并重新录制当前 episode<br>
+          Esc: 停止录制会话</code>
+        </div>
+      </div>
+
+      <!-- 对比 -->
+      <div class="section" id="comparison">
+        <div class="section-num">§ 05</div>
+        <h2>π₀.5 vs π₀.6 对比</h2>
+
+        <table class="comparison-table">
+          <tr>
+            <th>维度</th>
+            <th>π₀.5</th>
+            <th>π₀.6*</th>
+          </tr>
+          <tr>
+            <td><strong>训练类型</strong></td>
+            <td>纯监督学习<br>(Behavior Cloning)</td>
+            <td>监督学习 + 离线 RL<br>(Offline RL + BC)</td>
+          </tr>
+          <tr>
+            <td><strong>奖励信号</strong></td>
+            <td>无（只需动作标签）</td>
+            <td>稀疏奖励（任务成功/失败）</td>
+          </tr>
+          <tr>
+            <td><strong>Value Function</strong></td>
+            <td>❌ 无</td>
+            <td>✅ 有（预测剩余步数）</td>
+          </tr>
+          <tr>
+            <td><strong>迭代改进</strong></td>
+            <td>❌ 不支持</td>
+            <td>✅ ReCAP 循环迭代</td>
+          </tr>
+          <tr>
+            <td><strong>数据要求</strong></td>
+            <td>大量 demonstration</td>
+            <td>Demonstration + 自主 rollout</td>
+          </tr>
+          <tr>
+            <td><strong>Human-in-the-Loop</strong></td>
+            <td>❌ 训练阶段不需要</td>
+            <td>✅ 部署阶段需要</td>
+          </tr>
+          <tr>
+            <td><strong>适用场景</strong></td>
+            <td>固定任务、数据充足</td>
+            <td>动态任务、持续学习</td>
+          </tr>
+        </table>
+
+        <h3>架构差异图</h3>
+        <div class="diagram-container">
+          <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 24px;">
+            <div style="background: var(--bg); padding: 20px; border-radius: 8px; border: 1px solid var(--accent);">
+              <div style="font-family: var(--font-mono); color: var(--accent); font-size: 12px; margin-bottom: 12px;">π₀.5 架构</div>
+              <div style="display: flex; flex-direction: column; gap: 12px;">
+                <div style="padding: 12px; background: var(--bg2); border-radius: 6px; text-align: center;">
+                  输入: 图像 + 语言指令
+                </div>
+                <div style="text-align: center; color: var(--text3);">↓</div>
+                <div style="padding: 12px; background: var(--bg2); border-radius: 6px; text-align: center;">
+                  PaliGemma (VLM)
+                </div>
+                <div style="text-align: center; color: var(--text3);">↓</div>
+                <div style="padding: 12px; background: var(--bg2); border-radius: 6px; text-align: center;">
+                  Action Expert
+                </div>
+                <div style="text-align: center; color: var(--text3);">↓</div>
+                <div style="padding: 12px; background: var(--bg2); border-radius: 6px; text-align: center;">
+                  输出: 动作块
+                </div>
+              </div>
+            </div>
+            <div style="background: var(--bg); padding: 20px; border-radius: 8px; border: 1px solid var(--blue);">
+              <div style="font-family: var(--font-mono); color: var(--blue); font-size: 12px; margin-bottom: 12px;">π₀.6* 架构</div>
+              <div style="display: flex; flex-direction: column; gap: 12px;">
+                <div style="padding: 12px; background: var(--bg2); border-radius: 6px; text-align: center;">
+                  输入: 图像 + 语言指令 + <span style="color: var(--amber);">Advantage Tag</span>
+                </div>
+                <div style="text-align: center; color: var(--text3);">↓</div>
+                <div style="padding: 12px; background: var(--bg2); border-radius: 6px; text-align: center;">
+                  PaliGemma (VLM)
+                </div>
+                <div style="text-align: center; color: var(--text3);">↓</div>
+                <div style="padding: 12px; background: var(--bg2); border-radius: 6px; text-align: center;">
+                  Action Expert
+                </div>
+                <div style="text-align: center; color: var(--text3);">↓</div>
+                <div style="padding: 12px; background: var(--bg2); border-radius: 6px; text-align: center;">
+                  输出: 动作块
+                </div>
+                <div style="padding: 12px; background: rgba(96, 165, 250, 0.1); border-radius: 6px; text-align: center; border: 1px dashed var(--blue);">
+                  Value Head<br>预测剩余步数
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Evo-RL 分析 -->
+      <div class="section" id="evorl">
+        <div class="section-num">§ 06</div>
+        <h2>Evo-RL 复现分析</h2>
+
+        <div class="callout">
+          <div class="callout-label">项目定位</div>
+          <p>Evo-RL 是上交和 EvoMind 开源的 π₀.6* ReCAP 流程复现，基于 LeRobot 框架。</p>
+        </div>
+
+        <h3>Evo-RL 实现了什么？</h3>
+        <table class="kv-table">
+          <tr><td>✅ 已实现</td><td>Value Function 训练 (Pistar06)、Advantage 计算、ACP (Advantage-Conditioned Policy) 训练</td></tr>
+          <tr><td>✅ 已实现</td><td>Human-in-the-Loop 数据收集 (lerobot-human-inloop-record)</td></tr>
+          <tr><td>✅ 已实现</td><td>迭代训练循环（ReCAP）</td></tr>
+          <tr><td>❓ 需确认</td><td>预训练阶段是否使用 Offline RL（论文中 π₀.6* 的预训练包含 Offline RL）</td></tr>
+        </table>
+
+        <h3>Evo-RL 训练流程</h3>
+        <div class="diagram-container">
+          <div style="display: flex; flex-direction: column; gap: 16px;">
+            <div style="padding: 16px; background: var(--bg); border-radius: 8px; border-left: 3px solid var(--accent);">
+              <strong>阶段 1: 数据收集</strong>
+              <p style="margin: 8px 0 0 0; font-size: 13px; color: var(--text2);">使用 lerobot-human-inloop-record 收集 demonstration + 干预数据</p>
+            </div>
+            <div style="padding: 16px; background: var(--bg); border-radius: 8px; border-left: 3px solid var(--blue);">
+              <strong>阶段 2: Value Function 训练</strong>
+              <p style="margin: 8px 0 0 0; font-size: 13px; color: var(--text2);">lerobot-value-train --value.type=pistar06</p>
+            </div>
+            <div style="padding: 16px; background: var(--bg); border-radius: 8px; border-left: 3px solid var(--amber);">
+              <strong>阶段 3: Value 推理</strong>
+              <p style="margin: 8px 0 0 0; font-size: 13px; color: var(--text2);">lerobot-value-infer 计算 advantage 和 indicator 标签</p>
+            </div>
+            <div style="padding: 16px; background: var(--bg); border-radius: 8px; border-left: 3px solid var(--purple);">
+              <strong>阶段 4: 策略训练</strong>
+              <p style="margin: 8px 0 0 0; font-size: 13px; color: var(--text2);">lerobot-train 使用 ACP 标签训练策略</p>
+            </div>
+            <div style="padding: 16px; background: var(--bg); border-radius: 8px; border-left: 3px solid var(--accent);">
+              <strong>阶段 5: 闭环部署</strong>
+              <p style="margin: 8px 0 0 0; font-size: 13px; color: var(--text2);">部署策略，收集下一轮数据，循环迭代</p>
+            </div>
+          </div>
+        </div>
+
+        <h3>预训练方法的关键差异</h3>
+        <div class="callout amber">
+          <div class="callout-label">重要提醒</div>
+          <p>Evo-RL 的代码主要关注 <strong>后训练阶段（ReCAP）</strong>。对于预训练阶段：</p>
+          <ul>
+            <li><strong>π₀.5</strong>：纯 Behavior Cloning（Flow Matching）</li>
+            <li><strong>π₀.6* 论文</strong>：在 π₀.5 基础上增加 Offline RL 预训练</li>
+            <li><strong>Evo-RL</strong>：README 主要描述 SFT 之后的 ReCAP 流程，预训练阶段需要自行实现或加载已有预训练权重</li>
+          </ul>
+        </div>
+
+        <h3>实际使用建议</h3>
+        <div class="highlight-box">
+          <strong>如果你要复现 π₀.6*：</strong>
+          <ol style="margin: 12px 0 0 0; padding-left: 20px;">
+            <li>获取或训练 π₀.5 基础模型（或类似规模的 VLA）</li>
+            <li>使用 Evo-RL 的 Value Function 训练流程</li>
+            <li>收集任务数据（可包含 HITL）</li>
+            <li>运行 ReCAP 迭代改进</li>
+          </ol>
+        </div>
+      </div>
+
+      <!-- 总结 -->
+      <div class="section">
+        <div class="section-num">§ 07</div>
+        <h2>总结</h2>
+
+        <div class="callout blue">
+          <div class="callout-label">核心要点</div>
+          <ol>
+            <li><strong>预训练</strong>（π₀.5）= Behavior Cloning，建立基础能力</li>
+            <li><strong>后训练</strong>（π₀.6*）= Offline RL + 迭代改进，实现持续学习</li>
+            <li><strong>Value Function</strong> 是连接 BC 和 RL 的桥梁</li>
+            <li><strong>HITL</strong> 提供高质量纠正数据，提升学习效率</li>
+            <li><strong>ReCAP</strong> 让 VLA 能从真实部署经验中不断改进</li>
+          </ol>
+        </div>
+
+        <p>理解 π₀ 系列的训练流程，有助于你在实际项目中做出正确的选择：</p>
+        <ul>
+          <li>数据充足、任务固定 → π₀.5 风格 Behavior Cloning</li>
+          <li>需要持续学习、适应新任务 → π₀.6* 风格 ReCAP</li>
+        </ul>
+      </div>
+
+    </div>
+
+    <footer class="footer">
+      <a href="../index.html">← 返回首页</a>
+      &nbsp;·&nbsp;
+      <a href="https://www.pi.website/blog/pistar06" target="_blank">π₀.6* 原文 ↗</a>
+      &nbsp;·&nbsp;
+      <a href="https://github.com/MINT-SJTU/Evo-RL" target="_blank">Evo-RL ↗</a>
+    </footer>
+  </div>
+</body>
+</html>

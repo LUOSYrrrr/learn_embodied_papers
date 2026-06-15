@@ -302,7 +302,7 @@
                    data-body="主模型：high-level（文本 subtask）+ low-level（动作）+ action expert（860M flow matching 头）。新增的 advantage 输入用一个文本 token 喂进去（黄色框）。"></div>
               <div class="hotspot" data-id="vf" style="left:38%; top:75%;"
                    data-title="中下 · Value Function"
-                   data-body="独立的 670M VLM 骨干 + value head。预测每个状态的"还差几步成功"。VF 是 RECAP 的"老师"——它打分，advantage 才能算出来。"></div>
+                   data-body="独立的 670M VLM 骨干 + value head。预测每个状态的“还差几步成功”。VF 是 RECAP 的”老师“——它打分，advantage 才能算出来。“></div>
               <div class="hotspot" data-id="rollouts" style="left:62%; top:55%;"
                    data-title="中右 · Rollouts 闭环"
                    data-body="部署的 VLA 在真机上跑 → 失败/成功被记录 → 人偶尔介入纠正 → 数据回流去更新 VF 和 policy。这就是 'experience' 的物理过程。"></div>
@@ -311,7 +311,7 @@
                    data-body="assembling boxes（工厂场景）、making espresso drinks（咖啡机）、folding diverse laundry（11 类衣物）。都是长程 + 多步骤 + 形变物体。"></div>
               <div class="hotspot" data-id="recap" style="left:62%; top:80%;"
                    data-title="Recap 标签"
-                   data-body="把"VF 训练"和"VLA 微调"两步打包就是论文里反复出现的 'RECAP iteration'。Algorithm 1 第 7–9 行就是这个 loop。"></div>
+                   data-body="把”VF 训练“和“VLA 微调”两步打包就是论文里反复出现的 'RECAP iteration'。Algorithm 1 第 7–9 行就是这个 loop。"></div>
             </div>
             <div class="fig-cap">
               <span class="fig-num">Fig 1 · p.1</span>
@@ -472,16 +472,16 @@
                    data-body="折一件衣服，全程 ~180s。下方曲线是 VF 输出的 V 值（越接近 0 越接近成功）。"></div>
               <div class="hotspot" data-id="left-drop" style="left:35%; top:75%;"
                    data-title="红色 · V 突然下跌"
-                   data-body="对应"left arm swings up and crumples the folded shirt"——左臂把已经折好的衣服又揉乱了。VF 立刻识别"还要重折"，V 值掉下去。"></div>
+                   data-body="对应"left arm swings up and crumples the folded shirt“——左臂把已经折好的衣服又揉乱了。VF 立刻识别”还要重折“，V 值掉下去。”></div>
               <div class="hotspot" data-id="left-recover" style="left:48%; top:80%;"
                    data-title="绿色 · V 回升"
-                   data-body="对应"recovers and folds"——模型恢复并完成折叠，V 重新爬向 0。"></div>
+                   data-body="对应"recovers and folds”——模型恢复并完成折叠，V 重新爬向 0。"></div>
               <div class="hotspot" data-id="right-task" style="left:80%; top:8%;"
                    data-title="右 · 失败的取水滤芯任务"
                    data-body="想从冰箱里取水滤芯但整体失败。VF 经历短暂的"开冰箱成功"小升，最终被罚到 -C_fail。"></div>
               <div class="hotspot" data-id="right-spike" style="left:75%; top:65%;"
                    data-title="绿色短升 · 局部小成功"
-                   data-body="对应"successfully opens fridge door"——这是子目标完成，V 短暂回升。证明 VF 能识别<strong>子任务进度</strong>而不只是终态。"></div>
+                   data-body="对应"successfully opens fridge door“——这是子目标完成，V 短暂回升。证明 VF 能识别<strong>子任务进度</strong>而不只是终态。”></div>
             </div>
             <div class="fig-cap">
               <span class="fig-num">Fig 4 · p.5</span>
@@ -701,10 +701,10 @@
               <img src="../assets/figures/pi06/fig-5.png" alt="Figure 5: Robot setup">
               <div class="hotspot" data-id="base-cam" style="left:38%; top:12%;"
                    data-title="base camera · 中央俯视"
-                   data-body="装在两臂之间，看整个工作区——给"<em>全局</em>"上下文。"></div>
+                   data-body="装在两臂之间，看整个工作区——给“<em>全局</em>“上下文。"></div>
               <div class="hotspot" data-id="wrist-cams" style="left:32%; top:30%;"
                    data-title="wrist cameras · 双手腕"
-                   data-body="每个机械臂各有一个腕摄——给"<em>局部细节</em>"，对夹取/插入很关键。"></div>
+                   data-body="每个机械臂各有一个腕摄——给”<em>局部细节</em>“，对夹取/插入很关键。"></div>
               <div class="hotspot" data-id="arms" style="left:30%; top:60%;"
                    data-title="2× 6-DoF 平行夹爪臂"
                    data-body="静态 bimanual。50 Hz 关节位控。可以装在桌面上，便于在咖啡店 / 工厂 / 家里部署。"></div>

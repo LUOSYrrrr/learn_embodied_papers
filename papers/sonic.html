@@ -1,0 +1,760 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>SONIC · 超大规模运动追踪与通用全身控制</title>
+  <link rel="stylesheet" href="../assets/css/style.css">
+  <script src="../assets/js/theme.js"></script>
+  <script src="../assets/js/interactive.js" defer></script>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16/dist/katex.min.css">
+  <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16/dist/katex.min.js"></script>
+  <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16/dist/contrib/auto-render.min.js"
+          onload="renderMathInElement(document.body,{delimiters:[{left:'$$',right:'$$',display:true},{left:'$',right:'$',display:false}]})"></script>
+  <style>
+    .docs-layout { display: grid; grid-template-columns: 220px minmax(0, 1fr); max-width: 1400px; margin: 0 auto; }
+    .sidebar { position: sticky; top: 60px; height: calc(100vh - 60px); overflow-y: auto; padding: 24px 16px; border-right: 1px solid var(--border); background: var(--bg); }
+    .sidebar-title { font-family: var(--font-mono); font-size: 10px; color: var(--text3); letter-spacing: 0.08em; text-transform: uppercase; margin-bottom: 16px; padding-bottom: 8px; border-bottom: 1px solid var(--border); }
+    .sidebar-tree { list-style: none; margin: 0; padding: 0; }
+    .sidebar-tree li { margin: 4px 0; }
+    .sidebar-tree a { display: block; padding: 6px 10px; font-size: 13px; color: var(--text2); text-decoration: none; border-radius: 6px; transition: all 0.2s; }
+    .sidebar-tree a:hover { background: var(--glass-hover); color: var(--text); }
+    .sidebar-tree a.active { background: rgba(74, 222, 154, 0.1); color: var(--accent); }
+
+    .main-content { min-width: 0; }
+    @media (max-width: 900px) { .docs-layout { grid-template-columns: 1fr; } .sidebar { display: none; } }
+
+    .paper-header { padding: 40px 40px 24px; max-width: 1200px; margin: 0 auto; }
+    .paper-venue { font-family: var(--font-mono); font-size: 11px; color: var(--text3); letter-spacing: 0.06em; margin-bottom: 10px; }
+    .paper-title { font-family: var(--font-serif); font-size: 28px; font-weight: 700; color: var(--text); line-height: 1.35; margin: 0 0 14px; }
+    .paper-authors { font-size: 14px; color: var(--text2); margin-bottom: 8px; }
+    .paper-badges { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 16px; }
+    .badge { font-family: var(--font-mono); font-size: 10px; padding: 4px 10px; border-radius: 6px; background: var(--bg3); color: var(--text2); border: 1px solid var(--border); }
+    .badge-green { background: rgba(74, 222, 154, 0.12); color: var(--accent); border-color: rgba(74, 222, 154, 0.3); }
+    .badge-blue { background: rgba(96, 165, 250, 0.12); color: var(--blue); border-color: rgba(96, 165, 250, 0.3); }
+    .badge-amber { background: rgba(245, 158, 11, 0.12); color: var(--amber); border-color: rgba(245, 158, 11, 0.3); }
+    .badge-purple { background: rgba(167, 139, 250, 0.12); color: var(--purple); border-color: rgba(167, 139, 250, 0.3); }
+
+    .section { padding: 32px 40px; max-width: 1200px; margin: 0 auto; border-top: 1px solid var(--border); }
+    .section-num { font-family: var(--font-mono); font-size: 11px; color: var(--accent); letter-spacing: 0.08em; margin-bottom: 6px; }
+    .section h2 { font-family: var(--font-serif); font-size: 22px; font-weight: 600; margin: 0 0 20px; color: var(--text); }
+    .section h3 { font-size: 17px; font-weight: 600; margin: 28px 0 12px; color: var(--text); }
+    .section p { font-size: 15px; line-height: 1.85; color: var(--text2); margin: 0 0 16px; }
+
+    .cn-read { background: var(--bg2); border-left: 3px solid var(--accent); padding: 18px 22px; margin: 20px 0; border-radius: 0 8px 8px 0; }
+    .cn-label { font-family: var(--font-mono); font-size: 10px; color: var(--accent); letter-spacing: 0.06em; text-transform: uppercase; margin-bottom: 8px; }
+    .cn-read p { margin: 0; font-size: 14.5px; line-height: 1.8; color: var(--text); }
+
+    .callout { background: var(--bg2); border: 1px solid var(--border); border-radius: 10px; padding: 18px 22px; margin: 20px 0; }
+    .callout-label { font-family: var(--font-mono); font-size: 10px; letter-spacing: 0.06em; text-transform: uppercase; margin-bottom: 8px; color: var(--text3); }
+    .callout p { font-size: 14px; line-height: 1.8; color: var(--text2); margin: 0 0 8px; }
+    .callout p:last-child { margin: 0; }
+    .callout.amber { border-color: var(--amber); background: rgba(245, 158, 11, 0.08); }
+    .callout.amber .callout-label { color: var(--amber); }
+    .callout.red { border-color: var(--accent3); background: rgba(255, 107, 107, 0.08); }
+    .callout.red .callout-label { color: var(--accent3); }
+    .callout.blue { border-color: var(--blue); background: rgba(96, 165, 250, 0.08); }
+    .callout.blue .callout-label { color: var(--blue); }
+    .callout.purple { border-color: var(--purple); background: rgba(167, 139, 250, 0.08); }
+    .callout.purple .callout-label { color: var(--purple); }
+
+    .kv-table { width: 100%; border-collapse: collapse; margin: 16px 0; font-size: 13px; }
+    .kv-table td { padding: 10px 14px; border: 1px solid var(--border); }
+    .kv-table td:first-child { background: var(--bg2); color: var(--text3); width: 30%; font-family: var(--font-mono); font-size: 11px; }
+    .kv-table td:last-child { color: var(--text); }
+
+    .module-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 14px; margin: 20px 0; }
+    .module-card { background: var(--bg2); border: 1px solid var(--border); border-radius: 10px; padding: 18px; }
+    .module-card-name { font-family: var(--font-mono); font-size: 10px; color: var(--text3); letter-spacing: 0.06em; margin-bottom: 6px; }
+    .module-card-title { font-size: 15px; font-weight: 600; color: var(--text); margin-bottom: 8px; }
+    .module-card-desc { font-size: 13px; color: var(--text2); line-height: 1.6; }
+
+    .three-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 14px; margin: 20px 0; }
+    @media (max-width: 700px) { .three-grid { grid-template-columns: 1fr; } .module-grid { grid-template-columns: 1fr; } }
+
+    .math-block { background: var(--bg3); border: 1px solid var(--border); border-radius: 8px; padding: 18px 22px; margin: 16px 0; font-size: 15px; overflow-x: auto; }
+    .math-label { display: block; font-family: var(--font-mono); font-size: 10px; color: var(--text3); margin-top: 10px; }
+    .math-explain { background: var(--bg2); border: 1px solid var(--border); border-radius: 8px; padding: 16px 20px; margin: 8px 0 20px; }
+    .me-title { font-family: var(--font-mono); font-size: 10px; color: var(--text3); text-transform: uppercase; letter-spacing: 0.06em; margin-bottom: 12px; }
+    .math-explain dl { margin: 0; }
+    .math-explain dt { color: var(--accent); font-weight: 600; font-size: 14px; margin-top: 10px; }
+    .math-explain dd { margin: 4px 0 0 16px; font-size: 13px; color: var(--text2); line-height: 1.6; }
+
+    .result-bar-wrap { margin: 20px 0; }
+    .result-bar-item { display: flex; align-items: center; gap: 12px; margin: 10px 0; font-size: 13px; }
+    .result-bar-label { width: 160px; color: var(--text2); flex-shrink: 0; }
+    .result-bar-bg { flex: 1; height: 22px; background: var(--bg3); border-radius: 4px; overflow: hidden; }
+    .result-bar-fill { height: 100%; border-radius: 4px; transition: width 0.6s ease; }
+    .result-bar-val { width: 56px; font-family: var(--font-mono); font-size: 12px; color: var(--text3); text-align: right; flex-shrink: 0; }
+
+    .diagram-wrap { background: var(--bg2); border: 1px solid var(--border); border-radius: 10px; padding: 20px; margin: 20px 0; overflow-x: auto; }
+    .diagram-caption { font-size: 12px; color: var(--text3); margin-top: 12px; text-align: center; }
+    svg text { font-family: var(--font-sans); }
+
+    .quiz { background: var(--bg2); border: 1px solid var(--border); border-radius: 10px; padding: 20px; margin: 24px 0; }
+    .q-label { font-family: var(--font-mono); font-size: 10px; color: var(--amber); letter-spacing: 0.06em; text-transform: uppercase; margin-bottom: 10px; }
+    .q-text { font-size: 15px; color: var(--text); margin-bottom: 16px; font-weight: 500; }
+    .q-options { display: flex; flex-direction: column; gap: 8px; }
+    .q-opt { text-align: left; background: var(--bg3); border: 1px solid var(--border); color: var(--text); padding: 12px 16px; border-radius: 8px; cursor: pointer; font-size: 14px; transition: all 0.2s; }
+    .q-opt:hover { background: var(--glass-hover); border-color: var(--border2); }
+    .q-opt.correct { background: rgba(74, 222, 154, 0.15); border-color: var(--accent); }
+    .q-opt.wrong { background: rgba(255, 107, 107, 0.15); border-color: var(--accent3); }
+    .q-feedback { margin-top: 14px; padding: 12px; border-radius: 8px; font-size: 13px; display: none; }
+    .q-feedback.show { display: block; background: var(--bg3); color: var(--text2); }
+
+    .step-walker { background: var(--bg2); border: 1px solid var(--border); border-radius: 10px; padding: 20px; margin: 24px 0; }
+    .sw-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px; }
+    .sw-title { font-size: 14px; font-weight: 600; color: var(--text); }
+    .sw-controls { display: flex; gap: 10px; align-items: center; }
+    .sw-btn { background: var(--bg3); border: 1px solid var(--border); color: var(--text); padding: 6px 12px; border-radius: 6px; cursor: pointer; font-size: 12px; }
+    .sw-btn:hover { background: var(--glass-hover); }
+    .sw-counter { font-family: var(--font-mono); font-size: 12px; color: var(--text3); }
+    .sw-progress { display: flex; gap: 6px; margin-bottom: 16px; }
+    .sw-dot { flex: 1; height: 3px; background: var(--border); border-radius: 2px; }
+    .sw-dot.active { background: var(--accent); }
+    .sw-step { display: none; }
+    .sw-step.active { display: block; }
+    .sw-step h4 { font-size: 14px; margin: 0 0 8px; color: var(--text); }
+    .sw-step p { font-size: 13px; color: var(--text2); margin: 0; }
+
+    .footer { padding: 32px 40px; font-size: 12px; color: var(--text3); border-top: 1px solid var(--border); text-align: center; }
+  </style>
+</head>
+<body>
+  <nav class="topnav">
+    <a href="../index.html" class="nav-logo">← Embodied Notes</a>
+    <div class="nav-links">
+      <a href="motionwam.html">MotionWAM</a>
+      <a href="dit4dit.html">DiT4DiT</a>
+      <a href="../index.html">首页</a>
+    </div>
+  </nav>
+
+  <div class="docs-layout">
+    <aside class="sidebar">
+      <div class="sidebar-title">SONIC 目录</div>
+      <ul class="sidebar-tree">
+        <li><a href="#intro">§01 核心问题</a></li>
+        <li><a href="#architecture">§02 通用控制策略架构</a></li>
+        <li><a href="#fsq">§03 FSQ Universal Token</a></li>
+        <li><a href="#scaling">§04 扩展性实验</a></li>
+        <li><a href="#applications">§05 下游应用</a></li>
+        <li><a href="#relation">§06 与 MotionWAM 的关系</a></li>
+      </ul>
+    </aside>
+
+    <main class="main-content">
+      <div class="paper-header">
+        <div class="paper-venue">arXiv:2511.07820 · NVIDIA · 2026-05-22</div>
+        <h1 class="paper-title">SONIC: Supersizing Motion Tracking for Natural Humanoid Whole-Body Control</h1>
+        <div class="paper-authors">Zhengyi Luo, Ye Yuan, Tingwu Wang, Chenran Li, Fernando Castañeda, Sirui Chen, Zi-Ang Cao, Jiefeng Li, David Minor, Qingwei Ben ... NVIDIA</div>
+        <div class="paper-badges">
+          <span class="badge badge-green">通用全身控制</span>
+          <span class="badge badge-blue">运动追踪 · 可扩展</span>
+          <span class="badge badge-purple">FSQ · Universal Token</span>
+          <span class="badge badge-amber">Unitree G1</span>
+          <span class="badge">100M 帧 · 21K GPU-h</span>
+        </div>
+      </div>
+
+      <!-- §01 核心问题 -->
+      <div class="section" id="intro">
+        <div class="section-num">§ 01</div>
+        <h2>核心问题：人形控制为什么难以扩展？</h2>
+
+        <div class="cn-read">
+          <div class="cn-label">一句话概括</div>
+          <p>
+            SONIC 的论点：<strong>运动追踪（motion tracking）是人形控制的可扩展基础任务</strong>——
+            它提供逐帧监督信号、可复用人类动作捕捉数据、天然与奖励工程解耦，
+            因此能像 LLM 一样随数据/模型/算力增长而稳定提升。
+          </p>
+        </div>
+
+        <p>
+          现有人形控制器的扩展性困境：每个新行为都需要手工设计奖励函数（locomotion 的奖励对 dancing 毫无用处），
+          对抗性模仿方法（AMP/ASE）在数据多样性增加时判别器易崩溃，导致 scaling 无法带来持续提升。
+        </p>
+
+        <p>
+          运动追踪的突破口：人类动作捕捉数据集（walking / running / dancing / fighting / tool-use …）
+          已经在数十年的研究中积累到规模——每帧都有明确的目标姿态，监督信号天然稠密，
+          模型收到的是"你现在离目标姿态有多远"的精确梯度，不需要稀疏奖励 shaping。
+        </p>
+
+        <table class="kv-table">
+          <tr><td>论文全称</td><td><strong>S</strong>upersizing m<strong>O</strong>tion tracking for <strong>N</strong>atural human<strong>o</strong>ld <strong>C</strong>ontrol（SONIC）</td></tr>
+          <tr><td>数据规模</td><td>700 小时人类动作捕捉 → 过滤后 611 小时，100M+ 帧（50 fps），33 大类运动</td></tr>
+          <tr><td>模型规模</td><td>1.2M → 42M 参数</td></tr>
+          <tr><td>计算规模</td><td>2K → 21K GPU 小时（128 GPU 训练）</td></tr>
+          <tr><td>追踪结果</td><td>99.6% 成功率（test-content OOD），99.2% sim-to-real 成功率</td></tr>
+          <tr><td>项目页</td><td><a href="https://nvlabs.github.io/GEAR-SONIC/" style="color:var(--blue)">nvlabs.github.io/GEAR-SONIC/</a></td></tr>
+        </table>
+
+        <div class="callout amber">
+          <div class="callout-label">与 MotionWAM 的关系</div>
+          <p>
+            SONIC 是 MotionWAM 的<strong>底层运动引擎</strong>。MotionWAM 的 Motion DiT 预测的"全身运动 latent $m_t$"，
+            其中的离散部分 $k_t$ 就是 SONIC 的 universal token；SONIC 负责把这个 token 解码成 29-DoF 关节命令。
+            MotionWAM = 上层感知-推理（Video DiT + Motion DiT）+ 下层运动执行（SONIC）。
+          </p>
+        </div>
+      </div>
+
+      <!-- §02 通用控制策略架构 -->
+      <div class="section" id="architecture">
+        <div class="section-num">§ 02</div>
+        <h2>通用控制策略：多编码器 + FSQ 量化器 + 双解码器</h2>
+
+        <p>
+          SONIC 的核心设计是一个<strong>通用控制策略（Universal Control Policy）</strong>，
+          通过多专用编码器将异构的运动命令来源（机器人/人类/混合）统一映射到同一个量化 token，
+          再由单一策略解码为关节命令。整个系统架构如下：
+        </p>
+
+        <div class="diagram-wrap">
+          <svg viewBox="0 0 760 320" width="100%" style="font-size:13px;">
+            <!-- Background -->
+            <rect width="760" height="320" fill="none"/>
+
+            <!-- Column headers -->
+            <text x="70" y="22" fill="#5c5a56" font-size="11" text-anchor="middle" font-family="monospace">Motion Generators</text>
+            <text x="240" y="22" fill="#5c5a56" font-size="11" text-anchor="middle" font-family="monospace">Motions</text>
+            <text x="390" y="22" fill="#5c5a56" font-size="11" text-anchor="middle" font-family="monospace">Encoders</text>
+            <text x="540" y="22" fill="#5c5a56" font-size="11" text-anchor="middle" font-family="monospace">Quantizer</text>
+            <text x="670" y="22" fill="#5c5a56" font-size="11" text-anchor="middle" font-family="monospace">Decoders</text>
+
+            <!-- Motion Generators -->
+            <rect x="10" y="38" width="120" height="40" rx="6" fill="#1a1e24" stroke="#2ec4b6" stroke-width="1"/>
+            <text x="70" y="60" fill="#2ec4b6" font-size="10" text-anchor="middle">Kinematic Planner</text>
+            <text x="70" y="73" fill="#9a9690" font-size="9" text-anchor="middle">gamepad / navigation</text>
+
+            <rect x="10" y="88" width="120" height="40" rx="6" fill="#1a1e24" stroke="#60a5fa" stroke-width="1"/>
+            <text x="70" y="110" fill="#60a5fa" font-size="10" text-anchor="middle">PICO VR Toolkit</text>
+            <text x="70" y="123" fill="#9a9690" font-size="9" text-anchor="middle">VR whole-body teleop</text>
+
+            <rect x="10" y="138" width="120" height="40" rx="6" fill="#1a1e24" stroke="#a78bfa" stroke-width="1"/>
+            <text x="70" y="157" fill="#a78bfa" font-size="10" text-anchor="middle">GEM Motion Generator</text>
+            <text x="70" y="170" fill="#9a9690" font-size="9" text-anchor="middle">video / text / music</text>
+
+            <!-- Arrows to motions -->
+            <line x1="130" y1="58" x2="180" y2="88" stroke="#5c5a56" stroke-width="1" marker-end="url(#arr)"/>
+            <line x1="130" y1="108" x2="180" y2="118" stroke="#5c5a56" stroke-width="1" marker-end="url(#arr)"/>
+            <line x1="130" y1="158" x2="180" y2="148" stroke="#5c5a56" stroke-width="1" marker-end="url(#arr)"/>
+
+            <!-- Motions -->
+            <rect x="180" y="60" width="100" height="25" rx="5" fill="#1a1e24" stroke="#2ec4b6" stroke-width="1"/>
+            <text x="230" y="77" fill="#e8e6e0" font-size="11" text-anchor="middle">Robot Motion</text>
+            <rect x="180" y="100" width="100" height="25" rx="5" fill="#1a1e24" stroke="#60a5fa" stroke-width="1"/>
+            <text x="230" y="117" fill="#e8e6e0" font-size="11" text-anchor="middle">Hybrid Motion</text>
+            <rect x="180" y="140" width="100" height="25" rx="5" fill="#1a1e24" stroke="#a78bfa" stroke-width="1"/>
+            <text x="230" y="157" fill="#e8e6e0" font-size="11" text-anchor="middle">Human Motion</text>
+
+            <!-- Arrows to encoders -->
+            <line x1="280" y1="72" x2="320" y2="85" stroke="#5c5a56" stroke-width="1" marker-end="url(#arr)"/>
+            <line x1="280" y1="112" x2="320" y2="118" stroke="#5c5a56" stroke-width="1" marker-end="url(#arr)"/>
+            <line x1="280" y1="152" x2="320" y2="148" stroke="#5c5a56" stroke-width="1" marker-end="url(#arr)"/>
+
+            <!-- Encoders -->
+            <rect x="320" y="58" width="100" height="40" rx="6" fill="#1a1e24" stroke="#2ec4b6" stroke-width="1.5"/>
+            <text x="370" y="78" fill="#2ec4b6" font-size="10" text-anchor="middle" font-weight="600">Robot Encoder</text>
+            <text x="370" y="91" fill="#9a9690" font-size="9" text-anchor="middle">ℰ_r · joint pos/vel</text>
+
+            <rect x="320" y="108" width="100" height="40" rx="6" fill="#1a1e24" stroke="#60a5fa" stroke-width="1.5"/>
+            <text x="370" y="126" fill="#60a5fa" font-size="10" text-anchor="middle" font-weight="600">Hybrid Encoder</text>
+            <text x="370" y="139" fill="#9a9690" font-size="9" text-anchor="middle">ℰ_m · keypoints+lag</text>
+
+            <rect x="320" y="158" width="100" height="40" rx="6" fill="#1a1e24" stroke="#a78bfa" stroke-width="1.5"/>
+            <text x="370" y="176" fill="#a78bfa" font-size="10" text-anchor="middle" font-weight="600">Human Encoder</text>
+            <text x="370" y="189" fill="#9a9690" font-size="9" text-anchor="middle">ℰ_h · SMPL 3D joints</text>
+
+            <!-- Shared latent -->
+            <line x1="420" y1="78" x2="460" y2="118" stroke="#5c5a56" stroke-width="1"/>
+            <line x1="420" y1="128" x2="460" y2="122" stroke="#5c5a56" stroke-width="1"/>
+            <line x1="420" y1="178" x2="460" y2="130" stroke="#5c5a56" stroke-width="1"/>
+
+            <!-- Quantizer -->
+            <rect x="460" y="85" width="110" height="70" rx="8" fill="#13161a" stroke="#4ade9a" stroke-width="2"/>
+            <text x="515" y="110" fill="#4ade9a" font-size="11" text-anchor="middle" font-weight="700">FSQ</text>
+            <text x="515" y="125" fill="#4ade9a" font-size="10" text-anchor="middle">Quantizer</text>
+            <text x="515" y="140" fill="#9a9690" font-size="9" text-anchor="middle">→ Universal Token z</text>
+            <text x="515" y="152" fill="#9a9690" font-size="9" text-anchor="middle">2 tokens × D_z × L_z</text>
+
+            <!-- Arrows to decoders -->
+            <line x1="570" y1="110" x2="615" y2="90" stroke="#5c5a56" stroke-width="1" marker-end="url(#arr)"/>
+            <line x1="570" y1="130" x2="615" y2="170" stroke="#5c5a56" stroke-width="1" marker-end="url(#arr)"/>
+
+            <!-- Decoders -->
+            <rect x="615" y="58" width="120" height="55" rx="6" fill="#1a1e24" stroke="#4ade9a" stroke-width="1.5"/>
+            <text x="675" y="82" fill="#4ade9a" font-size="10" text-anchor="middle" font-weight="600">Robot Control Decoder</text>
+            <text x="675" y="95" fill="#9a9690" font-size="9" text-anchor="middle">𝒟_c(z, s^p) → joint cmd</text>
+            <text x="675" y="107" fill="#9a9690" font-size="9" text-anchor="middle">驱动机器人</text>
+
+            <rect x="615" y="145" width="120" height="55" rx="6" fill="#1a1e24" stroke="#5c5a56" stroke-width="1"/>
+            <text x="675" y="167" fill="#9a9690" font-size="10" text-anchor="middle" font-weight="600">Robot Motion Decoder</text>
+            <text x="675" y="180" fill="#9a9690" font-size="9" text-anchor="middle">𝒟_r(z) → robot motion</text>
+            <text x="675" y="192" fill="#9a9690" font-size="9" text-anchor="middle">辅助重建监督</text>
+
+            <!-- Proprioception input -->
+            <text x="675" y="248" fill="#5c5a56" font-size="10" text-anchor="middle">本体感受 s^p</text>
+            <text x="675" y="263" fill="#5c5a56" font-size="9" text-anchor="middle">（q, q̇, ω, g, a_{t-1}）× 10步历史</text>
+            <line x1="675" y1="230" x2="675" y2="210" stroke="#5c5a56" stroke-width="1" stroke-dasharray="4,3" marker-end="url(#arr)"/>
+
+            <!-- Arrow marker -->
+            <defs>
+              <marker id="arr" markerWidth="8" markerHeight="8" refX="6" refY="3" orient="auto">
+                <path d="M0,0 L0,6 L8,3 z" fill="#5c5a56"/>
+              </marker>
+            </defs>
+          </svg>
+          <div class="diagram-caption">SONIC 通用控制策略：三种编码器 → FSQ 量化 → Universal Token → 机器人关节命令</div>
+        </div>
+
+        <h3>2.1 状态空间</h3>
+        <p>策略在每时刻接收两类输入：</p>
+        <table class="kv-table">
+          <tr>
+            <td>$s_t^p$（本体感受）</td>
+            <td>关节角度 $q_t$、关节速度 $\dot{q}_t$、根节角速度 $\omega_t$、重力向量 $g_t$、上一步动作 $a_{t-1}$；拼接 10 步历史作为时序上下文</td>
+          </tr>
+          <tr>
+            <td>$s_t^g$（运动命令）</td>
+            <td>三选一：机器人运动 $g_r$（joint positions + velocities）/ 人类运动 $g_h$（3D SMPL 关节）/ 混合运动 $g_m$（上身 keypoint + 下身机器人运动）</td>
+          </tr>
+        </table>
+        <p>所有量均在机器人<strong>局部坐标系</strong>下表示，采用 6D 旋转表示（Zhou et al. 2019）确保旋转不变性。</p>
+
+        <h3>2.2 三种专用编码器</h3>
+        <div class="three-grid">
+          <div class="module-card">
+            <div class="module-card-name">Robot Encoder · $\mathcal{E}_r$</div>
+            <div class="module-card-title">机器人运动编码器</div>
+            <div class="module-card-desc">
+              输入：未来 $F_r$ 帧的关节位置和速度，帧间隔 $\Delta t_r$。
+              适用于：Kinematic Planner 生成的运动命令，或已记录的机器人轨迹。
+            </div>
+          </div>
+          <div class="module-card">
+            <div class="module-card-name">Human Encoder · $\mathcal{E}_h$</div>
+            <div class="module-card-title">人类运动编码器</div>
+            <div class="module-card-desc">
+              输入：未来 $F_h$ 帧的 3D 人类关节坐标（SMPL 格式）。
+              适用于：视频/文字/音乐驱动的运动生成（GEM），以及 VR 全身遥操作。
+              <strong>关键能力：把人→机器人的 retargeting 内化到编码器</strong>，无需显式对齐。
+            </div>
+          </div>
+          <div class="module-card">
+            <div class="module-card-name">Hybrid Encoder · $\mathcal{E}_m$</div>
+            <div class="module-card-title">混合运动编码器</div>
+            <div class="module-card-desc">
+              输入：当前帧上身稀疏 keypoint（头 + 双腕）+ 未来 $F_m$ 帧下身机器人运动。
+              适用于：VR 三点遥操作（只有上身信号，下身由 Kinematic Planner 生成）。
+            </div>
+          </div>
+        </div>
+        <p>三种编码器均为 MLP，将各自输入映射到共享 latent 空间——这是跨模态对齐的关键。</p>
+
+        <h3>2.3 双解码器</h3>
+        <div class="module-grid">
+          <div class="module-card">
+            <div class="module-card-name">Robot Control Decoder · $\mathcal{D}_c$（主要）</div>
+            <div class="module-card-title">关节命令解码器</div>
+            <div class="module-card-desc">
+              输入：universal token $\mathbf{z}$ + 本体感受 $s_t^p$，输出：目标关节位置 $a_t$。
+              由 PD 控制器跟踪执行。训练时和部署时输入相同，无 sim-to-real gap。
+            </div>
+          </div>
+          <div class="module-card">
+            <div class="module-card-name">Robot Motion Decoder · $\mathcal{D}_r$（辅助）</div>
+            <div class="module-card-title">运动重建解码器</div>
+            <div class="module-card-desc">
+              输入：universal token $\mathbf{z}$，输出：机器人运动命令 $\hat{g}_r$。
+              作用：提供重建监督信号，改善 latent space 的信息丰富度；
+              同时作为隐式 retargeting 模块——从人类运动编码的 token 也能重建出机器人运动。
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- §03 FSQ Universal Token -->
+      <div class="section" id="fsq">
+        <div class="section-num">§ 03</div>
+        <h2>FSQ Universal Token：通用运动隐变量</h2>
+
+        <div class="cn-read">
+          <div class="cn-label">核心创新</div>
+          <p>
+            SONIC 引入<strong>有限标量量化（Finite Scalar Quantization, FSQ）</strong>把连续 latent 压成一个
+            <strong>universal token $\mathbf{z}$</strong>，让来自不同输入模态（机器人 / 人类 / 混合）的运动命令
+            在同一个离散 token 空间里统一表达，单一策略用这个 token 驱动全身。
+          </p>
+        </div>
+
+        <h3>3.1 为什么选 FSQ 不选 VQ-VAE？</h3>
+        <table class="kv-table">
+          <tr>
+            <td style="color:var(--accent3)">VQ-VAE 的问题</td>
+            <td>
+              <strong>Codebook Collapse</strong>：大量 codebook 槽位空置不用，只有少数几个被激活。
+              需要额外的 commitment loss + EMA codebook 更新来缓解，训练不稳定，
+              且这些辅助损失与 PPO 优化不兼容（梯度干扰）。
+            </td>
+          </tr>
+          <tr>
+            <td style="color:var(--accent)">FSQ 的优势</td>
+            <td>
+              没有独立 codebook，直接用<strong>有界 tanh + 四舍五入</strong>把连续值卡到离散档位。
+              straight-through 梯度估计天然兼容 PPO，无需额外 EMA 或 commitment loss，
+              训练全程稳定，在所有模型规模下未出现不稳定。
+            </td>
+          </tr>
+        </table>
+
+        <h3>3.2 Token 的结构</h3>
+        <div class="math-block">
+          $$\mathbf{z} = \text{FSQ}(\text{Encoder output}) \in \left\{-1, -\frac{L_z-2}{L_z}, \ldots, \frac{L_z-2}{L_z}, 1\right\}^{2 \times D_z}$$
+          <span class="math-label">Universal Token 取值集合 · 2个token × 每token D_z维 × L_z档位</span>
+        </div>
+
+        <table class="kv-table">
+          <tr><td>Token 数量</td><td>2 个 token（每个独立量化）</td></tr>
+          <tr><td>每 token 维度</td><td>$D_z$（论文验证了多种配置）</td></tr>
+          <tr><td>每维度档位</td><td>$L_z$ 档（MotionWAM 中使用 32 档）</td></tr>
+          <tr><td>取值范围</td><td>$[-1, 1]$ 均匀分 $L_z$ 档：$\{-1, -\frac{L_z-2}{L_z}, \ldots, 1\}$</td></tr>
+          <tr><td>梯度</td><td>Straight-through estimation（前向 round，反向直接传梯度）</td></tr>
+        </table>
+
+        <div class="callout blue">
+          <div class="callout-label">类比：音乐的音阶量化</div>
+          <p>
+            把连续的声音频率量化为 12 个半音——FSQ 就在做类似的事：把连续的全身运动意图量化成
+            有限个离散"运动档位"。瓶颈化（只准 $L_z$ 档）是有意为之：
+            逼模型把全身运动压成紧凑、跨模态可复用的表示。
+            实验证明，预测 universal token 比直接预测 SMPL 姿态
+            产生<strong>更平滑、更安全</strong>的机器人行为（后者会有抖动和方向控制问题）。
+          </p>
+        </div>
+
+        <h3>3.3 训练目标（联合四项损失）</h3>
+        <div class="math-block">
+          $$\mathcal{L} = \mathcal{L}_{\text{ppo}} + \mathcal{L}_{\text{recon}} + \mathcal{L}_{\text{token}} + \mathcal{L}_{\text{cycle}}$$
+          <span class="math-label">SONIC 总训练损失 · Eq. 1–4</span>
+        </div>
+
+        <div class="math-explain">
+          <div class="me-title">各项损失含义</div>
+          <dl>
+            <dt>$\mathcal{L}_{\text{ppo}}$</dt>
+            <dd>标准 PPO 强化学习损失。奖励 = 追踪误差（关节位置/速度/方向）+ 末端执行器位置 + 反抖动惩罚 + 足部加速度惩罚（促进平滑落地）。</dd>
+            <dt>$\mathcal{L}_{\text{recon}} = \sum_{i \in \{r,h,m\}} \|\mathcal{D}_r(\mathbf{z}_i) - g_r\|^2$</dt>
+            <dd>重建损失：三种编码器路径产生的 token 都能被 $\mathcal{D}_r$ 重建回机器人运动。当输入是人类运动 $g_h$ 时，这就是 retargeting loss——让模型学会"把人类动作翻译成机器人可执行的版本"。</dd>
+            <dt>$\mathcal{L}_{\text{token}} = \|z_r - z_h\|^2 + \|z_r - z_m\|^2$</dt>
+            <dd>Token 对齐损失：强制三种编码器对同一底层运动产生相似 token，确保统一 token 空间真的统一。</dd>
+            <dt>$\mathcal{L}_{\text{cycle}} = \|\mathcal{E}_r(\mathcal{D}_r(z_h)) - z_r\|^2$</dt>
+            <dd>循环一致性：从人类 token $z_h$ 重建出机器人运动，再重新编码成机器人 token，应该等于原始 $z_r$。强化跨模态翻译的质量。</dd>
+          </dl>
+        </div>
+
+        <div class="callout blue">
+          <div class="callout-label">为什么用 PPO 而不是 BC？</div>
+          <p>
+            运动追踪需要平衡稳定性（不摔倒）和精度（跟上参考姿态），单纯行为克隆无法保证物理可行性。
+            PPO 在物理仿真（Isaac Lab）中训练，自然获得稳定步态和接触动力学，
+            再用辅助损失（recon/token/cycle）约束 latent space。
+            PPO 梯度穿过 FSQ 的 straight-through estimator 更新编码器和量化器，
+            四项损失联合优化，端到端一个训练循环完成。
+          </p>
+        </div>
+      </div>
+
+      <!-- §04 扩展性实验 -->
+      <div class="section" id="scaling">
+        <div class="section-num">§ 04</div>
+        <h2>可扩展性：三轴 Scaling 曲线</h2>
+
+        <p>
+          SONIC 在三个维度上系统验证了 scaling law（Fig. 2）：数据规模、模型规模、算力规模。
+          所有测试集均隐藏于训练，用追踪成功率（Success Rate）和 MPJPE-L（关节位置误差）衡量。
+        </p>
+
+        <div class="three-grid">
+          <div class="module-card">
+            <div class="module-card-name">Data Scaling</div>
+            <div class="module-card-title">4M → 100M 帧</div>
+            <div class="module-card-desc">
+              4M / 10M / 22M / 100M 帧对应 test-content（OOD）成功率稳步上升。
+              最大（100M）达 <strong>99.6%</strong>，最小（4M）仅 ~98.8%。
+              数据多样性获益最显著。
+            </div>
+          </div>
+          <div class="module-card">
+            <div class="module-card-name">Model Scaling</div>
+            <div class="module-card-title">1.2M → 42M 参数</div>
+            <div class="module-card-desc">
+              1.2M / 16M / 42M 参数，42M 最优。
+              最大 vs 最小：OOD 成功率从 98.0% → 99.6%，MPJPE-L 从 27.7mm → 23.8mm。
+            </div>
+          </div>
+          <div class="module-card">
+            <div class="module-card-name">Compute Scaling</div>
+            <div class="module-card-title">2K → 21K GPU-h</div>
+            <div class="module-card-desc">
+              2K / 9K / 21K GPU 小时（16 / 32 / 128 GPU，50K iter）。
+              更大 batch 带来更好的优化稳定性，成功率单调提升。
+            </div>
+          </div>
+        </div>
+
+        <h3>与基线的对比</h3>
+        <div class="result-bar-wrap">
+          <div class="result-bar-item">
+            <span class="result-bar-label">SONIC（99.6%）</span>
+            <div class="result-bar-bg"><div class="result-bar-fill" style="width:99.6%; background:var(--accent);"></div></div>
+            <span class="result-bar-val">99.6%</span>
+          </div>
+          <div class="result-bar-item">
+            <span class="result-bar-label">BeyondMimic</span>
+            <div class="result-bar-bg"><div class="result-bar-fill" style="width:81.6%; background:var(--blue);"></div></div>
+            <span class="result-bar-val">81.6%</span>
+          </div>
+          <div class="result-bar-item">
+            <span class="result-bar-label">Any2Track</span>
+            <div class="result-bar-bg"><div class="result-bar-fill" style="width:31.1%; background:var(--text3);"></div></div>
+            <span class="result-bar-val">31.1%</span>
+          </div>
+        </div>
+        <p style="font-size:13px; color:var(--text3);">test-content（OOD）成功率；SONIC MPJPE-L = 23.2mm，BeyondMimic = 39.1mm（41% 降低）</p>
+
+        <h3>Sim-to-Real 迁移</h3>
+        <table class="kv-table">
+          <tr><td>测试条件</td><td>123 条多样运动序列，真实 Unitree G1</td></tr>
+          <tr><td>真实 vs 仿真成功率</td><td>99.2% (real) vs 100.0% (sim)</td></tr>
+          <tr><td>MPJPE-L 上身</td><td>22.2mm (real) vs 21.8mm (sim)，gap 极小</td></tr>
+          <tr><td>MPJPE-L 足部</td><td>53.7mm (real) vs 29.0mm (sim)，足部接触动力学差异最大</td></tr>
+        </table>
+
+        <div class="callout amber">
+          <div class="callout-label">为什么运动追踪的 scaling 好于其他方法？</div>
+          <p>
+            运动追踪的监督信号是<strong>稠密逐帧的</strong>——每一帧都告诉模型"你离目标姿态差了多少"。
+            对比 AMP/ASE（判别器随数据增加易崩溃），或任务特定奖励工程（每个行为需要重设计），
+            运动追踪的学习信号始终有效，所以 scaling 带来持续提升。
+            这也是 LLM 用 next-token prediction 能 scale 的同等道理：稠密监督 + 明确标签 = 可扩展任务。
+          </p>
+        </div>
+      </div>
+
+      <!-- §05 下游应用 -->
+      <div class="section" id="applications">
+        <div class="section-num">§ 05</div>
+        <h2>下游应用：一个 Token Space 支撑所有接口</h2>
+
+        <p>
+          Universal token 的威力在于：<strong>不修改策略权重</strong>，只换上游的运动生成模块，
+          同一个 SONIC 就能支撑完全不同的控制接口。
+        </p>
+
+        <div class="step-walker">
+          <div class="sw-header">
+            <div class="sw-title">五大应用场景</div>
+            <div class="sw-controls">
+              <button class="sw-btn prev">◀</button>
+              <span class="sw-counter">1 / 5</span>
+              <button class="sw-btn next">▶</button>
+            </div>
+          </div>
+          <div class="sw-progress">
+            <div class="sw-dot active"></div><div class="sw-dot"></div><div class="sw-dot"></div>
+            <div class="sw-dot"></div><div class="sw-dot"></div>
+          </div>
+          <div class="sw-body">
+            <div class="sw-step active">
+              <h4>① 互动导航控制（Kinematic Planner）</h4>
+              <p>实时生成运动规划，支持 0–6 m/s 速度、360° 方向、多种风格（步行/奔跑/醉步/受伤步态）。
+              Planner 推理 &lt;5ms（笔记本），每 100ms 重规划一次，保证高响应性。
+              还支持蹲下（骨盆高度 0.3–0.8m）、跪姿、匍匐（肘膝爬行，全向 0–0.5 m/s）。</p>
+            </div>
+            <div class="sw-step">
+              <h4>② VR 全身遥操作（Whole-Body Interface）</h4>
+              <p>PICO 头显 + 两个踝关节 tracker + 手柄 → SMPL 全身姿态 → 人类编码器 $\mathcal{E}_h$ → token。
+              覆盖完整身体动力学（侧展、前伸、单腿跪、劈叉、功夫步……）。
+              同时也支持"三点遥操"（只有头 + 双腕 keypoint，下身由 Planner 自动生成）。</p>
+            </div>
+            <div class="sw-step">
+              <h4>③ 视频遥操作（Video Teleoperation）</h4>
+              <p>单目摄像头实时估计人体姿态（≥60 FPS），通过 $\mathcal{E}_h$ 转为 token 驱动机器人。
+              无需专用 MoCap 硬件，高保真姿态和时序的精确模仿。</p>
+            </div>
+            <div class="sw-step">
+              <h4>④ 文字/音乐控制（Multi-Modal，GEM 生成器）</h4>
+              <p>GEM（Generative Embodied Motion）从自然语言或音乐生成目标运动，
+              SONIC 追踪执行。"Acts like a monkey" / "Punches with his left arm" /
+              根据节拍和旋律跳舞——无需重新训练控制器，只需换运动生成模块。</p>
+            </div>
+            <div class="sw-step">
+              <h4>⑤ VLA 驱动 Loco-Manipulation（GR00T N1.5）</h4>
+              <p>将 GR00T N1.5 VLA 模型接到 SONIC universal token 接口，
+              VLA 预测 78 维动作（64 维 universal token + 14 维手部关节）。
+              5 个 Loco-Manip 任务平均 <strong>75%</strong> 成功率，包括：
+              开踏板垃圾桶（需要精准单脚踩踏板 + 另一脚平衡，70%），
+              可乐罐扔垃圾桶（5 技能串联，60%）。</p>
+            </div>
+          </div>
+        </div>
+
+        <h3>VLA 任务成功率（GR00T N1.5 + SONIC）</h3>
+        <div class="result-bar-wrap">
+          <div class="result-bar-item">
+            <span class="result-bar-label">Apple→Plate (3-pt)</span>
+            <div class="result-bar-bg"><div class="result-bar-fill" style="width:90%; background:var(--accent);"></div></div>
+            <span class="result-bar-val">90%</span>
+          </div>
+          <div class="result-bar-item">
+            <span class="result-bar-label">Object Pickup (scrub)</span>
+            <div class="result-bar-bg"><div class="result-bar-fill" style="width:95%; background:var(--accent);"></div></div>
+            <span class="result-bar-val">95%</span>
+          </div>
+          <div class="result-bar-item">
+            <span class="result-bar-label">Object Pickup (carrot)</span>
+            <div class="result-bar-bg"><div class="result-bar-fill" style="width:75%; background:var(--blue);"></div></div>
+            <span class="result-bar-val">75%</span>
+          </div>
+          <div class="result-bar-item">
+            <span class="result-bar-label">Open Trash Can (foot)</span>
+            <div class="result-bar-bg"><div class="result-bar-fill" style="width:70%; background:var(--blue);"></div></div>
+            <span class="result-bar-val">70%</span>
+          </div>
+          <div class="result-bar-item">
+            <span class="result-bar-label">Drill & Box Relocation</span>
+            <div class="result-bar-bg"><div class="result-bar-fill" style="width:70%; background:var(--blue);"></div></div>
+            <span class="result-bar-val">70%</span>
+          </div>
+          <div class="result-bar-item">
+            <span class="result-bar-label">Soda→Trash (5 skills)</span>
+            <div class="result-bar-bg"><div class="result-bar-fill" style="width:60%; background:var(--amber);"></div></div>
+            <span class="result-bar-val">60%</span>
+          </div>
+          <div class="result-bar-item" style="border-top:1px solid var(--border); padding-top:8px; margin-top:4px;">
+            <span class="result-bar-label" style="font-weight:600; color:var(--text);">Average (5 tasks)</span>
+            <div class="result-bar-bg"><div class="result-bar-fill" style="width:75%; background:var(--accent);"></div></div>
+            <span class="result-bar-val" style="color:var(--accent); font-weight:600;">75%</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- §06 与 MotionWAM 的关系 -->
+      <div class="section" id="relation">
+        <div class="section-num">§ 06</div>
+        <h2>与 MotionWAM 的关系：SONIC 作为底层运动引擎</h2>
+
+        <div class="cn-read">
+          <div class="cn-label">核心关系</div>
+          <p>
+            MotionWAM 不重新发明底层控制——它把 SONIC 的 universal token 直接作为
+            Motion DiT 的预测目标，把 SONIC 本身当作解码器（decoder）。
+            两篇工作是<strong>垂直分工</strong>：SONIC 负责"从 token 到身体运动"，
+            MotionWAM 负责"从视觉+语言到 token"。
+          </p>
+        </div>
+
+        <table class="kv-table">
+          <tr>
+            <td>SONIC 的 universal token $\mathbf{z}$</td>
+            <td>对应 MotionWAM 中的 $k_t$（$m_t$ 的离散部分，2 token × 32 levels × $D_z$ dim）</td>
+          </tr>
+          <tr>
+            <td>MotionWAM 的 $m_t^{\text{cont}}$</td>
+            <td>SONIC 覆盖不到的灵巧手通道（夹爪 / 灵巧手），MotionWAM 额外追加的连续部分</td>
+          </tr>
+          <tr>
+            <td>SONIC 的 $\mathcal{D}_c$</td>
+            <td>MotionWAM Stage 3 公式 (6) 中的 SONIC 解码步骤：$(m_t^{\text{cont}}, k_t) \xrightarrow{\text{SONIC}} \mathbf{a}_t$</td>
+          </tr>
+          <tr>
+            <td>Stage 3 遥操作流水线</td>
+            <td>PICO VR → SMPL 24 关节 → SONIC retarget → 29-DoF 关节命令（50 Hz），和 SONIC §2.4 VR 遥操作接口一致</td>
+          </tr>
+        </table>
+
+        <div class="diagram-wrap">
+          <svg viewBox="0 0 720 140" width="100%" style="font-size:13px;">
+            <!-- MotionWAM 上层 -->
+            <rect x="10" y="10" width="190" height="50" rx="8" fill="#1a1e24" stroke="#4ade9a" stroke-width="1.5"/>
+            <text x="105" y="33" fill="#4ade9a" font-size="12" text-anchor="middle" font-weight="700">Video DiT</text>
+            <text x="105" y="50" fill="#9a9690" font-size="10" text-anchor="middle">Cosmos-Predict2.5-2B</text>
+            <text x="105" y="62" fill="#9a9690" font-size="9" text-anchor="middle">egocentric视觉动力学先验</text>
+
+            <rect x="215" y="10" width="190" height="50" rx="8" fill="#1a1e24" stroke="#60a5fa" stroke-width="1.5"/>
+            <text x="310" y="33" fill="#60a5fa" font-size="12" text-anchor="middle" font-weight="700">Motion DiT</text>
+            <text x="310" y="50" fill="#9a9690" font-size="10" text-anchor="middle">DiT-B，2560-dim</text>
+            <text x="310" y="62" fill="#9a9690" font-size="9" text-anchor="middle">预测 m_t = (m^cont, k̃_t)</text>
+
+            <!-- 分界线 -->
+            <line x1="420" y1="5" x2="420" y2="135" stroke="#5c5a56" stroke-width="1" stroke-dasharray="4,3"/>
+            <text x="430" y="20" fill="#5c5a56" font-size="9">SONIC 边界</text>
+
+            <!-- SONIC 下层 -->
+            <rect x="430" y="10" width="130" height="50" rx="8" fill="#1a1e24" stroke="#f59e0b" stroke-width="1.5"/>
+            <text x="495" y="33" fill="#f59e0b" font-size="12" text-anchor="middle" font-weight="700">round(k̃_t) → k_t</text>
+            <text x="495" y="50" fill="#9a9690" font-size="10" text-anchor="middle">最近邻取整</text>
+            <text x="495" y="62" fill="#9a9690" font-size="9" text-anchor="middle">离散→FSQ token</text>
+
+            <rect x="575" y="10" width="130" height="50" rx="8" fill="#1a1e24" stroke="#f59e0b" stroke-width="2"/>
+            <text x="640" y="33" fill="#f59e0b" font-size="12" text-anchor="middle" font-weight="700">SONIC 𝒟_c</text>
+            <text x="640" y="50" fill="#9a9690" font-size="10" text-anchor="middle">token → joint cmd</text>
+            <text x="640" y="62" fill="#9a9690" font-size="9" text-anchor="middle">29-DoF，50 Hz</text>
+
+            <!-- Arrows -->
+            <line x1="200" y1="35" x2="215" y2="35" stroke="#5c5a56" stroke-width="1.5" marker-end="url(#arr2)"/>
+            <line x1="405" y1="35" x2="430" y2="35" stroke="#5c5a56" stroke-width="1.5" marker-end="url(#arr2)"/>
+            <line x1="560" y1="35" x2="575" y2="35" stroke="#5c5a56" stroke-width="1.5" marker-end="url(#arr2)"/>
+            <line x1="705" y1="35" x2="710" y2="35" stroke="#5c5a56" stroke-width="1"/>
+
+            <!-- Labels -->
+            <text x="105" y="100" fill="#4ade9a" font-size="11" text-anchor="middle">MotionWAM 贡献</text>
+            <text x="310" y="100" fill="#60a5fa" font-size="11" text-anchor="middle">MotionWAM 贡献</text>
+            <text x="550" y="100" fill="#f59e0b" font-size="11" text-anchor="middle">SONIC 贡献</text>
+
+            <defs>
+              <marker id="arr2" markerWidth="8" markerHeight="8" refX="6" refY="3" orient="auto">
+                <path d="M0,0 L0,6 L8,3 z" fill="#5c5a56"/>
+              </marker>
+            </defs>
+          </svg>
+          <div class="diagram-caption">MotionWAM（上层感知推理）+ SONIC（下层运动执行）的垂直分工</div>
+        </div>
+
+        <div class="callout">
+          <div class="callout-label">局限性</div>
+          <p>
+            SONIC 缺乏对安全性和能耗的正式处理，在极端动态运动下（如急速换向 6→-6 m/s）追踪器可能失衡。
+            足部接触精度（sim-to-real gap 最大：53.7mm real vs 29.0mm sim）仍是最大挑战。
+            上层 VLA（如 MotionWAM）如果依赖 SONIC，也继承了这些限制。
+          </p>
+        </div>
+
+        <div class="quiz" data-correct="b"
+          data-explain="SONIC 选择 FSQ 而非 VQ-VAE 的核心原因是 FSQ 无 codebook collapse 风险、无需额外辅助损失（commitment loss / EMA），并且 straight-through 梯度估计与 PPO 联合优化天然兼容，训练全程稳定。"
+          data-explain-wrong="VQ-VAE 不是因为参数多而被放弃，而是因为 codebook collapse 和训练不稳定问题。VQ-VAE 用 straight-through 也会有 commitment loss 的问题，FSQ 的优势不仅仅是梯度。">
+          <div class="q-label">理解检验</div>
+          <div class="q-text">SONIC 选择 FSQ 而非 VQ-VAE 作为量化器的核心原因是？</div>
+          <div class="q-options">
+            <button class="q-opt" data-k="a">FSQ 的参数量更少，更适合 PPO 的计算预算</button>
+            <button class="q-opt" data-k="b">FSQ 避免 codebook collapse，且 straight-through 梯度与 PPO 天然兼容，无需额外辅助损失</button>
+            <button class="q-opt" data-k="c">VQ-VAE 不支持 straight-through 梯度，无法进行端到端训练</button>
+            <button class="q-opt" data-k="d">FSQ 在离散 token 数量上更灵活，可以设置任意档位数</button>
+          </div>
+          <div class="q-feedback"></div>
+        </div>
+      </div>
+
+      <div class="footer">
+        SONIC · arXiv:2511.07820 · NVIDIA 2026 ·
+        <a href="https://nvlabs.github.io/GEAR-SONIC/" style="color:var(--blue)">项目页</a> ·
+        <a href="motionwam.html" style="color:var(--accent)">← MotionWAM 笔记</a> ·
+        <a href="dit4dit.html" style="color:var(--blue)">← DiT4DiT 笔记</a>
+      </div>
+    </main>
+  </div>
+</body>
+</html>

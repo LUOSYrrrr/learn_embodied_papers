@@ -1,0 +1,608 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>DiT · Scalable Diffusion Models with Transformers</title>
+  <link rel="stylesheet" href="../assets/css/style.css">
+  <script src="../assets/js/theme.js"></script>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16/dist/katex.min.css">
+  <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16/dist/katex.min.js"></script>
+  <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16/dist/contrib/auto-render.min.js"
+          onload="renderMathInElement(document.body,{delimiters:[{left:'$$',right:'$$',display:true},{left:'$',right:'$',display:false}]})"></script>
+  <style>
+    /* Layout with sidebar */
+    .docs-layout { display: grid; grid-template-columns: 220px minmax(0, 1fr); max-width: 1400px; margin: 0 auto; }
+    .sidebar { position: sticky; top: 60px; height: calc(100vh - 60px); overflow-y: auto; padding: 24px 16px; border-right: 1px solid var(--border); background: var(--bg); }
+    .sidebar-title { font-family: var(--font-mono); font-size: 10px; color: var(--text3); letter-spacing: 0.08em; text-transform: uppercase; margin-bottom: 16px; padding-bottom: 8px; border-bottom: 1px solid var(--border); }
+    .sidebar-tree { list-style: none; margin: 0; padding: 0; }
+    .sidebar-tree li { margin: 4px 0; }
+    .sidebar-tree a { display: block; padding: 6px 10px; font-size: 13px; color: var(--text2); text-decoration: none; border-radius: 6px; transition: all 0.2s; }
+    .sidebar-tree a:hover { background: var(--glass-hover); color: var(--text); }
+    .sidebar-tree a.active { background: rgba(74, 222, 154, 0.1); color: var(--accent); }
+    .sidebar-tree .section-link { font-weight: 500; }
+    .sidebar-tree .subsection-link { padding-left: 20px; font-size: 12px; }
+
+    .main-content { min-width: 0; }
+    @media (max-width: 900px) { .docs-layout { grid-template-columns: 1fr; } .sidebar { display: none; } }
+
+    .paper-header { padding: 40px 40px 24px; max-width: 1200px; margin: 0 auto; }
+    .paper-venue { font-family: var(--font-mono); font-size: 11px; color: var(--text3); letter-spacing: 0.06em; margin-bottom: 10px; }
+    .paper-title { font-family: var(--font-serif); font-size: 28px; font-weight: 700; color: var(--text); line-height: 1.35; margin: 0 0 14px; }
+    .paper-authors { font-size: 14px; color: var(--text2); margin-bottom: 8px; }
+    .paper-badges { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 16px; }
+    .badge { font-family: var(--font-mono); font-size: 10px; padding: 4px 10px; border-radius: 6px; background: var(--bg3); color: var(--text2); border: 1px solid var(--border); }
+    .badge-green { background: rgba(74, 222, 154, 0.12); color: var(--accent); border-color: rgba(74, 222, 154, 0.3); }
+    .badge-blue { background: rgba(96, 165, 250, 0.12); color: var(--blue); border-color: rgba(96, 165, 250, 0.3); }
+    .badge-amber { background: rgba(245, 158, 11, 0.12); color: var(--amber); border-color: rgba(245, 158, 11, 0.3); }
+
+    .section { padding: 32px 40px; max-width: 1200px; margin: 0 auto; border-top: 1px solid var(--border); }
+    .section-num { font-family: var(--font-mono); font-size: 11px; color: var(--accent); letter-spacing: 0.08em; margin-bottom: 6px; }
+    .section h2 { font-family: var(--font-serif); font-size: 22px; font-weight: 600; margin: 0 0 20px; color: var(--text); }
+    .section h3 { font-size: 17px; font-weight: 600; margin: 28px 0 12px; color: var(--text); }
+    .section p { font-size: 15px; line-height: 1.85; color: var(--text2); margin: 0 0 16px; }
+
+    .cn-read { background: var(--bg2); border-left: 3px solid var(--accent); padding: 18px 22px; margin: 20px 0; border-radius: 0 8px 8px 0; }
+    .cn-label { font-family: var(--font-mono); font-size: 10px; color: var(--accent); letter-spacing: 0.06em; text-transform: uppercase; margin-bottom: 8px; }
+    .cn-read p { margin: 0; font-size: 14.5px; line-height: 1.8; color: var(--text); }
+
+    .callout { background: var(--bg2); border: 1px solid var(--border); border-radius: 10px; padding: 18px 22px; margin: 20px 0; }
+    .callout-label { font-family: var(--font-mono); font-size: 10px; letter-spacing: 0.06em; text-transform: uppercase; margin-bottom: 8px; color: var(--text3); }
+    .callout.amber { border-color: var(--amber); background: rgba(245, 158, 11, 0.08); }
+    .callout.amber .callout-label { color: var(--amber); }
+    .callout.red { border-color: var(--accent3); background: rgba(255, 107, 107, 0.08); }
+    .callout.red .callout-label { color: var(--accent3); }
+    .callout.blue { border-color: var(--blue); background: rgba(96, 165, 250, 0.08); }
+    .callout.blue .callout-label { color: var(--blue); }
+
+    .fig-interactive { display: grid; grid-template-columns: minmax(0, 1fr) 280px; gap: 20px; margin: 24px 0; }
+    .fig-interactive.panel-below { grid-template-columns: 1fr; }
+    .fig-interactive.panel-below .hotspot-panel { position: static; margin-top: 16px; }
+    .fig-block { background: var(--bg2); border-radius: 10px; overflow: hidden; border: 1px solid var(--border); }
+    .fig-block img { width: 100%; height: auto; display: block; }
+    .fig-cap { padding: 14px 18px; font-size: 13px; color: var(--text2); border-top: 1px solid var(--border); }
+    .fig-num { font-family: var(--font-mono); font-size: 10px; color: var(--accent); margin-right: 8px; }
+    .fig-cn { display: block; margin-top: 6px; color: var(--text3); font-size: 12px; }
+
+    .hotspot-wrap { position: relative; }
+    .hotspot { position: absolute; width: 18px; height: 18px; background: rgba(74, 222, 154, 0.55); border: 2px solid var(--accent); border-radius: 50%; cursor: pointer; transform: translate(-50%, -50%); transition: all 0.2s; }
+    .hotspot:hover, .hotspot.active { background: var(--accent); transform: translate(-50%, -50%) scale(1.3); opacity: 1; }
+    .hotspot-panel { background: var(--bg2); border: 1px solid var(--border); border-radius: 10px; padding: 16px; }
+    .hp-title { font-size: 14px; font-weight: 600; color: var(--accent); margin-bottom: 8px; }
+    .hp-body { font-size: 13px; color: var(--text2); line-height: 1.7; }
+
+    .en-quote { background: var(--bg2); border: 1px solid var(--border); border-radius: 8px; margin: 16px 0; overflow: hidden; }
+    .en-quote summary { padding: 12px 16px; font-size: 13px; color: var(--text3); cursor: pointer; transition: background 0.2s; }
+    .en-quote summary:hover { background: var(--glass-hover); }
+    .quote-body { padding: 16px; border-top: 1px solid var(--border); }
+    .quote-body p { font-size: 13.5px; color: var(--text); font-style: italic; margin: 0 0 10px; }
+    .quote-cite { font-family: var(--font-mono); font-size: 11px; color: var(--text3); }
+
+    .module-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 14px; margin: 20px 0; }
+    .module-card { background: var(--bg2); border: 1px solid var(--border); border-radius: 10px; padding: 18px; }
+    .module-card-name { font-family: var(--font-mono); font-size: 10px; color: var(--text3); letter-spacing: 0.06em; margin-bottom: 6px; }
+    .module-card-title { font-size: 15px; font-weight: 600; color: var(--text); margin-bottom: 8px; }
+    .module-card-desc { font-size: 13px; color: var(--text2); line-height: 1.6; }
+
+    .math-block { background: var(--bg2); padding: 20px; border-radius: 8px; margin: 20px 0; text-align: center; overflow-x: auto; }
+    .math-label { display: block; font-family: var(--font-mono); font-size: 11px; color: var(--text3); margin-top: 10px; }
+    .math-explain { background: var(--bg2); border-left: 3px solid var(--blue); padding: 16px 20px; margin: 16px 0; border-radius: 0 8px 8px 0; }
+    .me-title { font-size: 13px; font-weight: 600; color: var(--blue); margin-bottom: 12px; }
+    .math-explain dl { margin: 0; }
+    .math-explain dt { font-family: var(--font-mono); font-size: 12px; color: var(--accent); margin: 10px 0 4px; }
+    .math-explain dd { margin: 0 0 8px; font-size: 13px; color: var(--text2); line-height: 1.6; }
+
+    .quiz { background: var(--bg2); border: 1px solid var(--border); border-radius: 10px; padding: 20px; margin: 24px 0; }
+    .q-label { font-family: var(--font-mono); font-size: 10px; color: var(--amber); letter-spacing: 0.06em; text-transform: uppercase; margin-bottom: 10px; }
+    .q-text { font-size: 15px; color: var(--text); margin-bottom: 16px; font-weight: 500; }
+    .q-options { display: flex; flex-direction: column; gap: 8px; }
+    .q-opt { text-align: left; background: var(--bg3); border: 1px solid var(--border); color: var(--text); padding: 12px 16px; border-radius: 8px; cursor: pointer; font-size: 14px; transition: all 0.2s; }
+    .q-opt:hover { background: var(--glass-hover); border-color: var(--border2); }
+    .q-opt.correct { background: rgba(74, 222, 154, 0.15); border-color: var(--accent); }
+    .q-opt.wrong { background: rgba(255, 107, 107, 0.15); border-color: var(--accent3); }
+    .q-feedback { margin-top: 14px; padding: 12px; border-radius: 8px; font-size: 13px; display: none; }
+    .q-feedback.show { display: block; }
+
+    .term { border-bottom: 1px dotted var(--text3); cursor: help; position: relative; }
+
+    @media (max-width: 900px) {
+      .fig-interactive { grid-template-columns: 1fr; }
+      .module-grid { grid-template-columns: 1fr; }
+      .paper-header, .section { padding-left: 20px; padding-right: 20px; }
+    }
+  </style>
+</head>
+<body>
+  <nav class="nav">
+    <a class="nav-logo" href="../index.html">Paper Notes</a>
+    <div class="nav-links">
+      <a href="../index.html">← 返回首页</a>
+    </div>
+  </nav>
+
+  <div class="docs-layout">
+    <!-- Sidebar -->
+    <aside class="sidebar">
+      <div class="sidebar-title">目录</div>
+      <ul class="sidebar-tree">
+        <li><a href="#intro" class="section-link">§01 引言</a></li>
+        <li><a href="#background" class="section-link">§02 背景</a></li>
+        <li><a href="#method" class="section-link">§03 方法</a></li>
+        <li><a href="#method" class="subsection-link">— Patchify</a></li>
+        <li><a href="#method" class="subsection-link">— DiT Block 设计</a></li>
+        <li><a href="#method" class="subsection-link">— Conditioning</a></li>
+        <li><a href="#experiments" class="section-link">§04 实验</a></li>
+        <li><a href="#experiments" class="subsection-link">— Scaling 行为</a></li>
+        <li><a href="#experiments" class="subsection-link">— SOTA 对比</a></li>
+        <li><a href="#conclusion" class="section-link">§05 结论</a></li>
+      </ul>
+    </aside>
+
+    <!-- Main Content -->
+    <main class="main-content">
+
+  <div class="paper-header">
+    <div class="paper-venue">ICCV 2023 · UC Berkeley + New York University</div>
+    <h1 class="paper-title">Scalable Diffusion Models with Transformers</h1>
+    <div class="paper-authors">William Peebles, Saining Xie</div>
+    <div class="paper-badges">
+      <span class="badge badge-green">DiT · 奠基之作</span>
+      <span class="badge badge-blue">扩散模型</span>
+      <span class="badge badge-amber">Scaling Laws</span>
+    </div>
+  </div>
+
+  <!-- §1 Introduction -->
+  <div class="section" id="intro">
+    <div class="section-num">§ 01</div>
+    <h2>引言：用 Transformer 取代 UNet</h2>
+
+    <div class="cn-read">
+      <div class="cn-label">核心问题</div>
+      <p>
+        扩散模型（Diffusion Models）在图像生成上取得了巨大成功，但<strong>所有工作都基于 U-Net 架构</strong>。
+        与此同时，Transformer 已经在 NLP、视觉、强化学习等领域展现出优异的 scaling 特性——
+        模型越大、计算越多，性能就越好。为什么扩散模型还在用 U-Net？
+        <br><br>
+        这篇论文首次提出 <strong>Diffusion Transformers (DiT)</strong>：用 Vision Transformer 取代 U-Net 作为扩散模型的 backbone，
+        并证明 DiT 同样具有出色的 scaling 特性，最大的 DiT-XL/2 模型在 ImageNet 256×256 上达到 SOTA FID 2.27。
+      </p>
+    </div>
+
+    <div class="fig-interactive panel-below">
+      <div class="fig-block">
+        <img src="../assets/figures/dit/fig1.png" alt="Figure 1: DiT samples">
+        <div class="fig-cap">
+          <span class="fig-num">Fig 1 · p.1</span>
+          DiT-XL/2 生成的图像样本（左：512×512，右：256×256）
+          <span class="fig-cn">Transformer backbone 也能达到 SOTA 图像质量，打破了 U-Net 的垄断地位</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="callout blue">
+      <div class="callout-label">核心洞察</div>
+      <p>
+        <strong>UNet 的 inductive bias 并非扩散模型性能的关键</strong>。传统观点认为 U-Net 的局部卷积 + 跳跃连接对图像生成很重要，
+        但 DiT 证明纯 Transformer 结构配合合适的 conditioning 机制，不仅能匹配 U-Net 性能，还能更好地随规模扩展。
+      </p>
+    </div>
+
+    <div class="en-quote">
+      <summary>展开原文 · 核心贡献</summary>
+      <div class="quote-body">
+        <p>"We explore a new class of diffusion models based on the transformer architecture. We train latent diffusion models of images, replacing the commonly-used U-Net backbone with a transformer that operates on latent patches."</p>
+        <div class="quote-cite">— Abstract, p.1</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- §2 Background -->
+  <div class="section" id="background">
+    <div class="section-num">§ 02</div>
+    <h2>背景：Latent Diffusion Models</h2>
+
+    <div class="cn-read">
+      <div class="cn-label">承上启下</div>
+      <p>
+        要理解 DiT，需要先理解 <strong>Latent Diffusion Models (LDM)</strong>。
+        DiT 不是在像素空间直接做扩散，而是在 VAE 编码的 latent space 中操作，这大大降低了计算成本。
+      </p>
+    </div>
+
+    <h3>2.1 Latent Diffusion 流程</h3>
+    <p>
+      LDM 包含两个阶段：
+    </p>
+    <ol style="color: var(--text2); line-height: 1.85; margin-bottom: 16px;">
+      <li><strong>VAE 编码</strong>：用预训练的变分自编码器将图像 $x$ 压缩为 latent $z = E(x)$，通常下采样 8 倍（256×256 → 32×32）</li>
+      <li><strong>Latent 扩散</strong>：在 latent space 中训练扩散模型学习 $p(z)$，生成时采样 $z$ 再用 VAE 解码器还原 $x = D(z)$</li>
+    </ol>
+
+    <div class="callout">
+      <div class="callout-label">为什么用 Latent Space？</div>
+      <p>
+        直接在像素空间（256×256×3）训练扩散模型计算成本太高。
+        VAE 将空间压缩 8 倍后（32×32×4），计算量降低约 64 倍，同时保留足够语义信息生成高质量图像。
+      </p>
+    </div>
+
+    <h3>2.2 Diffusion Models 基础</h3>
+    <p>
+      扩散模型通过两个阶段工作：
+    </p>
+    <ul style="color: var(--text2); line-height: 1.85; margin-bottom: 16px;">
+      <li><strong>前向过程</strong>：向数据 $x_0$ 逐步添加高斯噪声，经过 $T$ 步后变为纯噪声 $x_T \sim \mathcal{N}(0, I)$</li>
+      <li><strong>反向过程</strong>：训练神经网络 $\epsilon_\theta$ 预测噪声，逐步去噪恢复数据</li>
+    </ul>
+
+    <div class="math-block">
+      $$\mathcal{L}_{\text{simple}} = \mathbb{E}_{x_0, \epsilon, t} \left[ \| \epsilon_\theta(x_t, t) - \epsilon \|^2 \right]$$
+      <span class="math-label">Eq. 1 · 扩散模型训练目标 · 预测噪声的 MSE</span>
+    </div>
+
+    <div class="math-explain">
+      <div class="me-title">公式逐项解读</div>
+      <dl>
+        <dt>$\mathcal{L}_{\text{simple}}$</dt>
+        <dd>"Simple" 损失函数，DDPM 论文提出的简化版训练目标</dd>
+        <dt>$\mathbb{E}_{x_0, \epsilon, t}$</dt>
+        <dd>对三个随机变量取期望（平均）：干净图像 $x_0$、随机噪声 $\epsilon$、时间步 $t$</dd>
+        <dt>$x_t$</dt>
+        <dd>加噪后的图像：<strong>$x_t = \sqrt{\bar{\alpha}_t} x_0 + \sqrt{1-\bar{\alpha}_t} \epsilon$</strong><br>
+        即原始图像 $x_0$ 与噪声 $\epsilon$ 的加权混合，$t$ 越大噪声占比越高</dd>
+        <dt>$\epsilon_\theta(x_t, t)$</dt>
+        <dd><strong>神经网络预测</strong>：输入加噪图像 $x_t$ 和时间 $t$，输出预测的噪声</dd>
+        <dt>$\epsilon$</dt>
+        <dd><strong>真实噪声</strong>：我们实际加进去的那部分噪声（ground truth）</dd>
+        <dt>$\| \cdot \|^2$</dt>
+        <dd>L2 范数的平方 = MSE（均方误差），让预测尽量接近真实噪声</dd>
+      </dl>
+    </div>
+
+    <div class="callout blue">
+      <div class="callout-label">直观理解</div>
+      <p>
+        这个 loss 在训练网络做一件事：<strong>"看着这幅被噪声污染的图像，告诉我噪声长什么样"</strong>。
+        <br><br>
+        训练时随机选时间步 $t$：
+        <br>• $t$ 小（如 $t=50$）：图像几乎干净，噪声很少 → 网络要学会识别微小噪声
+        <br>• $t$ 大（如 $t=900$）：图像几乎全是噪声 → 网络要学会从纯噪声中提取信号
+        <br><br>
+        网络学会后，就能从纯噪声 $x_T$ 开始，一步步预测并去除噪声，最终还原出干净图像。
+      </p>
+    </div>
+
+    <div class="callout">
+      <div class="callout-label">深入解读：三个关键问题</div>
+
+      <h4 style="margin-top: 12px; color: var(--text);">Q1: 为什么叫 "Simple" 简化版？</h4>
+      <p style="margin-bottom: 12px;">
+        原始扩散模型（Ho et al. 2020）的目标函数包含<strong>变分下界（VLB）</strong>的完整推导，有多个加权项，实现复杂。
+        DDPM 作者发现：直接用一个简单的 MSE loss 预测噪声，效果几乎一样好，但实现简单得多。
+        这就是 "simple" 的由来——它是从复杂理论简化而来的实用版本。
+      </p>
+
+      <h4 style="color: var(--text);">Q2: 期望符号 $\mathbb{E}_{x_0, \epsilon, t}$ 到底什么意思？</h4>
+      <p style="margin-bottom: 12px;">
+        你的理解完全正确！就是<strong>"预测噪声和实际噪声距离的均值"</strong>。
+        <br><br>
+        写法 $\mathbb{E}_{x_0, \epsilon, t}[\cdot]$ 是数学上的严谨表达，意思是：
+        <br>• 从数据集中随机采样一张图 $x_0$
+        <br>• 随机生成噪声 $\epsilon \sim \mathcal{N}(0,I)$
+        <br>• 随机选时间步 $t \in [1, T]$
+        <br>• 计算这对 $(x_0, \epsilon, t)$ 的 loss
+        <br>• 重复很多次，取平均
+        <br><br>
+        三个下标表示<strong>三个随机变量</strong>都需要遍历，确保网络见过各种各样的训练样本。
+      </p>
+
+      <h4 style="color: var(--text);">Q3: 为什么预测噪声能生成图像？</h4>
+      <p>
+        关键在<strong>逆向思维</strong>：
+        <br>1. 如果网络能准确预测"这幅图里有多少噪声"，那它就能<strong>减去这些噪声</strong>，得到更干净的图像
+        <br>2. 从纯噪声 $x_T$ 开始，重复 T 次：预测噪声 → 减去噪声 → 得到 $x_{T-1}$
+        <br>3. 最终 $x_0$ 就是生成的干净图像
+        <br><br>
+        类比：就像你有一幅被墨水弄脏的画，如果你知道墨水在哪里、有多少，就能把它擦掉还原原画。
+        网络学习的就是"识别墨水（噪声）"的能力。
+      </p>
+    </div>
+  </div>
+
+  <!-- §3 Method -->
+  <div class="section" id="method">
+    <div class="section-num">§ 03</div>
+    <h2>方法：DiT 架构设计</h2>
+
+    <div class="cn-read">
+      <div class="cn-label">这一节解决什么</div>
+      <p>
+        上一节回顾了 LDM 背景，本节详细介绍 DiT 的三大设计决策：
+        (1) 如何将 latent 转换为 transformer 能处理的 token（Patchify）；
+        (2) DiT Block 的内部结构；
+        (3) 如何把条件信息（timestep、class label）注入模型。
+      </p>
+    </div>
+
+    <h3>3.1 Patchify：Latent → Tokens</h3>
+    <p>
+      DiT 的核心是将 VAE 编码的 latent $z \in \mathbb{R}^{I \times I \times C}$ 转换为 token 序列。
+      具体做法：用 <strong>patch size $p$</strong> 将空间维度切分，每个 patch 线性嵌入为 $d$ 维向量。
+    </p>
+
+    <div class="math-block">
+      $$T = \left(\frac{I}{p}\right)^2 \text{ tokens}, \quad \text{每个 token 维度 } d$$
+      <span class="math-label">Eq. 2 · Token 数量计算 · p.4</span>
+    </div>
+
+    <div class="callout amber">
+      <div class="callout-label">设计空间</div>
+      <p>
+        Patch size $p$ 是 DiT 设计空间的重要维度：
+        更小的 $p$ → 更多 token → 计算量更大（Gflops ∝ $1/p^2$）。
+        论文探索了 $p \in \{2, 4, 8\}$。
+      </p>
+    </div>
+
+    <h3>3.2 DiT Block 设计</h3>
+    <p>
+      DiT Block 基于标准 ViT 的 Transformer block，但关键是如何注入<strong>条件信息</strong>（timestep $t$ 和 class label $c$）。
+      论文探索了四种 conditioning 方式：
+    </p>
+
+    <div class="module-grid">
+      <div class="module-card">
+        <div class="module-card-name">In-Context Conditioning</div>
+        <div class="module-card-title">上下文条件</div>
+        <div class="module-card-desc">
+          将 $t$ 和 $c$ 的向量嵌入作为两个额外 token 拼接到输入序列，和图像 token 一起处理。
+          计算开销最小但效果一般。
+        </div>
+      </div>
+      <div class="module-card">
+        <div class="module-card-name">Cross-Attention</div>
+        <div class="module-card-title">交叉注意力</div>
+        <div class="module-card-desc">
+          在 self-attention 后添加 cross-attention 层，让图像 token attend 到 $t$ 和 $c$ 的嵌入。
+          增加约 15% Gflops。
+        </div>
+      </div>
+      <div class="module-card">
+        <div class="module-card-name">Adaptive Layer Norm (adaLN)</div>
+        <div class="module-card-title">自适应层归一化</div>
+        <div class="module-card-desc">
+          根据 $t$ 和 $c$ 回归 layer norm 的 scale 和 shift 参数 $\gamma, \beta$。
+          计算效率高，效果好。
+        </div>
+      </div>
+      <div class="module-card">
+        <div class="module-card-name">adaLN-Zero ⭐</div>
+        <div class="module-card-title">带零初始化的 adaLN</div>
+        <div class="module-card-desc">
+          在 adaLN 基础上，额外回归每个 residual block 的 gate 参数 $\alpha$，
+          并<strong>初始化为零</strong>。这是最终采用的方案，效果最好！
+        </div>
+      </div>
+    </div>
+
+    <div class="callout blue">
+      <div class="callout-label">为什么 adaLN-Zero 最好？</div>
+      <p>
+        零初始化使得训练初期每个 residual block 都等价于 identity mapping（$x \rightarrow x$），
+        网络从"不修改输入"开始学习，训练更稳定。这类似于 ResNet 的零初始化技巧，但对扩散模型特别重要。
+      </p>
+    </div>
+
+    <div class="fig-interactive panel-below">
+      <div class="fig-block">
+        <img src="../assets/figures/dit/fig3.png" alt="Figure 3: DiT Architecture">
+        <div class="fig-cap">
+          <span class="fig-num">Fig 3 · p.3</span>
+          DiT 架构总览
+          <span class="fig-cn">输入 latent 经 patchify 后进入 N 个 DiT blocks，最终解码为噪声预测。右侧展示四种 conditioning 方式。</span>
+        </div>
+      </div>
+    </div>
+
+    <h3>3.3 DiT 设计空间总结</h3>
+    <p>
+      论文探索的完整设计空间包含三个维度：
+    </p>
+    <ul style="color: var(--text2); line-height: 1.85; margin-bottom: 16px;">
+      <li><strong>Patch size</strong>：$p \in \{2, 4, 8\}$，影响 token 数量和计算量</li>
+      <li><strong>Model size</strong>：S(12层)、B(12层)、L(24层)、XL(28层)，参数量从 33M 到 675M</li>
+      <li><strong>Conditioning</strong>：四种方式，adaLN-Zero 最佳</li>
+    </ul>
+  </div>
+
+  <!-- §4 Experiments -->
+  <div class="section" id="experiments">
+    <div class="section-num">§ 04</div>
+    <h2>实验：Scaling Laws 与 SOTA</h2>
+
+    <div class="cn-read">
+      <div class="cn-label">实验目标</div>
+      <p>
+        验证两个核心假设：
+        (1) DiT 是否具有和 NLP/Vision Transformer 类似的 scaling 特性？
+        (2) DiT 能否达到甚至超越 U-Net 的 SOTA 性能？
+      </p>
+    </div>
+
+    <h3>4.1 Scaling 行为</h3>
+    <p>
+      论文训练了 12 个 DiT 配置（4 种模型大小 × 3 种 patch size），总训练计算量横跨两个数量级。
+      核心发现：
+    </p>
+
+    <div class="fig-interactive panel-below">
+      <div class="fig-block">
+        <img src="../assets/figures/dit/fig2.png" alt="Figure 2: Scaling">
+        <div class="fig-cap">
+          <span class="fig-num">Fig 2 · p.2</span>
+          DiT 的 Scaling 特性
+          <span class="fig-cn">左：随 Gflops 增加，FID 持续下降；右：DiT-XL/2 计算效率优于 U-Net 基线（ADM、LDM）</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="callout">
+      <div class="callout-label">关键发现：Gflops 是性能的决定因素</div>
+      <p>
+        不同配置的 DiT（不同模型大小、不同 patch size）在相同 Gflops 下收敛到相似的 FID。
+        这说明<strong>计算量而非参数量</strong>是性能的关键。
+        将 patch size 减半（token 变 4 倍）和将模型深度加倍，对性能的影响类似。
+      </p>
+    </div>
+
+    <h3>4.2 与 SOTA 对比</h3>
+    <p>
+      在 ImageNet 256×256 和 512×512 上，DiT-XL/2 超越了所有 prior U-Net-based 扩散模型：
+    </p>
+
+    <table class="kv-table" style="margin: 16px 0; font-size: 13px;">
+      <tr><td>模型</td><td>参数</td><td>Gflops</td><td>FID-50K ↓</td></tr>
+      <tr><td>ADM</td><td>554M</td><td>1120</td><td>10.94</td></tr>
+      <tr><td>ADM-U</td><td>395M</td><td>742</td><td>9.96</td></tr>
+      <tr><td>LDM-4</td><td>400M</td><td>103</td><td>10.56</td></tr>
+      <tr><td style="color: var(--accent); font-weight: 600;">DiT-XL/2 (ours)</td><td style="color: var(--accent); font-weight: 600;">675M</td><td style="color: var(--accent); font-weight: 600;">118</td><td style="color: var(--accent); font-weight: 600;">9.62</td></tr>
+    </table>
+
+    <div class="callout blue">
+      <div class="callout-label">计算效率优势</div>
+      <p>
+        DiT-XL/2 仅用 <strong>118 Gflops</strong> 就达到 FID 9.62，而 ADM 需要 1120 Gflops（9.4 倍计算量）才能达到类似效果。
+        Transformer 架构的计算效率明显高于 U-Net。
+      </p>
+    </div>
+
+    <h3>4.3 Classifier-Free Guidance</h3>
+    <p>
+      DiT 同样支持 classifier-free guidance（CFG），通过随机 dropout 10% 的条件信息训练，
+      推理时可以用 guidance scale $s$ 控制样本质量和多样性 trade-off。
+    </p>
+
+    <div class="quiz" data-correct="b" data-explain="adaLN-Zero 同时提供了最佳性能和计算效率。它通过零初始化保证了训练稳定性，同时没有 cross-attention 那样的额外计算开销（约15%）。" data-explain-wrong="虽然 cross-attention 直观上似乎更适合注入条件，但它增加了约15%的Gflops，且性能不如 adaLN-Zero。零初始化对训练稳定性很关键。">
+      <div class="q-label">理解检查</div>
+      <div class="q-text">四种 conditioning 方式中，论文最终采用哪种作为标准方案？</div>
+      <div class="q-options">
+        <button class="q-opt" data-k="a">Cross-Attention</button>
+        <button class="q-opt" data-k="b">adaLN-Zero</button>
+        <button class="q-opt" data-k="c">In-Context Conditioning</button>
+        <button class="q-opt" data-k="d">Standard adaLN (without zero init)</button>
+      </div>
+      <div class="q-feedback"></div>
+    </div>
+  </div>
+
+  <!-- §5 Conclusion -->
+  <div class="section" id="conclusion">
+    <div class="section-num">§ 05</div>
+    <h2>结论与影响</h2>
+
+    <div class="cn-read">
+      <div class="cn-label">总结</div>
+      <p>
+        DiT 证明了 Transformer 可以完全取代 U-Net 成为扩散模型的 backbone，
+        同时继承 Transformer 家族的优异 scaling 特性。这项工作为后续所有 "X-DiT" 奠定了基础：
+        Video DiT、Action DiT、3D DiT... 扩散模型正式进入 Transformer 时代。
+      </p>
+    </div>
+
+    <h3>对后续工作的影响</h3>
+    <div class="module-grid">
+      <div class="module-card">
+        <div class="module-card-name">Video Generation</div>
+        <div class="module-card-title">视频生成</div>
+        <div class="module-card-desc">
+          Latte、W.A.L.T、Video Diffusion Transformer 等都基于 DiT 架构，将时空维度一起处理。
+        </div>
+      </div>
+      <div class="module-card">
+        <div class="module-card-name">Robotics / Action</div>
+        <div class="module-card-title">机器人/动作</div>
+        <div class="module-card-desc">
+          DiT4DiT、MotionWAM 将 DiT 用于动作生成，证明 DiT 同样适合建模行为分布。
+        </div>
+      </div>
+      <div class="module-card">
+        <div class="module-card-name">Text-to-Image</div>
+        <div class="module-card-title">文生图</div>
+        <div class="module-card-desc">
+          Stable Diffusion 3 采用 MMDiT（Multimodal DiT），分离文本和图像的注意力路径。
+        </div>
+      </div>
+      <div class="module-card">
+        <div class="module-card-name">World Models</div>
+        <div class="module-card-title">世界模型</div>
+        <div class="module-card-desc">
+          Cosmos、Genie 等世界基础模型都采用 Video DiT 作为核心架构。
+        </div>
+      </div>
+    </div>
+
+    <div class="callout red">
+      <div class="callout-label">局限性</div>
+      <p>
+        论文主要局限在于仅在 class-conditional ImageNet 上验证，未涉及 text-to-image 等更复杂的条件生成。
+        后续的 Stable Diffusion 3、Sora 等工作填补了这些空白。
+      </p>
+    </div>
+
+    <div class="callout">
+      <div class="callout-label">与 MotionWAM 的联系</div>
+      <p>
+        MotionWAM 的 Video DiT 和 Motion DiT 都基于 DiT 架构。
+        Video DiT 继承自 Cosmos-Predict2.5（基于 DiT 的视频预测模型），
+        Motion DiT 则基于 DiT4DiT（将 DiT 用于动作预测）。
+        DiT 的 modular 设计和良好 scaling 特性使其成为 world-action modeling 的理想选择。
+      </p>
+    </div>
+  </div>
+
+  <footer class="footer">
+    <span>DiT 精读笔记 · paper-notes · MIT License</span>
+  </footer>
+
+    </main>
+  </div>
+
+  <script>
+    // Quiz
+    document.querySelectorAll('.quiz').forEach(qz => {
+      const correct = qz.dataset.correct;
+      const explain = qz.dataset.explain;
+      const explainWrong = qz.dataset.explainWrong;
+      const feedback = qz.querySelector('.q-feedback');
+
+      qz.querySelectorAll('.q-opt').forEach(btn => {
+        btn.addEventListener('click', () => {
+          const isCorrect = btn.dataset.k === correct;
+          btn.classList.add(isCorrect ? 'correct' : 'wrong');
+          feedback.innerHTML = isCorrect ? explain : (explainWrong || explain);
+          feedback.classList.add('show', isCorrect ? 'callout' : 'callout-red');
+          qz.querySelectorAll('.q-opt').forEach(b => b.disabled = true);
+        });
+      });
+    });
+
+    // Hotspots
+    document.querySelectorAll('.hotspot-wrap').forEach(wrap => {
+      const panel = wrap.closest('.fig-interactive')?.querySelector('.hotspot-panel');
+      if (!panel) return;
+
+      wrap.querySelectorAll('.hotspot').forEach(hotspot => {
+        hotspot.addEventListener('click', () => {
+          wrap.querySelectorAll('.hotspot').forEach(h => h.classList.remove('active'));
+          hotspot.classList.add('active');
+          panel.innerHTML = `
+            <div class="hp-title">${hotspot.dataset.title}</div>
+            <div class="hp-body">${hotspot.dataset.body}</div>
+          `;
+        });
+      });
+    });
+  </script>
+</body>
+</html>

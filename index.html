@@ -190,7 +190,7 @@
 
     <div class="intro-grid">
       <div class="intro-cell">
-        <div class="intro-cell-num">8</div>
+        <div class="intro-cell-num">11</div>
         <div class="intro-cell-label">已精读</div>
       </div>
       <div class="intro-cell">
@@ -209,6 +209,51 @@
       <span class="sh-hint">按更新时间排序</span>
     </div>
     <div class="recent-wrap">
+      <a class="recent-card" href="papers/sonic.html">
+        <div class="recent-date">2026-06-13 · 刚完成</div>
+        <div class="recent-title">SONIC · 超大规模运动追踪与通用全身控制</div>
+        <div class="recent-sub">
+          NVIDIA 2026：以运动追踪为可扩展基础任务，100M 帧 + 21K GPU 小时训练通用全身控制器。
+          FSQ Universal Token 统一机器人/人类/混合运动命令于同一离散 token 空间，99.6% OOD 追踪成功率。
+          MotionWAM 的 k_t 就是 SONIC 的 universal token，SONIC 作为底层运动引擎被 MotionWAM 复用。
+        </div>
+        <div class="recent-tags">
+          <span class="status-badge status-done">✓ 已精读</span>
+          <span class="card-pill">NVIDIA · 2026</span>
+          <span class="card-pill">FSQ · Universal Token · PPO</span>
+        </div>
+      </a>
+
+      <a class="recent-card" href="papers/dit4dit.html">
+        <div class="recent-date">2026-06-13 · 刚完成</div>
+        <div class="recent-title">DiT4DiT · 联合建模视频动力学与动作生成</div>
+        <div class="recent-sub">
+          Mondo Robotics + HKUST 2026：MotionWAM 的先驱工作。双 DiT 架构（Video DiT + Action DiT），
+          在固定 flow timestep τ_f 用 forward hook 提取 intermediate hidden state，Dual flow-matching 联合训练。
+          LIBERO 98.6% SOTA，样本效率比语义对齐高 10×，收敛快 7×。
+        </div>
+        <div class="recent-tags">
+          <span class="status-badge status-done">✓ 已精读</span>
+          <span class="card-pill">Mondo Robotics · HKUST · 2026</span>
+          <span class="card-pill">WAM · Dual DiT · Video Proxy</span>
+        </div>
+      </a>
+
+      <a class="recent-card" href="papers/motionwam.html">
+        <div class="recent-date">2026-06-10 · 刚完成</div>
+        <div class="recent-title">MotionWAM · 实时人形机器人 Loco-Manipulation 世界-动作模型</div>
+        <div class="recent-sub">
+          Mondo Robotics 2026 最新：双 DiT 架构（Video DiT + Motion DiT）耦合视频世界模型与全身动作，
+          unified motion latent 统一控制 locomotion、torso、足部交互、手部操作。三阶段训练从 2,136 小时视频到 9 个真实任务，
+          成功率比 SOTA VLA 高 32%，首次实现实时闭环 WAM。
+        </div>
+        <div class="recent-tags">
+          <span class="status-badge status-done">✓ 已精读</span>
+          <span class="card-pill">Mondo Robotics · HKUST · 2026</span>
+          <span class="card-pill">WAM · Humanoid · Real-Time</span>
+        </div>
+      </a>
+
       <a class="recent-card" href="papers/rt2.html">
         <div class="recent-date">2026-04-27 · 刚完成</div>
         <div class="recent-title">RT-2 · Vision-Language-Action Models Transfer Web Knowledge</div>
@@ -338,6 +383,10 @@
             </a>
             <a class="dc-item" href="papers/pi07-steerable-generalist.html">
               <span class="dc-item-main">π₀.₇ · Steerable Generalist<span class="dc-item-en">PI 2026</span></span>
+              <span class="status-badge status-done">✓</span>
+            </a>
+            <a class="dc-item" href="papers/pi-series-training-guide.html">
+              <span class="dc-item-main">π₀ 系列训练指南<span class="dc-item-en">预训练/后训练/HITL详解</span></span>
               <span class="status-badge status-done">✓</span>
             </a>
             <a class="dc-item" href="papers/pi0-code-reading.html">
@@ -474,6 +523,10 @@
             <div class="dc-group-label label-core">① 必读</div>
             <a class="dc-item disabled"><span class="dc-item-main">VAE<span class="dc-item-en">Kingma & Welling 2014</span></span><span class="status-badge status-plan">○</span></a>
             <a class="dc-item disabled"><span class="dc-item-main">DDPM · 去噪扩散<span class="dc-item-en">Ho et al. 2020</span></span><span class="status-badge status-plan">○</span></a>
+            <a class="dc-item" href="papers/dit.html">
+              <span class="dc-item-main">DiT<span class="dc-item-en">Peebles & Xie 2023 · Transformer+Diffusion</span></span>
+              <span class="status-badge status-done">✓</span>
+            </a>
             <a class="dc-item" href="papers/generation/flow-matching.html">
               <span class="dc-item-main">Flow Matching<span class="dc-item-en">Lipman et al. 2023 · π₀ 核心</span></span>
               <span class="status-badge status-done">✓</span>
@@ -499,7 +552,7 @@
             <span class="dir-name">WAM · 世界-动作模型</span>
             <span class="dir-sub">世界模型生成 subgoal / 模拟未来，辅助策略学习</span>
           </span>
-          <span class="dir-stats"><span class="dir-count">1</span> 篇已读</span>
+          <span class="dir-stats"><span class="dir-count">3</span> 篇已读</span>
           <span class="dir-arrow">&#9662;</span>
         </summary>
         <div class="dir-body">
@@ -529,6 +582,21 @@
             <div class="dc-group-label label-core">④ VLA 前身</div>
             <a class="dc-item disabled"><span class="dc-item-main">RT-1 / RT-2<span class="dc-item-en">Brohan et al. 2023</span></span><span class="status-badge status-plan">○</span></a>
             <a class="dc-item disabled"><span class="dc-item-main">IRIS<span class="dc-item-en">Micheli et al. 2023</span></span><span class="status-badge status-plan">○</span></a>
+          </div>
+          <div class="dc-group">
+            <div class="dc-group-label label-improve">⑤ 实时 WAM</div>
+            <a class="dc-item" href="papers/sonic.html">
+              <span class="dc-item-main">SONIC<span class="dc-item-en">Luo et al. 2026 · 通用全身控制 · FSQ Universal Token</span></span>
+              <span class="status-badge status-done">✓</span>
+            </a>
+            <a class="dc-item" href="papers/dit4dit.html">
+              <span class="dc-item-main">DiT4DiT<span class="dc-item-en">Ma et al. 2026 · Video + Action 联合建模</span></span>
+              <span class="status-badge status-done">✓</span>
+            </a>
+            <a class="dc-item" href="papers/motionwam.html">
+              <span class="dc-item-main">MotionWAM<span class="dc-item-en">Zheng et al. 2026 · 人形 Loco-Manipulation</span></span>
+              <span class="status-badge status-done">✓</span>
+            </a>
           </div>
         </div>
       </details>

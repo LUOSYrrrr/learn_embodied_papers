@@ -1,0 +1,1357 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>MotionWAM · 实时人形机器人Loco-Manipulation世界-动作模型</title>
+  <link rel="stylesheet" href="../assets/css/style.css">
+  <script src="../assets/js/theme.js"></script>
+  <script src="../assets/js/interactive.js" defer></script>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16/dist/katex.min.css">
+  <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16/dist/katex.min.js"></script>
+  <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16/dist/contrib/auto-render.min.js"
+          onload="renderMathInElement(document.body,{delimiters:[{left:'$$',right:'$$',display:true},{left:'$',right:'$',display:false}]})"></script>
+  <style>
+    /* Layout with sidebar */
+    .docs-layout { display: grid; grid-template-columns: 220px minmax(0, 1fr); max-width: 1400px; margin: 0 auto; }
+    .sidebar { position: sticky; top: 60px; height: calc(100vh - 60px); overflow-y: auto; padding: 24px 16px; border-right: 1px solid var(--border); background: var(--bg); }
+    .sidebar-title { font-family: var(--font-mono); font-size: 10px; color: var(--text3); letter-spacing: 0.08em; text-transform: uppercase; margin-bottom: 16px; padding-bottom: 8px; border-bottom: 1px solid var(--border); }
+    .sidebar-tree { list-style: none; margin: 0; padding: 0; }
+    .sidebar-tree li { margin: 4px 0; }
+    .sidebar-tree a { display: block; padding: 6px 10px; font-size: 13px; color: var(--text2); text-decoration: none; border-radius: 6px; transition: all 0.2s; }
+    .sidebar-tree a:hover { background: var(--glass-hover); color: var(--text); }
+    .sidebar-tree a.active { background: rgba(74, 222, 154, 0.1); color: var(--accent); }
+    .sidebar-tree .section-link { font-weight: 500; }
+    .sidebar-tree .subsection-link { padding-left: 20px; font-size: 12px; }
+
+    .main-content { min-width: 0; }
+    @media (max-width: 900px) { .docs-layout { grid-template-columns: 1fr; } .sidebar { display: none; } }
+
+    .paper-header { padding: 40px 40px 24px; max-width: 1200px; margin: 0 auto; }
+    .paper-venue { font-family: var(--font-mono); font-size: 11px; color: var(--text3); letter-spacing: 0.06em; margin-bottom: 10px; }
+    .paper-title { font-family: var(--font-serif); font-size: 28px; font-weight: 700; color: var(--text); line-height: 1.35; margin: 0 0 14px; }
+    .paper-authors { font-size: 14px; color: var(--text2); margin-bottom: 8px; }
+    .paper-badges { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 16px; }
+    .badge { font-family: var(--font-mono); font-size: 10px; padding: 4px 10px; border-radius: 6px; background: var(--bg3); color: var(--text2); border: 1px solid var(--border); }
+    .badge-green { background: rgba(74, 222, 154, 0.12); color: var(--accent); border-color: rgba(74, 222, 154, 0.3); }
+    .badge-blue { background: rgba(96, 165, 250, 0.12); color: var(--blue); border-color: rgba(96, 165, 250, 0.3); }
+    .badge-amber { background: rgba(245, 158, 11, 0.12); color: var(--amber); border-color: rgba(245, 158, 11, 0.3); }
+    .badge-purple { background: rgba(167, 139, 250, 0.12); color: var(--purple); border-color: rgba(167, 139, 250, 0.3); }
+
+    .section { padding: 32px 40px; max-width: 1200px; margin: 0 auto; border-top: 1px solid var(--border); }
+    .section-num { font-family: var(--font-mono); font-size: 11px; color: var(--accent); letter-spacing: 0.08em; margin-bottom: 6px; }
+    .section h2 { font-family: var(--font-serif); font-size: 22px; font-weight: 600; margin: 0 0 20px; color: var(--text); }
+    .section h3 { font-size: 17px; font-weight: 600; margin: 28px 0 12px; color: var(--text); }
+    .section p { font-size: 15px; line-height: 1.85; color: var(--text2); margin: 0 0 16px; }
+
+    .cn-read { background: var(--bg2); border-left: 3px solid var(--accent); padding: 18px 22px; margin: 20px 0; border-radius: 0 8px 8px 0; }
+    .cn-label { font-family: var(--font-mono); font-size: 10px; color: var(--accent); letter-spacing: 0.06em; text-transform: uppercase; margin-bottom: 8px; }
+    .cn-read p { margin: 0; font-size: 14.5px; line-height: 1.8; color: var(--text); }
+
+    .callout { background: var(--bg2); border: 1px solid var(--border); border-radius: 10px; padding: 18px 22px; margin: 20px 0; }
+    .callout-label { font-family: var(--font-mono); font-size: 10px; letter-spacing: 0.06em; text-transform: uppercase; margin-bottom: 8px; color: var(--text3); }
+    .callout.amber { border-color: var(--amber); background: rgba(245, 158, 11, 0.08); }
+    .callout.amber .callout-label { color: var(--amber); }
+    .callout.red { border-color: var(--accent3); background: rgba(255, 107, 107, 0.08); }
+    .callout.red .callout-label { color: var(--accent3); }
+    .callout.blue { border-color: var(--blue); background: rgba(96, 165, 250, 0.08); }
+    .callout.blue .callout-label { color: var(--blue); }
+    .callout.purple { border-color: var(--purple); background: rgba(167, 139, 250, 0.08); }
+    .callout.purple .callout-label { color: var(--purple); }
+
+    .fig-interactive { display: grid; grid-template-columns: minmax(0, 1fr) 280px; gap: 20px; margin: 24px 0; }
+    .fig-interactive.panel-below { grid-template-columns: 1fr; }
+    .fig-interactive.panel-below .hotspot-panel { position: static; margin-top: 16px; }
+    .fig-block { background: var(--bg2); border-radius: 10px; overflow: hidden; border: 1px solid var(--border); }
+    .fig-block img { width: 100%; height: auto; display: block; }
+    .fig-cap { padding: 14px 18px; font-size: 13px; color: var(--text2); border-top: 1px solid var(--border); }
+    .fig-num { font-family: var(--font-mono); font-size: 10px; color: var(--accent); margin-right: 8px; }
+    .fig-cn { display: block; margin-top: 6px; color: var(--text3); font-size: 12px; }
+
+    .hotspot-wrap { position: relative; }
+    .hotspot { position: absolute; width: 18px; height: 18px; background: rgba(74, 222, 154, 0.55); border: 2px solid var(--accent); border-radius: 50%; cursor: pointer; transform: translate(-50%, -50%); transition: all 0.2s; }
+    .hotspot:hover, .hotspot.active { background: var(--accent); transform: translate(-50%, -50%) scale(1.3); opacity: 1; }
+    .hotspot-panel { background: var(--bg2); border: 1px solid var(--border); border-radius: 10px; padding: 16px; }
+    .hp-title { font-size: 14px; font-weight: 600; color: var(--accent); margin-bottom: 8px; }
+    .hp-body { font-size: 13px; color: var(--text2); line-height: 1.7; }
+
+    .en-quote { background: var(--bg2); border: 1px solid var(--border); border-radius: 8px; margin: 16px 0; overflow: hidden; }
+    .en-quote summary { padding: 12px 16px; font-size: 13px; color: var(--text3); cursor: pointer; transition: background 0.2s; }
+    .en-quote summary:hover { background: var(--glass-hover); }
+    .quote-body { padding: 16px; border-top: 1px solid var(--border); }
+    .quote-body p { font-size: 13.5px; color: var(--text); font-style: italic; margin: 0 0 10px; }
+    .quote-cite { font-family: var(--font-mono); font-size: 11px; color: var(--text3); }
+
+    .step-walker { background: var(--bg2); border: 1px solid var(--border); border-radius: 10px; padding: 20px; margin: 24px 0; }
+    .sw-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px; }
+    .sw-title { font-size: 14px; font-weight: 600; color: var(--text); }
+    .sw-controls { display: flex; gap: 10px; align-items: center; }
+    .sw-btn { background: var(--bg3); border: 1px solid var(--border); color: var(--text); padding: 6px 12px; border-radius: 6px; cursor: pointer; font-size: 12px; }
+    .sw-btn:hover { background: var(--glass-hover); }
+    .sw-counter { font-family: var(--font-mono); font-size: 12px; color: var(--text3); }
+    .sw-progress { display: flex; gap: 6px; margin-bottom: 16px; }
+    .sw-dot { flex: 1; height: 3px; background: var(--border); border-radius: 2px; }
+    .sw-dot.active { background: var(--accent); }
+    .sw-step { display: none; }
+    .sw-step.active { display: block; }
+    .sw-step h4 { font-size: 14px; margin: 0 0 8px; color: var(--text); }
+    .sw-step p { font-size: 13px; color: var(--text2); margin: 0; }
+
+    .quiz { background: var(--bg2); border: 1px solid var(--border); border-radius: 10px; padding: 20px; margin: 24px 0; }
+    .q-label { font-family: var(--font-mono); font-size: 10px; color: var(--amber); letter-spacing: 0.06em; text-transform: uppercase; margin-bottom: 10px; }
+    .q-text { font-size: 15px; color: var(--text); margin-bottom: 16px; font-weight: 500; }
+    .q-options { display: flex; flex-direction: column; gap: 8px; }
+    .q-opt { text-align: left; background: var(--bg3); border: 1px solid var(--border); color: var(--text); padding: 12px 16px; border-radius: 8px; cursor: pointer; font-size: 14px; transition: all 0.2s; }
+    .q-opt:hover { background: var(--glass-hover); border-color: var(--border2); }
+    .q-opt.correct { background: rgba(74, 222, 154, 0.15); border-color: var(--accent); }
+    .q-opt.wrong { background: rgba(255, 107, 107, 0.15); border-color: var(--accent3); }
+    .q-feedback { margin-top: 14px; padding: 12px; border-radius: 8px; font-size: 13px; display: none; }
+    .q-feedback.show { display: block; }
+
+    .module-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 14px; margin: 20px 0; }
+    .module-card { background: var(--bg2); border: 1px solid var(--border); border-radius: 10px; padding: 18px; }
+    .module-card-name { font-family: var(--font-mono); font-size: 10px; color: var(--text3); letter-spacing: 0.06em; margin-bottom: 6px; }
+    .module-card-title { font-size: 15px; font-weight: 600; color: var(--text); margin-bottom: 8px; }
+    .module-card-desc { font-size: 13px; color: var(--text2); line-height: 1.6; }
+
+    .kv-table { width: 100%; border-collapse: collapse; margin: 16px 0; font-size: 13px; }
+    .kv-table td { padding: 10px 14px; border: 1px solid var(--border); }
+    .kv-table td:first-child { background: var(--bg2); color: var(--text3); width: 30%; font-family: var(--font-mono); font-size: 11px; }
+    .kv-table td:last-child { color: var(--text); }
+
+    .math-block { background: var(--bg2); padding: 20px; border-radius: 8px; margin: 20px 0; text-align: center; overflow-x: auto; }
+    .math-label { display: block; font-family: var(--font-mono); font-size: 11px; color: var(--text3); margin-top: 10px; }
+    .math-explain { background: var(--bg2); border-left: 3px solid var(--blue); padding: 16px 20px; margin: 16px 0; border-radius: 0 8px 8px 0; }
+    .me-title { font-size: 13px; font-weight: 600; color: var(--blue); margin-bottom: 12px; }
+    .math-explain dl { margin: 0; }
+    .math-explain dt { font-family: var(--font-mono); font-size: 12px; color: var(--accent); margin: 10px 0 4px; }
+    .math-explain dd { margin: 0 0 8px; font-size: 13px; color: var(--text2); line-height: 1.6; }
+
+    .related-work-table { width: 100%; border-collapse: collapse; margin: 16px 0; font-size: 13px; }
+    .related-work-table th { background: var(--bg2); padding: 12px; text-align: left; font-weight: 600; color: var(--text); border: 1px solid var(--border); }
+    .related-work-table td { padding: 12px; border: 1px solid var(--border); color: var(--text2); }
+    .related-work-table tr:nth-child(even) { background: rgba(255,255,255,0.02); }
+    .rw-name { font-weight: 600; color: var(--text); }
+    .rw-deficit { color: var(--accent3); }
+
+    .term { border-bottom: 1px dotted var(--text3); cursor: help; position: relative; }
+    .term:hover::after { content: attr(data-en); position: absolute; bottom: 100%; left: 50%; transform: translateX(-50%); background: var(--bg3); padding: 6px 10px; border-radius: 6px; font-size: 11px; white-space: nowrap; border: 1px solid var(--border); color: var(--text2); }
+
+    @media (max-width: 900px) {
+      .fig-interactive { grid-template-columns: 1fr; }
+      .module-grid { grid-template-columns: 1fr; }
+      .paper-header, .section { padding-left: 20px; padding-right: 20px; }
+    }
+  </style>
+</head>
+<body>
+  <nav class="nav">
+    <a class="nav-logo" href="../index.html">Paper Notes</a>
+    <div class="nav-links">
+      <a href="../index.html">← 返回首页</a>
+    </div>
+  </nav>
+
+  <div class="docs-layout">
+    <!-- Sidebar -->
+    <aside class="sidebar">
+      <div class="sidebar-title">目录</div>
+      <ul class="sidebar-tree">
+        <li><a href="#intro" class="section-link">§01 引言</a></li>
+        <li><a href="#related" class="section-link">§02 Related Work</a></li>
+        <li><a href="#related" class="subsection-link">— 模仿学习与 VLA</a></li>
+        <li><a href="#related" class="subsection-link">— 世界-动作模型</a></li>
+        <li><a href="#related" class="subsection-link">— 人形 Loco-Manipulation</a></li>
+        <li><a href="#method" class="section-link">§03 方法</a></li>
+        <li><a href="#method" class="subsection-link">— 问题建模</a></li>
+        <li><a href="#method" class="subsection-link">— 全身运动 Latent</a></li>
+        <li><a href="#method" class="subsection-link">— 双 DiT 架构</a></li>
+        <li><a href="#method" class="subsection-link">— Flow Matching</a></li>
+        <li><a href="#dataset" class="section-link">§04 数据集</a></li>
+        <li><a href="#dataset" class="subsection-link">— Stage 1 预训练</a></li>
+        <li><a href="#dataset" class="subsection-link">— Stage 2 跨本体</a></li>
+        <li><a href="#dataset" class="subsection-link">— Stage 3 微调</a></li>
+        <li><a href="#experiments" class="section-link">§05 实验</a></li>
+        <li><a href="#experiments" class="subsection-link">— 9 个任务</a></li>
+        <li><a href="#experiments" class="subsection-link">— SOTA 对比</a></li>
+        <li><a href="#experiments" class="subsection-link">— Ablation</a></li>
+        <li><a href="#conclusion" class="section-link">§06 结论</a></li>
+      </ul>
+    </aside>
+
+    <!-- Main Content -->
+    <main class="main-content">
+
+  <div class="paper-header">
+    <div class="paper-venue">arXiv 2026 · Mondo Robotics + HKUST</div>
+    <h1 class="paper-title">MotionWAM: Towards Foundation World Action Models for Real-Time Humanoid Loco-Manipulation</h1>
+    <div class="paper-authors">Jia Zheng, Teli Ma, Yudong Fan, Zifan Wang, Shuo Yang, Junwei Liang</div>
+    <div class="paper-badges">
+      <span class="badge badge-green">WAM · 世界-动作模型</span>
+      <span class="badge badge-blue">人形机器人</span>
+      <span class="badge badge-purple">Loco-Manipulation</span>
+      <span class="badge badge-amber">实时控制</span>
+    </div>
+  </div>
+
+  <!-- §1 Introduction -->
+  <div class="section" id="intro">
+    <div class="section-num">§ 01</div>
+    <h2>引言：人形机器人的 Loco-Manipulation 挑战</h2>
+
+    <div class="cn-read">
+      <div class="cn-label">核心问题</div>
+      <p>
+        人形机器人 Loco-Manipulation（移动操作）需要同时协调<strong>平衡、 locomotion（移动）、reach（伸展）和物体交互</strong>。
+        传统方法采用<strong>分层架构</strong>：高层策略控制上半身进行精细操作，低层控制器仅跟踪粗略的基座命令来维持平衡。
+        这种"上下分离"的设计导致两个问题：(1) 上下半身动作空间不一致；(2) 腿部只能被动维持平衡，无法参与任务驱动的足部交互（如踩踏板、踢球）。
+        <br><br>
+        MotionWAM 的解决思路是：用<strong>统一的运动 latent</strong>取代分离的策略，让 Video World Model 的 intermediate denoising features 直接驱动全身动作 token。
+      </p>
+    </div>
+
+    <div class="fig-interactive panel-below">
+      <div class="fig-block">
+        <div class="hotspot-wrap" data-hotspot-group="fig1">
+          <img src="../assets/figures/motionwam/fig1.png" alt="Figure 1: MotionWAM teaser">
+          <div class="hotspot" data-id="waist" style="left:10%; top:18%;" data-title="腰部控制 Waist Control" data-body="通过躯干倾斜和旋转来调整重心，实现动态平衡。这是人形机器人与固定基座机械臂的本质区别。"></div>
+          <div class="hotspot" data-id="height" style="left:10%; top:38%;" data-title="高度调节 Height Regulation" data-body="根据任务需求主动调整站立高度，如蹲下拾取低处物体或踮脚够高处物品。"></div>
+          <div class="hotspot" data-id="squat" style="left:10%; top:58%;" data-title="蹲伏移动 Squatting Locomotion" data-body="在保持低重心的同时移动，用于穿越低矮空间或稳定搬运重物。"></div>
+          <div class="hotspot" data-id="coord" style="left:10%; top:78%;" data-title="身体-手部协调 Body-Hand Coordination" data-body="全身协调完成复杂操作，如弯腰+伸手组合动作。"></div>
+          <div class="hotspot" data-id="foot" style="left:10%; top:92%;" data-title="足部交互 Foot Interaction" data-body="任务驱动的足部动作，如踢球、踩踏板——这是传统上下分离架构无法做到的。"></div>
+        </div>
+        <div class="fig-cap">
+          <span class="fig-num">Fig 1 · p.1</span>
+          MotionWAM 在宇树 G1 人形机器人上实现的五种核心能力：腰部控制、高度调节、蹲伏移动、身体-手部协调、任务驱动足部交互
+          <span class="fig-cn">与 VLA 不同，MotionWAM 用 video world model 的 denoising features 作为 policy 条件，实现实时全身控制</span>
+        </div>
+      </div>
+      <div class="hotspot-panel"></div>
+    </div>
+
+    <div class="callout amber">
+      <div class="callout-label">传统分层架构的问题</div>
+      <p>
+        主流人形控制采用 <strong>upper-lower split</strong>：高层策略输出上半身关节目标（fine-grained joint targets），
+        低层控制器只接收基座速度/高度/朝向等 coarse 命令。这带来两个限制：
+      </p>
+      <ol style="margin: 10px 0; padding-left: 24px; color: var(--text2);">
+        <li>上下半身动作空间不一致（inconsistent action spaces）</li>
+        <li>腿部只能做 balance-preserving locomotion，无法做任务驱动的足部交互</li>
+      </ol>
+    </div>
+
+    <div class="en-quote">
+      <summary>展开原文 · 核心贡献声明</summary>
+      <div class="quote-body">
+        <p>"We present MotionWAM, a real-time WAM that drives autonomous humanoid loco-manipulation from a single egocentric camera by conditioning the policy on the intermediate denoising features of a video world model."</p>
+        <div class="quote-cite">— Abstract, p.1</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- §2 Related Work -->
+  <div class="section" id="related">
+    <div class="section-num">§ 02</div>
+    <h2>Related Work：三条路线的对比</h2>
+
+    <div class="cn-read">
+      <div class="cn-label">这一节解决什么</div>
+      <p>
+        作者把现有工作分为三大类：<strong>模仿学习/VLA</strong>、<strong>世界-动作模型 (WAM)</strong>、<strong>人形 Loco-Manipulation</strong>。
+        每类都有自己的局限性——VLA 缺乏物理动力学先验，WAM 太慢无法实时，人形工作大多是上下分离架构。
+        MotionWAM 试图结合三类优势：VLA 的互联网先验 + WAM 的物理建模 + 全身统一控制。
+      </p>
+    </div>
+
+    <h3>2.1 模仿学习与 VLA</h3>
+    <p>
+      <span class="term" data-en="Imitation Learning">模仿学习</span> 和 <span class="term" data-en="Vision-Language-Action">VLA</span>
+      直接从 demonstration 学习视觉-动作映射。VLA 额外利用预训练 VLM 的互联网语义知识。
+      但这些模型依赖 <strong>静态 image-text substrate</strong>，缺乏时间演化和接触物理的 intrinsic model，
+      通常只能处理单臂 tabletop manipulation。
+    </p>
+
+    <div class="callout red">
+      <div class="callout-label">缺陷</div>
+      <p>静态 image-text 先验无法建模物理动力学；动作空间局限于 arm-gripper，无法扩展到全身控制。</p>
+    </div>
+
+    <h3>2.2 世界-动作模型 (WAMs)</h3>
+    <p>
+      <span class="term" data-en="World Action Models">WAMs</span> 通过视频生成器（video generators）向策略注入动力学先验，
+      通常基于互联网规模的世界模型（如 Genie、Cosmos）。它们学习 rollout 未来视觉状态来辅助动作预测。
+    </p>
+
+    <table class="related-work-table">
+      <tr>
+        <th>工作</th>
+        <th>核心思想</th>
+        <th>局限</th>
+      </tr>
+      <tr>
+        <td class="rw-name">SuSIE (Black et al. 2023)</td>
+        <td>用视频扩散模型生成 subgoal 图像</td>
+        <td class="rw-deficit">需要迭代 denoising，实时性差</td>
+      </tr>
+      <tr>
+        <td class="rw-name">UniPi (Du et al. 2023)</td>
+        <td>统一视频-动作生成</td>
+        <td class="rw-deficit">短时程、固定基座</td>
+      </tr>
+      <tr>
+        <td class="rw-name">3D-VLA (Zhen et al. 2024)</td>
+        <td>3D 世界模型 + VLA</td>
+        <td class="rw-deficit"> tabletop 设置</td>
+      </tr>
+      <tr>
+        <td class="rw-name">Cosmos Policy (Kim et al. 2026)</td>
+        <td>微调视频模型用于视觉运动控制</td>
+        <td class="rw-deficit">0.7Hz，无法实时闭环</td>
+      </tr>
+    </table>
+
+    <div class="callout red">
+      <div class="callout-label">WAMs 的共同缺陷</div>
+      <p>
+        高维 video-action latent 上的迭代 denoising 太慢，无法达到实时闭环控制所需的频率。
+        现有 WAM 大多局限于 <strong>短程、固定基座、仅手臂</strong> 的 tabletop 设置。
+      </p>
+    </div>
+
+    <h3>2.3 人形 Loco-Manipulation</h3>
+    <p>
+      现有工作可分为三类：
+    </p>
+    <ul style="color: var(--text2); line-height: 1.85; margin-bottom: 16px;">
+      <li><strong>全身模仿学习</strong>：如 ExBody2、OmniH2O，从人类运动跟踪学习 expressive 动作</li>
+      <li><strong>命令跟随控制器</strong>：如 TWIST、Falcon，接收高层速度/高度命令生成关节目标</li>
+      <li><strong>分层策略</strong>：高层 manipulation 策略 + 低层 locomotion 控制器</li>
+    </ul>
+
+    <div class="callout red">
+      <div class="callout-label">人形工作的缺陷</div>
+      <p>
+        分层架构上下动作空间分离，腿部只能被动维持平衡，无法做任务驱动的足部交互（如踩踏板、踢球）。
+        最接近的是 G1-Boxing 和 Homie，但仍未解决统一动作空间问题。
+      </p>
+    </div>
+
+    <div class="fig-interactive">
+      <div class="fig-block">
+        <div class="hotspot-wrap" data-hotspot-group="fig2">
+          <img src="../assets/figures/motionwam/fig2.png" alt="Figure 2: Decoupled vs Unified">
+          <div class="hotspot" data-id="decoupled" style="left:28%; top:45%;" data-title="分离架构 Decoupled" data-body="上下分离：上半身关节目标 + 下半身基座命令。腿部只能被动平衡，不能做任务驱动的足部交互。"></div>
+          <div class="hotspot" data-id="unified" style="left:75%; top:45%;" data-title="统一架构 Unified" data-body="单一策略输出全身运动 token，覆盖 locomotion、torso、高度、足部交互、手部操作。腿部可以主动参与任务。"></div>
+        </div>
+        <div class="fig-cap">
+          <span class="fig-num">Fig 2 · p.2</span>
+          分离 vs 统一动作空间对比
+          <span class="fig-cn">左：传统分层架构将控制拆分为上半身关节目标和下半身基座命令，限制腿部功能；右：MotionWAM 统一预测全身运动 token，解锁任务驱动的足部行为</span>
+        </div>
+      </div>
+      <div class="hotspot-panel"></div>
+    </div>
+
+    <div class="quiz" data-correct="b" data-explain="MotionWAM 的核心创新是用 unified motion latent 取代 decoupled upper-lower 架构，让单一策略预测全身运动 token，从而解锁任务驱动的足部交互。这是 VLA 方法（如 π₀.₅）和分层人形控制器都无法做到的。" data-explain-wrong="VLA 方法如 π₀.₅ 确实使用 flow matching，WAMs 如 SuSIE 也生成 subgoal，但这些都不是 MotionWAM 的核心创新点。正确答案是统一动作空间架构。">
+      <div class="q-label">理解检查</div>
+      <div class="q-text">MotionWAM 相比现有 VLA 和分层人形控制器，最核心的架构创新是什么？</div>
+      <div class="q-options">
+        <button class="q-opt" data-k="a">使用 flow matching 进行动作生成</button>
+        <button class="q-opt" data-k="b">用 unified motion latent 统一全身控制</button>
+        <button class="q-opt" data-k="c">从视频世界模型生成 subgoal</button>
+        <button class="q-opt" data-k="d">使用 DiT 架构进行视频预测</button>
+      </div>
+      <div class="q-feedback"></div>
+    </div>
+  </div>
+
+  <!-- §3 Method -->
+  <div class="section" id="method">
+    <div class="section-num">§ 03</div>
+    <h2>方法：双 DiT 架构与统一运动 Latent</h2>
+
+    <div class="cn-read">
+      <div class="cn-label">承上启下</div>
+      <p>
+        上一节我们了解了现有工作的缺陷：VLA 缺乏物理先验，WAM 太慢，分层架构上下分离。
+        这一节作者提出 <strong>MotionWAM</strong> —— 一个实时 WAM，通过耦合 Video DiT 和 Motion DiT，
+        用 intermediate denoising features 驱动全身动作。
+      </p>
+    </div>
+
+    <h3>3.1 问题建模：predict-video-dynamics-then-invert</h3>
+    <p>
+      与 VLA 直接学习 $\pi_\theta(a_t \mid o_t, l)$ 不同，MotionWAM 采用
+      <span class="term" data-en="predict-video-dynamics-then-invert">predict-video-dynamics-then-invert</span>
+      范式：
+    </p>
+
+    <div class="math-block">
+      $$\mathbf{o}_{t+1} \sim p_v(\cdot \mid \mathbf{o}_t, l), \quad \mathbf{m}_t \sim p_a(\cdot \mid \mathbf{o}_t, p_t, \mathcal{H}(\mathbf{o}_{t+1}^{\tau_v}))$$
+      <span class="math-label">Eq. 1 · 世界-动作联合建模 · p.4</span>
+    </div>
+
+    <div class="math-explain">
+      <div class="me-title">符号解读</div>
+      <dl>
+        <dt>$\mathbf{o}_t$</dt>
+        <dd>第一人称视觉观察（egocentric observation）</dd>
+        <dt>$l$</dt>
+        <dd>语言目标（language goal）</dd>
+        <dt>$p_t$</dt>
+        <dd>本体感受状态（proprioceptive state）</dd>
+        <dt>$\mathbf{o}_{t+1}^{\tau_v}$</dt>
+        <dd>flow step $\tau_v$ 处的中间未来帧状态</dd>
+        <dt>$\mathcal{H}(\cdot)$</dt>
+        <dd>从生成过程中提取隐藏状态的函数</dd>
+        <dt>$\mathbf{m}_t$</dt>
+        <dd><strong>统一运动 latent</strong>，编码全身运动：locomotion + torso + 高度 + 足部交互 + 手部操作</dd>
+      </dl>
+    </div>
+
+    <div class="callout blue">
+      <div class="callout-label">$p_v$ 和 $p_a$ 是什么？</div>
+      <p>
+        公式 (1) 里出现了两个概率分布，下标 $v$ = video，$a$ = action，对应"先预测视觉动态，再反推动作"的两步范式：
+      </p>
+      <dl style="margin:10px 0 0; font-size:14px; line-height:1.9; color:var(--text);">
+        <dt style="font-weight:600; color:var(--blue);">$p_v(\cdot \mid o_t, l)$ — 视频动态分布</dt>
+        <dd style="margin: 0 0 12px 16px;">
+          由 <strong>Video DiT</strong> 定义。给定当前第一人称观察 $o_t$ 和语言目标 $l$，
+          它描述"下一帧 $o_{t+1}$ 会是什么样"的概率。直观上是世界模型对
+          <em>场景接下来怎么演变</em>的想象——"如果我要完成这个任务，世界会变成什么样？"
+        </dd>
+        <dt style="font-weight:600; color:var(--blue);">$p_a(\cdot \mid o_t, p_t, \mathcal{H}(o_{t+1}^{\tau_v}))$ — 动作分布</dt>
+        <dd style="margin: 0 0 12px 16px;">
+          由 <strong>Motion DiT</strong> 定义。给定当前观察 $o_t$、本体感受 $p_t$，
+          以及从视频生成过程中截取的中间特征 $\mathcal{H}(o_{t+1}^{\tau_v})$，
+          它描述"该输出什么全身运动 latent $m_t$"——<em>以"想象出来的视觉动态"为条件反推动作</em>。
+        </dd>
+        <dt style="font-weight:600; color:var(--blue);">$p_{va}$ — 联合分布（训练时使用）</dt>
+        <dd style="margin: 0 0 0 16px;">
+          训练时两个分布<strong>不是分开学的</strong>，而是在统一的 flow-matching 目标下联合建模：
+          $p_{va}(o_{t+1}, m_t \mid o_t, p_t, l)$。双 DiT 共享激活，让视频分支和动作分支互相感知。
+        </dd>
+      </dl>
+    </div>
+
+    <div class="callout blue">
+      <div class="callout-label">$\tau_v$ 是什么？——"生成进度条"</div>
+      <p>
+        $\tau_v \in [0, 1]$ 是视频分支 flow matching 过程中的<strong>流时间（flow time）</strong>，
+        标记去噪走到了哪一步。加噪定义为（公式 2）：
+      </p>
+      <div class="math-block" style="margin:12px 0;">
+        $$\mathbf{z}_{t+1}^{\tau_v} = (1 - \tau_v)\,\mathbf{z}_{t+1}^0 + \tau_v\,\boldsymbol{\epsilon}_v$$
+      </div>
+      <p>代两个端点就能看清楚 $\tau_v$ 的含义：</p>
+      <table class="kv-table" style="margin:8px 0 12px;">
+        <tr>
+          <td style="width:110px; font-family:var(--font-mono); font-size:12px;">$\tau_v = 1$（起点）</td>
+          <td>$\mathbf{z}^{\tau_v} = \boldsymbol{\epsilon}_v$，纯高斯噪声，什么都没生成</td>
+        </tr>
+        <tr>
+          <td style="font-family:var(--font-mono); font-size:12px;">$\tau_v = 0$（终点）</td>
+          <td>$\mathbf{z}^{\tau_v} = \mathbf{z}^0$，完全干净的真实未来帧，完全生成好</td>
+        </tr>
+        <tr>
+          <td style="font-family:var(--font-mono); font-size:12px;">中间值</td>
+          <td>噪声和真实帧的线性混合，越接近 0 越清晰</td>
+        </tr>
+      </table>
+      <p>
+        所以那个极限箭头 $\mathbf{o}_{t+1}^{\tau_v} \xrightarrow{\tau_v \to 0} \mathbf{o}_{t+1}$
+        的意思就是：<em>当进度条拉满（$\tau_v \to 0$），中间状态就收敛到真正的未来帧</em>。
+        这只是在说明 $\mathbf{o}_{t+1}^{\tau_v}$ 这个记号的含义，不是一个额外操作。
+      </p>
+      <p style="margin-bottom:0;">
+        <strong>关键：$\tau_v$ vs $\tau_f$ 的区别</strong>。这两个 $\tau$ 含义完全不同：
+        $\tau_v$ 是"生成进度条的当前位置"（训练时随机采样），
+        $\tau_f$ 是 MotionWAM <em>固定</em>去 hook 激活的那个时间步（$\tau_f \approx 1$，接近纯噪声端）。
+        Cosmos Policy 需要把 $\tau_v$ 一路迭代到 $\to 0$（真正画出未来帧）才能输出动作，所以慢（0.7 Hz）；
+        MotionWAM 把读取点固定在 $\tau_f \approx 1$，<strong>single forward pass 截取特征、从不真正画帧</strong>，所以快 7× (4.9 Hz)。
+      </p>
+    </div>
+
+    <h3>3.2 全身运动 Latent 设计：$\mathbf{m}_t$ 的构成</h3>
+
+    <p>
+      $\mathbf{m}_t$ 不是一坨同质的向量，而是<strong>两种表示方式拼合</strong>的混合体，各自负责不同的身体区域：
+    </p>
+
+    <div class="math-block">
+      $$\mathbf{m}_t = (\mathbf{m}_t^{\text{cont}},\ k_t)$$
+      <span class="math-label">统一全身运动 Latent 的拆解</span>
+    </div>
+
+    <h4 style="font-size:15px; font-weight:600; color:var(--accent); margin:20px 0 8px;">先说 SONIC：$\mathbf{m}_t$ 的底座</h4>
+    <p>
+      整个 $\mathbf{m}_t$ 建立在 <strong>SONIC</strong>（Supersizing mOtion tracking for Natural humanoid Control，NVIDIA 2026）之上。
+      SONIC 是一个通用全身控制器——它的核心本事是把移动、躯干旋转、蹲立高度、脚部交互等各种粗粒度全身意图，
+      全部融入一个<strong>共享量化隐变量</strong>里统一表达，然后用一个单一物理仿真策略把这个隐变量解码成实际关节命令。
+      MotionWAM 不重新发明底层控制，而是直接复用 SONIC，让 Motion DiT 只需预测"喂给 SONIC 的那个隐变量"。
+      <a href="sonic.html" style="color:var(--blue)">→ 查看 SONIC 精读笔记</a>
+    </p>
+
+    <h4 style="font-size:15px; font-weight:600; color:var(--blue); margin:20px 0 8px;">$k_t$ —— 离散的那一半（身体大动作）</h4>
+    <p>
+      $k_t$ 就是 SONIC 的 universal token，负责移动、躯干、身高、脚部交互这些<strong>粗粒度全身意图</strong>。
+      它的特别之处在于被 <strong>有限标量量化（FSQ, Finite Scalar Quantization）</strong> 压缩成离散形式：
+    </p>
+    <table class="kv-table">
+      <tr>
+        <td style="width:140px;"><strong>结构</strong></td>
+        <td>2 个 token，每个 token 32 个离散档位（32 levels）</td>
+      </tr>
+      <tr>
+        <td><strong>展开维度</strong></td>
+        <td>$2 \times 32 = 64$ 维离散向量（上标 64）</td>
+      </tr>
+      <tr>
+        <td><strong>取值集合</strong></td>
+        <td>$\{-1, -\frac{15}{16}, \ldots, \frac{15}{16}, 1\}$：$[-1, 1]$ 均匀分 32 档</td>
+      </tr>
+      <tr>
+        <td><strong>负责区域</strong></td>
+        <td>locomotion（步态）、torso（躯干旋转）、height（骨盆高度）、foot interaction（足部踩踏）</td>
+      </tr>
+    </table>
+    <div class="callout blue">
+      <div class="callout-label">为什么用 FSQ 而不用 VQ-VAE？</div>
+      <p>
+        SONIC 论文明确选择 FSQ 而非 VQ-VAE，原因是：VQ-VAE 有<strong>codebook collapse</strong>的风险（大量 codebook 槽位空置不用），
+        还需要额外的 commitment loss 和 EMA 更新来稳定训练。FSQ 没有独立的 codebook，
+        用 straight-through 梯度估计直接和 PPO 联合优化，训练更简单稳定。
+        瓶颈化（只准 32 档）是有意为之——逼模型把全身运动意图压成紧凑、可复用的表示。
+      </p>
+    </div>
+
+    <h4 style="font-size:15px; font-weight:600; color:var(--blue); margin:20px 0 8px;">$\mathbf{m}_t^{\text{cont}}$ —— 连续的那一半（灵巧手）</h4>
+    <p>
+      SONIC 的 universal token（$k_t$）管不到手指级别的精细操作。MotionWAM 因此额外附加一个<strong>连续向量</strong>
+      $\mathbf{m}_t^{\text{cont}}$，专门装 SONIC 覆盖不了的灵巧通道：左右夹爪命令、或灵巧手命令，直接驱动手部。
+      这部分保持连续而不量化，是因为抓取、捏取类动作需要<strong>平滑精细控制</strong>——卡成 32 档太粗糙了。
+      整个向量维度加起来是 66（含 SONIC token 展开 + 灵巧通道）。
+    </p>
+
+    <div class="callout blue">
+      <div class="callout-label">类比：钢琴家的两只手</div>
+      <p>
+        $k_t$ 是左手（移动/躯干/脚步）——方向感强，可以用"向前走/蹲下/抬腿"这些离散意图描述；
+        $\mathbf{m}_t^{\text{cont}}$ 是右手（手指精细操控）——需要连续精确的力度和位置，
+        不能离散化成"用力 1/用力 2"那种粗档位。这两部分合在一起，才是完整的全身运动意图。
+      </p>
+    </div>
+
+    <h4 style="font-size:15px; font-weight:600; color:var(--amber); margin:20px 0 8px;">Stage 3 微调的一个技巧：$\tilde{k}_t$</h4>
+    <p>
+      Stage 3 微调时，$m_t$ 的写法微调为 $(\mathbf{m}_t^{\text{cont}}, \tilde{k}_t)$——
+      把原本离散的 token 索引塞进一个<strong>连续标量槽</strong> $\tilde{k}_t$ 里。
+      这样整个 $m_t$ 都能用同一个 flow-matching 回归目标训练，不需要单独的分类头：
+    </p>
+    <div class="math-block">
+      $$\underbrace{(\mathbf{m}_t^{\text{cont}}, \tilde{k}_t)}_{\text{Motion DiT输出}} \xrightarrow[\text{flow-matching}]{\text{Eq.4}} \hat{\mathbf{m}}_t \xrightarrow{\hat{k}_t = \text{round}(\hat{\tilde{k}}_t)} (\hat{\mathbf{m}}_t^{\text{cont}}, k_t) \xrightarrow{\text{SONIC}} \mathbf{a}_t$$
+      <span class="math-label">Stage 3 推理链：连续回归 → 最近邻取整 → SONIC 解码</span>
+    </div>
+    <p>
+      推理时用 <strong>最近邻取整（round）</strong> 把连续预测还原成离散索引，再交给 SONIC 解码成关节命令。
+      这正是论文公式 (6) 那条链的由来——整套东西统一在一个回归目标下训练，无需为离散部分设计额外的 loss。
+    </p>
+
+    <h3>3.3 双 DiT 架构</h3>
+
+    <div class="callout blue">
+      <div class="callout-label">来源：DiT4DiT（Ma et al. 2026）</div>
+      <p>
+        MotionWAM 的双 DiT 耦合框架直接继承自同组工作 <strong>DiT4DiT</strong>（arXiv 2603.10448，同为 Mondo Robotics + HKUST 团队）。
+        DiT4DiT 首先证明了<em>视频生成 proxy</em> 是训练 robot policy 最有效的 scaling 信号（比语义对齐快 7×、样本效率高 10×），
+        并提出了 Video DiT + Action DiT 双模块、fixed-τ_f hook 提取 hidden state 的核心设计。
+        MotionWAM 在此基础上将动作空间从桌面臂控扩展到 29-DoF 全身 Loco-Manipulation，
+        并增加三阶段 egocentric 数据课程来解决实时人形控制的新挑战。
+        <a href="dit4dit.html" style="color:var(--accent)">→ 查看 DiT4DiT 精读笔记</a>
+      </p>
+    </div>
+
+    <p>
+      MotionWAM 采用 <span class="term" data-en="Dual Diffusion Transformer">双 DiT 架构</span>：
+    </p>
+
+    <div class="module-grid">
+      <div class="module-card">
+        <div class="module-card-name">Video DiT</div>
+        <div class="module-card-title">视频世界模型</div>
+        <div class="module-card-desc">
+          基于 Cosmos-Predict2.5-2B（因果时空 VAE + flow-matching 扩散 Transformer）。
+          关键技巧：在固定 flow timestep $\tau_f$ 拦截激活，<strong>single forward pass</strong> 输出中间特征，不迭代 denoise。
+          $\tau_f$ 固定在纯噪声端（$\tau_f \approx 1$），即"one-shot imagination"模式：只需一次前向就得到有用的视觉特征。
+        </div>
+      </div>
+      <div class="module-card">
+        <div class="module-card-name">Motion DiT</div>
+        <div class="module-card-title">动作 DiT（跟随 DiT4DiT 的 DiT-B 配置）</div>
+        <div class="module-card-desc">
+          隐藏维度 2560，interleaved self/cross-attention。接收 Video DiT 隐藏状态 $\mathbf{h}_t^{\tau_f}$（2048-dim），
+          通过 cross-attention 注入视觉条件，再配合本体状态 $p_t$ 和 embodiment tag $e$，
+          预测速度场并积分得到 motion latent $\mathbf{m}_t$。
+        </div>
+      </div>
+    </div>
+
+    <div class="fig-interactive panel-below">
+      <div class="fig-block">
+        <div class="hotspot-wrap" data-hotspot-group="fig3">
+          <img src="../assets/figures/motionwam/fig3.png" alt="Figure 3: Architecture">
+          <div class="hotspot" data-id="stage1" style="left:18%; top:12%;" data-title="Stage 1: Egocentric Video Pre-train" data-body="在 2,136 小时人类+机器人第一人称视频上预训练 Video DiT，只更新视频参数，学习视觉动力学先验。低成本：只需要廉价、无动作标注的视频！"></div>
+          <div class="hotspot" data-id="stage2" style="left:48%; top:12%;" data-title="Stage 2: Cross-Embodiment Action Post-train" data-body="接入 Motion DiT，在异构 G1 人形数据上联合训练。使用 embodiment tag 区分不同机器人体型，共享 Motion DiT trunk。"></div>
+          <div class="hotspot" data-id="stage3" style="left:78%; top:12%;" data-title="Stage 3: Whole-Body Teleop Finetune" data-body="在真实任务数据上端到端微调。每个任务 200 episodes，共 9 个任务。动作输出统一为 whole-body motion tokens。"></div>
+          <div class="hotspot" data-id="videodit" style="left:20%; top:35%;" data-title="Video DiT" data-body="Cosmos-Predict2.5-2B 初始化，文本和 VAE 编码器全程冻结。在 one-shot imagination 模式下运行：给定干净条件帧和高斯噪声，单次前向传播输出中间特征。"></div>
+          <div class="hotspot" data-id="motiondit" style="left:70%; top:35%;" data-title="Motion DiT" data-body="DiT-B 架构，通过 per-embodiment projector 连接共享 trunk。预测速度场并通过积分得到运动 token。"></div>
+          <div class="hotspot" data-id="sonic" style="left:88%; top:55%;" data-title="SONIC Controller" data-body="底层全身控制器，将运动 token 解码为 29-DoF 关节命令，驱动宇树 G1。"></div>
+        </div>
+        <div class="fig-cap">
+          <span class="fig-num">Fig 3 · p.5</span>
+          MotionWAM 三阶段训练架构
+          <span class="fig-cn">Stage 1 学习视觉动力学，Stage 2 接入动作分支做跨本体训练，Stage 3 在真实任务上端到端微调</span>
+        </div>
+      </div>
+      <div class="hotspot-panel"></div>
+    </div>
+
+    <div class="step-walker" data-hotspot-group="fig3">
+      <div class="sw-header">
+        <div class="sw-title">跟随信号走一遍训练流程</div>
+        <div class="sw-controls">
+          <button class="sw-btn prev">◀</button>
+          <span class="sw-counter">1 / 3</span>
+          <button class="sw-btn next">▶</button>
+        </div>
+      </div>
+      <div class="sw-progress">
+        <div class="sw-dot active"></div>
+        <div class="sw-dot"></div>
+        <div class="sw-dot"></div>
+      </div>
+      <div class="sw-body">
+        <div class="sw-step active" data-hotspot="stage1">
+          <h4>第 1 步：Egocentric Video Pre-training</h4>
+          <p>在 2,136 小时廉价视频上预训练 Video DiT。关键是<strong>只学视觉动力学</strong>，不接触动作标签。这让模型学会"从第一人称视角看世界如何变化"。</p>
+        </div>
+        <div class="sw-step" data-hotspot="stage2">
+          <h4>第 2 步：Cross-Embodiment Action Post-training</h4>
+          <p>接入 Motion DiT，在异构 G1 数据上训练。通过 embodiment tag 区分不同机器人，共享 trunk 学习跨本体的通用运动表示。</p>
+        </div>
+        <div class="sw-step" data-hotspot="stage3">
+          <h4>第 3 步：Whole-Body Teleoperation Finetuning</h4>
+          <p>在真实任务数据上端到端微调（9 个任务 × 200 episodes）。输出统一为 whole-body motion tokens，解锁任务驱动的足部交互。</p>
+        </div>
+      </div>
+    </div>
+
+    <div class="callout blue" style="margin-top:20px;">
+      <div class="callout-label">贯穿三阶段的设计直觉</div>
+      <p>
+        视频分支和运动分支应该<strong>轮流专精</strong>，而不是从零一起联合训。如果一上来就两者同时学，海量视频数据和稀缺动作数据会互相拖累。三阶段的核心逻辑是：
+        每步专注一件事，逐步放开更新范围——先让模型学会"看世界"，再学会"动起来"，最后学会"做具体任务"。
+      </p>
+    </div>
+
+    <h4 style="margin-top:1.4em; color:var(--accent); font-size:0.95em; font-family:var(--font-mono); letter-spacing:.03em;">▸ Stage 1 — Egocentric Video Pretraining</h4>
+
+    <p>只训 Video DiT（Motion DiT 还没挂上），用约 <strong>2,136 小时</strong>第一人称人类视频 + 人形机器人视频，损失只用 $\mathcal{L}_{\text{video}}$（公式 3）。</p>
+
+    <div class="callout amber">
+      <div class="callout-label">核心洞见：瓶颈是"视觉动态"，不是"动作多样性"</div>
+      <p>
+        要让模型学会"想象世界怎么动"，真正缺的不是动作标签，而是<strong>大量第一人称视频</strong>。
+        第一人称视频便宜（无需标注动作），有动作标注的机器人演示则少得多、贵得多。
+      </p>
+      <p>
+        所以只用便宜的无标注视频单独训 Video DiT，让主干能"吸收数据规模（absorb scale）"，
+        不被"那一小撮有动作标注的演示数据"卡住脖子（throttled）。
+        产出是一个以机器人视角为中心的动态先验——正是 $\mathbf{h}_t^{\tau_f}$ 特征能力的来源。
+      </p>
+    </div>
+
+    <h4 style="margin-top:1.4em; color:var(--accent2); font-size:0.95em; font-family:var(--font-mono); letter-spacing:.03em;">▸ Stage 2 — Cross-Embodiment Action Post-training</h4>
+
+    <p>挂上 Motion DiT，同时更新 Video DiT 和 Motion DiT。数据是异构 Unitree G1 数据（不同末端执行器、不同动作格式），经各自 projector 路由进共享主干。联合损失：</p>
+
+    <div class="math-block">
+      $$\mathcal{L}_{\text{Stage 2}} = \mathcal{L}_{\text{motion}} + \mathcal{L}_{\text{video}} \quad (5)$$
+      <span class="math-label">Eq. 5 · Stage 2 联合损失 · p.5</span>
+    </div>
+
+    <div class="callout">
+      <div class="callout-label">为什么学动作了还保留 $\mathcal{L}_{\text{video}}$？</div>
+      <p>
+        防止动作信号一进来，就把 Stage 1 辛苦学到的动态先验<strong>冲掉（overwritten）</strong>。
+        如果只用 $\mathcal{L}_{\text{motion}}$ 训，模型可能为了拟合动作而丢掉视觉动态能力。
+        保留视频损失当作一个"<strong>表征正则项（representation regulariser）</strong>"——像个锚，逼模型在学动作的同时别忘了怎么想象。
+      </p>
+    </div>
+
+    <h4 style="margin-top:1.4em; color:var(--blue); font-size:0.95em; font-family:var(--font-mono); letter-spacing:.03em;">▸ Stage 3 — Whole-Body Teleop Finetuning</h4>
+
+    <p>端到端微调整个网络。数据是目标 G1 上采的遥操作全身演示——<strong>9 个任务 × 200 episodes</strong>，量极小。沿用公式 (5) 联合损失，结构不变（共享主干 + G1 projector）。</p>
+
+    <div class="callout blue">
+      <div class="callout-label">为什么少量数据就够？</div>
+      <p>
+        因为前两步已经打好底：Stage 1 给了动态先验，Stage 2 把先验锚定到动作空间。
+        Stage 3 只需少量演示就能快速适配（rapidly adapts）目标任务。
+        同一个网络同时继承了"视频动态 + 多形态锚定 + 任务行为"，无需改架构。
+      </p>
+    </div>
+
+    <h4 style="margin-top:1.6em; color:var(--text); font-size:0.9em;">三阶段对照表</h4>
+    <table class="kv-table" style="width:100%; margin-bottom:12px;">
+      <thead><tr style="color:var(--text3); font-family:var(--font-mono); font-size:0.78em;">
+        <th style="text-align:left; padding:6px 10px;"></th>
+        <th style="text-align:left; padding:6px 10px;">Stage 1</th>
+        <th style="text-align:left; padding:6px 10px;">Stage 2</th>
+        <th style="text-align:left; padding:6px 10px;">Stage 3</th>
+      </tr></thead>
+      <tbody>
+        <tr><td style="color:var(--text3); font-size:0.82em; padding:5px 10px;">训什么</td><td>只 Video DiT</td><td>Video + Motion DiT</td><td>整个网络端到端</td></tr>
+        <tr><td style="color:var(--text3); font-size:0.82em; padding:5px 10px;">数据</td><td>海量第一人称视频（无动作标注）</td><td>异构 G1 数据（有动作）</td><td>少量 G1 遥操作演示</td></tr>
+        <tr><td style="color:var(--text3); font-size:0.82em; padding:5px 10px;">损失</td><td>$\mathcal{L}_{\text{video}}$</td><td>$\mathcal{L}_{\text{motion}} + \mathcal{L}_{\text{video}}$</td><td>$\mathcal{L}_{\text{motion}} + \mathcal{L}_{\text{video}}$</td></tr>
+        <tr><td style="color:var(--text3); font-size:0.82em; padding:5px 10px;">学到什么</td><td>第一人称视觉动态先验</td><td>把想象锚定到跨形态动作</td><td>具体任务行为</td></tr>
+      </tbody>
+    </table>
+
+    <div class="callout red">
+      <div class="callout-label">消融实验印证（论文 Table 3）</div>
+      <p>
+        去掉 Stage 1 → 成功率下降 <strong>11%</strong>（失去视觉动态先验）；
+        去掉 Stage 2 → 成功率下降 <strong>28%</strong>（失去动作锚定，直接崩）。
+        两步互补——Stage 1 供先验，Stage 2 锚进动作空间，Stage 3 落到具体任务。
+      </p>
+    </div>
+
+    <h3>3.4 公式 (2) 拆解：Video DiT 如何把"想象"交给 Motion DiT</h3>
+
+    <p>
+      MotionWAM 最关键的设计是：<strong>不让 Video DiT 生成完整未来帧</strong>，而是只拦截一次前向传播的中间激活，把它当作视觉条件喂给 Motion DiT。这就是论文公式 (2)：
+    </p>
+
+    <div class="math-block">
+      $$\mathbf{h}_t^{\tau_f} = \mathcal{H}\!\left[\, v_\theta^{\text{video}}\!\left(z_{t+1}^{\tau_f},\, \tau_f \;\middle|\; z_t^0,\, l\right),\; z_{t+1}^{\tau_f} \right]$$
+      <span class="math-label">Eq. 2 · Video DiT 特征提取 · p.4</span>
+    </div>
+
+    <div class="math-explain">
+      <div class="me-title">逐符号拆解</div>
+      <dl>
+        <dt>$v_\theta^{\text{video}}(\cdots)$</dt>
+        <dd><strong>Video DiT 速度网络</strong>：$\theta$ 是训练好的固定参数（机器本身），括号里是每步喂入的<em>条件</em>：当前干净帧 $z_t^0$、语言指令 $l$、纯噪声未来帧 $z_{t+1}^{\tau_f}$、固定 flow timestep $\tau_f \approx 1$。</dd>
+        <dt>$z_{t+1}^{\tau_f}$（输入）</dt>
+        <dd>$\tau_f \approx 1$ 时 $z_{t+1}^{\tau_f} \approx \mathcal{N}(0, I)$——纯高斯噪声，没有任何真实未来信息。Video DiT 接收到它，只需结合当前帧 $z_t^0$ 做<strong>单次前向</strong>（不迭代 denoise）。</dd>
+        <dt>$\mathcal{H}[\cdots]$</dt>
+        <dd><strong>Forward Hook</strong>：在 Video DiT 指定中间层"挂钩子"，拦截该层的激活向量。输出的不是最终 denoised 帧，而是中间的隐藏状态。</dd>
+        <dt>$\mathbf{h}_t^{\tau_f}$（输出）</dt>
+        <dd>2048-dim 视觉特征向量——编码了"给定当前帧，场景<em>趋向于</em>怎么变化"的动力学语义，而不是未来帧的像素值。</dd>
+      </dl>
+    </div>
+
+    <div class="callout blue">
+      <div class="callout-label">θ 是机器，括号是每帧的输入</div>
+      <p>
+        $\theta$ = 训练好的 Video DiT 参数（不变）。括号里的 $(z_{t+1}^{\tau_f}, \tau_f \mid z_t^0, l)$ = 每个时间步实时喂进去的数据。
+        就像一台收音机（$\theta$ = 机器本身），调频信号（括号）每帧不同——机器不变，信号变。
+      </p>
+    </div>
+
+    <h4 style="margin-top:1.6em; color:var(--text); font-size:0.97em;">为什么不让 Video DiT 生成完整未来帧？</h4>
+
+    <div class="callout amber">
+      <div class="callout-label">中间激活 vs 最终输出：速度 × 7</div>
+      <p>
+        若要生成清晰未来帧，Video DiT 需从 $\tau_v = 1$ 迭代 denoise 到 $\tau_v = 0$，每次迭代都是一次完整前向。
+        MotionWAM 固定 $\tau_f \approx 1$，只做<strong>一次前向</strong>，直接读中间层激活——即"one-shot imagination"模式：
+      </p>
+      <table class="kv-table">
+        <tr><td>Cosmos Policy（生成完整帧，迭代 denoise）</td><td>≈ 0.7 Hz</td></tr>
+        <tr><td>MotionWAM（拦截中间激活，单次前向）</td><td>≈ 4.9 Hz</td></tr>
+      </table>
+      <p>
+        类比：你看到对方抬起脚，就知道他要迈步——不需要等他真的走完一步。
+        中间激活已经编码了"场景动力学趋势"，完全够 Motion DiT 用。
+      </p>
+    </div>
+
+    <h4 style="margin-top:1.6em; color:var(--text); font-size:0.97em;">Forward Hook 是什么？</h4>
+
+    <div class="callout">
+      <div class="callout-label">PyTorch Forward Hook：挂钩子，不改源码</div>
+      <p>
+        Hook 是 PyTorch 的机制：在某个 Module 的前向传播结束后<strong>自动调用一个回调函数</strong>，把该层的输出传给你，无需修改模型源码。
+      </p>
+      <div class="code-block"><code>captured = []
+hook = block.register_forward_hook(lambda m, inp, out: captured.append(out))
+_ = video_dit(z_noisy, tau_f, cond_frame, lang)   # 单次前向
+h_t = captured[0]   # 拿到中间激活</code></div>
+      <p>
+        MotionWAM 在 Cosmos-Predict2.5 的某个 Transformer block 挂钩子，捕获该 block 的输出激活作为 $\mathbf{h}_t^{\tau_f}$。
+        就像在流水线某个工位旁放了抄录员——不打断流水线，但能拿到那个工位的产出。
+      </p>
+    </div>
+
+    <h4 style="margin-top:1.6em; color:var(--text); font-size:0.97em;">Motion DiT 如何使用 $\mathbf{h}_t^{\tau_f}$</h4>
+
+    <p>Motion DiT 接收三路输入，通过 <strong>interleaved self / cross-attention</strong> 消化它们：</p>
+
+    <div class="module-grid">
+      <div class="module-card">
+        <div class="module-card-name">输入 ①</div>
+        <div class="module-card-title">$\mathbf{h}_t^{\tau_f}$（视频动力学特征）</div>
+        <div class="module-card-desc">Video DiT 中间激活，2048-dim。通过 <strong>cross-attention</strong> 注入，提供场景动力学条件——"世界接下来会怎么变"。</div>
+      </div>
+      <div class="module-card">
+        <div class="module-card-name">输入 ②</div>
+        <div class="module-card-title">$p_t$（本体感觉）</div>
+        <div class="module-card-desc">关节角、速度、IMU 等，经 per-embodiment projector 嵌入统一维度。提供"现在身体在哪"的状态信息。</div>
+      </div>
+      <div class="module-card">
+        <div class="module-card-name">输入 ③</div>
+        <div class="module-card-title">$\mathbf{m}_t^{\tau_a}$（噪声 motion latent）</div>
+        <div class="module-card-desc">待去噪的运动隐变量（flow-matching 中的噪声版本），Motion DiT 对它迭代 denoise，最终得到干净的 $\mathbf{m}_t^0$。</div>
+      </div>
+    </div>
+
+    <div class="callout blue">
+      <div class="callout-label">Interleaved Attention 模式（类比 VLM 文本注入）</div>
+      <p>
+        Motion DiT 每个 Transformer block 先做 <strong>self-attention</strong>（motion token 之间内部协调），
+        再做 <strong>cross-attention</strong>（从 $\mathbf{h}_t^{\tau_f}$ 吸收视觉信息），交替重复 $N$ 层。
+        这和 VLM 用 cross-attention 注入文本 token 的模式完全一致——只是把文本换成了视频动力学特征。
+      </p>
+      <div class="code-block"><code>[noisy m_t tokens]
+    → self-attn   （motion token 内部协调）
+    → cross-attn  （从 h_t^τ_f 吸收视觉条件）
+    → FFN
+    → … × N 层
+    → 速度场 v_φ
+    → ODE 积分 → 干净 m_t</code></div>
+    </div>
+
+    <div class="callout">
+      <div class="callout-label">Per-Embodiment Projector：共享主干 + 各自接口</div>
+      <p>
+        Stage 2 中，不同机体（G1、H1、GR1…）的动作空间各不相同。解决方案：
+        Motion DiT <strong>主干（trunk）参数共享</strong>，但每个机体拥有独立轻量 MLP——
+        输入 projector（将本体状态映射到统一维度）和输出 projector（将速度场映射回各自动作空间）。
+        Stage 3 部署时只保留 G1 的 projector，主干权重不变。
+      </p>
+    </div>
+
+    <h3>3.5 Flow Matching 目标函数</h3>
+    <p>
+      Video DiT 和 Motion DiT 都用 flow matching 训练。定义 noise-perturbed 未来 latent：
+    </p>
+
+    <div class="math-block">
+      $$\mathbf{z}_{t+1}^{\tau_v} = (1 - \tau_v) \mathbf{z}_{t+1}^0 + \tau_v \boldsymbol{\epsilon}_v, \quad \boldsymbol{\epsilon}_v \sim \mathcal{N}(0, I)$$
+      <span class="math-label">Eq. 2 · 噪声插值 · p.5</span>
+    </div>
+
+    <p>
+      Video DiT 学习速度场 $v_\theta^{\text{video}}$，Motion DiT 学习速度场 $v_\phi^{\text{motion}}$：
+    </p>
+
+    <div class="math-block">
+      $$\mathcal{L}_{\text{video}} = \mathbb{E}_{\tau_v, \mathbf{z}_{t+1}^0, \boldsymbol{\epsilon}_v} \left[ \left\| v_\theta^{\text{video}}(\mathbf{z}_{t+1}^{\tau_v}, \tau_v \mid \mathbf{z}_t^0, l) - (\boldsymbol{\epsilon}_v - \mathbf{z}_{t+1}^0) \right\|_2^2 \right]$$
+      <span class="math-label">Eq. 3 · Video DiT loss · p.5</span>
+    </div>
+
+    <div class="math-block">
+      $$\mathcal{L}_{\text{motion}} = \mathbb{E}_{\tau_a, \mathbf{m}_t^0, \boldsymbol{\epsilon}_m} \left[ \left\| v_\phi^{\text{motion}}(\mathbf{m}_t^{\tau_a}, \tau_a \mid \mathbf{h}_t^{\tau_f}, p_t, e) - (\boldsymbol{\epsilon}_m - \mathbf{m}_t^0) \right\|_2^2 \right]$$
+      <span class="math-label">Eq. 4 · Motion DiT loss · p.5</span>
+    </div>
+
+    <div class="math-explain">
+      <div class="me-title">Flow Matching 核心思想</div>
+      <dl>
+        <dt>$(\boldsymbol{\epsilon} - \mathbf{x}^0)$</dt>
+        <dd>从数据到噪声的"直线速度"（ground truth）。如果沿着直线从数据走向纯噪声，这就是速度。</dd>
+        <dt>$v_\theta(\mathbf{x}^\tau, \tau)$</dt>
+        <dd>模型预测的速度场——告诉模型"你现在在这里，该往哪个方向走、走多快"</dd>
+        <dt>MSE Loss</dt>
+        <dd>让预测速度尽量接近直线速度，这样模型就能学会从噪声"流"向数据</dd>
+      </dl>
+    </div>
+
+    <div class="callout blue">
+      <div class="callout-label">关键设计：为什么 Stage 2 保留 Video Loss？</div>
+      <p>
+        为了防止动作信号到来时"覆盖"掉学到的视觉动力学先验，Stage 2 使用 <strong>joint loss</strong>：
+        $\mathcal{L}_{\text{Stage 2}} = \mathcal{L}_{\text{motion}} + \mathcal{L}_{\text{video}}$。
+        这就像是"边学开车边保持对道路的观察能力"——不能为了操控方向盘而忘记看路。
+      </p>
+    </div>
+
+    <h3>3.6 推理：从 Motion Token 到关节命令</h3>
+    <p>
+      推理时，Motion DiT 输出的 motion latent 解码为关节命令：
+    </p>
+
+    <div class="math-block">
+      $$\mathbf{m}_t = (\mathbf{m}_t^{\text{cont}}, \tilde{k}_t) \xrightarrow{\text{Eq. (4)}} \hat{\mathbf{m}}_t = (\hat{\mathbf{m}}_t^{\text{cont}}, \hat{\tilde{k}}_t) \xrightarrow{\hat{k}_t = \text{round}(\hat{\tilde{k}}_t)} (\mathbf{m}_t^{\text{cont}}, k_t) \xrightarrow{\text{SONIC}} \mathbf{a}_t$$
+      <span class="math-label">Eq. 6 · Motion Latent 解码 · p.6</span>
+    </div>
+
+    <div class="math-explain">
+      <div class="me-title">解码流程</div>
+      <dl>
+        <dt>Step 1</dt>
+        <dd>Motion DiT 输出连续 latent $(\hat{\mathbf{m}}_t^{\text{cont}}, \hat{\tilde{k}}_t)$</dd>
+        <dt>Step 2</dt>
+        <dd>对离散部分最近邻取整：$\hat{k}_t = \text{round}(\hat{\tilde{k}}_t)$</dd>
+        <dt>Step 3</dt>
+        <dd>组装完整 motion latent 输入 SONIC</dd>
+        <dt>Step 4</dt>
+        <dd>SONIC 解码为 29-DoF 关节命令，驱动宇树 G1</dd>
+      </dl>
+    </div>
+  </div>
+
+  <!-- §4 Dataset -->
+  <div class="section" id="dataset">
+    <div class="section-num">§ 04</div>
+    <h2>数据集：三阶段渐进式数据混合</h2>
+
+    <div class="cn-read">
+      <div class="cn-label">承上启下</div>
+      <p>
+        上一节我们了解了模型架构，但训练数据从哪里来？这是人形机器人领域的关键瓶颈。
+        MotionWAM 采用<strong>三阶段渐进式数据策略</strong>：从廉价的无标注视频，到跨本体机器人数据，再到少量高质量遥操作演示。
+        这种"由远及近"的数据课程（curriculum）让模型先学通用视觉动力学，再适配目标本体。
+      </p>
+    </div>
+
+    <h3>4.1 Stage 1：Egocentric Video Pretraining（2,136 小时）</h3>
+    <p>
+      <strong>核心洞察</strong>：视觉动力学（visual dynamics），而非动作多样性，是这个阶段的瓶颈。
+      通过在廉价、无动作标注的视频上训练 Video DiT，模型学会"从第一人称视角看世界如何变化"，产生一个机器人中心的动力学先验。
+    </p>
+
+    <table class="related-work-table">
+      <tr>
+        <th>数据来源</th>
+        <th>Embodiment</th>
+        <th>权重</th>
+        <th>链接 / 说明</th>
+      </tr>
+      <tr>
+        <td class="rw-name"><a href="https://arxiv.org/abs/2505.11709" target="_blank" style="color:var(--accent)">EgoDex</a></td>
+        <td>Human (egocentric)</td>
+        <td>30.0%</td>
+        <td>Hoque et al. 2025 · 大规模灵巧操作 egocentric 视频 · 包含第一人称手部操作轨迹</td>
+      </tr>
+      <tr>
+        <td class="rw-name"><a href="https://arxiv.org/abs/2503.14734" target="_blank" style="color:var(--accent)">GR00T-X-Embodiment-Sim</a></td>
+        <td>Fourier GR1 (sim)</td>
+        <td>25.5%</td>
+        <td>NVIDIA GR00T-N1 配套仿真数据 · Fourier GR1 人形机器人仿真操作轨迹</td>
+      </tr>
+      <tr>
+        <td class="rw-name"><a href="https://arxiv.org/abs/2511.17441" target="_blank" style="color:var(--accent)">RoboCOIN (G1edu/Galbot/Leju)</a></td>
+        <td>G1edu / Galbot / Leju</td>
+        <td>8.0%</td>
+        <td>Wu et al. 2025 · 开源双臂机器人数据收集框架 · 涵盖多种 G1 级别本体的操作演示</td>
+      </tr>
+      <tr>
+        <td class="rw-name"><a href="https://arxiv.org/abs/2503.14734" target="_blank" style="color:var(--accent)">GR00T-Teleop-GR1-Robot</a></td>
+        <td>Fourier GR1 (real)</td>
+        <td>7.1%</td>
+        <td>GR00T-N1 真实遥操作数据 · Fourier GR1 真实环境操作轨迹（egocentric 视角）</td>
+      </tr>
+      <tr>
+        <td class="rw-name"><a href="https://arxiv.org/abs/2510.08807" target="_blank" style="color:var(--accent)">Humanoid-Everyday</a></td>
+        <td>Unitree G1</td>
+        <td>4.7%</td>
+        <td>Zhao et al. 2025 · 开放世界人形操作数据集 · G1 在真实日常场景中的多样操作任务</td>
+      </tr>
+      <tr>
+        <td class="rw-name"><a href="https://huggingface.co/collections/unitreerobotics/unifolm-wbt-dataset" target="_blank" style="color:var(--accent)">UnifoLM-WBT</a></td>
+        <td>Unitree G1 (WBT)</td>
+        <td>2.3%</td>
+        <td>Unitree Robotics 2026 · HuggingFace 发布 · 高质量全身遥操作数据 · LeRobot 格式 · 50 Hz</td>
+      </tr>
+      <tr>
+        <td class="rw-name"><a href="https://github.com/physical-superintelligence-lab/SIMPLE" target="_blank" style="color:var(--accent)">PSI-Real / PSI-Simple</a></td>
+        <td>Unitree G1</td>
+        <td>2.4%</td>
+        <td>USC Physical Superintelligence Lab · HuggingFace: <a href="https://huggingface.co/datasets/USC-PSI-Lab/psi-data" target="_blank" style="color:var(--accent)">USC-PSI-Lab/psi-data</a>（422 GB）· PSI-Simple = <code>simple/</code> 仿真子集；PSI-Real = <code>real/</code> 真实遥操作子集</td>
+      </tr>
+      <tr>
+        <td class="rw-name"><a href="https://arxiv.org/abs/2511.17441" target="_blank" style="color:var(--accent)">RoboCOIN (R1_Lite + RMC-AIDA-L)</a></td>
+        <td>R1_Lite / AIDA-L</td>
+        <td>20.0%</td>
+        <td>RoboCOIN 框架中 Unitree R1_Lite 和 RMC-AIDA-L 机器人的操作数据</td>
+      </tr>
+    </table>
+
+    <div class="callout amber">
+      <div class="callout-label">数据混合策略</div>
+      <p>
+        三域预算：Human 30% + G1-class humanoid 50% + 其他真实机器人 20%。
+        每个域内按 $\sqrt{\text{episodes}}$ 分配权重，防止单一数据集主导。
+        <strong>关键点</strong>：action-related sources 只读取视频流，动作标签被完全忽略——这是"廉价预训练"的核心。
+      </p>
+    </div>
+
+    <div class="callout blue">
+      <div class="callout-label">数据集格式说明</div>
+      <p>
+        Stage 3 的真实遥操作数据以 <strong>LeRobot 格式</strong>存储，50 Hz 采样，包含：
+        (1) egocentric RGB 视频流（Intel RealSense D435i）；
+        (2) SMPL-24 全身姿态（从 PICO VR 三点追踪 retarget 而来）；
+        (3) SONIC 解码的 29-DoF 关节角度 + 语言指令。
+        每条 episode 同时记录 command（MotionWAM 输出）和 state（SONIC 跟踪结果）。
+      </p>
+    </div>
+
+    <h3>4.2 Stage 2：Cross-Embodiment Action Post-training</h3>
+    <p>
+      接入 Motion DiT，在异构 Unitree G1 人形数据上联合训练。使用 embodiment tag 区分不同末端执行器和动作标注格式，
+      通过 per-embodiment input/output projectors 路由到共享的 Motion DiT trunk。
+    </p>
+    <p>
+      动作向量被 right-padded 到最大动作维度（66），并用 mask 标记每个本体的有效通道，
+      使异构动作布局能共享同一个 DiT trunk。
+    </p>
+
+    <h3>4.3 Stage 3：Unitree G1 Whole-Body Finetuning</h3>
+    <p>
+      在内部采集的遥操作全身数据上端到端微调。每个任务 <strong>200 episodes</strong>，共 9 个任务 = 1,800 episodes。
+      通过 PICO VR 三点追踪系统重定向到机器人，SMPL 姿态转换为 29-DoF 关节角度。
+    </p>
+
+    <div class="callout blue">
+      <div class="callout-label">为什么 Stage 3 数据量这么小还能 work？</div>
+      <p>
+        因为 Stage 1 和 Stage 2 已经提供了强大的先验：Stage 1 教会模型"世界如何变化"，Stage 2 教会模型"如何控制人形身体"。
+        Stage 3 只是<strong>微调</strong>任务特定行为——这就像预训练大模型后只用少量数据微调下游任务。
+      </p>
+    </div>
+
+    <div class="quiz" data-correct="c" data-explain="Stage 1 的关键在于只需要廉价的 egocentric 视频，不需要昂贵的动作标注。作者明确说\"cheap, action-free video\"——这正是利用互联网规模视频数据的优势。" data-explain-wrong="Stage 1 并不直接学习动作策略，也不聚焦 manipulation 任务。它学习的是通用的视觉动力学先验。正确答案是低成本视频预训练。">
+      <div class="q-label">理解检查</div>
+      <div class="q-text">Stage 1（Egocentric Video Pretraining）的核心优势是什么？</div>
+      <div class="q-options">
+        <button class="q-opt" data-k="a">直接学习全身操作策略</button>
+        <button class="q-opt" data-k="b">需要大量带动作标注的遥操作数据</button>
+        <button class="q-opt" data-k="c">利用廉价的互联网视频，无需动作标注</button>
+        <button class="q-opt" data-k="d">专注于 manipulation 任务学习</button>
+      </div>
+      <div class="q-feedback"></div>
+    </div>
+
+    <div class="callout blue" style="margin-top:28px;">
+      <div class="callout-label">深度数据集分析</div>
+      <p>想了解每个数据集的完整细节（HDF5 结构、各阶段读取内容、EgoDex 骨骼标注、GR00T-Sim 任务列表、RoboCOIN 拆分逻辑）？查看专页：</p>
+      <p style="margin-bottom:0;"><a href="datasets-analysis.html" style="color:var(--accent); font-weight:600; text-decoration:none; border-bottom:1px dashed var(--accent);">→ MotionWAM 数据集深度分析 · 6 个数据集完整解读</a></p>
+    </div>
+  </div>
+
+  <!-- §5 Experiments -->
+  <div class="section" id="experiments">
+    <div class="section-num">§ 05</div>
+    <h2>实验：9 个真实世界任务与 SOTA 对比</h2>
+
+    <div class="cn-read">
+      <div class="cn-label">实验设计</div>
+      <p>
+        实验围绕三个问题：(Q1) 耦合 video world model 是否优于 VLA？(Q2) 三阶段训练各自贡献多少？
+        (Q3) WAM 能否达到实时闭环控制频率？
+        所有方法在相同的 Stage 3 数据上微调，公平对比。
+      </p>
+    </div>
+
+    <h3>5.1 实验设置</h3>
+    <p>
+      <strong>硬件平台</strong>：宇树 G1 人形机器人，配备双 ALOHA2 夹爪，头戴 Intel RealSense D435i RGB 相机。
+      所有策略在单张 NVIDIA RTX 4090 上通过 WebSocket 以 <strong>闭环</strong> 方式查询。
+    </p>
+
+    <div class="diagram-wrap">
+      <img src="../assets/figures/motionwam/fig4.png" alt="Figure 4: Real-world task suite" style="width:100%; border-radius:8px;">
+      <div class="diagram-caption">Fig 4 · p.6 &nbsp;·&nbsp; 9 个真实世界 Loco-Manipulation 任务（Unitree G1）</div>
+    </div>
+
+    <div style="display:grid; grid-template-columns:repeat(3,1fr); gap:8px; margin-top:12px;">
+      <div style="background:var(--bg2); border:1px solid #2a2e35; border-radius:6px; padding:10px 12px;">
+        <div style="font-family:var(--font-mono); font-size:0.72em; color:var(--accent); letter-spacing:.05em;">ROW 1 · COL 1</div>
+        <div style="font-size:0.88em; font-weight:600; color:var(--text); margin:4px 0 2px;">PnP Bottle</div>
+        <div style="font-size:0.78em; color:var(--text2);">拾取放置瓶子，精细抓取 + 身体平衡</div>
+      </div>
+      <div style="background:var(--bg2); border:1px solid #2a2e35; border-radius:6px; padding:10px 12px;">
+        <div style="font-family:var(--font-mono); font-size:0.72em; color:var(--accent); letter-spacing:.05em;">ROW 1 · COL 2</div>
+        <div style="font-size:0.88em; font-weight:600; color:var(--text); margin:4px 0 2px;">Kick Soccer</div>
+        <div style="font-size:0.78em; color:var(--text2);">踢足球，任务驱动足部交互（分层架构做不到）</div>
+      </div>
+      <div style="background:var(--bg2); border:1px solid #2a2e35; border-radius:6px; padding:10px 12px;">
+        <div style="font-family:var(--font-mono); font-size:0.72em; color:var(--accent); letter-spacing:.05em;">ROW 1 · COL 3</div>
+        <div style="font-size:0.88em; font-weight:600; color:var(--text); margin:4px 0 2px;">Retrieve Item</div>
+        <div style="font-size:0.78em; color:var(--text2);">取回物品，伸展 + 抓取协调</div>
+      </div>
+      <div style="background:var(--bg2); border:1px solid #2a2e35; border-radius:6px; padding:10px 12px;">
+        <div style="font-family:var(--font-mono); font-size:0.72em; color:var(--accent2); letter-spacing:.05em;">ROW 2 · COL 1</div>
+        <div style="font-size:0.88em; font-weight:600; color:var(--text); margin:4px 0 2px;">Load Cart</div>
+        <div style="font-size:0.78em; color:var(--text2);">装载推车，全身协调 + 负载平衡</div>
+      </div>
+      <div style="background:var(--bg2); border:1px solid #2a2e35; border-radius:6px; padding:10px 12px;">
+        <div style="font-family:var(--font-mono); font-size:0.72em; color:var(--accent2); letter-spacing:.05em;">ROW 2 · COL 2</div>
+        <div style="font-size:0.88em; font-weight:600; color:var(--text); margin:4px 0 2px;">Toss Garbage</div>
+        <div style="font-size:0.78em; color:var(--text2);">扔垃圾，投掷动作 + 释放时机控制</div>
+      </div>
+      <div style="background:var(--bg2); border:1px solid #2a2e35; border-radius:6px; padding:10px 12px;">
+        <div style="font-family:var(--font-mono); font-size:0.72em; color:var(--accent2); letter-spacing:.05em;">ROW 2 · COL 3</div>
+        <div style="font-size:0.88em; font-weight:600; color:var(--text); margin:4px 0 2px;">Lift Basket</div>
+        <div style="font-size:0.78em; color:var(--text2);">提起篮子，蹲伏 + 抬升协调</div>
+      </div>
+      <div style="background:var(--bg2); border:1px solid #2a2e35; border-radius:6px; padding:10px 12px;">
+        <div style="font-family:var(--font-mono); font-size:0.72em; color:var(--blue); letter-spacing:.05em;">ROW 3 · COL 1</div>
+        <div style="font-size:0.88em; font-weight:600; color:var(--text); margin:4px 0 2px;">Stock Shelves</div>
+        <div style="font-size:0.78em; color:var(--text2);">整理货架，高度变化 + 精确放置</div>
+      </div>
+      <div style="background:var(--bg2); border:1px solid #2a2e35; border-radius:6px; padding:10px 12px;">
+        <div style="font-family:var(--font-mono); font-size:0.72em; color:var(--blue); letter-spacing:.05em;">ROW 3 · COL 2</div>
+        <div style="font-size:0.88em; font-weight:600; color:var(--text); margin:4px 0 2px;">Wipe Board</div>
+        <div style="font-size:0.78em; color:var(--text2);">擦白板，接触力 + 轨迹控制</div>
+      </div>
+      <div style="background:var(--bg2); border:1px solid #2a2e35; border-radius:6px; padding:10px 12px;">
+        <div style="font-family:var(--font-mono); font-size:0.72em; color:var(--blue); letter-spacing:.05em;">ROW 3 · COL 3</div>
+        <div style="font-size:0.88em; font-weight:600; color:var(--text); margin:4px 0 2px;">Do Laundry</div>
+        <div style="font-size:0.78em; color:var(--text2);">洗衣服，精细操作 + 开门弯腰</div>
+      </div>
+    </div>
+
+    <h3>5.2 Baselines</h3>
+    <ul style="color: var(--text2); line-height: 1.85; margin-bottom: 16px;">
+      <li><strong>Diffusion Policy (DP)</strong>：非 VLA 视觉运动策略代表，UNet-based denoiser</li>
+      <li><strong>ACT</strong>：Action Chunking Transformer，自回归动作预测</li>
+      <li><strong>π₀.₅</strong>：Physical Intelligence 的通才 VLA，flow-matching action expert</li>
+      <li><strong>GR00T-N1.7</strong>：NVIDIA 的开源人形基础模型</li>
+      <li><strong>Qwen3DiT</strong>：作者自行构建的 ablation，用 Qwen3-VL 2B 替换 Video DiT，隔离 video world model 先验的贡献</li>
+    </ul>
+
+    <h3>5.3 与 SOTA 对比（Q1）</h3>
+
+    <div class="fig-interactive panel-below">
+      <div class="fig-block">
+        <img src="../assets/figures/motionwam/fig5.png" alt="Figure 5: Results">
+        <div class="fig-cap">
+          <span class="fig-num">Fig 5 · p.7</span>
+          与 SOTA VLA 在 9 个任务上的对比（Unitree G1，每个任务 20 次试验）
+          <span class="fig-cn">MotionWAM 在所有任务上获胜，整体成功率从 43.9%（最强基线 GR00T-N1.7）提升到 76.1%，绝对提升 32%</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="callout">
+      <div class="callout-label">核心结果</div>
+      <p>
+        MotionWAM 在所有 9 个任务上击败所有基线，<strong>整体成功率 76.1%</strong>（最强基线 GR00T-N1.7 仅 43.9%）。
+        差距在需要全身协调的任务上最大：<strong>Kick Soccer (+40%)</strong>、<strong>Load Cart (+40%)</strong>、
+        <strong>Retrieve Item (+40%)</strong>、<strong>Wipe Board (+45%)</strong>、<strong>Do Laundry (+30%)</strong>。
+      </p>
+    </div>
+
+    <div class="callout red">
+      <div class="callout-label">关键发现：VLM-only 基线彻底失败</div>
+      <p>
+        Qwen3DiT（只用静态 VLM 先验，无 video dynamics）在 locomotion-heavy 任务上接近 0%，π₀.₅ 也低于 20%。
+        这说明<strong>仅靠互联网语义知识不足以应对闭环物理人形控制</strong>——必须耦合 video world model 提供的物理动力学先验。
+      </p>
+    </div>
+
+    <h3>5.4 三阶段训练 Ablation（Q2）</h3>
+
+    <table class="related-work-table">
+      <tr>
+        <th>变体</th>
+        <th>Stage 1</th>
+        <th>Stage 2</th>
+        <th>平均成功率</th>
+      </tr>
+      <tr>
+        <td>Full</td>
+        <td>✓</td>
+        <td>✓</td>
+        <td style="color: var(--accent); font-weight: 600;">70.0%</td>
+      </tr>
+      <tr>
+        <td>w/o Stage 2</td>
+        <td>✓</td>
+        <td>—</td>
+        <td>42.0%</td>
+      </tr>
+      <tr>
+        <td>w/o Stage 1</td>
+        <td>—</td>
+        <td>✓</td>
+        <td>59.0%</td>
+      </tr>
+    </table>
+
+    <div class="math-explain">
+      <div class="me-title">阶段贡献解读</div>
+      <dl>
+        <dt>去掉 Stage 1 (-28%)</dt>
+        <dd>Video DiT 以通用非 egocentric 动力学先验进入 Stage 2，隐藏状态虽保留语义，但预测的运动 latent 明显不准确。</dd>
+        <dt>去掉 Stage 2 (-11%)</dt>
+        <dd>Motion DiT 直接接在 Stage 1 trunk 上，仅用目标任务的少量数据训练；无跨本体动作接地，每个任务性能崩溃。</dd>
+        <dt>两阶段互补</dt>
+        <dd>Stage 1 提供 egocentric visual-dynamics 先验，Stage 2 将其 grounding 到跨本体动作空间。</dd>
+      </dl>
+    </div>
+
+    <h3>5.5 实时推理频率（Q3）</h3>
+
+    <table class="kv-table">
+      <tr><td>模型</td><td>可训练参数量</td><td>频率 (Hz)</td></tr>
+      <tr><td>GR00T-N1.7</td><td>1.6B</td><td>6.5 Hz</td></tr>
+      <tr><td>Qwen3DiT</td><td>2.3B</td><td>9.0 Hz</td></tr>
+      <tr><td>Cosmos Policy</td><td>2.0B</td><td>0.7 Hz</td></tr>
+      <tr><td style="color: var(--accent); font-weight: 600;">MotionWAM (Ours)</td><td>2.5B</td><td style="color: var(--accent); font-weight: 600;">4.9 Hz</td></tr>
+    </table>
+
+    <div class="callout blue">
+      <div class="callout-label">为什么 Cosmos Policy 这么慢？</div>
+      <p>
+        Cosmos Policy 必须<strong>迭代 denoise</strong> 未来视频才能生成动作，而 MotionWAM 只需<strong>单次前向传播</strong>读取 Video DiT 的中间 denoising 特征。
+        MotionWAM 比 Cosmos Policy 快 <strong>7 倍</strong>（4.9 Hz vs 0.7 Hz），同时达到更高的准确率。
+      </p>
+    </div>
+  </div>
+
+  <!-- §6 Conclusion -->
+  <div class="section" id="conclusion">
+    <div class="section-num">§ 06</div>
+    <h2>结论与局限性</h2>
+
+    <div class="cn-read">
+      <div class="cn-label">总结</div>
+      <p>
+        MotionWAM 展示了<strong>大规模视频预训练 → 跨本体动作适应 → 少量真实数据微调</strong>这条路线的可行性。
+        关键创新：(1) 用 unified motion latent 统一全身控制；(2) 单次前向传播读取 video world model 特征实现实时推理；
+        (3) 三阶段数据课程渐进式学习。这是首个实时闭环端到端 WAM，实现了传统上下分离架构无法做到的足部交互。
+      </p>
+    </div>
+
+    <h3>局限性</h3>
+    <div class="callout red">
+      <div class="callout-label">作者明确指出</div>
+      <ol style="margin: 10px 0; padding-left: 24px; color: var(--text2);">
+        <li><strong>硬件单一</strong>：Stage 3 仅在 Unitree G1 上验证，未在其他人形平台验证</li>
+        <li><strong>泛化性</strong>：缺乏受控的新物体泛化研究，训练和测试物体视觉相似</li>
+        <li><strong>失败模式</strong>：依赖单目相机，当被操作物体离开视野或头相机视角偏离训练分布时，失去视觉 grounding 并停滞</li>
+      </ol>
+    </div>
+
+    <h3>与 VLA / Embodied AI 的联系</h3>
+    <div class="callout purple">
+      <div class="callout-label">对 VLA 路线的启示</div>
+      <p>
+        MotionWAM 与 VLA（如 π₀、OpenVLA）形成有趣的对比与互补：
+      </p>
+      <ul style="margin: 10px 0; padding-left: 24px; color: var(--text2);">
+        <li><strong>先验来源</strong>：VLA 用 VLM（语言-视觉对齐），WAM 用视频模型（视觉动力学）</li>
+        <li><strong>动作空间</strong>：VLA 通常为 arm-gripper，WAM 可实现全身统一控制</li>
+        <li><strong>实时性</strong>：VLA 单次前向快但缺乏物理，WAM 传统慢但物理 grounded——MotionWAM 取两者之长</li>
+        <li><strong>数据效率</strong>：两者都用大规模预训练 + 少量微调，但 WAM 用视频数据更廉价</li>
+      </ul>
+      <p style="margin-top: 12px;">
+        未来可能的融合方向：<strong>VLM + Video World Model 联合预训练</strong>，同时获得语义理解和物理建模能力。
+      </p>
+    </div>
+
+    <div class="quiz" data-correct="b" data-explain="虽然 MotionWAM 使用 video world model 提供物理先验，但这不意味着 VLA 的 VLM 先验被取代。两者是互补关系：VLM 提供语义理解，Video Model 提供物理建模。未来趋势可能是两者的融合。" data-explain-wrong="这个选项与 MotionWAM 的核心主张矛盾。作者明确指出\"strong semantic priors alone do not transfer to the closed-loop physics humanoid loco-manipulation demands\"，但这不是说 VLM 完全无用，而是需要与物理先验结合。">
+      <div class="q-label">理解检查</div>
+      <div class="q-text">根据论文，以下哪个说法最准确？</div>
+      <div class="q-options">
+        <button class="q-opt" data-k="a">VLA 的 VLM 先验对机器人控制完全无用</button>
+        <button class="q-opt" data-k="b">VLM 语义先验需要与视频物理先验结合才能应对闭环控制</button>
+        <button class="q-opt" data-k="c">WAM 完全取代 VLA 成为 embodied AI 的唯一路线</button>
+        <button class="q-opt" data-k="d">视频预训练比语言预训练对机器人更重要</button>
+      </div>
+      <div class="q-feedback"></div>
+    </div>
+  </div>
+
+  <footer class="footer">
+    <span>MotionWAM 精读笔记 · paper-notes · MIT License</span>
+  </footer>
+
+    </main>
+  </div>
+
+  <script>
+    // Step Walker
+    document.querySelectorAll('.step-walker').forEach(sw => {
+      const steps = sw.querySelectorAll('.sw-step');
+      const dots = sw.querySelectorAll('.sw-dot');
+      const prevBtn = sw.querySelector('.sw-btn.prev');
+      const nextBtn = sw.querySelector('.sw-btn.next');
+      const counter = sw.querySelector('.sw-counter');
+      const hotspotGroup = sw.dataset.hotspotGroup;
+      let current = 0;
+
+      function update() {
+        steps.forEach((s, i) => s.classList.toggle('active', i === current));
+        dots.forEach((d, i) => d.classList.toggle('active', i <= current));
+        counter.textContent = `${current + 1} / ${steps.length}`;
+
+        // Activate hotspot
+        if (hotspotGroup) {
+          const hotspotId = steps[current].dataset.hotspot;
+          document.querySelectorAll(`[data-hotspot-group="${hotspotGroup}"] .hotspot`).forEach(h => {
+            h.classList.toggle('active', h.dataset.id === hotspotId);
+          });
+        }
+      }
+
+      prevBtn?.addEventListener('click', () => { if (current > 0) { current--; update(); } });
+      nextBtn?.addEventListener('click', () => { if (current < steps.length - 1) { current++; update(); } });
+      update();
+    });
+
+    // Quiz
+    document.querySelectorAll('.quiz').forEach(qz => {
+      const correct = qz.dataset.correct;
+      const explain = qz.dataset.explain;
+      const explainWrong = qz.dataset.explainWrong;
+      const feedback = qz.querySelector('.q-feedback');
+
+      qz.querySelectorAll('.q-opt').forEach(btn => {
+        btn.addEventListener('click', () => {
+          const isCorrect = btn.dataset.k === correct;
+          btn.classList.add(isCorrect ? 'correct' : 'wrong');
+          feedback.innerHTML = isCorrect ? explain : (explainWrong || explain);
+          feedback.classList.add('show', isCorrect ? 'callout' : 'callout-red');
+          qz.querySelectorAll('.q-opt').forEach(b => b.disabled = true);
+        });
+      });
+    });
+
+    // Hotspots
+    document.querySelectorAll('.hotspot-wrap').forEach(wrap => {
+      const panel = wrap.closest('.fig-interactive')?.querySelector('.hotspot-panel');
+      if (!panel) return;
+
+      wrap.querySelectorAll('.hotspot').forEach(hotspot => {
+        hotspot.addEventListener('click', () => {
+          wrap.querySelectorAll('.hotspot').forEach(h => h.classList.remove('active'));
+          hotspot.classList.add('active');
+          panel.innerHTML = `
+            <div class="hp-title">${hotspot.dataset.title}</div>
+            <div class="hp-body">${hotspot.dataset.body}</div>
+          `;
+        });
+      });
+    });
+  </script>
+</body>
+</html>
