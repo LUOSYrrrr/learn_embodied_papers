@@ -190,7 +190,7 @@
 
     <div class="intro-grid">
       <div class="intro-cell">
-        <div class="intro-cell-num">11</div>
+        <div class="intro-cell-num">13</div>
         <div class="intro-cell-label">已精读</div>
       </div>
       <div class="intro-cell">
@@ -209,6 +209,50 @@
       <span class="sh-hint">按更新时间排序</span>
     </div>
     <div class="recent-wrap">
+      <a class="recent-card" href="papers/cosmos3.html">
+        <div class="recent-date">2026-06-15 · 刚完成</div>
+        <div class="recent-title">Cosmos 3 · 全模态世界模型（Omnimodal MoT）</div>
+        <div class="recent-sub">
+          NVIDIA 2026-06-09 最新：Mixture-of-Transformers 架构，一个模型统一 Language / Image / Video / Audio / Action 五种模态。
+          Reasoner Tower（因果 AR）+ Generator Tower（扩散生成）共享同一组 Transformer 层，MoT 实现理解和生成并行。
+          Cosmos3-Nano-Policy-DROID 39.7 分超过 π₀.₅（28.1 分），T2I/I2V 被评为最佳开源。
+        </div>
+        <div class="recent-tags">
+          <span class="status-badge status-done">✓ 已精读</span>
+          <span class="card-pill">NVIDIA · 2026-06</span>
+          <span class="card-pill">MoT · Omnimodal · Action</span>
+        </div>
+      </a>
+
+      <a class="recent-card" href="papers/cosmos-predict2.html">
+        <div class="recent-date">2026-06-15 · 刚完成</div>
+        <div class="recent-title">Cosmos-Predict2.5 · 视频世界模型基座（Flow Matching DiT）</div>
+        <div class="recent-sub">
+          NVIDIA 2026-02：200M 视频片段训练的视频世界模型，Flow Matching + WAN2.1 VAE + Cosmos-Reason1 VLM 作为文字编码器。
+          支持 T2W / I2W / V2W 三种推理模式，2B 和 14B 全开源。
+          DreamDojo、MotionWAM 等下游工作的视频生成基座；Cosmos-Transfer2.5 提供 Sim2Real 转换。
+        </div>
+        <div class="recent-tags">
+          <span class="status-badge status-done">✓ 已精读</span>
+          <span class="card-pill">NVIDIA · 2026-02</span>
+          <span class="card-pill">Flow Matching · DiT · Sim2Real</span>
+        </div>
+      </a>
+
+      <a class="recent-card" href="papers/dreamdojo.html">
+        <div class="recent-date">2026-06-15 · 刚完成</div>
+        <div class="recent-title">DreamDojo · 大规模人类视频预训练的通用机器人世界模型</div>
+        <div class="recent-sub">
+          NVIDIA 2026：44k 小时自我中心人类视频预训练，潜在动作作为统一代理标签，首个实现 OOD 跨具身泛化的机器人基础世界模型。
+          蒸馏 Pipeline（Self Forcing）压缩到 4 步去噪，实时 10.81 FPS，支持遥操作 / 策略评估 / 模型规划。
+        </div>
+        <div class="recent-tags">
+          <span class="status-badge status-done">✓ 已精读</span>
+          <span class="card-pill">NVIDIA · 2026</span>
+          <span class="card-pill">World Model · Latent Action · Distillation</span>
+        </div>
+      </a>
+
       <a class="recent-card" href="papers/sonic.html">
         <div class="recent-date">2026-06-13 · 刚完成</div>
         <div class="recent-title">SONIC · 超大规模运动追踪与通用全身控制</div>
@@ -552,7 +596,7 @@
             <span class="dir-name">WAM · 世界-动作模型</span>
             <span class="dir-sub">世界模型生成 subgoal / 模拟未来，辅助策略学习</span>
           </span>
-          <span class="dir-stats"><span class="dir-count">3</span> 篇已读</span>
+          <span class="dir-stats"><span class="dir-count">6</span> 篇已读</span>
           <span class="dir-arrow">&#9662;</span>
         </summary>
         <div class="dir-body">
@@ -576,7 +620,18 @@
             <div class="dc-group-label label-improve">③ 视频世界模拟器</div>
             <a class="dc-item disabled"><span class="dc-item-main">Genie / Genie 2<span class="dc-item-en">DeepMind 2024</span></span><span class="status-badge status-plan">○</span></a>
             <a class="dc-item disabled"><span class="dc-item-main">DIAMOND<span class="dc-item-en">Alonso et al. 2024</span></span><span class="status-badge status-plan">○</span></a>
-            <a class="dc-item disabled"><span class="dc-item-main">Cosmos<span class="dc-item-en">NVIDIA 2025</span></span><span class="status-badge status-plan">○</span></a>
+            <a class="dc-item" href="papers/cosmos-predict2.html">
+              <span class="dc-item-main">Cosmos-Predict2.5<span class="dc-item-en">NVIDIA 2026-02 · Flow Matching DiT · Sim2Real</span></span>
+              <span class="status-badge status-done">✓</span>
+            </a>
+            <a class="dc-item" href="papers/cosmos3.html">
+              <span class="dc-item-main">Cosmos 3<span class="dc-item-en">NVIDIA 2026-06 · Omnimodal MoT · Action</span></span>
+              <span class="status-badge status-done">✓</span>
+            </a>
+            <a class="dc-item" href="papers/dreamdojo.html">
+              <span class="dc-item-main">DreamDojo<span class="dc-item-en">NVIDIA 2026 · 44k h Human Video · Latent Action</span></span>
+              <span class="status-badge status-done">✓</span>
+            </a>
           </div>
           <div class="dc-group">
             <div class="dc-group-label label-core">④ VLA 前身</div>

@@ -1,0 +1,1054 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>DreamDojo · 通用机器人世界模型（大规模人类视频）</title>
+  <link rel="stylesheet" href="../assets/css/style.css">
+  <script src="../assets/js/theme.js"></script>
+  <script src="../assets/js/interactive.js" defer></script>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16/dist/katex.min.css">
+  <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16/dist/katex.min.js"></script>
+  <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16/dist/contrib/auto-render.min.js"
+          onload="renderMathInElement(document.body,{delimiters:[{left:'$$',right:'$$',display:true},{left:'$',right:'$',display:false}]})"></script>
+  <style>
+    .docs-layout { display: grid; grid-template-columns: 220px minmax(0, 1fr); max-width: 1400px; margin: 0 auto; }
+    .sidebar { position: sticky; top: 60px; height: calc(100vh - 60px); overflow-y: auto; padding: 24px 16px; border-right: 1px solid var(--border); background: var(--bg); }
+    .sidebar-title { font-family: var(--font-mono); font-size: 10px; color: var(--text3); letter-spacing: 0.08em; text-transform: uppercase; margin-bottom: 16px; padding-bottom: 8px; border-bottom: 1px solid var(--border); }
+    .sidebar-tree { list-style: none; margin: 0; padding: 0; }
+    .sidebar-tree li { margin: 4px 0; }
+    .sidebar-tree a { display: block; padding: 6px 10px; font-size: 13px; color: var(--text2); text-decoration: none; border-radius: 6px; transition: all 0.2s; }
+    .sidebar-tree a:hover { background: var(--glass-hover); color: var(--text); }
+    .sidebar-tree a.active { background: rgba(74, 222, 154, 0.1); color: var(--accent); }
+    .main-content { min-width: 0; }
+    @media (max-width: 900px) { .docs-layout { grid-template-columns: 1fr; } .sidebar { display: none; } }
+
+    .paper-header { padding: 40px 40px 24px; max-width: 1200px; margin: 0 auto; }
+    .paper-venue { font-family: var(--font-mono); font-size: 11px; color: var(--text3); letter-spacing: 0.06em; margin-bottom: 10px; }
+    .paper-title { font-family: var(--font-serif); font-size: 28px; font-weight: 700; color: var(--text); line-height: 1.35; margin: 0 0 14px; }
+    .paper-authors { font-size: 14px; color: var(--text2); margin-bottom: 8px; }
+    .paper-badges { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 16px; }
+    .badge { font-family: var(--font-mono); font-size: 10px; padding: 4px 10px; border-radius: 6px; background: var(--bg3); color: var(--text2); border: 1px solid var(--border); }
+    .badge-green { background: rgba(74, 222, 154, 0.12); color: var(--accent); border-color: rgba(74, 222, 154, 0.3); }
+    .badge-blue { background: rgba(96, 165, 250, 0.12); color: var(--blue); border-color: rgba(96, 165, 250, 0.3); }
+    .badge-amber { background: rgba(245, 158, 11, 0.12); color: var(--amber); border-color: rgba(245, 158, 11, 0.3); }
+    .badge-purple { background: rgba(167, 139, 250, 0.12); color: var(--purple); border-color: rgba(167, 139, 250, 0.3); }
+
+    .section { padding: 32px 40px; max-width: 1200px; margin: 0 auto; border-top: 1px solid var(--border); }
+    .section-num { font-family: var(--font-mono); font-size: 11px; color: var(--accent); letter-spacing: 0.08em; margin-bottom: 6px; }
+    .section h2 { font-family: var(--font-serif); font-size: 22px; font-weight: 600; margin: 0 0 20px; color: var(--text); }
+    .section h3 { font-size: 17px; font-weight: 600; margin: 28px 0 12px; color: var(--text); }
+    .section p { font-size: 15px; line-height: 1.85; color: var(--text2); margin: 0 0 16px; }
+
+    .cn-read { background: var(--bg2); border-left: 3px solid var(--accent); padding: 18px 22px; margin: 20px 0; border-radius: 0 8px 8px 0; }
+    .cn-label { font-family: var(--font-mono); font-size: 10px; color: var(--accent); letter-spacing: 0.06em; text-transform: uppercase; margin-bottom: 8px; }
+    .cn-read p { margin: 0; font-size: 14.5px; line-height: 1.8; color: var(--text); }
+
+    .callout { background: var(--bg2); border: 1px solid var(--border); border-radius: 10px; padding: 18px 22px; margin: 20px 0; }
+    .callout-label { font-family: var(--font-mono); font-size: 10px; letter-spacing: 0.06em; text-transform: uppercase; margin-bottom: 8px; color: var(--text3); }
+    .callout p { font-size: 14px; line-height: 1.8; color: var(--text2); margin: 0 0 8px; }
+    .callout p:last-child { margin: 0; }
+    .callout.amber { border-color: var(--amber); background: rgba(245, 158, 11, 0.08); }
+    .callout.amber .callout-label { color: var(--amber); }
+    .callout.red { border-color: var(--accent3); background: rgba(255, 107, 107, 0.08); }
+    .callout.red .callout-label { color: var(--accent3); }
+    .callout.blue { border-color: var(--blue); background: rgba(96, 165, 250, 0.08); }
+    .callout.blue .callout-label { color: var(--blue); }
+    .callout.purple { border-color: var(--purple); background: rgba(167, 139, 250, 0.08); }
+    .callout.purple .callout-label { color: var(--purple); }
+
+    .kv-table { width: 100%; border-collapse: collapse; margin: 16px 0; font-size: 13px; }
+    .kv-table td { padding: 10px 14px; border: 1px solid var(--border); }
+    .kv-table td:first-child { background: var(--bg2); color: var(--text3); width: 32%; font-family: var(--font-mono); font-size: 11px; }
+    .kv-table td:last-child { color: var(--text); }
+
+    .module-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 14px; margin: 20px 0; }
+    .module-card { background: var(--bg2); border: 1px solid var(--border); border-radius: 10px; padding: 18px; }
+    .module-card-name { font-family: var(--font-mono); font-size: 10px; color: var(--text3); letter-spacing: 0.06em; margin-bottom: 6px; }
+    .module-card-title { font-size: 15px; font-weight: 600; color: var(--text); margin-bottom: 8px; }
+    .module-card-desc { font-size: 13px; color: var(--text2); line-height: 1.6; }
+    @media (max-width: 700px) { .module-grid { grid-template-columns: 1fr; } }
+
+    .math-block { background: var(--bg3); border: 1px solid var(--border); border-radius: 8px; padding: 18px 22px; margin: 16px 0; font-size: 15px; overflow-x: auto; }
+    .math-label { display: block; font-family: var(--font-mono); font-size: 10px; color: var(--text3); margin-top: 10px; }
+    .math-explain { background: var(--bg2); border: 1px solid var(--border); border-radius: 8px; padding: 16px 20px; margin: 8px 0 20px; }
+    .me-title { font-family: var(--font-mono); font-size: 10px; color: var(--text3); text-transform: uppercase; letter-spacing: 0.06em; margin-bottom: 12px; }
+    .math-explain dl { margin: 0; }
+    .math-explain dt { color: var(--accent); font-weight: 600; font-size: 14px; margin-top: 10px; }
+    .math-explain dd { margin: 4px 0 0 16px; font-size: 13px; color: var(--text2); line-height: 1.6; }
+
+    .fig-interactive { display: grid; grid-template-columns: minmax(0,1fr) 260px; gap: 20px; margin: 20px 0; align-items: start; }
+    .fig-interactive.panel-below { grid-template-columns: 1fr; }
+    .fig-block img { width: 100%; border-radius: 8px; display: block; border: 1px solid var(--border); }
+    .fig-cap { font-size: 12px; color: var(--text3); margin-top: 10px; line-height: 1.6; }
+    .fig-num { font-family: var(--font-mono); color: var(--accent); margin-right: 6px; }
+    .fig-cn { display: block; margin-top: 6px; color: var(--text2); font-style: italic; }
+    .hotspot-wrap { position: relative; display: inline-block; width: 100%; }
+    .hotspot { position: absolute; width: 20px; height: 20px; border-radius: 50%; background: rgba(74,222,154,0.55); border: 2px solid var(--accent); cursor: pointer; transform: translate(-50%,-50%); transition: all 0.2s; }
+    .hotspot:hover, .hotspot.active { background: rgba(74,222,154,0.9); transform: translate(-50%,-50%) scale(1.25); }
+    .hotspot-panel { background: var(--bg2); border: 1px solid var(--border); border-radius: 10px; padding: 18px; font-size: 13px; color: var(--text2); min-height: 120px; position: sticky; top: 80px; }
+    .hotspot-panel .hp-title { font-weight: 600; color: var(--text); font-size: 14px; margin-bottom: 8px; }
+    .hotspot-panel .hp-body { line-height: 1.7; }
+    @media (max-width: 900px) { .fig-interactive { grid-template-columns: 1fr; } .hotspot-panel { position: static; } }
+
+    .step-walker { background: var(--bg2); border: 1px solid var(--border); border-radius: 10px; padding: 20px; margin: 24px 0; }
+    .sw-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px; }
+    .sw-title { font-size: 14px; font-weight: 600; color: var(--text); }
+    .sw-controls { display: flex; gap: 10px; align-items: center; }
+    .sw-btn { background: var(--bg3); border: 1px solid var(--border); color: var(--text); padding: 6px 12px; border-radius: 6px; cursor: pointer; font-size: 12px; }
+    .sw-btn:hover { background: var(--glass-hover); }
+    .sw-counter { font-family: var(--font-mono); font-size: 12px; color: var(--text3); }
+    .sw-progress { display: flex; gap: 6px; margin-bottom: 16px; }
+    .sw-dot { flex: 1; height: 3px; background: var(--border); border-radius: 2px; }
+    .sw-dot.active { background: var(--accent); }
+    .sw-step { display: none; }
+    .sw-step.active { display: block; }
+    .sw-step h4 { font-size: 14px; margin: 0 0 8px; color: var(--text); }
+    .sw-step p { font-size: 13px; color: var(--text2); margin: 0 0 6px; }
+
+    .quiz { background: var(--bg2); border: 1px solid var(--border); border-radius: 10px; padding: 20px; margin: 24px 0; }
+    .q-label { font-family: var(--font-mono); font-size: 10px; color: var(--amber); letter-spacing: 0.06em; text-transform: uppercase; margin-bottom: 10px; }
+    .q-text { font-size: 15px; color: var(--text); margin-bottom: 16px; font-weight: 500; }
+    .q-options { display: flex; flex-direction: column; gap: 8px; }
+    .q-opt { text-align: left; background: var(--bg3); border: 1px solid var(--border); color: var(--text); padding: 12px 16px; border-radius: 8px; cursor: pointer; font-size: 14px; transition: all 0.2s; }
+    .q-opt:hover { background: var(--glass-hover); border-color: var(--border2); }
+    .q-opt.correct { background: rgba(74, 222, 154, 0.15); border-color: var(--accent); }
+    .q-opt.wrong { background: rgba(255, 107, 107, 0.15); border-color: var(--accent3); }
+    .q-feedback { margin-top: 14px; padding: 12px; border-radius: 8px; font-size: 13px; display: none; }
+    .q-feedback.show { display: block; background: var(--bg3); color: var(--text2); }
+
+    .en-quote { background: var(--bg3); border: 1px solid var(--border); border-radius: 8px; margin: 16px 0; }
+    .en-quote summary { padding: 12px 16px; cursor: pointer; font-family: var(--font-mono); font-size: 12px; color: var(--text3); list-style: none; }
+    .en-quote summary::before { content: "▶ "; }
+    .en-quote[open] summary::before { content: "▼ "; }
+    .quote-body { padding: 0 16px 16px; }
+    .quote-body p { font-size: 13.5px; color: var(--text2); line-height: 1.75; font-style: italic; margin: 0 0 8px; }
+    .quote-cite { font-family: var(--font-mono); font-size: 11px; color: var(--text3); text-align: right; }
+
+    .rw-table { width: 100%; border-collapse: collapse; margin: 16px 0; font-size: 13px; }
+    .rw-table th { background: var(--bg3); color: var(--text3); font-family: var(--font-mono); font-size: 10px; letter-spacing: 0.06em; text-transform: uppercase; padding: 10px 14px; border: 1px solid var(--border); text-align: left; }
+    .rw-table td { padding: 10px 14px; border: 1px solid var(--border); color: var(--text2); vertical-align: top; }
+    .rw-table tr:hover td { background: var(--bg2); }
+    .tag-red { color: var(--accent3); font-weight: 600; }
+    .tag-green { color: var(--accent); font-weight: 600; }
+
+    .result-table { width: 100%; border-collapse: collapse; font-size: 13px; margin: 16px 0; }
+    .result-table th { background: var(--bg3); color: var(--text3); font-family: var(--font-mono); font-size: 10px; letter-spacing: 0.05em; padding: 8px 12px; border: 1px solid var(--border); text-align: left; }
+    .result-table td { padding: 8px 12px; border: 1px solid var(--border); color: var(--text2); }
+    .result-table .best { color: var(--accent); font-weight: 700; }
+    .result-table tr:hover td { background: var(--bg2); }
+
+    .footer { padding: 32px 40px; font-size: 12px; color: var(--text3); border-top: 1px solid var(--border); text-align: center; }
+  </style>
+</head>
+<body>
+  <nav class="nav">
+    <a href="../index.html" class="nav-logo">← Embodied Notes</a>
+    <div class="nav-links">
+      <a href="motionwam.html">MotionWAM</a>
+      <a href="sonic.html">SONIC</a>
+      <a href="../index.html">首页</a>
+    </div>
+  </nav>
+
+  <div class="docs-layout">
+    <aside class="sidebar">
+      <div class="sidebar-title">DreamDojo 目录</div>
+      <ul class="sidebar-tree">
+        <li><a href="#tldr">§01 论文定位</a></li>
+        <li><a href="#background">§02 背景与动机</a></li>
+        <li><a href="#related">§03 相关工作与差距</a></li>
+        <li><a href="#dataset">§04 DreamDojo-HV 数据集</a></li>
+        <li><a href="#latent-action">§05 潜在动作模型</a></li>
+        <li><a href="#architecture">§06 世界模型架构与训练</a></li>
+        <li><a href="#distill">§07 蒸馏加速 Pipeline</a></li>
+        <li><a href="#experiments">§08 实验结果</a></li>
+        <li><a href="#applications">§09 下游应用</a></li>
+        <li><a href="#limits">§10 局限与展望</a></li>
+      </ul>
+    </aside>
+
+    <main class="main-content">
+      <div class="paper-header">
+        <div class="paper-venue">arXiv:2602.06949 · NVIDIA + 高校联合 · 2026-02-09</div>
+        <h1 class="paper-title">DreamDojo: A Generalist Robot World Model from Large-Scale Human Videos</h1>
+        <div class="paper-authors">Shenyuan Gao, William Liang, Kaiyuan Zheng, Ayaan Malik, Seonghyeon Ye … Linxi "Jim" Fan · NVIDIA · HKUST · UC Berkeley · UW · Stanford · KAIST</div>
+        <div class="paper-badges">
+          <span class="badge badge-green">基础世界模型</span>
+          <span class="badge badge-blue">潜在动作 · 跨具身</span>
+          <span class="badge badge-purple">Cosmos-Predict2.5 · Flow Matching</span>
+          <span class="badge badge-amber">44k 小时人类视频</span>
+          <span class="badge">10.81 FPS 实时</span>
+        </div>
+        <div style="margin-top:14px; font-family:var(--font-mono); font-size:12px;">
+          <a href="https://dreamdojo-world.github.io" target="_blank" style="color:var(--accent); text-decoration:none; border-bottom:1px dashed var(--accent);">🌐 项目主页</a>
+          &nbsp;&nbsp;
+          <a href="../pdfs/world-model/[2602.06949] DreamDojo A Generalist Robot World Model from Large-Scale Human Videos.pdf" style="color:var(--blue); text-decoration:none; border-bottom:1px dashed var(--blue);">📄 原版 PDF</a>
+        </div>
+      </div>
+
+      <!-- §01 论文定位 -->
+      <div class="section" id="tldr">
+        <div class="section-num">§ 01</div>
+        <h2>论文定位：机器人世界模型的"基础模型化"尝试</h2>
+
+        <div class="cn-read">
+          <div class="cn-label">一句话概括</div>
+          <p>DreamDojo 是第一个<strong>在 44k 小时人类视频上预训练、用潜在动作作为统一代理标签、支持实时自回归预测</strong>的机器人世界模型——它能在看到新机器人少量演示后，立即泛化到从未见过的物体和环境，无需重新从头训练。</p>
+        </div>
+
+        <table class="kv-table">
+          <tr><td>核心问题</td><td>机器人世界模型被限制在分布内场景：机器人数据太稀缺，覆盖不了真实世界的多样性</td></tr>
+          <tr><td>核心洞见</td><td>人类在日常活动中与世界的物理交互<strong>和机器人的底层物理是共通的</strong>——用人类视频预训练可以学到物理知识，再迁移到机器人</td></tr>
+          <tr><td>数据来源</td><td>In-lab (55h) + EgoDex (829h) + DreamDojo-HV (43,827h) = <strong>44,711 小时</strong></td></tr>
+          <tr><td>架构基础</td><td>Cosmos-Predict2.5（NVIDIA 的视频 Diffusion 模型），WAN2.2 Tokenizer，DiT 骨干</td></tr>
+          <tr><td>模型规模</td><td>DreamDojo-2B 和 DreamDojo-14B 两个版本，256 张 H100 预训练 140k 步</td></tr>
+          <tr><td>实时速度</td><td>蒸馏后 <strong>10.81 FPS</strong>（640×480），推理步数从 35 → 4</td></tr>
+          <tr><td>关键应用</td><td>实时遥操作 · 策略评估 · 模型规划 · 零样本未见场景泛化</td></tr>
+        </table>
+
+        <div class="callout">
+          <div class="callout-label">四大贡献</div>
+          <p><strong>① DreamDojo-HV 数据集</strong>：44k 小时自我中心人类视频，比之前最大世界模型训练数据多 15 倍时长、96 倍技能种类、2,000 倍场景数量。</p>
+          <p><strong>② 潜在动作（Continuous Latent Actions）</strong>：用 VAE 从视频帧中自监督提取动作代理标签，不需要任何外部捕捉设备，跨具身迁移。</p>
+          <p><strong>③ 蒸馏 Pipeline（Self Forcing）</strong>：把双向 Diffusion 教师模型蒸馏成因果自回归学生模型，4 步去噪实现 10.81 FPS 实时推理，同时提升长时一致性。</p>
+          <p style="margin:0"><strong>④ 多样下游应用</strong>：策略评估与真实世界相关性 Pearson r=0.995，模型规划提升成功率约 2×。</p>
+        </div>
+
+        <!-- Fig 1 Overview -->
+        <div class="fig-interactive panel-below">
+          <div class="fig-block">
+            <div class="hotspot-wrap" data-hotspot-group="fig1">
+              <img src="../assets/figures/dreamdojo/fig-1.png" alt="Figure 1: DreamDojo overview">
+              <div class="hotspot" data-id="data-sources" style="left:6%; top:52%"
+                   data-title="三路人类视频数据源"
+                   data-body="左列是三种数据来源：In-lab（实验室内桌面操作，带 Manus 手套精确手部姿态），EgoDex（Apple Vision Pro 采集的 829h 高精度手部动作），DreamDojo-HV（众包采集的 43,827h，覆盖家务/零售/工业等 12 类场景）。三者合并为 44,711h 训练数据。"></div>
+              <div class="hotspot" data-id="dreamdojo-model" style="left:32%; top:36%"
+                   data-title="DreamDojo 基础模型"
+                   data-body="绿色方框是 DreamDojo 基础模型——以 Cosmos-Predict2.5 为骨干，在三路人类视频上用潜在动作作为条件进行预训练。预训练后它已经具备物理知识和交互理解，但还没有特定机器人的动作控制能力。"></div>
+              <div class="hotspot" data-id="robot-post" style="left:55%; top:22%"
+                   data-title="② Robot Post-Training 机器人后训练"
+                   data-body="在目标机器人（GR-1、G1、AgiBot、YAM）的小规模遥操作数据上微调。关键操作：重新初始化 Action MLP 的第一层以适应新动作空间，但保留主模型权重。这样只需少量数据即可实现零样本泛化。"></div>
+              <div class="hotspot" data-id="distillation" style="left:50%; top:73%"
+                   data-title="③ 蒸馏 → DreamDojo Student"
+                   data-body="用 Self Forcing 范式将双向注意力教师模型蒸馏为因果自回归学生模型。学生模型把去噪步数从 35 步压缩到 4 步，实现 10.81 FPS 实时推理，同时通过更长上下文窗口提升长时一致性。"></div>
+              <div class="hotspot" data-id="applications" style="left:84%; top:45%"
+                   data-title="④ 下游应用"
+                   data-body="右列展示四类应用：未见环境零样本泛化（Unseen Environments）、实时遥操作（Live Teleop，用 PICO VR 控制虚拟 G1）、策略评估（Policy Eval，Pearson r=0.995 与真实世界一致）、模型规划（Model-based Planning，2× 成功率提升）。"></div>
+            </div>
+            <div class="fig-cap">
+              <span class="fig-num">Fig 1 · p.3</span>
+              DreamDojo overview: Human video pretraining → Robot post-training → Autoregressive distillation → Applications
+              <span class="fig-cn">整体流程：人类视频预训练（三路数据）→ 机器人后训练（少量遥操作数据适配具身）→ 蒸馏（实时推理）→ 多样下游应用</span>
+            </div>
+          </div>
+          <div class="hotspot-panel">
+            <div class="hp-title">点击图上标注点查看详情</div>
+            <div class="hp-body" style="color:var(--text3); font-size:12px;">DreamDojo 的三阶段训练流程：预训练 → 后训练 → 蒸馏，每阶段解决不同问题。</div>
+          </div>
+        </div>
+
+        <!-- 三阶段 Step Walker -->
+        <div class="step-walker" data-hotspot-group="fig1">
+          <div class="sw-header">
+            <div class="sw-title">🪜 DreamDojo 三阶段训练流程</div>
+            <div class="sw-controls">
+              <button class="sw-btn prev">◀</button>
+              <span class="sw-counter">1 / 3</span>
+              <button class="sw-btn next">▶</button>
+            </div>
+          </div>
+          <div class="sw-progress">
+            <div class="sw-dot active"></div>
+            <div class="sw-dot"></div>
+            <div class="sw-dot"></div>
+          </div>
+          <div class="sw-body">
+            <div class="sw-step active" data-hotspot="data-sources">
+              <h4>阶段 ①：人类视频预训练（Pretraining from Human Videos）</h4>
+              <p>在 44,711 小时自我中心人类视频上预训练。三路数据：In-lab + EgoDex + DreamDojo-HV，采样比 1:2:10。</p>
+              <p>关键设计：<strong>用潜在动作（latent actions）作为条件</strong>，而不是无动作预测（action-free）。潜在动作由 VAE 自监督提取，不需要动作标签，却保留了因果性，让模型学会"动作→未来状态"的因果关系。</p>
+              <p>Cosmos-Predict2.5 骨干，序列长度 13 帧，分辨率 640×480，140k 步训练。</p>
+            </div>
+            <div class="sw-step" data-hotspot="robot-post">
+              <h4>阶段 ②：目标机器人后训练（Post-Training on Target Robots）</h4>
+              <p>在目标机器人数据（GR-1/G1/AgiBot 等遥操作演示）上微调。重新初始化 Action MLP 第一层以适配新动作空间，其他权重沿用预训练模型。</p>
+              <p>关键设计：动作以<strong>相对动作</strong>（relative action）形式输入——每次以当前 latent frame 起始帧的姿态为基准归一化，减小不同轨迹之间的分布差异，增强泛化。</p>
+              <p>128 张 H100，50k 步，batch size 512。后训练后即可零样本泛化到未见物体和场景。</p>
+            </div>
+            <div class="sw-step" data-hotspot="distillation">
+              <h4>阶段 ③：蒸馏（Distillation）</h4>
+              <p>将教师模型（双向注意力，35 步去噪）蒸馏为学生模型（因果注意力，4 步去噪）。用 Self Forcing 两阶段范式：先 warmup（对齐教师 ODE 轨迹），再蒸馏（KL 分布匹配）。</p>
+              <p>学生模型自回归生成：上下文窗口 12 帧（≫ 教师的 1 帧），天然抵抗遮挡和视角变化。推理速度 <strong>10.81 FPS</strong>，支持实时遥操作和在线规划。</p>
+              <p>64 张 H100，warmup 10k 步 + 蒸馏 3k 步。</p>
+            </div>
+          </div>
+        </div>
+
+        <div class="quiz"
+             data-correct="b"
+             data-explain="正确。DreamDojo 的核心洞见是：人类与世界的物理交互（拿取、放置、折叠等）底层物理规律与机器人相同，因此大规模人类视频可以有效转移物理知识。"
+             data-explain-wrong="再想想：DreamDojo 用人类视频预训练的原因是什么？动作标注的难易并不是主要理由。">
+          <div class="q-label">理解检查</div>
+          <div class="q-text">DreamDojo 选择用人类视频（而非更多机器人数据）预训练，最根本的理由是什么？</div>
+          <div class="q-options">
+            <button class="q-opt" data-k="a">人类视频有更精确的动作标注</button>
+            <button class="q-opt" data-k="b">人机交互的底层物理是共通的，人类视频规模远超机器人数据</button>
+            <button class="q-opt" data-k="c">机器人视频数据版权问题太多</button>
+            <button class="q-opt" data-k="d">人类视频分辨率更高，图像质量更好</button>
+          </div>
+          <div class="q-feedback"></div>
+        </div>
+      </div>
+
+      <!-- §02 背景与动机 -->
+      <div class="section" id="background">
+        <div class="section-num">§ 02</div>
+        <h2>背景：Video World Model 卡在了哪里？</h2>
+
+        <div class="cn-read">
+          <div class="cn-label">承上启下</div>
+          <p>§01 说 DreamDojo 要做"通用机器人世界模型"——但为什么之前的世界模型不够通用？这一节讲清楚两个核心瓶颈：<strong>数据分布太窄</strong>和<strong>动作标签太稀缺</strong>。</p>
+        </div>
+
+        <h3>什么是世界模型？</h3>
+        <p>世界模型（world model）的目标：给定当前状态 $s_t$ 和动作 $a_t$，预测下一个状态 $s_{t+1}$。形式化为状态转移采样：</p>
+
+        <div class="math-block">
+          $$s_{t+1} \sim p(\cdot | s_t, a_t)$$
+          <span class="math-label">Eq. 1 · §2, p.3 — 交互式世界模型定义</span>
+        </div>
+        <div class="math-explain">
+          <div class="me-title">直觉解释</div>
+          <dl>
+            <dt>$s_t$</dt>
+            <dd>当前状态——这里是<strong>视频帧</strong>（或视频 latent）。不是关节角度，而是像素级观测。</dd>
+            <dt>$a_t$</dt>
+            <dd>动作——机器人关节速度/力矩命令，或者潜在动作向量（无标注场景）。</dd>
+            <dt>$s_{t+1}$</dt>
+            <dd>预测的下一帧。好的世界模型能预测出物理上合理的、动作一致的未来视频。</dd>
+            <dt>为什么是"采样"而不是"预测"？</dt>
+            <dd>世界的未来本身具有随机性（物体落点、环境扰动），用概率分布建模比确定性预测更合理。</dd>
+          </dl>
+        </div>
+
+        <h3>现有世界模型的两大卡点</h3>
+
+        <div class="module-grid">
+          <div class="module-card">
+            <div class="module-card-name">BOTTLENECK 01 · 数据分布</div>
+            <div class="module-card-title">机器人数据覆盖面太窄</div>
+            <div class="module-card-desc">
+              现有数据集（RT-1: 900h, BridgeData V2: 130h）每次遥操作都很昂贵，只能覆盖少数场景和技能。真实世界的物体组合几乎无限，远超任何机器人数据集的覆盖范围。
+              结果：世界模型在训练分布内表现好，遇到新物体/新场景就失效（in-distribution only）。
+            </div>
+          </div>
+          <div class="module-card">
+            <div class="module-card-name">BOTTLENECK 02 · 动作标签</div>
+            <div class="module-card-title">无标注视频的因果性缺失</div>
+            <div class="module-card-desc">
+              互联网上的人类视频没有动作标签。最直接的做法是做无动作条件的"被动预测"（action-free），但这样模型学不到"动作→结果"的因果关系。
+              结果：适配到目标机器人时，模型无法准确响应反事实动作（counterfactual actions）——例如"如果我往左而不是往右抓会发生什么？"
+            </div>
+          </div>
+        </div>
+
+        <div class="callout amber">
+          <div class="callout-label">关键对比：HaMeR 等显式手部姿态提取的局限</div>
+          <p>HaMeR（Pavlakos et al., 2024）等工具能从视频提取手部姿态，但：① 只能表示手，无法表示手臂/身体/相机运动；② 重度遮挡时精度下降；③ 聚焦低层次手部特征，和机器人末端执行器之间仍有具身差异（embodiment gap）。DreamDojo 提出<strong>不依赖任何外部捕捉设备</strong>的潜在动作方案。</p>
+        </div>
+
+        <details class="en-quote">
+          <summary>展开原文 · 关于 action-free 预训练的局限</summary>
+          <div class="quote-body">
+            <p>"Naively training on passive videos overlooks the causality between video observations and actions, leading to inferior knowledge transfer for action-conditioned world simulation. Moreover, converting various action formats into a unified one entails inevitable engineering effort."</p>
+            <div class="quote-cite">— §1 Introduction, p.2</div>
+          </div>
+        </details>
+      </div>
+
+      <!-- §03 相关工作与差距 -->
+      <div class="section" id="related">
+        <div class="section-num">§ 03</div>
+        <h2>相关工作：哪些工作走在这条路上，差距在哪里？</h2>
+
+        <div class="cn-read">
+          <div class="cn-label">承上启下</div>
+          <p>§02 讲清了两个瓶颈。这一节把相关工作分四条技术线梳理：世界模型主线、从视频预训练扩展性、潜在动作提取、以及自回归视频生成。DreamDojo 是这四条线的交汇点。</p>
+        </div>
+
+        <h3>技术线一：游戏和自动驾驶世界模型（较成熟）</h3>
+        <p>
+          世界模型的概念最早在强化学习中被证明有效（Sutton 1991, Hafner Dreamer 系列）。近年视频生成的进步催生了高质量视频世界模型：
+          <span class="term" data-en="IRIS (Alonso et al. 2024)">IRIS</span>、
+          <span class="term" data-en="Genie (Parker-Holder et al. 2024)">Genie</span> 在游戏环境大获成功；
+          <span class="term" data-en="UniSim (Yang et al. 2024), DriveDreamer">DriveDreamer</span> 等在自动驾驶中显示出巨大潜力。
+        </p>
+        <p>
+          这些工作的共同特点：动作空间是<strong>离散或低维的</strong>（游戏手柄按键 / 方向盘角度），数据集分布相对集中，场景转换的随机性远低于机器人接触丰富的操作任务。DreamDojo 面对的是高维连续关节空间 + 开放世界物体组合，本质上更难。
+        </p>
+
+        <h3>技术线二：机器人操作世界模型（直接前驱，但困于分布内）</h3>
+
+        <table class="rw-table">
+          <thead>
+            <tr>
+              <th>工作</th>
+              <th>数据来源</th>
+              <th>核心贡献</th>
+              <th class="tag-red">不足</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td><strong>IRASim / UniSim</strong> (Wang et al. 2023)</td>
+              <td>机器人遥操作</td>
+              <td>视频 Diffusion 生成 robot rollout</td>
+              <td class="tag-red">仅限 in-distribution</td>
+            </tr>
+            <tr>
+              <td><strong>WorldGPT / WMPE</strong></td>
+              <td>机器人数据</td>
+              <td>结合 LLM 的世界模型</td>
+              <td class="tag-red">动作空间覆盖窄</td>
+            </tr>
+            <tr>
+              <td><strong>AgiBot-World (Zhu et al. 2025)</strong></td>
+              <td>AgiBot 遥操作</td>
+              <td>大规模机器人视频世界模型</td>
+              <td class="tag-red">具身专用，难跨机器人</td>
+            </tr>
+            <tr>
+              <td><strong>VAP (Wang et al. 2025)</strong></td>
+              <td>多具身视频</td>
+              <td>2D 骨骼作为<strong>统一动作条件</strong>，实现跨具身联合训练</td>
+              <td class="tag-red">骨骼难以提取、精度有限</td>
+            </tr>
+            <tr>
+              <td><strong>AdaWorld (Gao et al. 2025) + 后续工作</strong></td>
+              <td>机器人+视频</td>
+              <td><strong>潜在动作</strong>用于世界模型预训练，增强可迁移性</td>
+              <td class="tag-red">数据规模仍受限，视觉质量不及最新视频模型</td>
+            </tr>
+            <tr>
+              <td><strong>DexWM (Goswami et al. 2025)</strong></td>
+              <td>人类视频</td>
+              <td>用人类视频辅助灵巧操作技能泛化</td>
+              <td class="tag-red">仅限实验室桌面场景；视觉质量不及近年进展</td>
+            </tr>
+          </tbody>
+        </table>
+
+        <div class="callout blue">
+          <div class="callout-label">DreamDojo 的核心差异</div>
+          <p>DexWM 是在人类视频这条路上最近的先驱，但它局限于 tabletop 场景，且视觉质量不及现代视频生成模型。DreamDojo 在规模上（44k vs ~300h）、场景多样性（1,135k 场景）、视觉质量（Cosmos-Predict2.5 骨干）三个维度全面超越，首次实现了<strong>跨多具身、跨多场景的 OOD 泛化</strong>。</p>
+        </div>
+
+        <h3>技术线三：潜在动作（Latent Actions）</h3>
+        <p>
+          潜在动作的核心思想：如果视频里没有动作标签，能不能从视频本身"反推"出一个隐式的动作表示？
+          GENIE（Bruce et al. 2024）率先将 VAE 信息瓶颈应用于此：给定 $f^t$ 和 $f^{t+1}$，Encoder 提取使两帧之间"变化"的最简表示 $\hat{a}_t$，Decoder 用 $f^t + \hat{a}_t$ 重建 $f^{t+1}$。信息瓶颈迫使 $\hat{a}_t$ 只保留真正的"动作"信息，丢弃背景变化等噪声。
+        </p>
+        <p>
+          DreamDojo 继承了这条线（受 Gao et al. 2025, Bruce et al. 2024 启发），并将潜在动作扩展到<strong>连续向量</strong>（dim=32），用于跨具身的统一代理标签，解决了 AdaWorld 等工作在动作对齐上的挑战。
+        </p>
+
+        <h3>技术线四：自回归视频蒸馏</h3>
+        <p>
+          标准 Diffusion 模型是双向注意力 + 多步去噪（35步），无法自回归流式输出。自回归视频模型（如 Gao et al. 2025, Huang et al. 2025 Self Forcing）用因果注意力实现逐帧输出，支持实时交互。
+          DreamDojo 的蒸馏 Pipeline 结合 Self Forcing（Huang 2025）+ 分布匹配（Yin et al. 2024），实现了生成质量和速度的双赢。
+        </p>
+
+        <div class="quiz"
+             data-correct="c"
+             data-explain="正确。DexWM 的主要局限是数据规模小（仅桌面场景）且视觉质量落后于近年视频生成模型的进步。DreamDojo 在数据规模（44k小时 vs 小数据集）和骨干模型质量（Cosmos-Predict2.5）上全面超越。"
+             data-explain-wrong="再思考：DexWM 也用了人类视频，但有哪些关键差距？">
+          <div class="q-label">理解检查</div>
+          <div class="q-text">DexWM 与 DreamDojo 都使用人类视频，DreamDojo 相比 DexWM 最关键的改进是什么？</div>
+          <div class="q-options">
+            <button class="q-opt" data-k="a">DreamDojo 不使用 Diffusion 模型</button>
+            <button class="q-opt" data-k="b">DreamDojo 使用离散动作空间</button>
+            <button class="q-opt" data-k="c">DreamDojo 数据规模（44k小时）、场景多样性和视觉质量全面超越，首次实现 OOD 跨具身泛化</button>
+            <button class="q-opt" data-k="d">DreamDojo 使用真实机器人数据预训练</button>
+          </div>
+          <div class="q-feedback"></div>
+        </div>
+      </div>
+
+      <!-- §04 DreamDojo-HV 数据集 -->
+      <div class="section" id="dataset">
+        <div class="section-num">§ 04</div>
+        <h2>DreamDojo-HV 数据集：史上最大人类交互视频</h2>
+
+        <div class="cn-read">
+          <div class="cn-label">承上启下</div>
+          <p>§03 说清了"为什么需要大规模人类视频"。这一节具体看：DreamDojo-HV 怎么搭建，三路数据各自贡献什么，规模和多样性达到什么水平。</p>
+        </div>
+
+        <!-- Fig 2 -->
+        <div class="fig-interactive panel-below">
+          <div class="fig-block">
+            <div class="hotspot-wrap" data-hotspot-group="fig2">
+              <img src="../assets/figures/dreamdojo/fig-2.png" alt="Figure 2: DreamDojo-HV dataset distribution">
+              <div class="hotspot" data-id="donut" style="left:14%; top:32%"
+                   data-title="(a) 场景分布：家务最多"
+                   data-body="43,827 小时中，Home Task（家务）占比最高（42.2%，18,483h）；Retail & Consumer Goods（零售，14.1%）次之；还有汽车/食品/时尚/行政/工厂等 12 类场景。这种分布模拟了人类真实日常活动的分布，而非机器人实验室的分布。"></div>
+              <div class="hotspot" data-id="examples" style="left:58%; top:20%"
+                   data-title="(a) 各类场景示例图"
+                   data-body="Home（整理厨房）→ Retail（收银台）→ Transport（车内操作）→ Food（厨房备餐）→ Accessory（首饰维修）→ Repair（设备维修）。每类场景都有完全不同的光照、背景、物体种类，这种多样性正是机器人泛化所需要的。"></div>
+              <div class="hotspot" data-id="subtask-dist" style="left:21%; top:73%"
+                   data-title="(b) 每个视频包含多个子任务"
+                   data-body="(b) 左图：大多数视频包含 2-10 个连续子任务（如"拿起杯子→倒水→放回"是 3 个子任务）。这种长时多步结构与机器人任务规划高度匹配。右图：技能（verb）的 Zipf 分布——常见技能如 pick, place, move 频率极高，但覆盖了数千种长尾技能。"></div>
+              <div class="hotspot" data-id="wordcloud" style="left:68%; top:68%"
+                   data-title="(c) 技能和物体词云"
+                   data-body="(c) 词云展示了视频中出现的动作动词（pull, place, pick, fold, wipe…）和物体名词（shirt, box, shelf, bag, paper…）的频率分布。6,015 种技能、43,237 种物体——覆盖范围远超任何机器人数据集。这种语言多样性也使 DreamDojo-HV 的场景理解能力更强。"></div>
+            </div>
+            <div class="fig-cap">
+              <span class="fig-num">Fig 2 · p.4</span>
+              Distribution analysis of DreamDojo-HV: (a) environment categories, (b) subtask distribution and skill frequencies, (c) skill verbs and object names word cloud
+              <span class="fig-cn">DreamDojo-HV 数据分析：12 类场景（家务占比42%）+ 多子任务结构 + 6,015 种技能词云。特别注意：物体种类（43,237）和场景数（1,135k）远超任何机器人数据集。</span>
+            </div>
+          </div>
+          <div class="hotspot-panel">
+            <div class="hp-title">点击图上标注点</div>
+            <div class="hp-body" style="color:var(--text3); font-size:12px;">DreamDojo-HV 的三维度多样性：场景类别 × 技能种类 × 物体种类。</div>
+          </div>
+        </div>
+
+        <h3>三路数据来源对比</h3>
+        <div class="module-grid">
+          <div class="module-card">
+            <div class="module-card-name">DATA SOURCE 01 · IN-LAB</div>
+            <div class="module-card-title">55h · 实验室精准采集</div>
+            <div class="module-card-desc">
+              用 <strong>Manus 手套 + Vive Ultimate Tracker</strong> 精确记录手部姿态，可直接重定向到 GR-1 机器人动作。包含实验室内新物体和新动作（不在机器人训练集中），用于验证模型核心能力。虽然规模小，但每一帧都有精确动作标注，是校准 latent action 的"黄金标准"。
+            </div>
+          </div>
+          <div class="module-card">
+            <div class="module-card-name">DATA SOURCE 02 · EGODEX</div>
+            <div class="module-card-title">829h · Apple Vision Pro 采集</div>
+            <div class="module-card-desc">
+              公开数据集（Hoque et al. 2025），Apple Vision Pro 录制的自我中心视频 + 高精度 3D 手部姿态（194 种技能，5 个家庭场景）。DreamDojo 用它丰富<strong>家庭场景</strong>的物体多样性。注意：EgoDex 的手部姿态（MANO 格式）在消融实验中与 latent action 方案对比——latent action 更优（因为不依赖手部捕捉硬件，适用范围更广）。
+            </div>
+          </div>
+          <div class="module-card">
+            <div class="module-card-name">DATA SOURCE 03 · DREAMDOJO-HV</div>
+            <div class="module-card-title">43,827h · 众包大规模</div>
+            <div class="module-card-desc">
+              内部采集，众包方式覆盖家务/零售/教育/行政等 12 大类。每个视频片段都有描述任务的文本标注（GPT 生成）。这是整个 DreamDojo 项目最大的技术投入，也是性能提升的核心来源——消融实验证明加入 DreamDojo-HV 后各项指标持续上升（Table 3）。
+            </div>
+          </div>
+          <div class="module-card">
+            <div class="module-card-name">SCALE COMPARISON</div>
+            <div class="module-card-title">与先前最大数据集对比</div>
+            <div class="module-card-desc">
+              44,711h 总量：比 Nymeria (300h) 多 <strong>149×</strong>，比 AgiBot-World (2.9k h) 多 <strong>15×</strong>。6,015 种技能（vs 对比最优的 87 种，多 <strong>69×</strong>）。1,135k 场景（vs 比较基准的 564 种，多 <strong>2,012×</strong>）。这不是量变而是质变——覆盖了真实世界物理交互分布的主体。
+            </div>
+          </div>
+        </div>
+
+        <div class="callout">
+          <div class="callout-label">采样比设计</div>
+          <p>预训练时三路数据的采样比为 <strong>In-lab : EgoDex : DreamDojo-HV = 1 : 2 : 10</strong>。这个比例设计不是按时长等比，而是适度上调精准但小规模的 In-lab 和 EgoDex，防止被 DreamDojo-HV 的巨大体量完全淹没。类比 NLP 预训练中对高质量数据的过采样策略。</p>
+        </div>
+      </div>
+
+      <!-- §05 潜在动作模型 -->
+      <div class="section" id="latent-action">
+        <div class="section-num">§ 05</div>
+        <h2>潜在动作模型：无标注视频的"自监督动作提取"</h2>
+
+        <div class="cn-read">
+          <div class="cn-label">承上启下</div>
+          <p>§04 建好了数据基础，但有个问题：44k 小时视频<strong>没有动作标注</strong>。如果只做无动作的被动预测，模型学不到因果性（§02 讲过）。这一节介绍解决方案：用 VAE 信息瓶颈从视频帧对中自监督提取"潜在动作"。</p>
+        </div>
+
+        <p>
+          核心思路类比一道谜题：给你相邻两帧图像 $f^t$ 和 $f^{t+1}$，请找出使两者之间发生变化的"最简解释"。这个最简解释就是潜在动作 $\hat{a}_t$。
+          信息瓶颈（Information Bottleneck）强制 $\hat{a}_t$ 只保留真正重要的变化信息，丢弃背景噪声。
+        </p>
+
+        <!-- Fig 3 -->
+        <div class="fig-interactive">
+          <div class="fig-block">
+            <div class="hotspot-wrap" data-hotspot-group="fig3">
+              <img src="../assets/figures/dreamdojo/fig-3.png" alt="Figure 3: Latent action model">
+              <div class="hotspot" data-id="encoder" style="left:14%; top:48%"
+                   data-title="Latent Action Encoder（编码器）"
+                   data-body="接收两帧 f^t 和 f^(t+1)，输出低维嵌入 ā_t（dim=32）。架构：时空 Transformer（24 块编码器），在 320×240 降采样视频上训练。信息瓶颈靠 KL 散度正则（β=10^-6）实现——β 非常小意味着 KL 约束很弱，让模型有更大自由度捕捉跨具身的动作信息。"></div>
+              <div class="hotspot" data-id="latent" style="left:14%; top:62%"
+                   data-title="ā_t：潜在动作嵌入（dim=32）"
+                   data-body="32 维连续向量，代表 f^t → f^(t+1) 之间的"动作"。实验证明它在跨具身场景下具有语义一致性（Fig 3 右侧）：不同具身（人手 + 机械臂 + 不同视角）做相同动作时，提取出的 ā_t 在嵌入空间里聚在一起。这是潜在动作能跨具身迁移的关键。"></div>
+              <div class="hotspot" data-id="decoder" style="left:14%; top:76%"
+                   data-title="Latent Action Decoder（解码器）"
+                   data-body="接收 f^t + ā_t，重建 f^(t+1)。24 块解码器。整个 VAE 由重建损失（逐帧 MSE）+ KL 散度联合训练。训练好后，Encoder 就可以被用来给所有 44k 小时视频生成伪动作标签——每对相邻帧提取一个 ā_t，作为世界模型的条件。"></div>
+              <div class="hotspot" data-id="cross-emb" style="left:65%; top:42%"
+                   data-title="右侧：跨具身动作一致性验证"
+                   data-body="右侧三组图展示了 latent action 的跨具身性质：每组上下两行是不同具身（不同机器人/人手/视角），但执行相同类型的动作（如抓取、放置）。模型通过检索 ā_t 最相似的帧对，找到这些跨具身的对应关系——同一 ā_t 对应不同具身做同一动作，说明提取成功。"></div>
+            </div>
+            <div class="fig-cap">
+              <span class="fig-num">Fig 3 · p.6</span>
+              Latent action model: [Left] information bottleneck VAE design; [Right] cross-embodiment frame pairs sharing similar latent actions
+              <span class="fig-cn">左：VAE 信息瓶颈架构（Encoder 提取 ā_t，Decoder 重建下一帧）；右：跨具身验证——不同机器人做同一动作时 latent action 相似</span>
+            </div>
+          </div>
+          <div class="hotspot-panel">
+            <div class="hp-title">点击图上标注点</div>
+            <div class="hp-body" style="color:var(--text3); font-size:12px;">潜在动作 VAE：信息瓶颈迫使编码器只保留"动作"信息。</div>
+          </div>
+        </div>
+
+        <h3>VAE 训练目标（Eq. 3）</h3>
+        <p>整个 VAE 用重建损失 + KL 散度联合训练，优化以下目标：</p>
+
+        <div class="math-block">
+          $$\mathcal{L}_{\theta,\phi}^{pred}(f^{t+1}) = \mathbb{E}_{q_\phi(\hat{a} | f^{t:t+1})} \log p_\theta(f^{t+1} | \hat{a}, f^t) - \beta \, D_{KL}\!\left(q_\phi(\hat{a} | f^{t:t+1}) \| p(\hat{a})\right)$$
+          <span class="math-label">Eq. 3 · §3.3.2, p.7 — 潜在动作 VAE 损失</span>
+        </div>
+        <div class="math-explain">
+          <div class="me-title">逐项拆解</div>
+          <dl>
+            <dt>$q_\phi(\hat{a} | f^{t:t+1})$</dt>
+            <dd>编码器分布：给定帧对 $(f^t, f^{t+1})$，输出潜在动作分布（均值+方差）。参数为 $\phi$。</dd>
+            <dt>$\mathbb{E}_{q_\phi} \log p_\theta(f^{t+1} | \hat{a}, f^t)$</dt>
+            <dd><strong>重建损失</strong>：解码器用 $(f^t, \hat{a})$ 重建 $f^{t+1}$ 的对数似然。训练信号来源：能不能从"上一帧+动作"精确重建下一帧。</dd>
+            <dt>$\beta \, D_{KL}(q_\phi \| p(\hat{a}))$</dt>
+            <dd><strong>正则项</strong>：让潜在动作分布接近标准高斯先验 $p(\hat{a})=\mathcal{N}(0,I)$。$\beta=10^{-6}$ 非常小，说明信息瓶颈约束很弱——目的是让 $\hat{a}$ 尽量保留丰富的动作信息，只去掉冗余噪声。</dd>
+            <dt>为什么用 VAE 而不是 AE？</dt>
+            <dd>VAE 输出连续分布（可采样），便于后续在世界模型中作为条件注入；且 KL 散度提供了轻量正则，防止潜在空间不连续。</dd>
+          </dl>
+        </div>
+
+        <details class="en-quote">
+          <summary>展开原文 · 关于潜在动作的跨具身优势</summary>
+          <div class="quote-body">
+            <p>"In egocentric human videos, we found that this embedding particularly captures the human actions and can be transferred across embodiments (see Fig. 3). Ultimately, we are able to utilize latent actions as unified proxy labels for world models."</p>
+            <div class="quote-cite">— §3.3.2, p.7</div>
+          </div>
+        </details>
+
+        <div class="callout blue">
+          <div class="callout-label">与 VLA 的联系</div>
+          <p>VLA（如 π₀）在推理时直接输出机器人关节动作；DreamDojo 的潜在动作则是学习阶段的代理标签，不是真实关节命令。但两者都面对"跨具身"的挑战：π₀ 用 Action Expert 适配，DreamDojo 用 latent action 统一——思路相似，各有侧重。</p>
+        </div>
+
+        <div class="quiz"
+             data-correct="a"
+             data-explain="正确。信息瓶颈（Information Bottleneck）的核心是：通过 KL 散度正则迫使潜在表示只保留预测 f^(t+1) 所必需的信息（即动作），丢掉背景变化等噪声，从而实现动作的解耦提取。"
+             data-explain-wrong="再想想：VAE 的信息瓶颈起到什么作用？它如何迫使模型提取出的是'动作'而不是'噪声'？">
+          <div class="q-label">理解检查</div>
+          <div class="q-text">潜在动作 VAE 中"信息瓶颈"（information bottleneck）的作用是什么？</div>
+          <div class="q-options">
+            <button class="q-opt" data-k="a">通过 KL 散度正则，迫使 ā_t 只保留预测下一帧所必需的动作信息，丢弃背景噪声</button>
+            <button class="q-opt" data-k="b">限制 latent action 的维度为 32，防止模型过拟合</button>
+            <button class="q-opt" data-k="c">强制不同具身的潜在动作分布完全一致</button>
+            <button class="q-opt" data-k="d">加速推理速度，减少计算开销</button>
+          </div>
+          <div class="q-feedback"></div>
+        </div>
+      </div>
+
+      <!-- §06 世界模型架构与训练 -->
+      <div class="section" id="architecture">
+        <div class="section-num">§ 06</div>
+        <h2>Foundation World Model：架构设计与训练目标</h2>
+
+        <div class="cn-read">
+          <div class="cn-label">承上启下</div>
+          <p>§05 解决了"怎么给无标注视频提供动作条件"。这一节看 DreamDojo 的主体模型怎么设计——基于 Cosmos-Predict2.5 骨干，两个关键架构改进：<strong>相对动作变换</strong>和<strong>分块动作注入</strong>，以及新的时序一致性损失。</p>
+        </div>
+
+        <h3>骨干：Cosmos-Predict2.5</h3>
+        <p>
+          DreamDojo 以 <span class="term" data-en="Cosmos-Predict2.5 (Ali et al. 2025)">Cosmos-Predict2.5</span> 为骨干——NVIDIA 的视频 Latent Diffusion 模型，在 WAN2.2 Tokenizer 的连续 latent 空间中操作。架构是 <span class="term" data-en="DiT (Diffusion Transformer)">DiT</span>，文本条件通过交叉注意力层注入，时间步信息通过 AdaLN 调制。训练目标是 Flow Matching：
+        </p>
+
+        <div class="math-block">
+          $$\mathcal{L}_{\text{flow}}(\theta) = \mathbb{E}_{\mathbf{x},\boldsymbol{\epsilon},t} \left\| \mathbf{u}(\mathbf{x}_t, t, \mathbf{c};\theta) - \mathbf{v}_t \right\|^2$$
+          <span class="math-label">Eq. 2 · §2, p.3 — Flow Matching 损失（骨干基础）</span>
+        </div>
+        <div class="math-explain">
+          <div class="me-title">逐项拆解</div>
+          <dl>
+            <dt>$\mathbf{u}(\mathbf{x}_t, t, \mathbf{c};\theta)$</dt>
+            <dd>模型预测的<strong>速度场</strong>（velocity field）：在时间 $t$、噪声状态 $\mathbf{x}_t$、条件 $\mathbf{c}$ 下，模型预测"应该往哪个方向走"。</dd>
+            <dt>$\mathbf{v}_t = \boldsymbol{\epsilon} - \mathbf{x}$</dt>
+            <dd>真实速度：从噪声 $\boldsymbol{\epsilon}$ 走向干净样本 $\mathbf{x}$ 的方向（线性路径）。</dd>
+            <dt>$\mathbf{c}$</dt>
+            <dd>条件信息：文本描述、条件帧（初始帧）、<strong>动作</strong>（这是 DreamDojo 添加的部分）。</dd>
+            <dt>Flow Matching vs Diffusion DDPM</dt>
+            <dd>Flow Matching 用直线 ODE 路径（噪声→数据），比 DDPM 的曲线路径采样步数更少，推理更快。</dd>
+          </dl>
+        </div>
+
+        <h3>两个关键架构改进</h3>
+
+        <div class="module-grid">
+          <div class="module-card">
+            <div class="module-card-name">DESIGN 01 · 相对动作（Relative Actions）</div>
+            <div class="module-card-title">以当前帧为基准归一化动作</div>
+            <div class="module-card-desc">
+              <strong>问题</strong>：机器人关节绝对角度（absolute joint poses）在不同任务间变化大，难以建模。<br><br>
+              <strong>解决</strong>：在每个 latent frame（对应 4 个像素帧）的起始时刻，把后续动作全部减去当前姿态，变成<strong>相对偏移量</strong>。相对动作在不同轨迹之间分布更集中，建模复杂度大幅降低，泛化能力更强（Table 5 证实）。
+            </div>
+          </div>
+          <div class="module-card">
+            <div class="module-card-name">DESIGN 02 · 分块注入（Chunked Action Injection）</div>
+            <div class="module-card-title">逐 latent frame 注入对应动作块</div>
+            <div class="module-card-desc">
+              <strong>问题</strong>：Cosmos-Predict2.5 的 WAN2.2 tokenizer 时间压缩比为 4（1 个 latent 帧对应 4 个像素帧）。如果把整个动作轨迹作为全局条件，模型会把"未来动作"混入当前预测，破坏因果性。<br><br>
+              <strong>解决</strong>：把 4 个连续动作 $a^{t:t+4}$ 打包成一个 chunk，仅注入到对应的那个 latent 帧 $x^i$ 中，通过 Action MLP 与时间步嵌入相加后输入 AdaLN。严格保持因果性，消除 causality confusion（Table 5 证实）。
+            </div>
+          </div>
+        </div>
+
+        <h3>时序一致性损失（Temporal Consistency Loss）</h3>
+        <p>标准 Flow Matching 逐帧独立监督，忽略了视频帧之间的时序关联——但动作效果是在时间维度上累积的。DreamDojo 提出时序一致性损失：</p>
+
+        <div class="math-block">
+          $$\mathcal{L}_{\text{temporal}}(\theta) = \mathbb{E}\!\left[\sum_{i=1}^{K-1} \left\| (z^{i+1} - z^i) - (v^{i+1} - v^i) \right\|^2 \right]$$
+          <span class="math-label">Eq. 4 · §3.3.2, p.7 — 时序一致性损失</span>
+        </div>
+        <div class="math-explain">
+          <div class="me-title">逐项拆解</div>
+          <dl>
+            <dt>$z^i, z^{i+1}$</dt>
+            <dd>预测的视频 latent 速度场中，第 $i$ 帧和第 $i+1$ 帧的预测速度（模型输出）。</dd>
+            <dt>$v^i, v^{i+1}$</dt>
+            <dd>对应的真实速度（ground-truth Flow Matching 速度）。</dd>
+            <dt>$(z^{i+1} - z^i) - (v^{i+1} - v^i)$</dt>
+            <dd>预测的帧间速度变化 vs 真实帧间速度变化的差。换句话说：<strong>不只要求每帧预测准确，还要求相邻帧之间的变化量（即"加速度"）也要准确</strong>。</dd>
+            <dt>为什么这样改进有效？</dt>
+            <dd>逐帧 MSE 让模型可以"每帧各自为政"，忽略时序连贯性。时序一致性损失强迫模型同时考虑"当前正在发生什么"和"变化趋势"，特别有利于学习动作-结果的因果关系（实验显示 LPIPS 改善，对象完整性提升）。</dd>
+          </dl>
+        </div>
+
+        <div class="math-block">
+          $$\mathcal{L}_{\text{final}}(\theta) = \mathcal{L}_{\text{flow}} + \lambda \cdot \mathcal{L}_{\text{temporal}}, \quad \lambda = 0.1$$
+          <span class="math-label">Eq. 5 · §3.3.2, p.7 — 最终训练目标</span>
+        </div>
+
+        <div class="callout amber">
+          <div class="callout-label">Action MLP 初始化技巧</div>
+          <p>Action MLP 的最后一层初始化为全零（Zhang et al. 2023）。这样在训练初期，动作条件对预训练模型的输出没有任何扰动，使模型能稳定从预训练状态出发，逐渐学会响应动作信号——避免了随机初始化导致的训练初期不稳定。</p>
+        </div>
+
+        <div class="quiz"
+             data-correct="d"
+             data-explain="正确。分块动作注入（chunked injection）的核心目的是保持因果性：WAN2.2 tokenizer 时间压缩比为 4，如果把整个轨迹作为全局条件，未来的动作信息会泄露到当前帧的预测中。逐 chunk 注入确保每个 latent 帧只看到对应时间段的动作，不引入因果混淆。"
+             data-explain-wrong="再想想：为什么要'分块'而不是全局注入？WAN2.2 的时间压缩比（4）在这里扮演什么角色？">
+          <div class="q-label">理解检查</div>
+          <div class="q-text">DreamDojo 为什么要用"分块动作注入"（chunked action injection）而不是把整个动作轨迹作为全局条件？</div>
+          <div class="q-options">
+            <button class="q-opt" data-k="a">分块注入可以减少计算量，降低显存占用</button>
+            <button class="q-opt" data-k="b">全局注入无法处理变长轨迹</button>
+            <button class="q-opt" data-k="c">分块注入让模型可以处理更长的视频序列</button>
+            <button class="q-opt" data-k="d">避免未来动作信息泄露到当前帧预测（保持因果性，消除 causality confusion）</button>
+          </div>
+          <div class="q-feedback"></div>
+        </div>
+      </div>
+
+      <!-- §07 蒸馏 Pipeline -->
+      <div class="section" id="distill">
+        <div class="section-num">§ 07</div>
+        <h2>蒸馏 Pipeline：从教师到自回归学生，10.81 FPS</h2>
+
+        <div class="cn-read">
+          <div class="cn-label">承上启下</div>
+          <p>§06 的基础模型推理需要 35 步去噪，单帧几秒——无法实时遥操作或在线规划。这一节介绍如何用 Self Forcing 范式把双向教师蒸馏成因果自回归学生，在保持质量的前提下速度提升 4×。</p>
+        </div>
+
+        <p>
+          标准视频 Diffusion 的两大实时瓶颈：
+          ① <strong>双向注意力</strong>（必须看完整序列才能生成任意帧，无法流式输出）；
+          ② <strong>多步去噪</strong>（35 步 = 每帧 35 次前向传播）。
+          蒸馏同时解决这两个问题。
+        </p>
+
+        <h3>Self Forcing 两阶段蒸馏</h3>
+
+        <div class="module-grid">
+          <div class="module-card">
+            <div class="module-card-name">STAGE A · Warmup 阶段</div>
+            <div class="module-card-title">对齐教师 ODE 轨迹</div>
+            <div class="module-card-desc">
+              学生模型用<strong>教师 forcing</strong>：学生的上下文来自教师生成的 latent（不是自己的输出）。目标是让学生输出与教师 ODE 轨迹（35步积分终点）对齐：
+            </div>
+          </div>
+          <div class="module-card">
+            <div class="module-card-name">STAGE B · 蒸馏阶段</div>
+            <div class="module-card-title">KL 分布匹配（自回归）</div>
+            <div class="module-card-desc">
+              学生模型用<strong>自身上下文</strong>（自己之前生成的帧）生成，模拟真实推理时的条件分布。用 KL 散度拉近学生分布和教师分布：消除 train-test 分布不匹配（compounding error）。
+            </div>
+          </div>
+        </div>
+
+        <div class="math-block">
+          $$\mathcal{L}_{\text{warmup}}(G_{\text{teacher}}, G_{\text{student}}) = \mathbb{E}_{x,t}\left\| G_{\text{student}}(x_t, t) - x_0 \right\|^2$$
+          <span class="math-label">Eq. 6 · §3.3.4, p.8 — Warmup 损失（学生对齐教师 ODE 终点 x₀）</span>
+        </div>
+
+        <div class="math-block">
+          $$\mathcal{L}_{\text{distill}} = D_{\text{KL}}(p_{\text{teacher}} \| p_{\text{student}})$$
+          <span class="math-label">Eq. 7 · §3.3.4, p.8 — 蒸馏损失（KL 分布匹配）</span>
+        </div>
+        <div class="math-explain">
+          <div class="me-title">逐项拆解</div>
+          <dl>
+            <dt>$G_{\text{teacher}}$ vs $G_{\text{student}}$</dt>
+            <dd>教师：双向注意力 + 35 步去噪；学生：<strong>因果注意力</strong>（单向，可流式输出）+ <strong>4 步去噪</strong>。两者架构和初始权重相同，仅注意力机制和步数不同。</dd>
+            <dt>$x_0$（Warmup 中）</dt>
+            <dd>教师 ODE 积分终点（即教师 35 步去噪的输出）。Warmup 阶段让学生"模仿教师的答案"，快速建立基础能力。</dd>
+            <dt>$\nabla \mathcal{L}_{\text{distill}}$（蒸馏阶段梯度）</dt>
+            <dd>KL 散度不可直接计算，用 score matching 近似梯度：$\nabla \mathcal{L}_{\text{distill}} = -\mathbb{E}_{z,t}\left[(s_{\text{real}}(x_t,t) - s_{\text{fake}}(x_t,t))\frac{dG_{\text{student}}}{d\theta}\right]$，其中 $s_{\text{real}}$ 由教师估计，$s_{\text{fake}}$ 由一个针对学生输出训练的判别器估计。</dd>
+            <dt>长序列训练技巧</dt>
+            <dd>训练时让学生生成 $N' > N$ 帧（$N'$ 在 13-49 之间随机），但只对最后 $N$ 帧计算损失。这让学生的训练分布更接近真实长序列推理时遇到的情况，进一步降低 compounding error。</dd>
+          </dl>
+        </div>
+
+        <table class="result-table">
+          <thead>
+            <tr><th>对比维度</th><th>教师（Teacher）</th><th>学生（Student）</th></tr>
+          </thead>
+          <tbody>
+            <tr><td>注意力机制</td><td>双向（bidirectional）</td><td class="best">因果（causal，单向）</td></tr>
+            <tr><td>去噪步数</td><td>35 步</td><td class="best">4 步</td></tr>
+            <tr><td>推理速度</td><td>2.72 FPS</td><td class="best">10.81 FPS（4× 提升）</td></tr>
+            <tr><td>上下文长度</td><td>1 帧（初始帧）</td><td class="best">12 帧（滑动窗口）</td></tr>
+            <tr><td>流式输出</td><td>不支持</td><td class="best">支持（逐帧自回归）</td></tr>
+            <tr><td>长程一致性</td><td>较弱（单帧上下文）</td><td class="best">更强（12帧上下文）</td></tr>
+          </tbody>
+        </table>
+
+        <div class="callout">
+          <div class="callout-label">一个反直觉的发现</div>
+          <p>蒸馏后学生模型的长程一致性反而<strong>更好</strong>（Table 6 显示 context len=12 vs 1）。原因：学生自回归生成时上下文窗口有 12 帧，可以看到自己之前生成的帧，形成内部记忆；教师每次都从单一条件帧出发，无法利用历史上下文。这是架构上的意外收益。</p>
+        </div>
+      </div>
+
+      <!-- §08 实验结果 -->
+      <div class="section" id="experiments">
+        <div class="section-num">§ 08</div>
+        <h2>实验结果：六项 Benchmark + 系统性消融</h2>
+
+        <div class="cn-read">
+          <div class="cn-label">承上启下</div>
+          <p>§07 讲完了三阶段训练方案。这一节验证三个核心主张：① 潜在动作真的比无动作预训练好？② 更多更多样的数据真的持续有帮助？③ 每个架构设计真的各有贡献？</p>
+        </div>
+
+        <!-- Fig 4 Benchmarks -->
+        <div class="fig-interactive panel-below">
+          <div class="fig-block">
+            <div class="hotspot-wrap" data-hotspot-group="fig4">
+              <img src="../assets/figures/dreamdojo/fig-4.png" alt="Figure 4: Benchmark visualization">
+              <div class="hotspot" data-id="inlab-eval" style="left:16%; top:30%"
+                   data-title="① In-lab Eval（分布内）"
+                   data-body="在实验室桌面场景评估，包含 GR-1 机器人执行日常操作。这是 in-distribution 基准——世界模型在训练集相近场景的基础性能测试。指标：PSNR/SSIM/LPIPS。"></div>
+              <div class="hotspot" data-id="egodex-eval" style="left:50%; top:30%"
+                   data-title="② EgoDex Eval（OOD 物体）"
+                   data-body="从 EgoDex 人类视频中选取 GR-1 机器人能执行的场景，包含训练集未见的新物体和动作。测试 OOD 物体泛化能力。"></div>
+              <div class="hotspot" data-id="hv-eval" style="left:84%; top:30%"
+                   data-title="③ DreamDojo-HV Eval（大规模 OOD）"
+                   data-body="从 DreamDojo-HV 大规模人类视频中选取场景，覆盖更极端的 OOD 情况——包括工业、零售等机器人从未接触的环境，以及多步复杂任务。"></div>
+              <div class="hotspot" data-id="counter-eval" style="left:16%; top:72%"
+                   data-title="④ Counterfactual Eval（反事实动作）"
+                   data-body="测试未出现在机器人训练集中的反事实动作，如拍打玩具、伸手但故意错过目标物体。这直接测试世界模型是否真正理解动作-结果因果关系，还是只在记忆训练分布。"></div>
+              <div class="hotspot" data-id="novel-eval" style="left:67%; top:72%"
+                   data-title="⑤⑥ Novel Eval（背景变换 OOD）"
+                   data-body="用 Gemini 2.5 Flash（Nano Banana）将 EgoDex 和 DreamDojo-HV 的背景替换为截然不同的环境，模拟部署时遇到的背景 OOD。每组 25 个样本，用人工偏好评估（12 名志愿者）评价物理合理性和动作追踪准确性。"></div>
+            </div>
+            <div class="fig-cap">
+              <span class="fig-num">Fig 4 · p.9</span>
+              Six evaluation benchmarks: In-lab Eval, EgoDex Eval, DreamDojo-HV Eval, Counterfactual Eval, EgoDex-novel Eval, DreamDojo-HV-novel Eval
+              <span class="fig-cn">六项 Benchmark：前三项测不同数据分布的 OOD 泛化，第四项测反事实动作理解，后两项测背景替换后的泛化（人工偏好评估）</span>
+            </div>
+          </div>
+          <div class="hotspot-panel">
+            <div class="hp-title">点击图上标注点</div>
+            <div class="hp-body" style="color:var(--text3); font-size:12px;">6 个 Benchmark 全部强调 OOD 泛化，这是 DreamDojo 的核心主张。</div>
+          </div>
+        </div>
+
+        <h3>关键消融实验结论</h3>
+
+        <div class="callout">
+          <div class="callout-label">消融① 动作条件方式（Table 2）</div>
+          <p><strong>结论：潜在动作优于无动作预训练，接近使用真实动作标注的上界。</strong></p>
+          <p>• w/o pretrain：PSNR 20.576（In-lab），基线最差<br>
+          • action-free pretrain：20.797，边际提升——被动预测学到了部分物理知识，但动作可控性差<br>
+          • latent action（DreamDojo）：<strong>20.913</strong>，最优——与"理想上界"retargeted action（20.960）几乎持平，但不需要任何外部捕捉设备</p>
+        </div>
+
+        <div class="callout">
+          <div class="callout-label">消融② 数据量（Table 3）</div>
+          <p><strong>结论：数据多样性持续提升各项指标，无边际递减迹象。</strong></p>
+          <p>In-lab only → + EgoDex → + DreamDojo-HV，每加一路数据，PSNR/SSIM/LPIPS 在所有 4 个 Eval 集上均提升。DreamDojo-14B 达最优（PSNR 21.087 In-lab，LPIPS 0.185 Counterfactual eval），比 Cosmos-Predict2.5 基线提升显著。</p>
+        </div>
+
+        <div class="callout">
+          <div class="callout-label">消融③ 架构设计（Table 5）</div>
+          <p><strong>结论：三个设计各自独立有效，叠加效果最佳。</strong></p>
+          <p>• 仅相对动作：GR-1 Val PSNR 16.522（+0.323），Counterfactual PSNR 19.482（+0.034）<br>
+          • + 分块注入：GR-1 Val 17.626（+1.104），Counterfactual 20.783（+1.301）——分块注入对反事实动作效果极其显著<br>
+          • + 时序一致性损失：GR-1 Val <strong>17.630</strong>，Counterfactual <strong>20.980</strong>（LPIPS 0.189，最优）</p>
+        </div>
+
+        <div class="callout">
+          <div class="callout-label">人工偏好评估（Table 4）</div>
+          <p><strong>DreamDojo-14B 在所有人工评估维度上均超越 Cosmos-Predict2.5 基线 70% 以上。</strong></p>
+          <p>• DreamDojo-2B vs Cosmos-Predict2.5：物理合理性胜率 62.50%，动作追踪 63.45%<br>
+          • DreamDojo-14B vs Cosmos-Predict2.5：物理合理性胜率 <strong>73.50%</strong>，动作追踪 <strong>72.55%</strong><br>
+          • DreamDojo-14B vs DreamDojo-2B：物理合理性 72.50%，动作追踪 65.53%——14B 明显优于 2B</p>
+        </div>
+      </div>
+
+      <!-- §09 下游应用 -->
+      <div class="section" id="applications">
+        <div class="section-num">§ 09</div>
+        <h2>下游应用：策略评估、模型规划、实时遥操作</h2>
+
+        <div class="cn-read">
+          <div class="cn-label">承上启下</div>
+          <p>§08 验证了模型各项能力。这一节看 DreamDojo 能做什么实际的事：它的核心价值不只是"看起来像机器人真实动作"，而是能成为一个可靠的<strong>仿真器</strong>——替代真实机器人做策略筛选和规划。</p>
+        </div>
+
+        <!-- Fig 5 & 6 -->
+        <div class="fig-interactive panel-below">
+          <div class="fig-block">
+            <div class="hotspot-wrap" data-hotspot-group="fig5">
+              <img src="../assets/figures/dreamdojo/fig-5.png" alt="Figure 5: Downstream applications">
+              <div class="hotspot" data-id="pearson" style="left:18%; top:50%"
+                   data-title="(a) 策略评估：Pearson r=0.995"
+                   data-body="横轴是 DreamDojo 中策略的成功率，纵轴是真实机器人中的成功率（AgiBot fruit packing，20 个场景，5 个水果组合）。两者线性相关系数 Pearson r=0.995，Mean Maximum Rank Violation MMRV=0.003（几乎完美的排名一致性）。这意味着：可以<strong>在 DreamDojo 中筛选策略，直接部署表现最好的到真实机器人</strong>，不需要在真实世界测试全部策略。"></div>
+              <div class="hotspot" data-id="planning" style="left:67%; top:45%"
+                   data-title="(b) 模型规划：2× 成功率提升"
+                   data-body="左图（高方差策略组）：5 个策略 Checkpoint，均匀采样成功率 37%，Model A-E 在 9%-53% 之间。DreamDojo 辅助规划后选出最优策略，成功率 70%（+33pp，约 2× 提升）。右图（低方差收敛策略组）：均匀采样 50%，规划后 68%（+18pp）。结论：DreamDojo 的规划效果在策略多样性越大时收益越大。"></div>
+            </div>
+            <div class="fig-cap">
+              <span class="fig-num">Fig 5 · p.14</span>
+              (a) Real vs. DreamDojo success rates with Pearson r=0.995; (b) Model-based planning success rate improvement
+              <span class="fig-cn">左：DreamDojo 与真实机器人成功率高度相关（r=0.995），可作为可靠仿真器；右：模型规划在 DreamDojo 辅助下将成功率提升约 2×</span>
+            </div>
+          </div>
+          <div class="hotspot-panel">
+            <div class="hp-title">点击图上标注点</div>
+            <div class="hp-body" style="color:var(--text3); font-size:12px;">策略评估和模型规划都依赖世界模型能准确预测动作后果。</div>
+          </div>
+        </div>
+
+        <div class="fig-interactive panel-below" style="margin-top:20px;">
+          <div class="fig-block">
+            <div class="hotspot-wrap" data-hotspot-group="fig6">
+              <img src="../assets/figures/dreamdojo/fig-6.png" alt="Figure 6: Live teleoperation">
+              <div class="hotspot" data-id="teleop-screen" style="left:25%; top:45%"
+                   data-title="PICO VR 控制器 + 屏幕显示"
+                   data-body="左图是遥操作者视角：屏幕上显示 DreamDojo 生成的虚拟 G1 机器人视角，遥操者通过 PICO VR 控制器输入手部和上身动作（action conditions），DreamDojo-2B 实时生成下一帧——整个回路在 10.81 FPS 下运行，实现人机实时交互。"></div>
+              <div class="hotspot" data-id="teleop-demo" style="left:70%; top:40%"
+                   data-title="右侧：遥操作演示帧序列"
+                   data-body="右侧是一段遥操作序列：遥操者通过控制器引导虚拟 G1 完成桌面操作任务。注意虚拟机器人的手臂和末端执行器姿态随控制器输入实时变化，背景场景和物体保持时序一致性。这是世界模型实时生成能力的直接展示，不需要物理机器人参与。"></div>
+            </div>
+            <div class="fig-cap">
+              <span class="fig-num">Fig 6 · p.14</span>
+              Live teleoperation using PICO VR controller to drive virtual G1 robot in real time at 10.81 FPS
+              <span class="fig-cn">实时遥操作：用 PICO VR 控制器输入动作，DreamDojo 以 10.81 FPS 实时生成虚拟机器人视频——不需要真实机器人，可用于安全的操作训练</span>
+            </div>
+          </div>
+          <div class="hotspot-panel">
+            <div class="hp-title">点击图上标注点</div>
+            <div class="hp-body" style="color:var(--text3); font-size:12px;">实时遥操作是蒸馏 Pipeline 的直接应用——4 步去噪 + 因果自回归实现 10.81 FPS。</div>
+          </div>
+        </div>
+
+        <div class="callout blue">
+          <div class="callout-label">与 VLA / Embodied AI 的联系</div>
+          <p><strong>策略评估（Policy Evaluation）</strong>：VLA 的训练需要大量真实 rollout 来评估策略质量，成本高且有安全风险。DreamDojo 提供了一个可靠的"虚拟测试场"——Pearson r=0.995 的相关性意味着几乎可以用 DreamDojo 替代真实机器人做策略筛选。</p>
+          <p><strong>模型规划（Model-Based Planning）</strong>：传统 VLA 在推理时用单一策略模型做闭环；加入 DreamDojo 后，可以在推理时对多个候选动作序列做前瞻模拟，选择预期最优的执行——类似棋类 AI 的 tree search，但在连续机器人动作空间上实现。</p>
+          <p style="margin:0"><strong>遥操作数据采集</strong>：现有高质量机器人数据的采集都需要专业操作员+真实机器人+专用场地。用 DreamDojo 做虚拟遥操作可以大幅降低数据采集成本，同时用 VR 设备取代昂贵的遥操作装置。</p>
+        </div>
+
+        <div class="quiz"
+             data-correct="c"
+             data-explain="正确。策略评估的关键指标是 Pearson r=0.995（近似完美线性相关）和 MMRV=0.003（策略排名几乎完全一致）。这意味着在 DreamDojo 中表现最好的策略，在真实机器人中也表现最好——可以直接用 DreamDojo 做策略筛选，无需在真实机器人上测试所有候选策略。"
+             data-explain-wrong="再想想：策略评估能力体现在什么指标上？为什么相关性高很重要？">
+          <div class="q-label">理解检查</div>
+          <div class="q-text">DreamDojo 在策略评估（policy evaluation）中的价值是什么？为什么 Pearson r=0.995 很重要？</div>
+          <div class="q-options">
+            <button class="q-opt" data-k="a">说明 DreamDojo 生成的视频视觉质量很高</button>
+            <button class="q-opt" data-k="b">说明 DreamDojo 能替代真实机器人执行任务</button>
+            <button class="q-opt" data-k="c">说明在 DreamDojo 中的成功率排名与真实世界一致，可用于无需真实机器人的策略筛选</button>
+            <button class="q-opt" data-k="d">说明 DreamDojo 的训练损失很低</button>
+          </div>
+          <div class="q-feedback"></div>
+        </div>
+      </div>
+
+      <!-- §10 局限与展望 -->
+      <div class="section" id="limits">
+        <div class="section-num">§ 10</div>
+        <h2>局限与展望</h2>
+
+        <div class="cn-read">
+          <div class="cn-label">这篇论文还没解决什么</div>
+          <p>§01–§09 描述了 DreamDojo 能做什么。这一节诚实列出边界：哪些任务还不行，哪些假设还未被充分检验，未来工作应该往哪里走。</p>
+        </div>
+
+        <div class="module-grid">
+          <div class="module-card">
+            <div class="module-card-name">LIMIT 01 · 稀少动作</div>
+            <div class="module-card-title">快速/异常动作仍不准确</div>
+            <div class="module-card-desc">
+              "拍击"（slapping）、"快速挥手"（fast waving）等在训练数据中罕见的快速动作，DreamDojo 模拟效果较差。根本原因：这类动作在 44k 小时视频中出现频率极低，模型分布没有覆盖。可能的方向：结合策略 rollout 数据（Ho et al. 2025, Zhu et al. 2025）扩展动作分布。
+            </div>
+          </div>
+          <div class="module-card">
+            <div class="module-card-name">LIMIT 02 · 策略评估偏乐观</div>
+            <div class="module-card-title">绝对成功率偏高于真实值</div>
+            <div class="module-card-desc">
+              策略评估实验中，DreamDojo 内的绝对成功率普遍高于真实机器人（虽然排名相关性高）。原因可能是 DreamDojo 生成的"失败"视频视觉上仍然连贯，难以区分真正失败。未来需要更精细的失败感知评估机制（Ball et al. 2025, Ye et al. 2026）。
+            </div>
+          </div>
+          <div class="module-card">
+            <div class="module-card-name">LIMIT 03 · 单视角</div>
+            <div class="module-card-title">不支持多视角同步仿真</div>
+            <div class="module-card-desc">
+              当前 DreamDojo 是单视角视频世界模型，无法同时生成多个相机视角。但最先进的 VLA（如 π₀）使用多相机输入，这限制了 DreamDojo 作为其评估环境的适用范围。多视角世界模型仍是开放问题（Bjorck et al. 2025, Black et al. 2024）。
+            </div>
+          </div>
+          <div class="module-card">
+            <div class="module-card-name">LIMIT 04 · 知识遗忘</div>
+            <div class="module-card-title">后训练时如何保留预训练知识</div>
+            <div class="module-card-desc">
+              在目标机器人上微调时，如何保留人类视频预训练获得的 OOD 泛化能力尚未深入研究。全参数微调可能导致"遗忘"预训练物理知识。未来可探索 LoRA、Parameter Efficient Fine-Tuning 等方案（Hu et al. 2022, Yadav et al. 2025）。
+            </div>
+          </div>
+        </div>
+
+        <div class="callout amber">
+          <div class="callout-label">推理速度优化空间</div>
+          <p>10.81 FPS 已达实时，但仍有工程优化空间（Ball et al. 2025, Hong et al. 2025, Team et al. 2026, Ye et al. 2026）。目前蒸馏用了 64 张 H100 跑 13k 步，如果进一步压缩去噪步数（从 4 步到 1-2 步）或使用更高效的量化推理，FPS 还有提升空间。</p>
+        </div>
+
+        <details class="en-quote">
+          <summary>展开原文 · Limitations 原文</summary>
+          <div class="quote-body">
+            <p>"While DreamDojo demonstrates significant improvements over the baseline, it is by no means perfect when simulating uncommon actions, such as slapping and fast waving. Additionally, when conducting policy evaluation, the absolute success rates in DreamDojo are often higher than their real counterparts, indicating a limitation in accurately generating nuanced failures."</p>
+            <div class="quote-cite">— §5 Conclusion, p.15</div>
+          </div>
+        </details>
+
+        <div class="callout purple">
+          <div class="callout-label">对 Embodied AI 学习路径的启示</div>
+          <p>DreamDojo 代表了 2026 年 embodied AI 的一个重要趋势：<strong>把视频生成能力引入机器人学习 pipeline</strong>——不只是用来生成演示，而是作为可信的物理仿真器（world model）参与策略训练、评估和规划的完整闭环。这与 Dreamer/R2-D2 在游戏 RL 中的地位类似，但挑战更大（连续高维动作 + 开放世界物体）。</p>
+          <p style="margin:0">对于在学的同学：理解 DreamDojo 的三阶段训练（预训练→后训练→蒸馏）是未来多数 robot world model 工作的共同范式，值得深入掌握。</p>
+        </div>
+      </div>
+
+      <div class="footer">
+        DreamDojo · arXiv:2602.06949 · NVIDIA 2026 · 笔记整理：paper-notes 项目
+      </div>
+    </main>
+  </div>
+</body>
+</html>
