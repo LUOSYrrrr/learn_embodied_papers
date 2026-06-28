@@ -1,0 +1,803 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Fast-WAM · 世界动作模型需要测试时未来想象吗？</title>
+  <link rel="stylesheet" href="../assets/css/style.css">
+  <script src="../assets/js/theme.js"></script>
+  <script src="../assets/js/interactive.js" defer></script>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16/dist/katex.min.css">
+  <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16/dist/katex.min.js"></script>
+  <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16/dist/contrib/auto-render.min.js"
+          onload="renderMathInElement(document.body,{delimiters:[{left:'$$',right:'$$',display:true},{left:'$',right:'$',display:false}]})"></script>
+  <style>
+    .docs-layout { display: grid; grid-template-columns: 220px minmax(0, 1fr); max-width: 1400px; margin: 0 auto; }
+    .sidebar { position: sticky; top: 60px; height: calc(100vh - 60px); overflow-y: auto; padding: 24px 16px; border-right: 1px solid var(--border); background: var(--bg); }
+    .sidebar-title { font-family: var(--font-mono); font-size: 10px; color: var(--text3); letter-spacing: 0.08em; text-transform: uppercase; margin-bottom: 16px; padding-bottom: 8px; border-bottom: 1px solid var(--border); }
+    .sidebar-tree { list-style: none; margin: 0; padding: 0; }
+    .sidebar-tree li { margin: 4px 0; }
+    .sidebar-tree a { display: block; padding: 6px 10px; font-size: 13px; color: var(--text2); text-decoration: none; border-radius: 6px; transition: all 0.2s; }
+    .sidebar-tree a:hover { background: var(--glass-hover); color: var(--text); }
+    .sidebar-tree a.active { background: rgba(74, 222, 154, 0.1); color: var(--accent); }
+    .sidebar-tree .section-link { font-weight: 500; }
+    .main-content { min-width: 0; }
+    @media (max-width: 900px) { .docs-layout { grid-template-columns: 1fr; } .sidebar { display: none; } }
+
+    .paper-header { padding: 40px 40px 24px; max-width: 1200px; margin: 0 auto; }
+    .paper-venue { font-family: var(--font-mono); font-size: 11px; color: var(--text3); letter-spacing: 0.06em; margin-bottom: 10px; }
+    .paper-title { font-family: var(--font-serif); font-size: 28px; font-weight: 700; color: var(--text); line-height: 1.35; margin: 0 0 14px; }
+    .paper-authors { font-size: 14px; color: var(--text2); margin-bottom: 8px; }
+    .paper-badges { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 16px; }
+    .badge { font-family: var(--font-mono); font-size: 10px; padding: 4px 10px; border-radius: 6px; background: var(--bg3); color: var(--text2); border: 1px solid var(--border); }
+    .badge-green { background: rgba(74, 222, 154, 0.12); color: var(--accent); border-color: rgba(74, 222, 154, 0.3); }
+    .badge-blue { background: rgba(96, 165, 250, 0.12); color: var(--blue); border-color: rgba(96, 165, 250, 0.3); }
+    .badge-amber { background: rgba(245, 158, 11, 0.12); color: var(--amber); border-color: rgba(245, 158, 11, 0.3); }
+    .badge-purple { background: rgba(167, 139, 250, 0.12); color: var(--purple); border-color: rgba(167, 139, 250, 0.3); }
+
+    .section { padding: 32px 40px; max-width: 1200px; margin: 0 auto; border-top: 1px solid var(--border); }
+    .section-num { font-family: var(--font-mono); font-size: 11px; color: var(--accent); letter-spacing: 0.08em; margin-bottom: 6px; }
+    .section h2 { font-family: var(--font-serif); font-size: 22px; font-weight: 600; margin: 0 0 20px; color: var(--text); }
+    .section h3 { font-size: 17px; font-weight: 600; margin: 28px 0 12px; color: var(--text); }
+    .section p { font-size: 15px; line-height: 1.85; color: var(--text2); margin: 0 0 16px; }
+
+    .cn-read { background: var(--bg2); border-left: 3px solid var(--accent); padding: 18px 22px; margin: 20px 0; border-radius: 0 8px 8px 0; }
+    .cn-label { font-family: var(--font-mono); font-size: 10px; color: var(--accent); letter-spacing: 0.06em; text-transform: uppercase; margin-bottom: 8px; }
+    .cn-read p { margin: 0; font-size: 14.5px; line-height: 1.8; color: var(--text); }
+
+    .callout { background: var(--bg2); border: 1px solid var(--border); border-radius: 10px; padding: 18px 22px; margin: 20px 0; }
+    .callout-label { font-family: var(--font-mono); font-size: 10px; letter-spacing: 0.06em; text-transform: uppercase; margin-bottom: 8px; color: var(--text3); }
+    .callout.amber { border-color: var(--amber); background: rgba(245, 158, 11, 0.08); }
+    .callout.amber .callout-label { color: var(--amber); }
+    .callout.red { border-color: var(--accent3); background: rgba(255, 107, 107, 0.08); }
+    .callout.red .callout-label { color: var(--accent3); }
+    .callout.blue { border-color: var(--blue); background: rgba(96, 165, 250, 0.08); }
+    .callout.blue .callout-label { color: var(--blue); }
+    .callout.purple { border-color: var(--purple); background: rgba(167, 139, 250, 0.08); }
+    .callout.purple .callout-label { color: var(--purple); }
+
+    .fig-interactive { display: grid; grid-template-columns: minmax(0, 1fr) 280px; gap: 20px; margin: 24px 0; }
+    .fig-interactive.panel-below { grid-template-columns: 1fr; }
+    .fig-interactive.panel-below .hotspot-panel { position: static; margin-top: 16px; }
+    .fig-block { background: var(--bg2); border-radius: 10px; overflow: hidden; border: 1px solid var(--border); }
+    .fig-block img { width: 100%; height: auto; display: block; }
+    .fig-cap { padding: 14px 18px; font-size: 13px; color: var(--text2); border-top: 1px solid var(--border); }
+    .fig-num { font-family: var(--font-mono); font-size: 10px; color: var(--accent); margin-right: 8px; }
+    .fig-cn { display: block; margin-top: 6px; color: var(--text3); font-size: 12px; }
+
+    .hotspot-wrap { position: relative; }
+    .hotspot { position: absolute; width: 18px; height: 18px; background: rgba(74, 222, 154, 0.55); border: 2px solid var(--accent); border-radius: 50%; cursor: pointer; transform: translate(-50%, -50%); transition: all 0.2s; }
+    .hotspot:hover, .hotspot.active { background: var(--accent); transform: translate(-50%, -50%) scale(1.3); opacity: 1; }
+    .hotspot-panel { background: var(--bg2); border: 1px solid var(--border); border-radius: 10px; padding: 16px; }
+    .hp-title { font-size: 14px; font-weight: 600; color: var(--accent); margin-bottom: 8px; }
+    .hp-body { font-size: 13px; color: var(--text2); line-height: 1.7; }
+
+    .en-quote { background: var(--bg2); border: 1px solid var(--border); border-radius: 8px; margin: 16px 0; overflow: hidden; }
+    .en-quote summary { padding: 12px 16px; font-size: 13px; color: var(--text3); cursor: pointer; transition: background 0.2s; }
+    .en-quote summary:hover { background: var(--glass-hover); }
+    .quote-body { padding: 16px; border-top: 1px solid var(--border); }
+    .quote-body p { font-size: 13.5px; color: var(--text); font-style: italic; margin: 0 0 10px; }
+    .quote-cite { font-family: var(--font-mono); font-size: 11px; color: var(--text3); }
+
+    .step-walker { background: var(--bg2); border: 1px solid var(--border); border-radius: 10px; padding: 20px; margin: 24px 0; }
+    .sw-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px; }
+    .sw-title { font-size: 14px; font-weight: 600; color: var(--text); }
+    .sw-controls { display: flex; gap: 10px; align-items: center; }
+    .sw-btn { background: var(--bg3); border: 1px solid var(--border); color: var(--text); padding: 6px 12px; border-radius: 6px; cursor: pointer; font-size: 12px; }
+    .sw-btn:hover { background: var(--glass-hover); }
+    .sw-counter { font-family: var(--font-mono); font-size: 12px; color: var(--text3); }
+    .sw-progress { display: flex; gap: 6px; margin-bottom: 16px; }
+    .sw-dot { flex: 1; height: 3px; background: var(--border); border-radius: 2px; }
+    .sw-dot.active { background: var(--accent); }
+    .sw-step { display: none; }
+    .sw-step.active { display: block; }
+    .sw-step h4 { font-size: 14px; margin: 0 0 8px; color: var(--text); }
+    .sw-step p { font-size: 13px; color: var(--text2); margin: 0; }
+
+    .quiz { background: var(--bg2); border: 1px solid var(--border); border-radius: 10px; padding: 20px; margin: 24px 0; }
+    .q-label { font-family: var(--font-mono); font-size: 10px; color: var(--amber); letter-spacing: 0.06em; text-transform: uppercase; margin-bottom: 10px; }
+    .q-text { font-size: 15px; color: var(--text); margin-bottom: 16px; font-weight: 500; }
+    .q-options { display: flex; flex-direction: column; gap: 8px; }
+    .q-opt { text-align: left; background: var(--bg3); border: 1px solid var(--border); color: var(--text); padding: 12px 16px; border-radius: 8px; cursor: pointer; font-size: 14px; transition: all 0.2s; }
+    .q-opt:hover { background: var(--glass-hover); border-color: var(--border2); }
+    .q-opt.correct { background: rgba(74, 222, 154, 0.15); border-color: var(--accent); }
+    .q-opt.wrong { background: rgba(255, 107, 107, 0.15); border-color: var(--accent3); }
+    .q-feedback { margin-top: 14px; padding: 12px; border-radius: 8px; font-size: 13px; display: none; }
+    .q-feedback.show { display: block; }
+
+    .module-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 14px; margin: 20px 0; }
+    .module-card { background: var(--bg2); border: 1px solid var(--border); border-radius: 10px; padding: 18px; }
+    .module-card-name { font-family: var(--font-mono); font-size: 10px; color: var(--text3); letter-spacing: 0.06em; margin-bottom: 6px; }
+    .module-card-title { font-size: 15px; font-weight: 600; color: var(--text); margin-bottom: 8px; }
+    .module-card-desc { font-size: 13px; color: var(--text2); line-height: 1.6; }
+
+    .kv-table { width: 100%; border-collapse: collapse; margin: 16px 0; font-size: 13px; }
+    .kv-table td { padding: 10px 14px; border: 1px solid var(--border); }
+    .kv-table td:first-child { background: var(--bg2); color: var(--text3); width: 30%; font-family: var(--font-mono); font-size: 11px; }
+    .kv-table td:last-child { color: var(--text); }
+
+    .math-block { background: var(--bg2); padding: 20px; border-radius: 8px; margin: 20px 0; text-align: center; overflow-x: auto; }
+    .math-label { display: block; font-family: var(--font-mono); font-size: 11px; color: var(--text3); margin-top: 10px; }
+    .math-explain { background: var(--bg2); border-left: 3px solid var(--blue); padding: 16px 20px; margin: 16px 0; border-radius: 0 8px 8px 0; }
+    .me-title { font-size: 13px; font-weight: 600; color: var(--blue); margin-bottom: 12px; }
+    .math-explain dl { margin: 0; }
+    .math-explain dt { font-family: var(--font-mono); font-size: 12px; color: var(--accent); margin: 10px 0 4px; }
+    .math-explain dd { margin: 0 0 8px; font-size: 13px; color: var(--text2); line-height: 1.6; }
+
+    .term { border-bottom: 1px dotted var(--text3); cursor: help; position: relative; }
+    .term:hover::after { content: attr(data-en); position: absolute; bottom: 100%; left: 50%; transform: translateX(-50%); background: var(--bg3); padding: 6px 10px; border-radius: 6px; font-size: 11px; white-space: nowrap; border: 1px solid var(--border); color: var(--text2); }
+
+    /* Verdict comparison bar */
+    .verdict-row { display: flex; align-items: center; gap: 16px; padding: 10px 0; border-bottom: 1px solid var(--border); }
+    .verdict-label { font-size: 13px; color: var(--text2); width: 220px; flex-shrink: 0; }
+    .verdict-bar-wrap { flex: 1; display: flex; gap: 8px; align-items: center; }
+    .verdict-bar { height: 10px; border-radius: 5px; }
+    .verdict-val { font-family: var(--font-mono); font-size: 12px; color: var(--text3); width: 48px; }
+    .verdict-tag { font-family: var(--font-mono); font-size: 10px; padding: 2px 8px; border-radius: 4px; margin-left: 8px; }
+    .verdict-tag.fast { background: rgba(74,222,154,0.15); color: var(--accent); }
+    .verdict-tag.slow { background: rgba(255,107,107,0.15); color: var(--accent3); }
+
+    @media (max-width: 900px) {
+      .fig-interactive { grid-template-columns: 1fr; }
+      .module-grid { grid-template-columns: 1fr; }
+      .paper-header, .section { padding-left: 20px; padding-right: 20px; }
+    }
+  </style>
+</head>
+<body>
+  <nav class="nav">
+    <a class="nav-logo" href="../index.html">Paper Notes</a>
+    <div class="nav-links">
+      <a href="../index.html">← 返回首页</a>
+    </div>
+  </nav>
+
+  <div class="docs-layout">
+    <aside class="sidebar">
+      <div class="sidebar-title">目录</div>
+      <ul class="sidebar-tree">
+        <li><a href="#question" class="section-link">§01 核心问题</a></li>
+        <li><a href="#paradigms" class="section-link">§02 三种范式对比</a></li>
+        <li><a href="#arch" class="section-link">§03 Fast-WAM 架构</a></li>
+        <li><a href="#objective" class="section-link">§04 训练目标</a></li>
+        <li><a href="#results" class="section-link">§05 实验结果</a></li>
+        <li><a href="#vla-link" class="section-link">§06 与 VLA 的联系</a></li>
+      </ul>
+    </aside>
+
+    <main class="main-content">
+      <div class="paper-header">
+        <div class="paper-venue">arXiv · 2603.16666 · Mar 2026 · IIIS Tsinghua University · Galaxea AI</div>
+        <div class="paper-title">Fast-WAM: Do World Action Models Need Test-time Future Imagination?</div>
+        <div class="paper-authors">Tianyuan Yuan, Zibin Dong, Yicheng Liu, Hang Zhao</div>
+        <div class="paper-badges">
+          <span class="badge badge-green">受控消融实验</span>
+          <span class="badge badge-blue">Video Co-training</span>
+          <span class="badge badge-amber">190ms 实时推理</span>
+          <span class="badge badge-purple">Flow Matching</span>
+          <span class="badge">RoboTwin · LIBERO</span>
+          <span class="badge">6B params · Wan2.2</span>
+        </div>
+      </div>
+
+      <!-- §01 核心问题 -->
+      <div class="section" id="question">
+        <div class="section-num">§ 01</div>
+        <h2>核心问题：WAM 的收益从哪里来？</h2>
+
+        <div class="cn-read">
+          <div class="cn-label">这一节解决什么</div>
+          <p>
+            世界动作模型（WAM）比普通 VLA 更强，普遍认为是因为它能"想象未来"再执行。但这个假设从来没被严格验证过——也许 WAM 的收益只是来自<strong>训练时视频联合学习塑造了更好的特征</strong>，而不是推理时真正"展开未来"。Fast-WAM 把这两个因素精确解耦，得出一个出人意料的结论：<strong>推理时的未来想象几乎可以去掉，训练时的视频共同训练才是关键</strong>。结果：速度提升 4× 以上，性能几乎不变。
+          </p>
+        </div>
+
+        <p>
+          绝大多数现有 WAM 遵循 <strong>imagine-then-execute</strong> 范式：先迭代去噪生成未来视频帧，再以此为条件预测动作。这带来两个麻烦：① 推理延迟高（需要完整跑视频去噪）；② 让我们搞不清楚"到底是哪一步在起作用"。Fast-WAM 提出一个干净的问题：
+        </p>
+
+        <div class="callout">
+          <div class="callout-label">核心研究问题</div>
+          <p style="margin:0; font-size:15px;"><em>WAMs 需要在测试时显式生成未来观测，还是它们的收益主要来自训练过程中对未来的建模？</em></p>
+        </div>
+
+        <p>
+          为了回答这个问题，论文设计了一套受控实验：用同一个骨干（Wan2.2-5B），在同一个训练框架下，实例化多种"推理时是否生成视频"的变体，控制住所有其他变量，只改变这一个因素。
+        </p>
+
+        <div class="callout">
+          <div class="callout-label">核心结论（先看结果）</div>
+          <p style="margin:0">
+            <strong>① 训练时的视频共同训练是主要驱动力</strong>：去掉 video co-training → 性能下降 8pp（RoboTwin）到 4pp（LIBERO），实机任务从 80% 跌到 10%。<br>
+            <strong>② 推理时的视频生成贡献有限</strong>：Fast-WAM（无推理视频）vs imagine-then-execute 变体 → 差距 ≤ 1.2pp，几乎可忽略。<br>
+            <strong>③ Fast-WAM 速度极快</strong>：190ms vs IDM 的 810ms，快 4× 以上，同时无需大规模 embodied pretraining。
+          </p>
+        </div>
+
+        <details class="en-quote">
+          <summary>展开原文 · 核心假设</summary>
+          <div class="quote-body">
+            <p>"The effectiveness of WAMs may stem from two distinct sources: (i) the video prediction objective during training, which can encourage the model to learn physically meaningful latent representations, and (ii) explicit future generation during inference, which may provide additional foresight for action prediction."</p>
+            <div class="quote-cite">— §1 Introduction, p.1</div>
+          </div>
+        </details>
+
+        <div class="quiz"
+             data-correct="b"
+             data-explain="Fast-WAM 的核心发现是：去掉推理时的视频生成（保留训练时 video co-training）对性能几乎没有影响；而去掉训练时 video co-training（保留推理架构）则带来显著性能下降。这说明训练时的视频联合目标才是主要贡献因素。见 §4.3.2, p.8"
+             data-explain-wrong="不对。论文的结论恰恰相反——去掉推理时的视频生成影响很小，但去掉训练时的 video co-training 影响很大。Fast-WAM 保留了训练时的 video co-training，只是跳过了推理时的视频展开。">
+          <div class="q-label">🧠 理解检查</div>
+          <div class="q-text">Fast-WAM 的核心发现是什么？</div>
+          <div class="q-options">
+            <button class="q-opt" data-k="a">推理时的视频生成（imagine-then-execute）是 WAM 性能的主要来源，去掉它会导致显著下降</button>
+            <button class="q-opt" data-k="b">训练时的视频共同训练才是关键；去掉推理时的视频生成影响很小，去掉训练时 video co-training 影响很大</button>
+            <button class="q-opt" data-k="c">训练时和推理时的视频生成对性能贡献相等，缺一不可</button>
+            <button class="q-opt" data-k="d">两者都可以去掉，WAM 的主要价值来自更大的模型规模</button>
+          </div>
+          <div class="q-feedback"></div>
+        </div>
+      </div>
+
+      <!-- §02 三种范式 -->
+      <div class="section" id="paradigms">
+        <div class="section-num">§ 02</div>
+        <h2>三种 WAM 范式：受控实验设计</h2>
+
+        <div class="cn-read">
+          <div class="cn-label">这一节解决什么</div>
+          <p>
+            上一节提出了问题，这一节是实验设计的核心：怎么才能"公平"地比较训练时视频目标 vs 推理时视频生成的贡献？答案是：在同一个骨干、同一个训练框架下，实例化三种不同推理行为的变体，加上一个"去掉视频 co-training"的对照组，总共四个变体，两两对比。
+          </p>
+        </div>
+
+        <!-- Fig 1 -->
+        <div class="fig-interactive panel-below">
+          <div class="fig-block">
+            <div class="hotspot-wrap" data-hotspot-group="fig1">
+              <img src="../assets/figures/fast-wam/fig-1.png" alt="Figure 1: Three WAM paradigms">
+              <div class="hotspot" data-id="joint-train" style="left:12%; top:22%;"
+                   data-title="(A) 联合 · 训练阶段"
+                   data-body="Joint 范式：视频 token（蓝色, GT latent frames）和动作 token（黄色, GT actions）在同一个 Transformer 里联合去噪。未来视频和动作共享 attention，视频动态直接影响动作生成过程。代表作：Cosmos Policy、LingBot-VA 等。"></div>
+              <div class="hotspot" data-id="idm-train" style="left:40%; top:22%;"
+                   data-title="(B) IDM · 训练阶段"
+                   data-body="Causal/IDM 范式：先单独训练视频 DiT 预测未来帧，再用一个逆动力学模型（Inverse Dynamics Model）把预测的未来帧转化为动作。两阶段解耦：视频是中间媒介，动作条件化于视频。代表作：UniSim、SWIM 等。"></div>
+              <div class="hotspot" data-id="fastwam-train" style="left:72%; top:22%;"
+                   data-title="(C) Fast-WAM (Ours) · 训练阶段"
+                   data-body="Fast-WAM 训练：和 Joint/IDM 一样，同时训练视频 DiT（处理未来帧 f₁..fₙ）和动作 DiT（处理动作 a₁..aₙ）。关键约束：动作 token 不能直接 attend 到未来视频 token（用结构化掩码阻止信息流），避免动作生成泄漏未来视频信息。"></div>
+              <div class="hotspot" data-id="joint-infer" style="left:12%; top:70%;"
+                   data-title="(A) 联合 · 推理阶段"
+                   data-body="推理时：联合去噪未来视频 token 和动作 token，需要完整运行多步去噪。动作和视频同时从噪声中还原。推理延迟较高（需要完整视频去噪步骤）。"></div>
+              <div class="hotspot" data-id="idm-infer" style="left:40%; top:70%;"
+                   data-title="(B) IDM · 推理阶段（最慢）"
+                   data-body="推理时两步走：① 先完整跑视频 DiT，多步去噪生成未来帧（用 KV Cache 加速但仍需迭代去噪）；② 再把生成的视频帧送入动作 DiT 去噪预测动作。延迟最高：810ms（参见 Fig 4）。"></div>
+              <div class="hotspot" data-id="fastwam-infer" style="left:72%; top:70%;"
+                   data-title="(C) Fast-WAM · 推理阶段（最快）"
+                   data-body="推理时：完全跳过未来视频生成！只保留第一帧干净 latent token，做一次前向 pass 提取世界表征，直接去噪动作。无需生成 f₁..fₙ，无需视频去噪迭代，延迟仅 190ms。"></div>
+            </div>
+            <div class="fig-cap">
+              <span class="fig-num">Fig 1 · p.2</span>
+              Three representative WAM paradigms: (A) Joint future video & action prediction, (B) Future video prediction followed by action prediction (IDM), (C) Fast-WAM: action prediction without attending future video at inference.
+              <span class="fig-cn">三种 WAM 范式的训练（上）和推理（下）行为对比。蓝色=视频 latent token，黄色=动作 token。Fast-WAM 推理时完全不生成未来视频，直接单次前向预测动作。</span>
+            </div>
+          </div>
+          <div class="hotspot-panel"></div>
+        </div>
+
+        <h3>四个实验变体</h3>
+
+        <div class="module-grid">
+          <div class="module-card">
+            <div class="module-card-name">FAST-WAM-JOINT · 变体 A</div>
+            <div class="module-card-title">联合视频+动作去噪</div>
+            <div class="module-card-desc">
+              视频和动作 token 在同一 Transformer 中<strong>联合去噪</strong>，双向 attention 共享。训练和推理都需要视频生成。代表"最强的 imagine-then-execute"设计。
+            </div>
+          </div>
+          <div class="module-card">
+            <div class="module-card-name">FAST-WAM-IDM · 变体 B</div>
+            <div class="module-card-title">先生成视频，再预测动作</div>
+            <div class="module-card-desc">
+              两阶段：先用视频 DiT 生成完整未来视频，再以视频为条件预测动作。<strong>最接近原始 WAM 理念</strong>，但推理最慢（810ms）。
+            </div>
+          </div>
+          <div class="module-card">
+            <div class="module-card-name">FAST-WAM (OURS) · 变体 C</div>
+            <div class="module-card-title">只保留训练时视频目标</div>
+            <div class="module-card-desc">
+              训练时保留视频 co-training，<strong>推理时完全跳过视频生成</strong>，单次前向直出动作。190ms，4× 更快，是本文的核心贡献。
+            </div>
+          </div>
+          <div class="module-card" style="border-color: var(--accent3);">
+            <div class="module-card-name" style="color: var(--accent3);">FAST-WAM W.O. VIDEO CO-TRAIN · 对照组</div>
+            <div class="module-card-title">去掉视频 co-training</div>
+            <div class="module-card-desc">
+              保持 Fast-WAM 推理架构不变，<strong>去掉训练时的视频 co-training 损失</strong>。这是纯净的基准：揭示视频 co-training 本身的贡献有多大。结果：性能大幅下降。
+            </div>
+          </div>
+        </div>
+
+        <div class="callout blue">
+          <div class="callout-label">实验设计的精妙之处</div>
+          <p style="margin:0">
+            通过比较"Fast-WAM vs (Joint/IDM)"可以测量<strong>推理时视频生成的贡献</strong>（其他一切相同）。<br>
+            通过比较"Fast-WAM vs (w.o. video co-train)"可以测量<strong>训练时 video co-training 的贡献</strong>（推理行为相同）。<br>
+            两个对比都在同一个骨干、相同超参下，控制变量非常干净。
+          </p>
+        </div>
+
+        <div class="step-walker" data-hotspot-group="fig1">
+          <div class="sw-header">
+            <div class="sw-title">🪜 四个变体的核心区别</div>
+            <div class="sw-controls">
+              <button class="sw-btn prev">◀</button>
+              <span class="sw-counter">1 / 4</span>
+              <button class="sw-btn next">▶</button>
+            </div>
+          </div>
+          <div class="sw-progress">
+            <div class="sw-dot"></div>
+            <div class="sw-dot"></div>
+            <div class="sw-dot"></div>
+            <div class="sw-dot"></div>
+          </div>
+          <div class="sw-body">
+            <div class="sw-step active" data-hotspot="joint-infer">
+              <h4>变体 A：Fast-WAM-Joint（推理最重）</h4>
+              <p>训练和推理都做联合去噪。视频和动作 token 共享 attention，动作生成全程"看到"视频去噪过程。推理需要多步联合去噪，延迟约 190ms（因为是并行去噪，比 IDM 快）。</p>
+            </div>
+            <div class="sw-step" data-hotspot="idm-infer">
+              <h4>变体 B：Fast-WAM-IDM（推理最慢）</h4>
+              <p>两段串行：先跑 5B 视频 DiT 完整去噪生成未来帧（多步，最慢部分），再把生成帧送入动作 DiT。串行导致延迟叠加，810ms。但这也是最接近"视频作为显式推理媒介"这一理念的变体。</p>
+            </div>
+            <div class="sw-step" data-hotspot="fastwam-infer">
+              <h4>变体 C：Fast-WAM（推理最快）</h4>
+              <p>推理时只用第一帧干净 latent 做一次单向前向，提取世界表征 z(o,l)，再跑 10 步动作去噪。没有视频生成，没有多步视频去噪，190ms。训练时保留视频 co-training 损失，让 video DiT 学到好表征但推理时不用它生成未来。</p>
+            </div>
+            <div class="sw-step" data-hotspot="fastwam-train">
+              <h4>对照组：w.o. video co-train（训练缺失）</h4>
+              <p>推理行为和 Fast-WAM 完全一样（也是单次前向），但训练时去掉了视频 co-training 损失 L_vid。纯粹的动作监督。这个变体用来回答：如果没有视频联合训练，Fast-WAM 的架构本身值多少分？答案：大幅下降，说明 video co-training 是核心。</p>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- §03 架构 -->
+      <div class="section" id="arch">
+        <div class="section-num">§ 03</div>
+        <h2>Fast-WAM 架构：MoT + 结构化注意力掩码</h2>
+
+        <div class="cn-read">
+          <div class="cn-label">这一节解决什么</div>
+          <p>
+            上一节定义了三种范式，这一节讲 Fast-WAM 本身的具体架构。关键设计目标：训练时让视频 DiT 和动作 DiT 共同学习（共享表征），但<strong>阻止动作 token 在训练时看到未来视频 token</strong>——这样推理时才能安全地移除未来视频，不影响动作预测的信息依赖关系。类比：厨师在训练时看过很多优质料理视频（学了感觉），但做菜时不需要边看视频边操作。
+          </p>
+        </div>
+
+        <!-- Fig 2 -->
+        <div class="fig-interactive panel-below">
+          <div class="fig-block">
+            <div class="hotspot-wrap" data-hotspot-group="fig2">
+              <img src="../assets/figures/fast-wam/fig-2.png" alt="Figure 2: Fast-WAM architecture">
+              <div class="hotspot" data-id="text-enc" style="left:5%; top:65%;"
+                   data-title="Text Encoder · T5 文本编码器"
+                   data-body="复用 Wan2.2 内置的 T5 文本编码器。任务语言指令经 T5 编码后，通过 cross-attention 注入到所有 token 中（视频和动作 token 都能访问语言特征）。"></div>
+              <div class="hotspot" data-id="vae-enc" style="left:32%; top:73%;"
+                   data-title="VAE Encoder · 视觉潜变量编码"
+                   data-body="当前帧和未来帧的图像经 Wan2.2 预训练 VAE 编码为 latent token（空间下采样）。多摄像头图像在送入 VAE 前先拼接成单张图像。视频帧在时间维度下采样 4×，每个 action chunk 对应 9 个视频帧。"></div>
+              <div class="hotspot" data-id="video-dit" style="left:32%; top:35%;"
+                   data-title="Video DiT · 5B 视频骨干"
+                   data-body="Wan2.2-5B 的视频扩散 Transformer。处理三类 token：f₀（当前帧干净 latent，训练和推理都用），f₁..fₙ（未来帧加噪 latent，只在训练时存在），a₁..aₙ（动作 token，交给 Action DiT）。视频 token 在 Video DiT 内双向 attention。"></div>
+              <div class="hotspot" data-id="action-dit" style="left:65%; top:35%;"
+                   data-title="Action Expert DiT · 1B 动作专家"
+                   data-body="动作专家和视频 DiT 共享 attention（MoT：Mixture-of-Transformer）。hidden dim d_a=1024（缩减版），参数量 1B。动作 token 可以访问干净的第一帧 token（f₀）和语言特征，但不能 attend 到未来视频 token（f₁..fₙ）——这是结构化掩码的核心约束。"></div>
+              <div class="hotspot" data-id="mask-train" style="left:80%; top:25%;"
+                   data-title="训练掩码（右上角）"
+                   data-body="训练时的 attention mask（6×6 的可见性矩阵）：f₀可以被所有人看到（清晰锚点）；f₁..fₙ（未来帧）只能被视频 token 和自己看到，动作 token 看不到；a₁..aₙ 只能自己互相看+看 f₀。关键：动作 token 不能 attend 到未来视频 token。"></div>
+              <div class="hotspot" data-id="mask-infer" style="left:80%; top:65%;"
+                   data-title="推理掩码（右下角）"
+                   data-body="推理时的 attention mask：去掉所有未来帧 token（f₁..fₙ 完全不存在），只剩 f₀ 和 a₁..aₙ。Video DiT 对 f₀ 做单次前向 pass，提取世界表征；Action DiT 用这个表征做动作去噪。单次前向，无需视频迭代去噪。"></div>
+              <div class="hotspot" data-id="future-out" style="left:32%; top:12%;"
+                   data-title="Future (Latent) Frames · 训练时输出"
+                   data-body="训练时视频 DiT 的输出：预测未来视频帧的 latent（经过 VAE decoder 可还原为像素）。这是 video co-training 的预测目标。推理时此输出被完全丢弃，不需要解码也不需要 latent。"></div>
+              <div class="hotspot" data-id="action-out" style="left:65%; top:12%;"
+                   data-title="Action Chunk · 最终动作输出"
+                   data-body="动作 DiT 的输出：连续动作块 a_{1:H}（horizon H=32）。Flow matching 去噪 10 步后得到确定性动作序列，直接在机器人上以 receding-horizon 方式执行。"></div>
+            </div>
+            <div class="fig-cap">
+              <span class="fig-num">Fig 2 · p.5</span>
+              Fast-WAM model architecture (left) and structured attention mask used to disentangle video co-training from action generation (right).
+              <span class="fig-cn">左：Fast-WAM 架构（Wan2.2-5B 视频 DiT + 1B 动作 Expert DiT，MoT 共享 attention）；右：训练时（上）和推理时（下）的结构化注意力掩码。推理时完全去掉未来帧 token。</span>
+            </div>
+          </div>
+          <div class="hotspot-panel"></div>
+        </div>
+
+        <h3>关键设计：为什么动作 token 不能看未来视频 token？</h3>
+
+        <p>这是 Fast-WAM 能在推理时安全跳过视频生成的根本原因。如果训练时动作 token 可以 attend 到未来视频 token，那么推理时去掉未来视频 token 就会造成<strong>训练-推理分布偏移</strong>——模型在推理时缺少了它依赖的信息，性能会崩溃。</p>
+
+        <div class="callout amber">
+          <div class="callout-label">结构化掩码的三条规则</div>
+          <p style="margin:0">
+            ① <strong>当前帧 f₀（干净 latent）</strong>：所有 token 都可以看到它——它是整个模型的"视觉锚点"<br>
+            ② <strong>未来帧 f₁..fₙ（加噪 latent）</strong>：只有视频 token 互相看，动作 token <strong>禁止访问</strong><br>
+            ③ <strong>动作 token a₁..aₙ</strong>：只能看自己 + f₀，通过 video DiT 共享表征间接获得视频动态信息
+          </p>
+        </div>
+
+        <table class="kv-table">
+          <tr><td>Backbone</td><td>Wan2.2-5B（视频 DiT + T5 文本编码器 + 视频 VAE）</td></tr>
+          <tr><td>Action Expert</td><td>1B 参数（hidden dim d_a=1024），动作 horizon H=32</td></tr>
+          <tr><td>总参数量</td><td>5B + 1B = <strong>6B</strong></td></tr>
+          <tr><td>视频帧率</td><td>时间维度 4× 下采样 → 每 action chunk 对应 <strong>9 个视频帧</strong></td></tr>
+          <tr><td>推理去噪步数</td><td>10 步（CFG scale=1.0，logit-normal 噪声调度）</td></tr>
+          <tr><td>推理延迟</td><td><strong>190ms</strong>（vs Fast-WAM-IDM 810ms，vs π₀.₅ ~180ms）</td></tr>
+          <tr><td>训练设备</td><td>NVIDIA RTX 5090D V2 32GB GPU</td></tr>
+          <tr><td>优化器</td><td>AdamW，lr=1×10⁻⁴，weight decay=0.01，cosine annealing</td></tr>
+        </table>
+      </div>
+
+      <!-- §04 训练目标 -->
+      <div class="section" id="objective">
+        <div class="section-num">§ 04</div>
+        <h2>训练目标：联合 Flow Matching</h2>
+
+        <div class="cn-read">
+          <div class="cn-label">这一节解决什么</div>
+          <p>
+            架构确定了，这一节讲怎么训练。Fast-WAM 用的是 flow matching——把视频 latent 预测和动作块预测统一进同一个速度场框架。直觉：flow matching 是"在噪声中学习走直线"，训练时同时学走向视频目标和走向动作目标，推理时只走动作方向。
+          </p>
+        </div>
+
+        <h3>Flow Matching 基础</h3>
+
+        <p>给定目标变量 $y$（可以是动作块或未来视频 latent），构造从纯高斯噪声 $\epsilon$ 到 $y$ 的插值轨迹：</p>
+
+        <div class="math-block">
+          $$y_t = (1 - t)\,y + t\,\epsilon, \qquad t \in (0, 1),\quad \epsilon \sim \mathcal{N}(0, I)$$
+          <span class="math-label">Eq. 5 · 插值样本构造 · §3.2, p.5</span>
+        </div>
+
+        <div class="math-explain">
+          <div class="me-title">逐项拆解</div>
+          <dl>
+            <dt>$y_t$</dt>
+            <dd>时间步 $t$ 处的插值样本：$t=0$ 时等于干净目标 $y$，$t=1$ 时等于纯噪声 $\epsilon$。训练时从 $t \in (0,1)$ 均匀（或 logit-normal）采样</dd>
+            <dt>$(1-t)y + t\epsilon$</dt>
+            <dd>从 $y$ 到 $\epsilon$ 的<strong>线性插值</strong>——flow matching 的路径是直线（对比 DDPM 的曲线路径），所以理论上更高效</dd>
+          </dl>
+        </div>
+
+        <p>模型学习预测速度场（velocity field），使得顺着速度场走能从噪声还原到目标：</p>
+
+        <div class="math-block">
+          $$\mathcal{L}_\text{FM}(y) = \mathbb{E}_{y,\,\epsilon,\,t}\!\left[\left\|f_\theta(y_t, t, o, l) - (\epsilon - y)\right\|_2^2\right]$$
+          <span class="math-label">Eq. 6 · Flow Matching 损失 · §3.2, p.5</span>
+        </div>
+
+        <div class="math-explain">
+          <div class="me-title">逐项拆解</div>
+          <dl>
+            <dt>$f_\theta(y_t, t, o, l)$</dt>
+            <dd>模型（视频 DiT 或动作 DiT）在时间步 $t$、输入噪声样本 $y_t$、条件观测 $o$、语言指令 $l$ 下预测的<strong>速度向量</strong></dd>
+            <dt>$\epsilon - y$</dt>
+            <dd>目标速度：从干净目标 $y$ 到噪声 $\epsilon$ 的方向（即"往噪声方向走"）。去噪时反方向走，即 $y - \epsilon$</dd>
+            <dt>$\|\cdot\|_2^2$</dt>
+            <dd>MSE loss，让预测速度尽量匹配真实速度</dd>
+          </dl>
+        </div>
+
+        <h3>联合目标</h3>
+
+        <div class="math-block">
+          $$\mathcal{L}_\text{act} = \mathcal{L}_\text{FM}(a_{1:H}), \qquad \mathcal{L}_\text{vid} = \mathcal{L}_\text{FM}(z_{1:T})$$
+          <span class="math-label">Eq. 7 & 8 · 动作和视频分支的损失 · §3.2, p.5</span>
+        </div>
+
+        <div class="math-block">
+          $$\mathcal{L} = \mathcal{L}_\text{act} + \lambda\,\mathcal{L}_\text{vid}$$
+          <span class="math-label">Eq. 9 · 总训练损失 · §3.2, p.5</span>
+        </div>
+
+        <div class="math-explain">
+          <div class="me-title">逐项拆解</div>
+          <dl>
+            <dt>$a_{1:H}$</dt>
+            <dd>动作块（ground-truth），长度 $H=32$。$\mathcal{L}_\text{act}$ 是动作 Expert DiT 的训练损失</dd>
+            <dt>$z_{1:T}$</dt>
+            <dd>未来视频帧的 VAE latent token（$T=9$ 帧）。$\mathcal{L}_\text{vid}$ 是视频 DiT 的训练损失，即 video co-training</dd>
+            <dt>$\lambda$</dt>
+            <dd>视频 co-training 的权重，平衡两个损失的量级。论文未指定具体值（通过消融确定）</dd>
+            <dt>w.o. video co-train 对照组</dt>
+            <dd>把 $\lambda = 0$：等同于去掉 $\mathcal{L}_\text{vid}$，只留 $\mathcal{L}_\text{act}$。这就是对照组实验的操作，完全相同的架构和推理流程，只是训练时没有视频监督。</dd>
+          </dl>
+        </div>
+
+        <div class="callout blue">
+          <div class="callout-label">Video Co-training 的作用机制（直觉）</div>
+          <p style="margin:0">$\mathcal{L}_\text{vid}$ 强迫视频 DiT 学会"物理世界怎么演变"——物体运动轨迹、接触力学、形变规律。这些知识通过 MoT 共享 attention 渗入到动作 Expert 的表征里（通过 f₀ 的 latent）。即使推理时不显式生成未来，这些视觉物理先验已经编码在 z(o,l) 里，帮助动作预测更稳健。</p>
+        </div>
+
+        <div class="quiz"
+             data-correct="c"
+             data-explain="w.o. video co-train 对照组保持了完全相同的架构（MoT，Video DiT + Action Expert DiT）和推理流程（单次前向，无视频生成），只是训练时把 λL_vid 的权重设为 0，不计算视频预测损失。推理时看不出区别，区别只在训练时有没有视频监督。§3.3, p.5"
+             data-explain-wrong="不对。w.o. video co-train 变体在架构和推理上与 Fast-WAM 完全相同——都是单次前向，都不生成未来视频。区别在于训练时：没有 video co-training 损失，视频 DiT 不接受视频预测的梯度更新。">
+          <div class="q-label">🧠 理解检查</div>
+          <div class="q-text">「Fast-WAM w.o. video co-train」对照组和 Fast-WAM 的区别在哪里？</div>
+          <div class="q-options">
+            <button class="q-opt" data-k="a">推理时也去掉了视频 DiT，只保留动作 Expert DiT</button>
+            <button class="q-opt" data-k="b">推理时仍然需要生成未来视频帧，只是权重不一样</button>
+            <button class="q-opt" data-k="c">架构和推理完全相同，唯一区别是训练时不计算视频预测损失（λ=0）</button>
+            <button class="q-opt" data-k="d">使用了更小的 Action Expert（0.5B 而非 1B）</button>
+          </div>
+          <div class="q-feedback"></div>
+        </div>
+      </div>
+
+      <!-- §05 实验结果 -->
+      <div class="section" id="results">
+        <div class="section-num">§ 05</div>
+        <h2>实验结果：数据支持核心结论</h2>
+
+        <div class="cn-read">
+          <div class="cn-label">这一节解决什么</div>
+          <p>
+            前几节都是设计和理论，这一节让数据说话。三个评估平台：RoboTwin 2.0（50任务双臂仿真）、LIBERO（4套件仿真）、Galaxea R1 Lite 实机毛巾折叠。关键发现：Fast-WAM 不需要 embodied pretraining，在三个平台上表现都强，核心消融验证了"训练时 video co-training 远比推理时视频生成更重要"。
+          </p>
+        </div>
+
+        <h3>实机任务：Galaxea R1 Lite 毛巾折叠</h3>
+
+        <!-- Fig 3 -->
+        <div class="fig-interactive panel-below">
+          <div class="fig-block">
+            <div class="hotspot-wrap" data-hotspot-group="fig3">
+              <img src="../assets/figures/fast-wam/fig-3.png" alt="Figure 3: Towel folding task">
+              <div class="hotspot" data-id="task-overview" style="left:25%; top:40%;"
+                   data-title="毛巾折叠任务"
+                   data-body="在 Galaxea R1 Lite 平台上，机器人需要把桌上的毛巾折叠成特定形状。这是长时序任务（需要规划多步折叠顺序），涉及可形变物体操作（无法精确建模形变），是高难度闭环操控基准。"></div>
+              <div class="hotspot" data-id="gripper" style="left:60%; top:35%;"
+                   data-title="双臂夹爪操作"
+                   data-body="任务需要协调双臂动作：一只手固定毛巾角，另一只手折叠。每次操作需要精确的末端执行器位姿控制，对 policy 的时序推理能力要求高。评估指标：平均成功率 + 平均完成时间（因为重复尝试也可能最终成功，完成时间体现执行效率）。"></div>
+              <div class="hotspot" data-id="sequence" style="left:80%; top:55%;"
+                   data-title="时序帧展示"
+                   data-body="图中展示了 2 行任务序列（不同场景）。上行和下行各显示任务执行的关键帧。数据：60 小时遥操作示教（Galaxea R1 Lite），30K 训练步，评估指标同时报告成功率和平均完成时间。"></div>
+            </div>
+            <div class="fig-cap">
+              <span class="fig-num">Fig 3 · p.7</span>
+              Real-world towel-folding task on the Galaxea R1 Lite platform. Folding a deformable object requires long-horizon planning and precise closed-loop manipulation.
+              <span class="fig-cn">Galaxea R1 Lite 平台上的实机毛巾折叠任务。可形变物体 + 长时序规划，是评估 policy 执行效率和成功率的高难度真实环境基准。</span>
+            </div>
+          </div>
+          <div class="hotspot-panel"></div>
+        </div>
+
+        <h3>速度 vs 性能：核心权衡可视化</h3>
+
+        <!-- Fig 4 -->
+        <div class="fig-interactive panel-below">
+          <div class="fig-block">
+            <div class="hotspot-wrap" data-hotspot-group="fig4">
+              <img src="../assets/figures/fast-wam/fig-4.png" alt="Figure 4: Success rate vs completion time and latency">
+              <div class="hotspot" data-id="fastwam-dot" style="left:22%; top:22%;"
+                   data-title="Fast-WAM (Ours) · 速度+性能最佳平衡"
+                   data-body="左图散点：Fast-WAM 在成功率和完成时间上表现良好（越左上越好）。190ms 延迟，实机成功率约 80%+，完成时间约 160s。在没有 embodied pretraining 的变体中表现最佳，且延迟最低。"></div>
+              <div class="hotspot" data-id="pi05-dot" style="left:10%; top:12%;"
+                   data-title="π₀.₅ (pretrained) · 最强但最贵"
+                   data-body="π₀.₅ 使用了大规模 embodied pretraining，成功率最高（~95%），完成时间最短（~140s），180ms 延迟。但需要昂贵的预训练，在 Fast-WAM 家族里（无 embodied PT）无法直接对比。"></div>
+              <div class="hotspot" data-id="idm-dot" style="left:20%; top:18%;"
+                   data-title="Fast-WAM-IDM · 成功率高但延迟高"
+                   data-body="Fast-WAM-IDM 在实机任务上成功率最高（～88%），但延迟 810ms，比 Fast-WAM 慢 4×+。这证明推理时的视频生成对实机任务有一定帮助，但代价巨大，而且帮助有限（Fast-WAM 190ms 也能达到接近的成功率）。"></div>
+              <div class="hotspot" data-id="no-video-dot" style="left:60%; top:75%;"
+                   data-title="w.o. video co-train · 崩溃"
+                   data-body="去掉 video co-training 后实机成功率仅约 10%（右图散点在右下角），完成时间也最长。这是所有变体中最差的结果，直接证明了 video co-training 是实机泛化的关键，不是可选项。"></div>
+              <div class="hotspot" data-id="latency-bar" style="left:76%; top:50%;"
+                   data-title="延迟柱状图（右图）"
+                   data-body="右图比较推理延迟：π₀.₅=180ms、Fast-WAM=190ms、w.o. video co-train=190ms（架构相同）、Fast-WAM-Joint=580ms、Fast-WAM-IDM=810ms。Fast-WAM 是 IDM 的 1/4 延迟，同时性能相当。这是 Fast-WAM 最大的实用价值。"></div>
+            </div>
+            <div class="fig-cap">
+              <span class="fig-num">Fig 4 · p.9</span>
+              Real-world results: success rate vs. average completion time (left, upper-left is better) and inference latency comparison (right).
+              <span class="fig-cn">左：实机任务成功率 vs 完成时间散点图（左上 = 更好）；右：各变体推理延迟比较。Fast-WAM 用 190ms 实现了接近最优的实机性能，是 IDM 延迟的 1/4。</span>
+            </div>
+          </div>
+          <div class="hotspot-panel"></div>
+        </div>
+
+        <h3>RoboTwin 2.0 结果（Table 1）</h3>
+
+        <div class="verdict-row">
+          <div class="verdict-label">Fast-WAM（Ours）<span class="verdict-tag fast">190ms</span></div>
+          <div class="verdict-bar-wrap">
+            <div class="verdict-bar" style="width:91.8%; background:var(--accent);"></div>
+            <div class="verdict-val">91.8%</div>
+          </div>
+        </div>
+        <div class="verdict-row">
+          <div class="verdict-label">Fast-WAM-Joint<span class="verdict-tag fast">190ms</span></div>
+          <div class="verdict-bar-wrap">
+            <div class="verdict-bar" style="width:90.6%; background:var(--blue);"></div>
+            <div class="verdict-val">90.6%</div>
+          </div>
+        </div>
+        <div class="verdict-row">
+          <div class="verdict-label">Fast-WAM-IDM<span class="verdict-tag slow">810ms</span></div>
+          <div class="verdict-bar-wrap">
+            <div class="verdict-bar" style="width:91.3%; background:var(--blue);"></div>
+            <div class="verdict-val">91.3%</div>
+          </div>
+        </div>
+        <div class="verdict-row">
+          <div class="verdict-label">w.o. video co-train<span class="verdict-tag fast">190ms</span></div>
+          <div class="verdict-bar-wrap">
+            <div class="verdict-bar" style="width:83.8%; background:var(--accent3);"></div>
+            <div class="verdict-val">83.8%</div>
+          </div>
+        </div>
+        <div class="verdict-row">
+          <div class="verdict-label">LingBot-VA（有预训练）</div>
+          <div class="verdict-bar-wrap">
+            <div class="verdict-bar" style="width:92.2%; background:var(--text3);"></div>
+            <div class="verdict-val">92.2%</div>
+          </div>
+        </div>
+        <div class="verdict-row">
+          <div class="verdict-label">π₀.₅（有预训练）</div>
+          <div class="verdict-bar-wrap">
+            <div class="verdict-bar" style="width:79.8%; background:var(--text3);"></div>
+            <div class="verdict-val">79.8%</div>
+          </div>
+        </div>
+
+        <p style="font-size:13px; color:var(--text3); margin-top:8px;">数值为 clean + randomized 双设置平均成功率。Fast-WAM 无需 embodied pretraining。</p>
+
+        <div class="callout">
+          <div class="callout-label">关键对比数字</div>
+          <p style="margin:0">
+            Fast-WAM vs Fast-WAM-Joint：<strong>91.8 vs 90.6</strong>（差距 1.2pp）← 推理时视频生成的贡献<br>
+            Fast-WAM vs Fast-WAM-IDM：<strong>91.8 vs 91.3</strong>（差距 0.5pp）← 推理时更贵的视频生成不值得<br>
+            Fast-WAM vs w.o. video co-train：<strong>91.8 vs 83.8</strong>（差距 8pp）← 训练时视频 co-training 的贡献<br>
+            <strong>结论：训练时视频 co-training 的贡献（8pp）≫ 推理时视频生成的贡献（0.5-1.2pp）</strong>
+          </p>
+        </div>
+
+        <h3>LIBERO 结果（Table 2）</h3>
+        <table class="kv-table">
+          <tr>
+            <td>Fast-WAM（Ours）</td>
+            <td>Spatial 98.2 / Object 100.0 / Goal 97.0 / Long 95.2 → 平均 <strong>97.6%</strong></td>
+          </tr>
+          <tr>
+            <td>Fast-WAM-Joint</td>
+            <td>99.6 / 99.4 / 98.2 / 96.8 → 平均 <strong>98.5%</strong></td>
+          </tr>
+          <tr>
+            <td>Fast-WAM-IDM</td>
+            <td>98.8 / 97.8 / 97.8 / 97.6 → 平均 <strong>98.0%</strong></td>
+          </tr>
+          <tr>
+            <td>w.o. video co-train</td>
+            <td>89.2 / 99.2 / 95.4 / 90.0 → 平均 <strong>93.5%</strong>（-4.1pp）</td>
+          </tr>
+          <tr>
+            <td>LingBot-VA（有预训练）</td>
+            <td>98.5 / 99.6 / 97.2 / 98.5 → 平均 <strong>98.5%</strong></td>
+          </tr>
+          <tr>
+            <td>π₀.₅（有预训练）</td>
+            <td>98.8 / 98.8 / 98.0 / 92.4 → 平均 <strong>97.0%</strong></td>
+          </tr>
+        </table>
+
+        <div class="callout amber">
+          <div class="callout-label">LIBERO 上的一个有趣发现</div>
+          <p style="margin:0">w.o. video co-train 在 LIBERO-Object（99.2%）上接近满分，但在 LIBERO-Spatial（89.2%）和 LIBERO-Long（90.0%）上明显更差。这与 video co-training 的直觉一致：空间理解和长时序推理更依赖视觉物理表征，而目标识别（Object）更多依赖语义匹配。§4.3.2, p.8</p>
+        </div>
+
+        <div class="quiz"
+             data-correct="d"
+             data-explain="论文 Table 1 和 Table 2 以及 Fig 4 都显示：Fast-WAM（无推理视频）vs Fast-WAM-Joint/IDM（有推理视频）的差距在 0.5-1.2pp（RoboTwin）或 0.4-0.9pp（LIBERO）。但 Fast-WAM vs w.o. video co-train 的差距高达 8pp（RoboTwin）和 4.1pp（LIBERO），实机任务更是从 80%+跌到 10%。§4.3.2, p.8"
+             data-explain-wrong="注意区分哪个间隙大：推理时有没有视频（Fast-WAM vs Joint/IDM）间隙很小；训练时有没有 video co-training（Fast-WAM vs w.o.）间隙很大。">
+          <div class="q-label">🧠 理解检查</div>
+          <div class="q-text">在 RoboTwin 消融中，以下哪个对比的性能差距最大？</div>
+          <div class="q-options">
+            <button class="q-opt" data-k="a">Fast-WAM vs Fast-WAM-Joint（推理时联合去噪 vs 单次前向）</button>
+            <button class="q-opt" data-k="b">Fast-WAM vs Fast-WAM-IDM（直接预测 vs 先生成视频再预测）</button>
+            <button class="q-opt" data-k="c">Fast-WAM-Joint vs Fast-WAM-IDM（两种 imagine-then-execute 变体之间）</button>
+            <button class="q-opt" data-k="d">Fast-WAM vs w.o. video co-train（有视频训练 vs 无视频训练，推理行为相同）</button>
+          </div>
+          <div class="q-feedback"></div>
+        </div>
+      </div>
+
+      <!-- §06 VLA 联系 -->
+      <div class="section" id="vla-link">
+        <div class="section-num">§ 06</div>
+        <h2>与 VLA / Embodied AI 的联系</h2>
+
+        <div class="cn-read">
+          <div class="cn-label">这一节解决什么</div>
+          <p>
+            Fast-WAM 的结论对你理解整个 WAM/VLA 领域有很强的启发意义。这一节把它和相关工作联系起来，特别是与同期的 τ₀-WM 做一个有意思的对照——两篇论文几乎同时出现，但给出了截然不同的工程选择。
+          </p>
+        </div>
+
+        <h3>Fast-WAM vs τ₀-WM：同问题，不同答案？</h3>
+
+        <table class="kv-table">
+          <tr>
+            <td>研究问题</td>
+            <td>Fast-WAM 问：<em>推理时的视频生成必要吗？</em>——答：不必要<br>τ₀-WM 问：<em>怎么让视频生成在推理时发挥最大价值？</em>——答：用 TTC（ACVS+RCS+LAR）</td>
+          </tr>
+          <tr>
+            <td>推理策略</td>
+            <td>Fast-WAM：跳过视频生成，单次前向，190ms，适合实时控制<br>τ₀-WM：TTC 路径用 ACVS 展开候选动作，提升精度但更慢</td>
+          </tr>
+          <tr>
+            <td>骨干</td>
+            <td>两者都基于 <strong>Wan2.2-5B 视频 DiT</strong>，这一时期（2026 上半年）的事实标准视频骨干</td>
+          </tr>
+          <tr>
+            <td>训练数据</td>
+            <td>Fast-WAM：专注单一任务数据集（RoboTwin/LIBERO/毛巾折叠），无 embodied pretraining<br>τ₀-WM：27.3K 小时异质数据（机器人+UMI+Ego），大规模预训练</td>
+          </tr>
+          <tr>
+            <td>结论兼容性</td>
+            <td>两篇论文并不矛盾：Fast-WAM 证明视频生成<strong>不是必需的</strong>；τ₀-WM 证明在有大量算力时视频生成<strong>能带来额外收益</strong>。两个结论在不同约束下都正确。</td>
+          </tr>
+        </table>
+
+        <div class="callout blue">
+          <div class="callout-label">对 VLA 研究者的核心启示</div>
+          <p style="margin:0">
+            ① <strong>视频 co-training 是 VLA 的"隐性增强剂"</strong>：即使推理时不生成视频，训练时加入视频预测损失就能让动作 policy 更鲁棒。这对资源有限、没法跑完整 WAM 推理的系统很有用——只需在训练目标里加一项 $\mathcal{L}_\text{vid}$。<br><br>
+            ② <strong>Wan2.2 视频 DiT 是当前的"瑞士军刀"</strong>：Fast-WAM、τ₀-WM、MotionWAM 都基于它，说明大规模视频预训练骨干的迁移价值极高，是 2026 年 Embodied AI 的基础设施。<br><br>
+            ③ <strong>受控消融的价值</strong>：Fast-WAM 的贡献不只是技术，更是一种<em>研究方法论</em>——在领域发展早期，严格解耦多个假设因素，比提出一个更复杂的系统更有价值。
+          </p>
+        </div>
+
+        <div class="callout purple">
+          <div class="callout-label">对 π₀ / VLA 的直接意义</div>
+          <p style="margin:0">
+            π₀ 目前把视频预测当辅助训练目标（训练时用，推理时丢）。Fast-WAM 的实验为这个设计提供了严格的实验支持：这样做是对的，而且不需要在推理时保留视频预测。未来 VLA 可以放心在训练目标里加 $\mathcal{L}_\text{vid}$，不需要担心推理延迟问题。
+          </p>
+        </div>
+
+        <div class="callout red">
+          <div class="callout-label">局限性</div>
+          <p style="margin:0">
+            ① 评估任务相对简单（单视角毛巾折叠），对长时序多阶段任务的结论有待验证。<br>
+            ② 没有大规模 embodied pretraining，在需要跨具身泛化的场景（如 τ₀-WM 的四任务评估）可能表现更弱。<br>
+            ③ 本文只研究了"是否需要"，没有研究"如果用 TTC，用视频展开能提升多少"——这正是 τ₀-WM 研究的问题。<br>
+            ④ 动作 expert 只有 1B，在极高精度操作任务（如 Faucet 水管连接）上可能不足。
+          </p>
+        </div>
+
+        <details class="en-quote">
+          <summary>展开原文 · 核心论断</summary>
+          <div class="quote-body">
+            <p>"These results suggest that the main value of video prediction in WAMs may lie in improving world representations during training rather than generating future observations at test time."</p>
+            <div class="quote-cite">— §5 Conclusion, p.9</div>
+          </div>
+        </details>
+      </div>
+
+    </main>
+  </div>
+
+  <script>
+    const sections = document.querySelectorAll('.section[id]');
+    const links = document.querySelectorAll('.sidebar-tree a');
+    const observer = new IntersectionObserver((entries) => {
+      entries.forEach(entry => {
+        if (entry.isIntersecting) {
+          links.forEach(l => l.classList.remove('active'));
+          const active = document.querySelector(`.sidebar-tree a[href="#${entry.target.id}"]`);
+          if (active) active.classList.add('active');
+        }
+      });
+    }, { rootMargin: '-20% 0px -60% 0px' });
+    sections.forEach(s => observer.observe(s));
+  </script>
+</body>
+</html>
