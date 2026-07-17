@@ -1,0 +1,83 @@
+name: Daily leaderboard update
+
+on:
+  schedule:
+    # 19:30 UTC ≈ 墨尔本早上 5:30 (AEST) / 6:30 (AEDT)
+    - cron: "30 19 * * *"
+  workflow_dispatch:
+    inputs:
+      refresh_citations:
+        description: "调用 Serper 补引用量（消耗 API 额度，只查无缓存的论文）"
+        type: boolean
+        default: false
+
+permissions:
+  contents: write
+
+concurrency:
+  group: leaderboard-update
+  cancel-in-progress: false
+
+defaults:
+  run:
+    working-directory: leaderboard/pipeline
+
+jobs:
+  update:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      # arXiv raw 结果跨运行缓存：命中后 pipeline 走增量抓取（几十秒），
+      # 缓存丢失也只是全量重抓（免费，约几分钟），无副作用
+      - name: Restore arXiv cache
+        uses: actions/cache@v4
+        with:
+          path: |
+            leaderboard/pipeline/data/raw/arxiv
+            leaderboard/pipeline/state
+          key: arxiv-raw-${{ github.run_id }}
+          restore-keys: |
+            arxiv-raw-
+
+      - name: Install deps
+        run: python -m pip install -r requirements.txt
+
+      - name: Fetch arXiv + rank
+        run: python scripts/pipeline.py run
+
+      # 只在手动触发且勾选时调 Serper。scholar 缓存在 git 里，
+      # 所以只有「新论文」会消耗额度
+      - name: Refresh citations (Serper)
+        if: github.event_name == 'workflow_dispatch' && inputs.refresh_citations
+        env:
+          SERPER_API_KEY: ${{ secrets.SERPER_API_KEY }}
+        run: |
+          if [ -z "$SERPER_API_KEY" ]; then
+            echo "::error::缺少 repo secret SERPER_API_KEY"; exit 1
+          fi
+          python scripts/pipeline.py refresh-citations
+
+      - name: Tag keywords + build site data
+        run: |
+          python scripts/bootstrap_keywords.py
+          python scripts/build_site_data.py
+
+      - name: Commit & push updates
+        working-directory: ${{ github.workspace }}
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add leaderboard/data \
+                  leaderboard/pipeline/topics \
+                  leaderboard/pipeline/data/processed/model_keywords \
+                  leaderboard/pipeline/data/raw/scholar
+          if git diff --cached --quiet; then
+            echo "no changes"; exit 0
+          fi
+          git commit -m "chore: daily leaderboard update $(date -u +%F)"
+          git push

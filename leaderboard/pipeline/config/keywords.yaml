@@ -1,0 +1,85 @@
+primary:
+  strong_phrases:
+    - world model
+    - world action model
+    - world-action model
+    - loco-manipulation
+    - whole-body control
+    - dexterous manipulation
+    - in-hand manipulation
+    - bimanual manipulation
+    - vision-language-action
+    - robot foundation model
+    - generalist robot policy
+  support_terms:
+    - robot
+    - robotic
+    - humanoid
+    - embodied
+    - manipulation
+    - policy
+  exclude_terms:
+    - autonomous driving
+    - recommendation system
+    - wireless
+
+subtopics:
+  world-model:
+    strong_phrases:
+      - world model
+      - world action model
+      - world-action model
+      - video prediction
+      - latent dynamics
+      - physical AI
+    support_terms:
+      - imagination
+      - simulator
+      - dynamics model
+      - video generation
+    exclude_terms:
+      - autonomous driving
+
+  loco-manipulation:
+    strong_phrases:
+      - loco-manipulation
+      - locomanipulation
+      - whole-body control
+      - motion tracking
+      - motion retargeting
+      - motion imitation
+    support_terms:
+      - humanoid
+      - legged
+      - quadruped
+      - teleoperation
+      - locomotion
+    exclude_terms: []
+
+  dexterous-manipulation:
+    strong_phrases:
+      - dexterous manipulation
+      - dexterous hand
+      - in-hand manipulation
+      - bimanual manipulation
+      - dexterous grasping
+    support_terms:
+      - grasp
+      - grasping
+      - tactile
+      - contact-rich
+    exclude_terms: []
+
+  vla:
+    strong_phrases:
+      - vision-language-action
+      - robot foundation model
+      - generalist robot policy
+      - diffusion policy
+      - flow matching
+    support_terms:
+      - action tokenization
+      - action chunking
+      - imitation learning
+      - VLM
+    exclude_terms: []

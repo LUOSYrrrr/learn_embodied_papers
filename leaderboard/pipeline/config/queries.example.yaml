@@ -1,0 +1,14 @@
+arxiv:
+  base_url: http://export.arxiv.org/api/query
+  categories: []
+  years_back: 2
+  batch_size: 100
+  max_results_per_query: 0
+  pause_seconds: 4.0
+  parallel_queries: 1
+  sort_by: submittedDate
+  sort_order: descending
+  queries:
+    - id: example-core
+      text: '(all:"your domain phrase" OR all:"another phrase")'
+      start_date: 2023-01-01

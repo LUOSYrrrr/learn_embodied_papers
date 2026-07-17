@@ -1,0 +1,173 @@
+themes:
+- model architecture
+- training algorithm
+- inference / test-time method
+- benchmark
+- dataset
+- control method
+- hardware system
+- survey / review
+sections:
+  meta_tags:
+  - benchmark
+  - dataset
+  - survey
+  - review
+  model_family:
+  - VLA
+  - world model
+  - world action model
+  - VA
+  - diffusion policy
+  - latent action / dynamics model
+  - tokenizer
+  - other model
+  - flow matching
+  - VLM
+  - video generation
+  - foundation model
+  learning_paradigm:
+  - imitation learning
+  - reinforcement learning
+  - pretraining
+  - post-training
+  - co-training
+  - inverse reinforcement learning
+  - skill learning
+  reasoning_and_decision_making:
+  - reasoning
+  - planning
+  - model predictive control
+  - test-time
+  - chain-of-thought
+  - autoregressive decoding
+  - action chunking
+  - test-time adaptation
+  perception_and_representation:
+  - 3D
+  - point cloud
+  - multi-view
+  - object tracking
+  - object detection
+  - neural rendering
+  - Gaussian splatting
+  manipulation_setting:
+  - manipulation
+  - dexterous hand
+  - mobile manipulation
+  - loco-manipulation
+  - whole-body control
+  - humanoid
+  - legged locomotion
+  - motion tracking
+  - bimanual manipulation
+  - in-hand manipulation
+  - grasping
+  - contact-rich manipulation
+  data_and_demonstration_regime:
+  - real robot data
+  - human data
+  - egocentric video
+  - synthetic data
+  - web data
+  - dataset
+  - benchmark
+  - simulation
+  - data augmentation
+  embodiment_and_transfer:
+  - sim-to-real
+  - real-to-sim
+  - cross-embodiment
+  - zero-shot generalization
+  - open-world generalization
+  - sample efficiency
+  - real-time control
+  hardware_and_interface:
+  - gripper-design
+  - dexterous hand
+  - teleoperation
+  - tactile
+  - force
+  - soft robotics
+  - human-robot interaction
+  control_method_family:
+  - feedback control
+  - impedance control
+  - admittance control
+  - force control
+  - visual servoing
+  - optimal control
+  - model predictive control
+  - trajectory optimization
+  - adaptive control
+  - robust control
+  - safe control
+  - Lyapunov-based control
+  - control barrier function
+  - system identification
+  - dynamics modeling
+  - state estimation
+  - calibration
+  - motion planning
+  - task and motion planning
+  - contact-rich manipulation
+  - whole-body control
+theme_to_sections:
+  model architecture:
+  - model_family
+  - learning_paradigm
+  - reasoning_and_decision_making
+  - perception_and_representation
+  - manipulation_setting
+  - embodiment_and_transfer
+  training algorithm:
+  - learning_paradigm
+  - model_family
+  - reasoning_and_decision_making
+  - perception_and_representation
+  - manipulation_setting
+  - embodiment_and_transfer
+  inference / test-time method:
+  - reasoning_and_decision_making
+  - model_family
+  - perception_and_representation
+  - manipulation_setting
+  - embodiment_and_transfer
+  - control_method_family
+  benchmark:
+  - meta_tags
+  - manipulation_setting
+  - perception_and_representation
+  - embodiment_and_transfer
+  - hardware_and_interface
+  - control_method_family
+  dataset:
+  - meta_tags
+  - data_and_demonstration_regime
+  - manipulation_setting
+  - perception_and_representation
+  - embodiment_and_transfer
+  - hardware_and_interface
+  control method:
+  - control_method_family
+  - perception_and_representation
+  - manipulation_setting
+  - embodiment_and_transfer
+  - hardware_and_interface
+  hardware system:
+  - hardware_and_interface
+  - manipulation_setting
+  - perception_and_representation
+  - control_method_family
+  - embodiment_and_transfer
+  survey / review:
+  - meta_tags
+  - model_family
+  - learning_paradigm
+  - reasoning_and_decision_making
+  - perception_and_representation
+  - manipulation_setting
+  - data_and_demonstration_regime
+  - embodiment_and_transfer
+  - hardware_and_interface
+  - control_method_family

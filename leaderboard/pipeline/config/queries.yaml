@@ -1,0 +1,41 @@
+arxiv:
+  base_url: http://export.arxiv.org/api/query
+  categories: [cs.RO, cs.CV, cs.LG, cs.AI]
+  years_back: 2
+  batch_size: 100
+  max_results_per_query: 0
+  pause_seconds: 4.0
+  parallel_queries: 1
+  sort_by: submittedDate
+  sort_order: descending
+  queries:
+    # --- World Model / World-Action Model (WAM) ---
+    # 精确短语，窗口放宽到 2023 以收 classics
+    - id: world-action-model
+      text: '(all:"world action model" OR all:"world action models" OR all:"world-action model" OR all:"world-action models" OR all:"latent world-action" OR all:"video-action world model")'
+      start_date: 2023-01-01
+    # "world model" 太泛，必须与机器人/具身语境求交
+    - id: robot-world-model
+      text: '(abs:"world model" OR abs:"world models") AND (abs:robot OR abs:robotic OR abs:robotics OR abs:manipulation OR abs:humanoid OR abs:embodied OR abs:"physical AI")'
+      start_date: 2024-01-01
+
+    # --- Humanoid / Legged Loco-Manipulation ---
+    - id: loco-manipulation
+      text: '(all:"loco-manipulation" OR all:"locomanipulation" OR all:"loco manipulation")'
+      start_date: 2023-01-01
+    - id: humanoid-whole-body
+      text: 'abs:humanoid AND (abs:"whole-body control" OR abs:"whole body control" OR abs:"motion tracking" OR abs:"motion imitation" OR abs:"motion retargeting" OR abs:teleoperation)'
+      start_date: 2023-01-01
+
+    # --- Dexterous Manipulation / Grasping ---
+    - id: dexterous-manipulation
+      text: '(all:"dexterous manipulation" OR all:"dexterous hand" OR all:"dexterous hands" OR all:"in-hand manipulation" OR all:"bimanual manipulation" OR all:"dexterous grasping")'
+      start_date: 2024-01-01
+
+    # --- Vision-Language-Action ---
+    - id: vla
+      text: '(all:"vision-language-action" OR all:"vision language action")'
+      start_date: 2023-01-01
+    - id: robot-foundation-policy
+      text: '(all:"robot foundation model" OR all:"robotic foundation model" OR all:"generalist robot policy" OR all:"generalist robot policies" OR all:"generalist humanoid")'
+      start_date: 2024-01-01

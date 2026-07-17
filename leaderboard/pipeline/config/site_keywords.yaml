@@ -1,0 +1,230 @@
+keywords:
+  # --- Model family ---
+  - label: World Model
+    aliases:
+      - world model
+      - world models
+      - latent world model
+  - label: World-Action Model
+    aliases:
+      - world action model
+      - world-action model
+      - world action models
+      - WAM
+      - video-action world model
+  - label: VLA
+    aliases:
+      - vision-language-action
+      - vision language action
+      - vla model
+      - vision-language-action model
+  - label: VLM
+    aliases:
+      - vision-language model
+      - vision language model
+  - label: Diffusion Policy
+    aliases:
+      - diffusion policy
+      - diffusion policies
+  - label: Flow Matching
+    aliases:
+      - flow matching
+  - label: Foundation Model
+    aliases:
+      - foundation model
+      - robot foundation model
+      - robotic foundation model
+      - generalist robot policy
+  - label: Latent Action
+    aliases:
+      - latent action
+      - latent action / dynamics model
+      - latent dynamics
+  - label: Tokenizer
+    aliases:
+      - tokenizer
+      - action tokenization
+      - action tokenizer
+
+  # --- Embodiment & task setting ---
+  - label: Humanoid
+    aliases:
+      - humanoid
+      - humanoid robot
+      - humanoid robots
+  - label: Loco-Manipulation
+    aliases:
+      - loco-manipulation
+      - locomanipulation
+      - loco manipulation
+      - mobile manipulation
+  - label: Whole-Body Control
+    aliases:
+      - whole-body control
+      - whole body control
+      - wbc
+  - label: Motion Tracking
+    aliases:
+      - motion tracking
+      - motion imitation
+      - motion retargeting
+  - label: Legged Locomotion
+    aliases:
+      - legged locomotion
+      - legged robot
+      - quadruped
+      - locomotion
+  - label: Dexterous Hand
+    aliases:
+      - dexterous hand
+      - dexterous hands
+      - robot-hand
+      - robot hand
+  - label: Dexterous Manipulation
+    aliases:
+      - dexterous manipulation
+  - label: In-Hand Manipulation
+    aliases:
+      - in-hand manipulation
+      - in hand manipulation
+  - label: Bimanual Manipulation
+    aliases:
+      - bimanual manipulation
+      - bimanual
+      - dual-arm
+  - label: Grasping
+    aliases:
+      - grasp
+      - grasping
+      - dexterous grasping
+  - label: Manipulation
+    aliases:
+      - manipulation
+      - robotic manipulation
+      - contact-rich manipulation
+
+  # --- Learning paradigm ---
+  - label: Imitation Learning
+    aliases:
+      - imitation learning
+      - behavior cloning
+      - behavioral cloning
+  - label: Reinforcement Learning
+    aliases:
+      - reinforcement learning
+      - RL
+      - offline RL
+      - online RL
+  - label: Pretraining
+    aliases:
+      - pretraining
+      - pre-training
+  - label: Post-Training
+    aliases:
+      - post-training
+      - fine-tuning
+      - co-training
+  - label: Skill Learning
+    aliases:
+      - skill learning
+
+  # --- Inference & decision making ---
+  - label: Test-Time
+    aliases:
+      - test-time
+      - test-time adaptation
+      - test-time training
+      - test-time scaling
+  - label: Planning
+    aliases:
+      - planning
+      - motion planning
+      - task and motion planning
+  - label: MPC
+    aliases:
+      - model predictive control
+      - mpc
+  - label: Action Chunking
+    aliases:
+      - action chunking
+  - label: Reasoning
+    aliases:
+      - reasoning
+      - chain-of-thought
+
+  # --- Perception & representation ---
+  - label: 3D Perception
+    aliases:
+      - 3D
+      - point cloud
+      - multi-view
+  - label: Gaussian Splatting
+    aliases:
+      - gaussian splatting
+      - neural rendering
+  - label: Video Generation
+    aliases:
+      - video generation
+      - video prediction
+
+  # --- Data & transfer ---
+  - label: Sim-to-Real
+    aliases:
+      - sim-to-real
+      - sim2real
+      - real-to-sim
+  - label: Cross-Embodiment
+    aliases:
+      - cross-embodiment
+      - cross embodiment
+  - label: Human Data
+    aliases:
+      - human data
+      - human video
+      - human demonstrations
+  - label: Egocentric Video
+    aliases:
+      - egocentric video
+      - egocentric
+  - label: Synthetic Data
+    aliases:
+      - synthetic data
+      - data augmentation
+  - label: Simulation
+    aliases:
+      - simulation
+      - simulator
+  - label: Real-Time Control
+    aliases:
+      - real-time control
+      - real-time
+
+  # --- Hardware & interface ---
+  - label: Teleoperation
+    aliases:
+      - teleoperation
+      - teleop
+  - label: Tactile
+    aliases:
+      - tactile
+      - tactile sensing
+      - force
+  - label: Hardware
+    aliases:
+      - hardware
+      - gripper-design
+      - gripper design
+
+  # --- Meta ---
+  - label: Dataset
+    aliases:
+      - dataset
+      - real robot data
+  - label: Benchmark
+    aliases:
+      - benchmark
+  - label: Survey
+    aliases:
+      - survey
+      - review
+      - taxonomy

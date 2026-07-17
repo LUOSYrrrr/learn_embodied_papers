@@ -1,0 +1,11 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" role="img" aria-labelledby="title desc">
+  <title id="title">Paper Leaderboard logo D</title>
+  <desc id="desc">Compact badge icon with paper corner, one rank bar, and a navigation dot.</desc>
+  <rect width="512" height="512" rx="96" fill="#f8fafc"/>
+  <rect x="118" y="112" width="276" height="288" rx="34" fill="#ffffff" stroke="#0f3d4c" stroke-width="16"/>
+  <path d="M306 112v86h88" fill="none" stroke="#0f3d4c" stroke-width="16" stroke-linejoin="round"/>
+  <rect x="174" y="284" width="34" height="60" rx="12" fill="#94a3b8"/>
+  <rect x="224" y="250" width="34" height="94" rx="12" fill="#c59f3a"/>
+  <rect x="274" y="212" width="34" height="132" rx="12" fill="#0f766e"/>
+  <circle cx="338" cy="188" r="18" fill="#0f3d4c"/>
+</svg>

@@ -1,0 +1,13 @@
+root_topic: example
+
+topics:
+  example:
+    name: Example Field
+    description: Replace this with your own field description.
+    children:
+      - subtopic-a
+
+  subtopic-a:
+    name: Subtopic A
+    parent: example
+    description: Replace this with your own subtopic description.

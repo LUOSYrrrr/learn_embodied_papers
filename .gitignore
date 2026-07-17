@@ -6,5 +6,13 @@ __pycache__/
 
 # 原版 PDF 体积大，默认不入库；如要入库改用 Git LFS 或删掉下行
 pdfs/**/*.pdf
+
+# leaderboard pipeline 本地缓存（scholar 引用缓存和 model_keywords 刻意入库）
+leaderboard/pipeline/data/raw/arxiv/
+leaderboard/pipeline/data/processed/*.jsonl
+leaderboard/pipeline/data/processed/*.csv
+leaderboard/pipeline/data/processed/*.json
+leaderboard/pipeline/logs/
+leaderboard/pipeline/state/
 CLAUDE.md
 .gstack/

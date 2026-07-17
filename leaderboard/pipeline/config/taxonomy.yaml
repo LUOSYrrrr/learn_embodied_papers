@@ -1,0 +1,42 @@
+root_topic: embodied-ai
+
+topics:
+  embodied-ai:
+    name: Embodied AI Paper Leaderboard
+    description: >-
+      Personal paper leaderboard covering robot world models (WAM), humanoid
+      loco-manipulation, dexterous manipulation, and vision-language-action
+      models. Built from arXiv metadata and Google Scholar citations.
+    children:
+      - world-model
+      - loco-manipulation
+      - dexterous-manipulation
+      - vla
+
+  world-model:
+    name: World Model / WAM
+    parent: embodied-ai
+    description: >-
+      Robot world models and world-action models: video-action joint modeling,
+      latent dynamics, test-time imagination, and physical AI simulators.
+
+  loco-manipulation:
+    name: Humanoid & Legged Loco-Manipulation
+    parent: embodied-ai
+    description: >-
+      Whole-body control, motion tracking/retargeting, and loco-manipulation
+      for humanoid and legged robots.
+
+  dexterous-manipulation:
+    name: Dexterous Manipulation & Grasping
+    parent: embodied-ai
+    description: >-
+      Dexterous hands, in-hand manipulation, bimanual manipulation, and
+      grasping foundation models.
+
+  vla:
+    name: Vision-Language-Action Models
+    parent: embodied-ai
+    description: >-
+      VLA architectures, robot foundation models, generalist policies, and
+      action generation (diffusion / flow matching / tokenization).

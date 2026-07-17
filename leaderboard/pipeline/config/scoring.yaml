@@ -1,0 +1,4 @@
+ranking:
+  age_decay_lambda: 0.00075
+  recent_window_days: 180
+  classic_min_citations: 10

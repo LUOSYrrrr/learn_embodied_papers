@@ -1,0 +1,144 @@
+﻿<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Embodied AI Paper Leaderboard</title>
+    <meta
+      name="description"
+      content="Personal paper leaderboard: world models (WAM), humanoid loco-manipulation, dexterous manipulation, and VLA."
+    />
+    <link rel="stylesheet" href="./assets/styles.css?v=20260629-2" />
+  </head>
+  <body>
+    <header class="topbar">
+      <div class="shell topbar-inner">
+        <div>
+          <p class="eyebrow">World Model · Loco-Manipulation · Dexterous · VLA</p>
+          <h1>Embodied AI Paper Leaderboard</h1>
+        </div>
+        <div class="meta" id="site-meta"></div>
+      </div>
+    </header>
+
+    <main>
+      <section class="control-band">
+        <div class="shell layout">
+          <aside class="control-panel">
+            <form id="query-form" class="query-form">
+              <label class="field">
+                <span>Keyword Query</span>
+                <div class="suggest-input">
+                  <input
+                    id="query-input"
+                    name="q"
+                    type="text"
+                    placeholder='World-Action Model + Humanoid - survey'
+                    autocomplete="off"
+                  />
+                  <div id="suggestion-list" class="suggestion-list" hidden></div>
+                </div>
+              </label>
+
+              <div class="toolbar">
+                <label class="field compact">
+                  <span>Sort</span>
+                  <select id="sort-select" name="sort">
+                    <option value="total_score">Overall Score</option>
+                    <option value="hot_score">Hot Score</option>
+                    <option value="published_date">Newest</option>
+                  </select>
+                </label>
+                <div class="toolbar-actions">
+                  <button type="submit" class="button primary">Apply</button>
+                  <button type="button" id="clear-button" class="button">Clear</button>
+                  <button type="button" id="share-button" class="button">Share</button>
+                </div>
+              </div>
+
+              <div class="date-range">
+                <label class="field compact">
+                  <span>Start At</span>
+                  <div class="date-input">
+                    <input id="date-from" name="from" type="text" inputmode="numeric" placeholder="YYYY-MM-DD" autocomplete="off" />
+                    <button type="button" class="date-trigger" data-date-target="date-from" aria-label="Open calendar">📅</button>
+                  </div>
+                </label>
+                <label class="field compact">
+                  <span>End At</span>
+                  <div class="date-input">
+                    <input id="date-to" name="to" type="text" inputmode="numeric" placeholder="YYYY-MM-DD" autocomplete="off" />
+                    <button type="button" class="date-trigger" data-date-target="date-to" aria-label="Open calendar">📅</button>
+                  </div>
+                </label>
+              </div>
+            </form>
+
+            <div id="date-picker" class="date-picker" hidden>
+              <div class="date-picker-header">
+                <button type="button" id="date-prev" class="date-nav" aria-label="Previous month">‹</button>
+                <div id="date-title" class="date-title"></div>
+                <button type="button" id="date-next" class="date-nav" aria-label="Next month">›</button>
+              </div>
+              <div id="date-weekdays" class="date-weekdays"></div>
+              <div id="date-grid" class="date-grid"></div>
+              <div class="date-picker-footer">
+                <button type="button" id="date-clear" class="button">Clear</button>
+              </div>
+            </div>
+
+            <div class="query-state">
+              <div>
+                <h2>Include</h2>
+                <div id="include-chips" class="chip-row"></div>
+              </div>
+              <div>
+                <h2>Exclude</h2>
+                <div id="exclude-chips" class="chip-row"></div>
+              </div>
+              <p id="query-errors" class="status error" hidden></p>
+            </div>
+
+            <div class="tag-section">
+              <div class="section-heading">
+                <h2>Popular Tags</h2>
+                <span id="tag-count" class="counter"></span>
+              </div>
+              <div id="tag-cloud" class="tag-cloud"></div>
+            </div>
+          </aside>
+
+          <section class="results-panel">
+            <div class="results-header">
+              <div>
+                <h2>Results</h2>
+                <p id="results-summary" class="status"></p>
+              </div>
+            </div>
+
+            <div class="table-wrap">
+              <table>
+                <thead>
+                  <tr>
+                    <th>Rank</th>
+                    <th>Title</th>
+                    <th>Published</th>
+                    <th>Citations</th>
+                    <th class="nowrap">Overall Score</th>
+                    <th class="nowrap">Hot Score</th>
+                    <th>Keywords</th>
+                  </tr>
+                </thead>
+                <tbody id="results-body"></tbody>
+              </table>
+            </div>
+
+          </section>
+        </div>
+      </section>
+    </main>
+
+    <script type="module" src="./assets/app.js?v=20260629-2"></script>
+  </body>
+  </html>
+

@@ -1,0 +1,112 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1440 420" role="img" aria-labelledby="title desc">
+  <title id="title">Paper Leaderboard pipeline diagram</title>
+  <desc id="desc">A six-stage pipeline from query design to static frontend.</desc>
+  <defs>
+    <style>
+      .bg { fill: #f8fafc; }
+      .card { fill: #ffffff; stroke: #cbd5e1; stroke-width: 2; }
+      .title { fill: #0f172a; font: 700 22px Inter, Segoe UI, Arial, sans-serif; }
+      .text { fill: #475569; font: 500 14px Inter, Segoe UI, Arial, sans-serif; }
+      .step { fill: #0f172a; font: 700 16px Inter, Segoe UI, Arial, sans-serif; }
+      .arrow { stroke: #94a3b8; stroke-width: 6; stroke-linecap: round; }
+      .teal { fill: #0f766e; }
+      .slate { fill: #334155; }
+      .gold { fill: #c59f3a; }
+      .line { stroke: #64748b; stroke-width: 5; stroke-linecap: round; fill: none; }
+      .thin { stroke: #94a3b8; stroke-width: 4; stroke-linecap: round; fill: none; }
+    </style>
+  </defs>
+  <rect class="bg" width="1440" height="420" rx="28"/>
+  <text x="60" y="58" class="title">Paper Leaderboard Pipeline</text>
+  <text x="60" y="88" class="text">From query design to a publishable static leaderboard</text>
+
+  <g transform="translate(48,128)">
+    <rect class="card" x="0" y="0" width="200" height="210" rx="18"/>
+    <text x="20" y="32" class="step">1. Query Design</text>
+    <circle cx="64" cy="84" r="22" fill="#e2e8f0" stroke="#64748b" stroke-width="4"/>
+    <path d="M80 100l20 20" class="line"/>
+    <rect x="108" y="62" width="60" height="18" rx="9" class="teal" opacity=".18"/>
+    <rect x="108" y="88" width="44" height="18" rx="9" class="gold" opacity=".25"/>
+    <rect x="108" y="114" width="70" height="18" rx="9" class="slate" opacity=".16"/>
+    <text x="20" y="164" class="text">Build search phrases,</text>
+    <text x="20" y="184" class="text">test them, and define</text>
+    <text x="20" y="204" class="text">the field boundary.</text>
+  </g>
+
+  <g transform="translate(280,128)">
+    <rect class="card" x="0" y="0" width="200" height="210" rx="18"/>
+    <text x="20" y="32" class="step">2. arXiv Retrieval</text>
+    <rect x="48" y="44" width="86" height="104" rx="12" fill="#ffffff" stroke="#475569" stroke-width="5"/>
+    <rect x="62" y="66" width="58" height="8" rx="4" fill="#cbd5e1"/>
+    <rect x="62" y="86" width="46" height="8" rx="4" fill="#cbd5e1"/>
+    <rect x="62" y="106" width="62" height="8" rx="4" fill="#cbd5e1"/>
+    <rect x="108" y="56" width="60" height="72" rx="12" fill="#dbeafe" stroke="#94a3b8" stroke-width="4"/>
+    <text x="20" y="166" class="text">Fetch title, abstract,</text>
+    <text x="20" y="186" class="text">authors, dates, and</text>
+    <text x="20" y="206" class="text">raw paper metadata.</text>
+  </g>
+
+  <g transform="translate(512,128)">
+    <rect class="card" x="0" y="0" width="200" height="210" rx="18"/>
+    <text x="20" y="32" class="step">3. Scholar via Serper</text>
+    <circle cx="64" cy="90" r="26" fill="#ecfeff" stroke="#0f766e" stroke-width="5"/>
+    <path d="M80 106l18 18" class="line"/>
+    <rect x="120" y="66" width="46" height="28" rx="10" class="gold"/>
+    <text x="132" y="86" fill="#fff" font-family="Inter, Segoe UI, Arial, sans-serif" font-size="14" font-weight="700">Cite</text>
+    <rect x="116" y="106" width="54" height="28" rx="10" class="teal"/>
+    <text x="128" y="126" fill="#fff" font-family="Inter, Segoe UI, Arial, sans-serif" font-size="14" font-weight="700">API</text>
+    <text x="20" y="164" class="text">Search the matching</text>
+    <text x="20" y="184" class="text">arXiv paper in Scholar</text>
+    <text x="20" y="204" class="text">and cache citations.</text>
+  </g>
+
+  <g transform="translate(744,128)">
+    <rect class="card" x="0" y="0" width="200" height="210" rx="18"/>
+    <text x="20" y="32" class="step">4. Ranking</text>
+    <rect x="48" y="126" width="24" height="38" rx="8" class="slate"/>
+    <rect x="82" y="98" width="24" height="66" rx="8" class="gold"/>
+    <rect x="116" y="74" width="24" height="90" rx="8" class="teal"/>
+    <rect x="150" y="54" width="24" height="110" rx="8" fill="#0f3d4c"/>
+    <path d="M48 170h126" class="thin"/>
+    <text x="20" y="184" class="text">Compute citation-aware</text>
+    <text x="20" y="204" class="text">scores and ranking views.</text>
+  </g>
+
+  <g transform="translate(976,128)">
+    <rect class="card" x="0" y="0" width="200" height="210" rx="18"/>
+    <text x="20" y="32" class="step">5. LLM Keywords</text>
+    <rect x="40" y="58" width="70" height="92" rx="12" fill="#fff" stroke="#475569" stroke-width="5"/>
+    <rect x="54" y="80" width="42" height="7" rx="3.5" fill="#cbd5e1"/>
+    <rect x="54" y="98" width="34" height="7" rx="3.5" fill="#cbd5e1"/>
+    <rect x="54" y="116" width="46" height="7" rx="3.5" fill="#cbd5e1"/>
+    <rect x="126" y="72" width="46" height="22" rx="11" class="teal" opacity=".16"/>
+    <rect x="126" y="102" width="54" height="22" rx="11" class="gold" opacity=".22"/>
+    <rect x="126" y="132" width="42" height="22" rx="11" class="slate" opacity=".16"/>
+    <text x="20" y="184" class="text">Infer theme, extract</text>
+    <text x="20" y="204" class="text">core tags from abstracts.</text>
+  </g>
+
+  <g transform="translate(1208,128)">
+    <rect class="card" x="0" y="0" width="200" height="210" rx="18"/>
+    <text x="20" y="32" class="step">6. Static Frontend</text>
+    <rect x="34" y="58" width="132" height="98" rx="12" fill="#ffffff" stroke="#475569" stroke-width="5"/>
+    <rect x="34" y="58" width="132" height="18" rx="12" fill="#e2e8f0"/>
+    <circle cx="48" cy="67" r="3.5" class="gold"/>
+    <circle cx="60" cy="67" r="3.5" class="teal"/>
+    <circle cx="72" cy="67" r="3.5" class="slate"/>
+    <rect x="46" y="88" width="44" height="8" rx="4" fill="#cbd5e1"/>
+    <rect x="46" y="106" width="104" height="8" rx="4" fill="#e2e8f0"/>
+    <rect x="46" y="124" width="88" height="8" rx="4" fill="#e2e8f0"/>
+    <rect x="46" y="142" width="98" height="8" rx="4" fill="#e2e8f0"/>
+    <text x="20" y="184" class="text">Publish a searchable,</text>
+    <text x="20" y="204" class="text">shareable leaderboard.</text>
+  </g>
+
+  <g>
+    <path d="M248 232h24" class="arrow"/>
+    <path d="M480 232h24" class="arrow"/>
+    <path d="M712 232h24" class="arrow"/>
+    <path d="M944 232h24" class="arrow"/>
+    <path d="M1176 232h24" class="arrow"/>
+  </g>
+</svg>
