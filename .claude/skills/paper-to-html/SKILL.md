@@ -45,6 +45,13 @@ project-root/
 
 把 `assets/css/style.css`、`assets/js/theme.js`、`assets/js/interactive.js`、`templates/paper-template.html` 从本 skill 的 `assets/` 拷过去（如果用户项目里没有同名同等功能的版本）。
 
+### 0.5 拿 PDF —— 优先从 Zotero 找，不用等用户手动放
+
+用户只给了论文名/作者而没给 PDF 路径时，先用 `zotero` skill（`.claude/skills/zotero/SKILL.md`）
+在 `~/Zotero/zotero.sqlite` 里按标题/作者搜条目，拿到
+`~/Zotero/storage/<key>/<file>.pdf` 后**复制**到 `pdfs/<category>/<paper-slug>.pdf` 再继续。
+Zotero 里也没有时才让用户提供 PDF。
+
 ### 1. 读 PDF —— 不要凭印象写
 
 **铁律：从来不要凭对作者/领域的"了解"写内容**。具体来说：
@@ -97,6 +104,19 @@ img.crop((50, 100, img.width-50, int(img.height*0.65))).save('assets/figures/<sl
 **如果删掉右 TOC，同时把 JS 里 `document.getElementById('page-toc')` 相关的生成/IntersectionObserver 代码一起删掉**。否则 `null.querySelectorAll` 会把同 `<script>` 块里的 Tab / Mermaid 逻辑一起搞挂。
 
 ### 4. 逐节写内容（每节都要这五样）
+
+#### 论文五问（★★★ §01 总览必须回答，缺一不可）
+
+每篇论文的 §01 总览必须显式回答以下五个问题 + 数据集交代。推荐固定用一个"五问速答"结构（kv-table 或小节），让读者 2 分钟建立全局：
+
+1. **背景**：这个问题为什么存在、为什么难？（领域现状，用自己的话讲，不是摘要复述）
+2. **基于什么工作**：论文直接站在哪些前人工作上？（backbone / 控制器 / 数据集 / 范式，逐个点名）
+3. **前人工作的缺陷**：之前的方法具体卡在哪？（从 Intro / Related Work 提炼，必须具体到"哪类方法 + 什么缺陷"，不许写"效果不好"这种空话）
+4. **他们的 insight**：一句话说清核心洞察——最好写成"别人都以为/都在做 X，这篇发现其实 Y"的形式
+5. **最后效果**：关键数字（和谁比、提升多少、代价是什么——数据量/算力/硬件）
+
+**数据集必须单独说清楚**：训练/评测分别用了哪些数据集；每个数据集是什么（规模、怎么采的、什么模态、谁做的）；分别喂给哪个训练阶段。只报名字不解释 = 没写。
+
 
 #### 叙事流（★★★ 每节必须承上启下 · 跟着作者思路走）
 
@@ -278,6 +298,7 @@ img.crop((50, 100, img.width-50, int(img.height*0.65))).save('assets/figures/<sl
 
 ## 验证清单（每节写完自查）
 
+- [ ] **§01 回答了"论文五问"（背景 / 基于什么 / 前人缺陷 / insight / 效果），数据集有专门交代（规模+采集方式+用在哪阶段）**
 - [ ] 中文导读 `.cn-read` 在最前面
 - [ ] 关键论点配了 `.en-quote` 短引
 - [ ] 每张图都有 hotspot（5-8 个，覆盖主要元素）

@@ -146,6 +146,14 @@ paper-notes/
 
 包含完整工作流：PDF 读取 → 图片裁剪 → 页面骨架 → 逐节内容（中文导读 / 热点图 / step-walker / quiz）→ 提交粒度。换电脑后 `git clone` 即可复用，无需重新配置。
 
+查询本机 Zotero 文献库（找论文/PDF 路径/摘要/高亮批注）使用 `zotero` skill，定义在：
+
+```
+.claude/skills/zotero/SKILL.md
+```
+
+来源：[dougwyu/claude-zotero-skills](https://github.com/dougwyu/claude-zotero-skills)，已按本机定制（单一个人库，`~/Zotero/zotero.sqlite`，`immutable=1` 只读）。`/paper-to-html` 在用户只给论文名时会自动先从 Zotero 找 PDF 并复制到 `pdfs/`。
+
 ---
 
 ## 新建论文页面的步骤
@@ -184,6 +192,23 @@ git push
 # GitHub 设置：Settings → Pages → Source: main / root
 # 访问地址：https://[用户名].github.io/paper-notes
 ```
+
+---
+
+## 论文榜单（leaderboard/）
+
+`leaderboard/` 是自动化的 arXiv 论文排行榜（基于 DreamFallenFlowers/Paper-Leaderboard-For-You 模板），
+与精读笔记同站部署，访问路径 `/leaderboard/`。
+
+- 前端：`leaderboard/index.html` + `leaderboard/data/*.json`（构建产物，入库）
+- pipeline：`leaderboard/pipeline/`（config / scripts / 缓存），用法见 `leaderboard/pipeline/README.md`
+- 四方向 7 条 query：world-action-model、robot-world-model、loco-manipulation、
+  humanoid-whole-body、dexterous-manipulation、vla、robot-foundation-policy
+- 自动更新：`.github/workflows/leaderboard-update.yml` 每天 19:30 UTC 增量抓取并提交
+- 引用量：需 `SERPER_API_KEY`（repo secret / 本机环境变量），只能手动触发
+  `refresh-citations`；scholar 缓存（`pipeline/data/raw/scholar/`）刻意入库
+- 手动重建：`cd leaderboard/pipeline && python3 scripts/pipeline.py run &&
+  python3 scripts/bootstrap_keywords.py && python3 scripts/build_site_data.py`
 
 ---
 

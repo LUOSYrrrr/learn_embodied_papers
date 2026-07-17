@@ -421,13 +421,13 @@
           <p style="margin:0">
             ① <strong>当前帧 f₀（干净 latent）</strong>：所有 token 都可以看到它——它是整个模型的"视觉锚点"<br>
             ② <strong>未来帧 f₁..fₙ（加噪 latent）</strong>：只有视频 token 互相看，动作 token <strong>禁止访问</strong><br>
-            ③ <strong>动作 token a₁..aₙ</strong>：只能看自己 + f₀，通过 video DiT 共享表征间接获得视频动态信息
+            ③ <strong>动作 token a₁..aₙ</strong>：动作 token <strong>互相可见</strong>（双向 attention）+ 可看 f₀，通过 video DiT 共享表征间接获得视频动态信息
           </p>
         </div>
 
         <table class="kv-table">
           <tr><td>Backbone</td><td>Wan2.2-5B（视频 DiT + T5 文本编码器 + 视频 VAE）</td></tr>
-          <tr><td>Action Expert</td><td>1B 参数（hidden dim d_a=1024），动作 horizon H=32</td></tr>
+          <tr><td>Action Expert</td><td>基于 Wan2.2 架构，hidden dim 缩减至 d_a=1024，参数量 1B，动作 horizon H=32</td></tr>
           <tr><td>总参数量</td><td>5B + 1B = <strong>6B</strong></td></tr>
           <tr><td>视频帧率</td><td>时间维度 4× 下采样 → 每 action chunk 对应 <strong>9 个视频帧</strong></td></tr>
           <tr><td>推理去噪步数</td><td>10 步（CFG scale=1.0，logit-normal 噪声调度）</td></tr>

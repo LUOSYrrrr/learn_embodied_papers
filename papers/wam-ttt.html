@@ -1,0 +1,881 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>WAM-TTT · 测试时看人类演示，把技能写进快权重</title>
+  <link rel="stylesheet" href="../assets/css/style.css">
+  <script src="../assets/js/theme.js"></script>
+  <script src="../assets/js/interactive.js" defer></script>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16/dist/katex.min.css">
+  <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16/dist/katex.min.js"></script>
+  <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16/dist/contrib/auto-render.min.js"
+          onload="renderMathInElement(document.body,{delimiters:[{left:'$$',right:'$$',display:true},{left:'$',right:'$',display:false}]})"></script>
+  <style>
+    .docs-layout { display: grid; grid-template-columns: 240px minmax(0, 1fr); max-width: 1400px; margin: 0 auto; }
+    .sidebar { position: sticky; top: 60px; height: calc(100vh - 60px); overflow-y: auto; padding: 24px 16px; border-right: 1px solid var(--border); background: var(--bg); }
+    .sidebar-title { font-family: var(--font-mono); font-size: 10px; color: var(--text3); letter-spacing: 0.08em; text-transform: uppercase; margin-bottom: 16px; padding-bottom: 8px; border-bottom: 1px solid var(--border); }
+    .sidebar-tree { list-style: none; margin: 0; padding: 0; }
+    .sidebar-tree li { margin: 4px 0; }
+    .sidebar-tree a { display: block; padding: 6px 10px; font-size: 13px; color: var(--text2); text-decoration: none; border-radius: 6px; transition: all 0.2s; }
+    .sidebar-tree a:hover { background: var(--glass-hover); color: var(--text); }
+    .sidebar-tree a.active { background: rgba(74, 222, 154, 0.1); color: var(--accent); }
+    .sidebar-tree .section-link { font-weight: 500; }
+    .main-content { min-width: 0; }
+    @media (max-width: 900px) { .docs-layout { grid-template-columns: 1fr; } .sidebar { display: none; } }
+
+    .paper-header { padding: 40px 40px 24px; max-width: 1200px; margin: 0 auto; }
+    .paper-venue { font-family: var(--font-mono); font-size: 11px; color: var(--text3); letter-spacing: 0.06em; margin-bottom: 10px; }
+    .paper-title { font-family: var(--font-serif); font-size: 28px; font-weight: 700; color: var(--text); line-height: 1.35; margin: 0 0 14px; }
+    .paper-authors { font-size: 14px; color: var(--text2); margin-bottom: 8px; }
+    .paper-badges { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 16px; }
+    .badge { font-family: var(--font-mono); font-size: 10px; padding: 4px 10px; border-radius: 6px; background: var(--bg3); color: var(--text2); border: 1px solid var(--border); }
+    .badge-green { background: rgba(74, 222, 154, 0.12); color: var(--accent); border-color: rgba(74, 222, 154, 0.3); }
+    .badge-blue { background: rgba(96, 165, 250, 0.12); color: var(--blue); border-color: rgba(96, 165, 250, 0.3); }
+    .badge-amber { background: rgba(245, 158, 11, 0.12); color: var(--amber); border-color: rgba(245, 158, 11, 0.3); }
+    .badge-purple { background: rgba(167, 139, 250, 0.12); color: var(--purple); border-color: rgba(167, 139, 250, 0.3); }
+
+    .section { padding: 32px 40px; max-width: 1200px; margin: 0 auto; border-top: 1px solid var(--border); }
+    .section-num { font-family: var(--font-mono); font-size: 11px; color: var(--accent); letter-spacing: 0.08em; margin-bottom: 6px; }
+    .section h2 { font-family: var(--font-serif); font-size: 22px; font-weight: 600; margin: 0 0 20px; color: var(--text); }
+    .section h3 { font-size: 17px; font-weight: 600; margin: 28px 0 12px; color: var(--text); }
+    .section p { font-size: 15px; line-height: 1.85; color: var(--text2); margin: 0 0 16px; }
+
+    .cn-read { background: var(--bg2); border-left: 3px solid var(--accent); padding: 18px 22px; margin: 20px 0; border-radius: 0 8px 8px 0; }
+    .cn-label { font-family: var(--font-mono); font-size: 10px; color: var(--accent); letter-spacing: 0.06em; text-transform: uppercase; margin-bottom: 8px; }
+    .cn-read p { margin: 0; font-size: 14.5px; line-height: 1.8; color: var(--text); }
+
+    .callout { background: var(--bg2); border: 1px solid var(--border); border-radius: 10px; padding: 18px 22px; margin: 20px 0; }
+    .callout-label { font-family: var(--font-mono); font-size: 10px; letter-spacing: 0.06em; text-transform: uppercase; margin-bottom: 8px; color: var(--text3); }
+    .callout p { margin: 0; font-size: 14px; line-height: 1.8; }
+    .callout.amber { border-color: var(--amber); background: rgba(245, 158, 11, 0.08); }
+    .callout.amber .callout-label { color: var(--amber); }
+    .callout.red { border-color: var(--accent3); background: rgba(255, 107, 107, 0.08); }
+    .callout.red .callout-label { color: var(--accent3); }
+    .callout.blue { border-color: var(--blue); background: rgba(96, 165, 250, 0.08); }
+    .callout.blue .callout-label { color: var(--blue); }
+    .callout.purple { border-color: var(--purple); background: rgba(167, 139, 250, 0.08); }
+    .callout.purple .callout-label { color: var(--purple); }
+
+    .fig-interactive { display: grid; grid-template-columns: minmax(0, 1fr) 280px; gap: 20px; margin: 24px 0; }
+    .fig-interactive.panel-below { grid-template-columns: 1fr; }
+    .fig-interactive.panel-below .hotspot-panel { position: static; margin-top: 16px; }
+    .fig-block { background: var(--bg2); border-radius: 10px; overflow: hidden; border: 1px solid var(--border); }
+    .fig-block img { width: 100%; height: auto; display: block; }
+    .fig-cap { padding: 14px 18px; font-size: 13px; color: var(--text2); border-top: 1px solid var(--border); }
+    .fig-num { font-family: var(--font-mono); font-size: 10px; color: var(--accent); margin-right: 8px; }
+    .fig-cn { display: block; margin-top: 6px; color: var(--text3); font-size: 12px; }
+
+    .hotspot-wrap { position: relative; }
+    .hotspot { position: absolute; width: 20px; height: 20px; background: rgba(74, 222, 154, 0.55); border: 2px solid var(--accent); border-radius: 50%; cursor: pointer; transform: translate(-50%, -50%); transition: all 0.2s; }
+    .hotspot:hover, .hotspot.active { background: var(--accent); transform: translate(-50%, -50%) scale(1.3); opacity: 1; }
+    .hotspot-panel { background: var(--bg2); border: 1px solid var(--border); border-radius: 10px; padding: 16px; }
+    .hp-title { font-size: 14px; font-weight: 600; color: var(--accent); margin-bottom: 8px; }
+    .hp-body { font-size: 13px; color: var(--text2); line-height: 1.7; }
+
+    .en-quote { background: var(--bg2); border: 1px solid var(--border); border-radius: 8px; margin: 16px 0; overflow: hidden; }
+    .en-quote summary { padding: 12px 16px; font-size: 13px; color: var(--text3); cursor: pointer; transition: background 0.2s; }
+    .en-quote summary:hover { background: var(--glass-hover); }
+    .quote-body { padding: 16px; border-top: 1px solid var(--border); }
+    .quote-body p { font-size: 13.5px; color: var(--text); font-style: italic; margin: 0 0 10px; }
+    .quote-cite { font-family: var(--font-mono); font-size: 11px; color: var(--text3); }
+
+    .step-walker { background: var(--bg2); border: 1px solid var(--border); border-radius: 10px; padding: 20px; margin: 24px 0; }
+    .sw-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px; }
+    .sw-title { font-size: 14px; font-weight: 600; color: var(--text); }
+    .sw-controls { display: flex; gap: 10px; align-items: center; }
+    .sw-btn { background: var(--bg3); border: 1px solid var(--border); color: var(--text); padding: 6px 12px; border-radius: 6px; cursor: pointer; font-size: 12px; }
+    .sw-btn:hover { background: var(--glass-hover); }
+    .sw-counter { font-family: var(--font-mono); font-size: 12px; color: var(--text3); }
+    .sw-progress { display: flex; gap: 6px; margin-bottom: 16px; }
+    .sw-dot { flex: 1; height: 3px; background: var(--border); border-radius: 2px; }
+    .sw-dot.active { background: var(--accent); }
+    .sw-step { display: none; }
+    .sw-step.active { display: block; }
+    .sw-step h4 { font-size: 14px; margin: 0 0 8px; color: var(--text); }
+    .sw-step p { font-size: 13px; color: var(--text2); margin: 0; line-height: 1.7; }
+
+    .quiz { background: var(--bg2); border: 1px solid var(--border); border-radius: 10px; padding: 20px; margin: 24px 0; }
+    .q-label { font-family: var(--font-mono); font-size: 10px; color: var(--amber); letter-spacing: 0.06em; text-transform: uppercase; margin-bottom: 10px; }
+    .q-text { font-size: 15px; color: var(--text); margin-bottom: 16px; font-weight: 500; }
+    .q-options { display: flex; flex-direction: column; gap: 8px; }
+    .q-opt { text-align: left; background: var(--bg3); border: 1px solid var(--border); color: var(--text); padding: 12px 16px; border-radius: 8px; cursor: pointer; font-size: 14px; transition: all 0.2s; }
+    .q-opt:hover { background: var(--glass-hover); border-color: var(--border2); }
+    .q-opt.correct { background: rgba(74, 222, 154, 0.15); border-color: var(--accent); }
+    .q-opt.wrong { background: rgba(255, 107, 107, 0.15); border-color: var(--accent3); }
+    .q-feedback { margin-top: 14px; padding: 12px; border-radius: 8px; font-size: 13px; display: none; line-height: 1.7; }
+    .q-feedback.show { display: block; }
+
+    .module-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 14px; margin: 20px 0; }
+    .module-card { background: var(--bg2); border: 1px solid var(--border); border-radius: 10px; padding: 18px; }
+    .module-card-name { font-family: var(--font-mono); font-size: 10px; color: var(--text3); letter-spacing: 0.06em; margin-bottom: 6px; }
+    .module-card-title { font-size: 15px; font-weight: 600; color: var(--text); margin-bottom: 8px; }
+    .module-card-desc { font-size: 13px; color: var(--text2); line-height: 1.6; }
+
+    .kv-table { width: 100%; border-collapse: collapse; margin: 16px 0; font-size: 13px; }
+    .kv-table td, .kv-table th { padding: 9px 13px; border: 1px solid var(--border); text-align: left; }
+    .kv-table th { background: var(--bg3); color: var(--text2); font-family: var(--font-mono); font-size: 11px; font-weight: 600; }
+    .kv-table td:first-child { background: var(--bg2); color: var(--text3); font-family: var(--font-mono); font-size: 11px; }
+    .kv-table td { color: var(--text); }
+    .kv-table td.w { font-family: var(--font-mono); color: var(--amber); text-align: right; }
+    .kv-table td.win { color: var(--accent); font-weight: 600; }
+    .kv-table td.bad { color: var(--accent3); }
+
+    .math-block { background: var(--bg2); padding: 20px; border-radius: 8px; margin: 20px 0; text-align: center; overflow-x: auto; }
+    .math-label { display: block; font-family: var(--font-mono); font-size: 11px; color: var(--text3); margin-top: 10px; }
+    .math-explain { background: var(--bg2); border-left: 3px solid var(--blue); padding: 16px 20px; margin: 16px 0; border-radius: 0 8px 8px 0; }
+    .me-title { font-size: 13px; font-weight: 600; color: var(--blue); margin-bottom: 12px; }
+    .math-explain dl { margin: 0; }
+    .math-explain dt { font-family: var(--font-mono); font-size: 12px; color: var(--accent); margin: 10px 0 4px; }
+    .math-explain dd { margin: 0 0 8px; font-size: 13px; color: var(--text2); line-height: 1.6; }
+
+    .term { border-bottom: 1px dotted var(--text3); cursor: help; position: relative; }
+    .term:hover::after { content: attr(data-en); position: absolute; bottom: 100%; left: 50%; transform: translateX(-50%); background: var(--bg3); padding: 6px 10px; border-radius: 6px; font-size: 11px; white-space: nowrap; border: 1px solid var(--border); color: var(--text2); z-index: 10; }
+
+    .repro-step { display: flex; gap: 16px; margin: 18px 0; }
+    .repro-num { flex-shrink: 0; width: 30px; height: 30px; border-radius: 50%; background: rgba(74,222,154,0.12); border: 1px solid var(--accent); color: var(--accent); font-family: var(--font-mono); font-size: 14px; display: flex; align-items: center; justify-content: center; font-weight: 600; }
+    .repro-body { flex: 1; }
+    .repro-body h4 { margin: 4px 0 8px; font-size: 15px; color: var(--text); }
+    .repro-body p { margin: 0 0 8px; font-size: 14px; }
+    .code-block { background: var(--bg3); border: 1px solid var(--border); border-radius: 8px; padding: 14px 16px; margin: 12px 0; overflow-x: auto; }
+    .code-block code { font-family: var(--font-mono); font-size: 12.5px; color: var(--text); white-space: pre; line-height: 1.6; }
+
+    @media (max-width: 900px) {
+      .fig-interactive { grid-template-columns: 1fr; }
+      .module-grid { grid-template-columns: 1fr; }
+      .paper-header, .section { padding-left: 20px; padding-right: 20px; }
+    }
+  </style>
+</head><body>
+  <nav class="nav">
+    <a class="nav-logo" href="../index.html">Paper Notes</a>
+    <div class="nav-links">
+      <a href="../index.html">← 返回首页</a>
+      <a href="psi0.html">Ψ₀ 笔记</a>
+      <a href="fast-wam.html">Fast-WAM 笔记</a>
+    </div>
+  </nav>
+
+  <div class="docs-layout">
+    <aside class="sidebar">
+      <div class="sidebar-title">目录</div>
+      <ul class="sidebar-tree">
+        <li><a href="#overview" class="section-link">§01 总览 · 五问速答</a></li>
+        <li><a href="#steering" class="section-link">§02 Steering 问题 · 三条老路</a></li>
+        <li><a href="#architecture" class="section-link">§03 架构 · WAM + TTT 层 ★核心</a></li>
+        <li><a href="#meta" class="section-link">§04 Meta-training · 校准记忆接口</a></li>
+        <li><a href="#deploy" class="section-link">§05 部署 · 只写记忆不动模型</a></li>
+        <li><a href="#experiments" class="section-link">§06 实验 · 3 本体 9 任务</a></li>
+        <li><a href="#ablations" class="section-link">§07 消融 · 五个反事实</a></li>
+        <li><a href="#connections" class="section-link">§08 与已读论文的联系</a></li>
+      </ul>
+    </aside>
+
+    <main class="main-content">
+      <div class="paper-header">
+        <div class="paper-venue">arXiv 2607.06988v2 · 10 Jul 2026 · 北大 / Galbot / CASIA / 清华</div>
+        <div class="paper-title">WAM-TTT: Steering World-Action Models by Watching Human Play at Test Time</div>
+        <div class="paper-authors">Yusen Feng*, Bingchen Han*, Jiangran Lyu*, ... Yizhou Wang†, Zhizheng Zhang†, He Wang†（* 共同一作）</div>
+        <div class="paper-badges">
+          <span class="badge badge-green">World-Action Model</span>
+          <span class="badge badge-blue">Test-Time Training</span>
+          <span class="badge badge-purple">人类视频 · 零标注</span>
+          <span class="badge badge-amber">快权重记忆</span>
+          <span class="badge">Unitree G1 · Galbot ×2</span>
+        </div>
+      </div>
+
+      <!-- ============ §01 ============ -->
+      <div class="section" id="overview">
+        <div class="section-num">§ 01</div>
+        <h2>总览：机器人部署后，怎么"现场教"它一个新花样？</h2>
+
+        <div class="cn-read">
+          <div class="cn-label">这一节解决什么</div>
+          <p>
+            机器人基础模型训好、部署了，然后用户想让它换一种方式做事——换个物体、换个顺序、换个用户偏好。今天的选项都很痛：要么<strong>重新采机器人演示 + 微调整个模型</strong>（贵，还会灾难性遗忘），要么靠<strong>语言指令 / 目标图</strong>这种窄接口（表达不了"手法"）。最自然的接口其实是：<strong>人直接做一遍给它看</strong>。WAM-TTT 的答案：拿一段无标注的人类第一视角视频，在部署现场做几步<span class="term" data-en="test-time training">测试时训练</span>——通过"预测这段视频的下一帧"这个自监督任务，把演示<strong>吸收进模型里一小块专门预留的"快权重"记忆</strong>，整个预训练模型一个参数都不动。机器人看完人玩一遍（watching human play），行为就被"转向"（steered）了。
+          </p>
+        </div>
+
+        <h3>论文五问速答</h3>
+        <table class="kv-table">
+          <tr><td>① 背景：问题为什么难</td><td>
+            机器人基础模型（RFM）把知识都固化在<strong>预训练权重</strong>里，部署后只剩语言指令、目标图、短观测历史这几个窄条件接口。想指定"新任务变体 / 用户偏好的做法"，通常只能重新采集机器人演示 + 微调全模型——贵、慢、还可能把预训练能力忘掉（catastrophic forgetting）（§1, p.2）。
+          </td></tr>
+          <tr><td>② 站在什么工作上</td><td>
+            骨干 = <strong>LDA</strong>（同团队的预训练 WAM：Qwen3-VL-4B VLM + DiT-L MMDiT，video expert 和 action expert 双流联合注意力）；TTT 机制承自 <strong>TTT 层 / fast-weight 谱系</strong>（Sun et al. TTT-RNN、Titans、Spatial-TTT——逐帧把上下文"写"进小 MLP 权重）；对比基线含 <strong>π₀.₅</strong> 和 <strong>EgoScale</strong>。
+          </td></tr>
+          <tr><td>③ 前人卡在哪</td><td>
+            用人类视频教机器人的三条老路各有死法：<strong>路线 A · co-training / 微调</strong>（EgoMimic / EgoDex / EgoScale 系）：要手部姿态、3D 运动或重定向轨迹等额外标注——噪声大、成本高；微调还伤泛化。实测 WAM-Cotrain 把域内成绩从 50.2 拉到 29.8（附录 C）。<strong>路线 B · in-context 条件化</strong>（MimicDroid 系）：把人类视频当上下文 token 喂——要在预训练时学会这个能力，上下文随演示积累爆炸；场景一变直接崩（WAM-ICL：48.4 → 7.1）。<strong>路线 C · 重定向成伪动作</strong>：单目手部姿态估计噪声大，E.6 实测加了反而 −43.4 分。
+          </td></tr>
+          <tr><td>④ 他们的 insight</td><td>
+            别人都把人类视频当<strong>"要模仿的轨迹"</strong>（想方设法转成动作/姿态），WAM-TTT 说：把它当<strong>"部署时的记忆"</strong>。人类视频不转成任何动作——用自监督视频预测把它写进 WAM 视频侧的 TTT 快权重；因为 WAM 本来就把视觉动态和动作<strong>联合建模</strong>，视频侧的记忆会顺着共享的视觉-动作表征自动"转向"动作生成。前提是一次 <strong>meta-training</strong>：用成对人-机数据把"人类 Key/Value ↔ 机器人 Query"的读出接口预先校准好。
+          </td></tr>
+          <tr><td>⑤ 最后效果</td><td>
+            3 个本体（Unitree G1 / Galbot 夹爪 / Galbot 灵巧手）× 9 个操作任务。<strong>未见过的家庭场景（New）</strong>：平均进度 46.2%，比不用人类视频的 LDA 骨干 +13.7 分、比 co-training +20.9、比 EgoScale +31.2、比 π₀.₅ +31.4、比 ICL +39.1（Table 1）。<strong>域内（Orig）也是第一</strong>（61.1%），且 Orig→New 留存率 0.76 全场最高——既没牺牲域内、又最抗场景漂移。训练开销：8×H800、100k meta 步。
+          </td></tr>
+        </table>
+
+        <h3>数据集：一份"人机对拍"的双视角数据</h3>
+        <table class="kv-table">
+          <tr><th>数据</th><th>规模</th><th>是什么</th><th>用在哪</th></tr>
+          <tr>
+            <td>LDA 预训练语料</td>
+            <td class="w">（继承）</td>
+            <td>LDA-1B 的大规模具身数据（见 LDA 论文），本文<strong>直接继承预训练权重</strong>，不重训</td>
+            <td>阶段 0 · WAM 底座</td>
+          </tr>
+          <tr>
+            <td>成对人-机演示</td>
+            <td class="w">2,286 对 episode · 9 任务</td>
+            <td>Unitree G1（600，三指 Dex-3 手）+ Galbot 夹爪（544）+ Galbot sharpa 灵巧手（1,142，单手 22-DoF）。<strong>机器人侧</strong>：标准化 cubicle 里遥操作采集；<strong>人类侧</strong>：GoPro 第一视角、直接在真实家庭场景录（就是之后的 New 评测场景）、<strong>零标注</strong>——没有手部姿态、没有关节角、没有重定向（§B, p.16）</td>
+            <td>阶段 1 · meta-training（按相位对齐配对）</td>
+          </tr>
+          <tr>
+            <td>部署现场人类视频</td>
+            <td class="w">每任务一小批</td>
+            <td>目标场景里现场录的无标注人类演示——测试时唯一的输入信号</td>
+            <td>阶段 2 · test-time training（只更新快权重）</td>
+          </tr>
+        </table>
+
+        <div class="callout blue">
+          <div class="callout-label">类比 · 便利贴 vs 重新培训</div>
+          <p>
+            预训练 WAM 像一个熟练工，手艺（慢权重）已经定型。来了新活儿，三种教法：<strong>重新送去培训</strong>（微调——贵，还可能把老手艺练歪）；<strong>在他耳边实时念操作手册</strong>（ICL——他得边听边干，手册越厚越记不住）；WAM-TTT 是<strong>让他看一遍你做，然后自己在工位上贴一张便利贴</strong>（快权重记忆）——手艺没动，看新便利贴干新活，撕掉便利贴就恢复原样，换个活儿换张贴纸。
+          </p>
+        </div>
+
+        <div class="quiz"
+             data-correct="c"
+             data-explain="正确。WAM-TTT 的人类视频全程不转成动作：测试时唯一的学习信号是自监督视频预测（+ 记忆重建）loss，更新的只有视频侧 TTT 快权重（Eq.7-8）。它能影响动作生成，是因为 WAM 联合建模视觉动态与动作，视频侧记忆顺着共享表征传导到 action expert（§1, p.2）。附录 E.6 还实测了反面：把人类视频重定向成伪动作再加监督，平均掉 43.4 分。"
+             data-explain-wrong="注意'零标注'是这篇的立身之本：不估手部姿态、不做重定向、不当上下文 token。人类视频唯一的用法是让模型'预测它的下一帧'，把痕迹留在快权重里。">
+          <div class="q-label">🧠 理解检查</div>
+          <div class="q-text">部署时，WAM-TTT 是怎么使用那段人类演示视频的？</div>
+          <div class="q-options">
+            <button class="q-opt" data-k="a">用手部姿态估计把它重定向成机器人动作，再模仿学习</button>
+            <button class="q-opt" data-k="b">把视频帧当上下文 token 拼进输入，条件化生成</button>
+            <button class="q-opt" data-k="c">让模型自监督地预测这段视频，用梯度把它写进视频侧 TTT 快权重，其余参数全冻结</button>
+            <button class="q-opt" data-k="d">用视频微调整个 WAM 几个 epoch</button>
+          </div>
+          <div class="q-feedback"></div>
+        </div>
+      </div>
+
+      <!-- ============ §02 ============ -->
+      <div class="section" id="steering">
+        <div class="section-num">§ 02</div>
+        <h2>Steering：不是"学新任务"，是"部署后现场转向"</h2>
+
+        <div class="cn-read">
+          <div class="cn-label">这一节解决什么</div>
+          <p>
+            §01 说了要"把人类视频当记忆"，但先把问题本身立住：<span class="term" data-en="steering">steering（转向）</span>和平时说的 fine-tuning 有什么区别？steering 要求的是<strong>部署时、低成本、可逆、可复用</strong>地改变模型行为——用户今天教一个手法，明天换个任务不能互相污染，也不能把基础模型改坏。这一节看 Fig.1 的全局图，理解 WAM-TTT 给出的部署形态：<strong>家庭、超市、办公室——人在哪演示，机器人就在哪学，学的痕迹只存在快权重里</strong>。
+          </p>
+        </div>
+
+        <div class="fig-interactive panel-below">
+          <div class="fig-block">
+            <div class="hotspot-wrap" data-hotspot-group="fig1">
+              <img src="../assets/figures/wam-ttt/fig-1.png" alt="Figure 1: Overview of WAM-TTT">
+              <div class="hotspot" data-id="scenes" style="left:50%; top:13%;"
+                   data-title="任意场景的人类演示"
+                   data-body="家庭 / 超市 / 办公室——人类戴着 GoPro 以第一视角演示任务。注意这些视频是无标注的：没有手部姿态估计、没有动作标签、没有重定向。这是'钥匙可以在任何地方配'的部署形态。"></div>
+              <div class="hotspot" data-id="banner" style="left:48%; top:26%;"
+                   data-title="No retargeting · 本文的立场宣言"
+                   data-body="'不重定向：无标注人类视频直接引导机器人动作'。这句是对整个 learning-from-human-video 领域的差异化声明——不走姿态估计→重定向→模仿那条充满噪声的管线（附录 E.6 用实验证明那条路在当前技术成熟度下是负收益）。"></div>
+              <div class="hotspot" data-id="demos" style="left:21%; top:47%;"
+                   data-title="Human Demonstrations（虚线框 = 测试时输入）"
+                   data-body="部署时的唯一新信号：目标场景里的一小批人类演示视频。它们不进入模型输入流，而是作为 TTT 的'训练数据'——模型对它们做视频预测，梯度只落在快权重上。"></div>
+              <div class="hotspot" data-id="exec" style="left:77%; top:47%;"
+                   data-title="Robot Execution · 被转向后的执行"
+                   data-body="吸收记忆后的 WAM 正常执行：观测 + 指令 → 动作块。人类演示里的任务手法（先拿什么、怎么放）通过快权重影响动作生成——机器人做的是'人演示的那个版本'的任务。"></div>
+              <div class="hotspot" data-id="video-expert" style="left:35%; top:82%;"
+                   data-title="Video Expert + 🔥 TTT Fast Weights"
+                   data-body="预训练 WAM 内部：视频专家流被插入了 TTT 快权重分支。测试时唯一🔥可更新的就是这一小块——用人类视频的自监督预测 loss 做几步 SGD。"></div>
+              <div class="hotspot" data-id="action-expert" style="left:69%; top:80%;"
+                   data-title="Action Expert ❄️ 永远冻结"
+                   data-body="动作专家（连同 WAM 主干、TTT 慢投影）在部署时全部冻结。动作先验 100% 保留——这就是'转向而不覆写'：域漂移只能改写人→机记忆，改不了策略本身（附录 E.3, p.24）。"></div>
+            </div>
+            <div class="fig-cap">
+              <span class="fig-num">Fig 1 · p.1</span>
+              Overview of WAM-TTT. Given unlabeled human demonstrations from diverse environments, WAM-TTT steers a pretrained World Action Model without retargeting, robot actions, or human-side annotations.
+              <span class="fig-cn">全局图：任意场景的无标注人类演示（上）→ 测试时被吸收进视频专家的 TTT 快权重（下，🔥）→ 引导冻结的 action expert（❄️）执行。</span>
+            </div>
+          </div>
+          <div class="hotspot-panel"></div>
+        </div>
+
+        <h3>三条老路 vs 这条新路</h3>
+        <table class="kv-table">
+          <tr><th>路线</th><th>人类视频被当成</th><th>代价 / 死法</th><th>本文实测</th></tr>
+          <tr><td>co-training / 微调</td><td>训练数据（常配姿态/重定向标注）</td><td>标注贵且噪；微调伤泛化、遗忘</td><td class="bad">WAM-Cotrain 域内 29.8，反而低于不用人类数据的 LDA（50.2）</td></tr>
+          <tr><td>in-context 条件化</td><td>上下文 token</td><td>要预训练时专门学；上下文长度爆炸；场景一变就崩</td><td class="bad">WAM-ICL 域内 48.4 → 换场景 7.1（留存 15%）</td></tr>
+          <tr><td>重定向伪动作</td><td>动作监督（MANO + retargeter）</td><td>单目姿态噪声大；gripper 开合信号要手工造</td><td class="bad">加上后 4 任务平均 72.3 → 28.9（E.6）</td></tr>
+          <tr><td><strong>WAM-TTT</strong></td><td><strong>测试时记忆（快权重）</strong></td><td>需要一次 meta-training 校准接口</td><td class="win">New 46.2 全场第一 · 留存 0.76 全场最高</td></tr>
+        </table>
+
+        <details class="en-quote">
+          <summary>展开原文 · 记忆 vs 轨迹的立场句</summary>
+          <div class="quote-body">
+            <p>"Rather than treating human videos as trajectories to imitate, WAM-TTT uses them as deployment-time memory learned through video prediction."</p>
+            <div class="quote-cite">— §1, p.2</div>
+          </div>
+        </details>
+
+        <div class="quiz"
+             data-correct="b"
+             data-explain="正确。WAM-ICL 和 WAM-TTT 拿到的是同一段人类视频，用法不同：ICL 把它当推理时的上下文 token（条件化冻结模型），TTT 把它转成快权重（梯度写入记忆）。结果差出 39.1 分（7.1 vs 46.2），论文称之为'对设计假设最强的一条证据'（§4.2, p.7）——同样的信息，'存进权重'比'摆在上下文里'在场景扰动下鲁棒得多。"
+             data-explain-wrong="注意对照实验的干净性：ICL 和 TTT 的输入信息完全一样，唯一变量是信息的'存放形式'——上下文 token vs 快权重。">
+          <div class="q-label">🧠 理解检查</div>
+          <div class="q-text">WAM-ICL（7.1）和 WAM-TTT（46.2）之间 39 分的差距，控制变量后说明了什么？</div>
+          <div class="q-options">
+            <button class="q-opt" data-k="a">ICL 拿到的人类视频比 TTT 少</button>
+            <button class="q-opt" data-k="b">同样的人类视频，"写进快权重"比"当上下文 token"在场景变化下鲁棒得多</button>
+            <button class="q-opt" data-k="c">ICL 的上下文窗口不够长，视频被截断了</button>
+            <button class="q-opt" data-k="d">TTT 额外用了机器人动作标签</button>
+          </div>
+          <div class="q-feedback"></div>
+        </div>
+      </div>
+
+      <!-- ============ §03 ============ -->
+      <div class="section" id="architecture">
+        <div class="section-num">§ 03</div>
+        <h2>架构：冻结的 WAM，视频流上外挂一排"可写内存条"</h2>
+
+        <div class="cn-read">
+          <div class="cn-label">这一节解决什么</div>
+          <p>
+            §02 定了目标：记忆要能写、模型不能动。这一节看它落在哪：底座是 LDA——每个 diffusion transformer block 里有<strong>视频专家</strong>（处理视觉 latent token）和<strong>动作专家</strong>（处理动作 token）两条流，靠联合注意力互通。WAM-TTT 的全部改动就一件事：<strong>在视频专家的每个 block 上外挂一条 TTT 残差支路</strong>——一个小 MLP（快权重 $f_W$）加四个投影（慢权重 $\theta_{K,V,Q,O}$）。动作专家一根毛都不碰。先分清两种权重：<strong>慢权重</strong>训练时由优化器更新、部署时冻结（是"读写头"）；<strong>快权重</strong>在一次前向里就能被内环 SGD 更新好几次（是"内存条"）。
+          </p>
+        </div>
+
+        <div class="fig-interactive panel-below">
+          <div class="fig-block">
+            <div class="hotspot-wrap" data-hotspot-group="fig2">
+              <img src="../assets/figures/wam-ttt/fig-2.png" alt="Figure 2: Pipeline of WAM-TTT">
+              <div class="hotspot" data-id="action-stack" style="left:8%; top:52%;"
+                   data-title="Action Expert · 原封不动"
+                   data-body="LDA 的动作专家：一摞普通 DiT block，从动作噪声去噪出动作块（action chunk）。WAM-TTT 不给它加任何 TTT 层——所有适配都发生在视频侧，动作先验被完整保护。"></div>
+              <div class="hotspot" data-id="video-stack" style="left:26%; top:52%;"
+                   data-title="Video Expert · 每个 block 挂一个 TTT 层"
+                   data-body="视频专家的每个 DiT block 都被插入 TTT 残差支路：z^(l+1) = ẑ^(l+1) + Δz_TTT（Eq.1）。为什么选视频侧？因为无动作标签的人类视频天然只能监督视频流——记忆放在人类数据能'够得着'的地方。"></div>
+              <div class="hotspot" data-id="chunk" style="left:10%; top:20%;"
+                   data-title="输出 · Action Chunk + Clean Video"
+                   data-body="WAM 的双头输出：去噪后的动作块（拿去执行）+ 去噪后的视频（预测的未来观测）。视频头正是测试时自监督信号的来源——'预测人类视频的下一帧'不需要任何标注。"></div>
+              <div class="hotspot" data-id="qkv-r" style="left:44%; top:55%;"
+                   data-title="蓝色 · 机器人 token 的 Q/K/V"
+                   data-body="TTT 层内部（meta-training 视角）：机器人视频 token 经慢投影 θ_Q 产生 Query。机器人这一侧走正常 Attention 分支；它的 Query 同时会去查询快权重记忆——'读'出人类演示里的对应信息。"></div>
+              <div class="hotspot" data-id="qkv-h" style="left:57%; top:55%;"
+                   data-title="橙色 · 人类 token 的 K/V"
+                   data-body="同步的人类帧经慢投影 θ_K/θ_V 产生 Key/Value——这是要被'写进'快权重的内容。注意人类侧不需要动作：K/V 全部来自视频特征。"></div>
+              <div class="hotspot" data-id="fastw" style="left:59%; top:37%;"
+                   data-title="Fast Weight 🔥 · 记忆本体"
+                   data-body="小 MLP f_W（隐层 128）。'写'= 用内环 SGD 让 f_W(K_h) ≈ V_h（记忆重建 loss）；'读'= 用机器人 Query 过一遍 f_W，输出经 θ_O 加回视频流。附录 A 证明：线性情形下这精确等价于一次 softmax-free 的 cross-attention 读出——快权重就是一个参数化的 KV cache。"></div>
+              <div class="hotspot" data-id="recon" style="left:52%; top:24%;"
+                   data-title="mem. recon. loss · 写入的目标"
+                   data-body="记忆重建损失 L_KVM = ||f_W(K_h) − V_h||²（Eq.3）：快权重要能'看到人类 Key 就吐出对应 Value'。它和视频预测 loss 一起构成内环目标——这是把'当好一块 KV 记忆'显式写进优化目标。"></div>
+              <div class="hotspot" data-id="paired" style="left:52%; top:88%;"
+                   data-title="Paired Robot-Human Data · meta-training 的燃料"
+                   data-body="2,286 对'同一任务、人做一遍 + 机器人做一遍'的数据。按归一化相位 φ=t/T 对齐帧。外环用机器人侧的标准 WAM loss 训练慢参数——教会'读写头'把人类记忆翻译成对机器人有用的信号。"></div>
+              <div class="hotspot" data-id="ttt-deploy" style="left:84%; top:50%;"
+                   data-title="部署 · WAM ❄️ + Fast Weight 🔥"
+                   data-body="测试时的全部可动部分：快权重。WAM 主干、慢投影、快权重初始化 W_init 全部冻结。'Video Loss Update'：对现场人类视频做视频预测 + 记忆重建，内环 SGD 更新 W，然后固定 W 开始执行任务。"></div>
+              <div class="hotspot" data-id="unlabeled" style="left:84%; top:86%;"
+                   data-title="Unlabelled Human Video Demos"
+                   data-body="部署现场录的无标注人类演示。整个系统对它的全部要求就是：一段第一视角 RGB。没有姿态、没有深度、没有动作——这是所有对比方法里最低的部署门槛。"></div>
+            </div>
+            <div class="fig-cap">
+              <span class="fig-num">Fig 2 · p.3</span>
+              Pipeline of WAM-TTT. We first meta-train a fast-weight memory using paired human-robot demonstrations ... At test time, the memory is adapted from unlabeled human videos via video prediction, while the pretrained WAM remains frozen.
+              <span class="fig-cn">左：LDA 双专家结构，仅视频侧插 TTT 层；中：meta-training——人类 K/V 写入快权重、机器人 Q 读出，记忆重建 loss 校准读写；右：部署——只有快权重🔥随现场人类视频更新。</span>
+            </div>
+          </div>
+          <div class="hotspot-panel"></div>
+        </div>
+
+        <h3>两条公式：残差外挂 + 读出</h3>
+
+        <div class="math-block">
+          $$\mathbf{z}^{(\ell+1)} = \hat{\mathbf{z}}^{(\ell+1)} + \Delta\mathbf{z}_{\mathrm{TTT}}^{(\ell)}, \qquad \mathbf{x}^{(\ell+1)} = \hat{\mathbf{x}}^{(\ell+1)}$$
+          <span class="math-label">Eq. 1 · p.4 · TTT 只修改视频流，动作流原样通过</span>
+        </div>
+        <div class="math-explain">
+          <div class="me-title">逐项拆解</div>
+          <dl>
+            <dt>$\hat{\mathbf{z}}^{(\ell+1)}$</dt>
+            <dd>第 $\ell$ 个 LDA block 对视频 token 的<strong>原始输出</strong>（TTT 加入前的值）——预训练行为的基线</dd>
+            <dt>$\Delta\mathbf{z}_{\mathrm{TTT}}^{(\ell)}$</dt>
+            <dd>TTT 支路的<strong>残差修正</strong>——记忆对视频流的全部影响就通过这一项注入。残差设计意味着：快权重清零时模型精确退回预训练行为</dd>
+            <dt>$\mathbf{x}^{(\ell+1)} = \hat{\mathbf{x}}^{(\ell+1)}$</dt>
+            <dd>动作 token <strong>不加任何修正</strong>——动作专家的输出只通过后续 block 的联合注意力间接感受到视频侧的变化</dd>
+          </dl>
+        </div>
+
+        <div class="math-block">
+          $$\Delta\mathbf{z}_{\mathrm{TTT}}^{(\ell)} = \theta_O^{(\ell)}\, f_{W^{(\ell)}}\!\left(\theta_Q^{(\ell)}(\mathbf{z}^{(\ell)})\right)$$
+          <span class="math-label">Eq. 2 · p.4 · 记忆读出：Query 进、Value 出</span>
+        </div>
+        <div class="math-explain">
+          <div class="me-title">逐项拆解</div>
+          <dl>
+            <dt>$\theta_Q^{(\ell)}(\mathbf{z}^{(\ell)})$</dt>
+            <dd>当前视频 token 经慢投影变成 <strong>Query</strong>——"我现在看到这个画面，记忆里有什么相关的？"</dd>
+            <dt>$f_{W^{(\ell)}}(\cdot)$</dt>
+            <dd><strong>快权重 MLP</strong>：被训练成"给 Key 返回 Value"的参数化记忆。查询它 ≈ 在人类演示的 K/V 集合上做一次 attention 读出（附录 A 给了线性情形的精确等价证明）</dd>
+            <dt>$\theta_O^{(\ell)}$</dt>
+            <dd>输出慢投影：把读出的 $d{=}48$ 维记忆值映射回 LDA 隐层维度（1536），作为残差加回</dd>
+          </dl>
+        </div>
+
+        <div class="callout blue">
+          <div class="callout-label">类比 · 参数化的 KV cache</div>
+          <p>
+            正常 cross-attention 要把人类视频的所有 K/V 存成显式缓存——演示越长缓存越大，每次测试时更新还要重算。TTT 层把整个 K/V 集合<strong>"压缩"成一个小 MLP 的权重</strong>：写入 = 几步 SGD（让 $f_W(K)\approx V$），读出 = 一次前向。附录 A 的关键结果：线性情形下最优解 $W^* = V_h^\top K_h(K_h^\top K_h)^{-1}$，读出 $f_{W^*}(Q_r) \propto \sum_i (k_i^\top Q_r)\,v_i$——<strong>正是 softmax-free 的线性注意力</strong>。所以记忆重建 loss 不是随手加的正则，它是"这块内存要表现得像 cross-attention"的变分定义。
+          </p>
+        </div>
+
+        <div class="quiz"
+             data-correct="d"
+             data-explain="正确。TTT 层只挂在视频专家上（Eq.1 显式写了动作流 x 原样通过）。原因有二：① 部署时的人类视频没有动作标签，只能监督视频流——记忆必须放在自监督信号够得着的地方（§3.1 + 附录 A 'this places test-time human-video adaptation entirely on the video side'）；② 动作专家不动 = 动作先验零损伤，域漂移改不了策略本身（E.3）。"
+             data-explain-wrong="想想部署时手里只有什么：无标注 RGB 视频。它能提供的唯一监督是'预测下一帧'——这个信号只能流进视频侧。">
+          <div class="q-label">🧠 理解检查</div>
+          <div class="q-text">TTT 快权重为什么只挂在视频专家、不挂在动作专家上？</div>
+          <div class="q-options">
+            <button class="q-opt" data-k="a">动作专家参数太少，挂了也没用</button>
+            <button class="q-opt" data-k="b">动作 token 维度和 TTT 层不兼容</button>
+            <button class="q-opt" data-k="c">纯粹为了省显存</button>
+            <button class="q-opt" data-k="d">部署时只有无动作标签的人类视频，自监督信号只能落在视频流；且不动动作专家可保全动作先验</button>
+          </div>
+          <div class="q-feedback"></div>
+        </div>
+      </div>
+
+      <!-- ============ §04 ============ -->
+      <div class="section" id="meta">
+        <div class="section-num">§ 04</div>
+        <h2>Meta-training：先彩排一遍"写记忆"，教会读写头听懂人话</h2>
+
+        <div class="cn-read">
+          <div class="cn-label">这一节解决什么</div>
+          <p>
+            §03 装好了内存条（快权重）和读写头（慢投影），但两个致命问题还没答：<strong>① 视频侧的记忆凭什么对动作生成有用？② 人和机器人视角、形态差那么多，机器人的 Query 凭什么能"读懂"人类的 Key/Value？</strong>答案是一场彩排——<span class="term" data-en="meta-training">元训练</span>：拿 2,286 对"同一任务、人做一遍 + 机器人做一遍"的数据，<strong>内环</strong>模拟部署（在人类视频上做几步 SGD 写记忆），<strong>外环</strong>用机器人侧的真实任务 loss 评分，并把梯度<strong>穿透内环</strong>传回慢参数。直白说：外环在优化的不是"模型现在多好"，而是<strong>"模型看完人类演示、写完记忆之后有多好"</strong>——这正是 meta-learning 的定义。
+          </p>
+        </div>
+
+        <h3>第一步：人机数据怎么"对上表"</h3>
+        <p>
+          人做一遍 8 秒、机器人做一遍 40 秒，帧怎么配对？按<strong>归一化相位</strong>：机器人第 $t$ 帧的相位 $\phi = t/T_r$，去人类视频里取相位最近的帧（§3.2, p.5）。假设是两边的<strong>任务阶段分布相同</strong>（都是"伸手→抓→移→放"的同一节奏）——这也是论文自认的第一条局限：配对错位会直接污染对齐信号。
+        </p>
+
+        <h3>第二步：记忆重建 loss——"写入"的定义</h3>
+
+        <div class="math-block">
+          $$\mathcal{L}_{\mathrm{KVM}}^{(\ell)}(W_i) = \frac{1}{BL_h d}\left\| f_{W_i^{(\ell)}}\!\big(\mathbf{K}_h^{(\ell)}\big) - \mathbf{V}_h^{(\ell)} \right\|_2^2$$
+          <span class="math-label">Eq. 3 · p.4 · Key–Value 记忆重建损失</span>
+        </div>
+        <div class="math-explain">
+          <div class="me-title">逐项拆解</div>
+          <dl>
+            <dt>$\mathbf{K}_h^{(\ell)} = \theta_K^{(\ell)}(\mathbf{h}_\phi^{(\ell)})$，$\mathbf{V}_h^{(\ell)} = \theta_V^{(\ell)}(\mathbf{h}_\phi^{(\ell)})$</dt>
+            <dd>相位同步的<strong>人类帧</strong> token 经慢投影得到的 Key 和 Value——要写进记忆的内容</dd>
+            <dt>$f_{W_i}(\mathbf{K}_h) \approx \mathbf{V}_h$</dt>
+            <dd>快权重的本职工作：<strong>看到人类 Key，还原对应 Value</strong>。这就是"记住了"的可操作定义——附录 A 证明线性情形下它的最优解精确等价于对人类 K/V 做线性 cross-attention</dd>
+            <dt>$\frac{1}{BL_hd}$</dt>
+            <dd>按 batch × 序列长 × 维度归一化成逐元素 MSE——loss 量级不随演示长度变化</dd>
+          </dl>
+        </div>
+
+        <h3>第三步：内环写记忆（模拟部署）</h3>
+
+        <div class="math-block">
+          $$\mathcal{L}_{\mathrm{adapt}}(W_i) = \mathcal{L}_{\mathrm{vg}}^{\mathrm{human}}\big(\mathbf{u}_h;\, \Theta_{\mathrm{WAM}}, \theta_{\mathrm{TTT}}, W_i\big) + \lambda \sum_\ell \mathcal{L}_{\mathrm{KVM}}^{(\ell)}(W_i)$$
+          <span class="math-label">Eq. 4 · p.4 · 内环目标 = 人类视频预测 + 记忆重建（只依赖无动作的人类侧！）</span>
+        </div>
+        <div class="math-block">
+          $$W_{i+1}^{(\ell)} = W_i^{(\ell)} - \eta\, \nabla_{W_i^{(\ell)}} \mathcal{L}_{\mathrm{adapt}}(W_i)$$
+          <span class="math-label">Eq. 5 · p.4 · 内环 SGD：从 W_init 出发更新快权重</span>
+        </div>
+        <div class="math-explain">
+          <div class="me-title">逐项拆解</div>
+          <dl>
+            <dt>$\mathcal{L}_{\mathrm{vg}}^{\mathrm{human}}(\mathbf{u}_h; \cdots)$</dt>
+            <dd>标准 LDA <strong>视频预测（生成）loss</strong>，作用在人类视频片段 $\mathbf{u}_h$ 上——因为 TTT 残差在每个 block 改写视频流，这个 loss 对 $W$ 有梯度</dd>
+            <dt>$\lambda$</dt>
+            <dd>记忆重建项的权重（$4\times10^{-2}$，Table B.1）——视频预测是主信号，KVM 是结构化的"写入格式"约束</dd>
+            <dt>$\eta$</dt>
+            <dd>内环学习率：meta-training 时 0.1、测试时 0.01</dd>
+            <dt>关键性质</dt>
+            <dd>两项 loss <strong>都只依赖人类侧</strong>——不需要机器人动作。所以同一套内环在部署时可以原封不动地跑（§3.2 末, p.4）</dd>
+          </dl>
+        </div>
+
+        <h3>第四步：外环评分（穿透内环的反向传播）</h3>
+
+        <div class="math-block">
+          $$\mathcal{L}_{\mathrm{meta}} = \mathcal{L}_{\mathrm{WAM}}^{\mathrm{robot}}$$
+          <span class="math-label">Eq. 6 · p.5 · 外环目标：写完记忆后，机器人侧的标准 WAM 多任务 loss</span>
+        </div>
+        <div class="math-explain">
+          <div class="me-title">逐项拆解</div>
+          <dl>
+            <dt>$\mathcal{L}_{\mathrm{WAM}}^{\mathrm{robot}}$</dt>
+            <dd>LDA 原版多任务 loss = 机器人视频 latent 的扩散目标 + 机器人动作块的扩散目标——<strong>动作质量在这里被考核</strong></dd>
+            <dt>梯度流向</dt>
+            <dd>反向传播<strong>穿过 TTT 残差和整个内环更新</strong>（Spatial-TTT 式的可微内环），更新三样慢参数：WAM 主干 $\Theta_{\mathrm{WAM}}$、TTT 慢投影 $\theta_{\{K,V,Q,O\}}$、快权重初始化 $W_{\mathrm{init}}$</dd>
+            <dt>用完即弃</dt>
+            <dd>每个训练样本适配出的快权重 $W_N$ <strong>用完就丢</strong>，下个样本从 $W_{\mathrm{init}}$ 重新写——保证学到的是"通用的写入-读出协议"，不是某段演示的死记</dd>
+          </dl>
+        </div>
+
+        <div class="callout blue">
+          <div class="callout-label">类比 · 教练改的是训练菜单，不是比赛动作</div>
+          <p>
+            内环 = 学员赛前热身（看人类演示、快速把要点记在小本上）；外环 = 教练看学员<strong>热身后的比赛成绩</strong>（机器人任务 loss），回头修改的是<strong>热身流程本身</strong>（慢投影怎么提 Key/Value/Query、小本的初始格式 W_init）。练一万次之后，学员拿到任何新演示，按这套流程记一遍笔记，上场就能用——尽管演示者（人）和上场者（机器人）根本不是同一副身体。
+          </p>
+        </div>
+
+        <div class="quiz"
+             data-correct="b"
+             data-explain="正确。外环 loss 是机器人侧的标准 WAM 多任务 loss（视频扩散 + 动作扩散，Eq.6），它优化慢参数（WAM 主干、TTT 慢投影、W_init），且梯度要穿透整个内环更新。这样慢参数被训练成'内环在人类视频上写完记忆后，机器人侧表现最好'——人类 K/V 与机器人 Q 的对齐正是这么学出来的。内环（Eq.4）才是只用人类侧信号的那个。"
+             data-explain-wrong="分清内外环：内环 = 人类侧自监督（视频预测 + KVM），更新快权重；外环 = 机器人侧任务 loss，更新慢参数并穿透内环。'对齐'发生在外环。">
+          <div class="q-label">🧠 理解检查</div>
+          <div class="q-text">meta-training 的外环 loss 用的是什么信号、优化的是哪些参数？</div>
+          <div class="q-options">
+            <button class="q-opt" data-k="a">人类视频预测 loss，优化快权重 W</button>
+            <button class="q-opt" data-k="b">机器人侧的视频+动作扩散 loss，穿透内环优化 WAM、慢投影和 W_init</button>
+            <button class="q-opt" data-k="c">记忆重建 loss L_KVM，优化慢投影</button>
+            <button class="q-opt" data-k="d">人机对比学习 loss，优化整个模型</button>
+          </div>
+          <div class="q-feedback"></div>
+        </div>
+      </div>
+
+      <!-- ============ §05 ============ -->
+      <div class="section" id="deploy">
+        <div class="section-num">§ 05</div>
+        <h2>部署：和彩排一模一样，只是这次全场冻结、只写记忆</h2>
+
+        <div class="cn-read">
+          <div class="cn-label">这一节解决什么</div>
+          <p>
+            §04 的彩排结束，现在正式上场。部署协议的美感在于<strong>和 meta-training 的内环完全同构</strong>：同样的目标函数、同样的 SGD 形式、同样的步数预算——唯一的区别是这次<strong>没有外环</strong>：WAM、慢投影、W_init 全部冻结，只有快权重在动。训练怎么彩排的，部署就怎么演——没有 train-test 协议错位。
+          </p>
+        </div>
+
+        <div class="math-block">
+          $$\mathcal{L}_{\mathrm{TTT}}(W_i) = \frac{1}{|\mathcal{B}_h|}\sum_{\mathbf{u}\in\mathcal{B}_h}\left[ \mathcal{L}_{\mathrm{vg}}(\mathbf{u};\, \Theta_{\mathrm{WAM}}, \theta_{\mathrm{TTT}}, W_i) + \lambda\sum_\ell \mathcal{L}_{\mathrm{KVM}}^{(\ell)}(\mathbf{u};\, W_i)\right]$$
+          <span class="math-label">Eq. 7 · p.5 · 测试时目标：对现场人类视频批 B_h 求平均，形式与 Eq.4 完全相同</span>
+        </div>
+        <div class="math-block">
+          $$W_{i+1}^{(\ell)} = W_i^{(\ell)} - \eta\,\nabla_{W_i^{(\ell)}}\mathcal{L}_{\mathrm{TTT}}(W_i) \qquad\Longrightarrow\qquad \mathbf{a}_{t:t+k} \sim p_{\Theta_{\mathrm{WAM}},\,\theta_{\mathrm{TTT}},\,W_N}\big(\mathbf{a}_{t:t+k} \mid \mathbf{o}_t,\, \mathbf{g}\big)$$
+          <span class="math-label">Eq. 8–9 · p.5 · 更新快权重到 W_N 后固定，正常 rollout 出动作块</span>
+        </div>
+        <div class="math-explain">
+          <div class="me-title">逐项拆解</div>
+          <dl>
+            <dt>$\mathcal{B}_h$</dt>
+            <dd>部署现场录的<strong>一小批无标注人类视频</strong>——测试时唯一的新信息源</dd>
+            <dt>冻结清单</dt>
+            <dd>$\Theta_{\mathrm{WAM}}$（主干+动作专家）、$\theta_{\mathrm{TTT}}$（慢投影）、$W_{\mathrm{init}}$——<strong>全部不动</strong>；只有 $W$ 按 Eq.8 更新</dd>
+            <dt>$W_N$ 固定后 rollout</dt>
+            <dd>适配完成的快权重在整个任务执行期间<strong>保持固定</strong>（Eq.9）——执行时零额外开销，且同一份 $W_N$ 可以复用于同任务的多次 rollout（reusable steering）</dd>
+          </dl>
+        </div>
+
+        <div class="callout amber">
+          <div class="callout-label">细节 · 记忆写入只有 N = 1 步梯度</div>
+          <p>
+            超参表（Table B.1, p.16）里最扎眼的一行：<strong>内环 SGD 迭代数 N = 1</strong>（meta-training 和测试时相同），测试时内环学习率 0.01。也就是说"把演示写进记忆"就是<strong>一步梯度</strong>——不是漫长的在线微调。这可行的原因正是 meta-training：W_init 和慢投影被训练得"一步就能写好"。整个适配的成本 ≈ 在人类视频批上做一次前向 + 一次反向。
+          </p>
+        </div>
+
+        <h3>训练开销一览（Table B.1）</h3>
+        <table class="kv-table">
+          <tr><td>WAM 底座</td><td>LDA（Qwen3-VL-4B-Instruct VLM + DiT-L MMDiT 动作头），16 blocks · 隐层 1536 · 32 heads</td></tr>
+          <tr><td>TTT 层规模</td><td>head 维度 48 · 快权重 MLP 隐层 128——相对 1B+ 的底座是<strong>零头级</strong>的可写区</td></tr>
+          <tr><td>内环</td><td>N=1 步 SGD · η = 0.1（meta）/ 0.01（test）· λ = 4×10⁻²</td></tr>
+          <tr><td>外环</td><td>AdamW · LR 1×10⁻⁴（动作头）/ 1×10⁻⁵（VLM 接口）· 100k 步 · 全局 batch 128</td></tr>
+          <tr><td>硬件</td><td>8× NVIDIA H800 · DeepSpeed ZeRO-2</td></tr>
+        </table>
+
+        <div class="quiz"
+             data-correct="c"
+             data-explain="正确。Table B.1：内环 SGD 迭代 N=1，meta-training 和测试时一致。一步就够的原因是 meta-training 把 W_init 和慢投影优化成'一步梯度即可完成有效写入'——这正是 MAML 式 meta-learning 的经典效应：学的不是任务本身，是'快速学会任务的初始化'。"
+             data-explain-wrong="直觉上会以为要几百步微调，但查 Table B.1：N=1。这就是 meta-training 买来的东西——写入速度本身被优化过了。">
+          <div class="q-label">🧠 理解检查</div>
+          <div class="q-text">部署时把一段人类演示"写进"快权重记忆，需要多少步梯度更新？</div>
+          <div class="q-options">
+            <button class="q-opt" data-k="a">约 100 步在线 SGD</button>
+            <button class="q-opt" data-k="b">40k 步微调（同任务微调预算）</button>
+            <button class="q-opt" data-k="c">1 步——meta-training 已把初始化和投影优化成"一步写入"</button>
+            <button class="q-opt" data-k="d">0 步——直接把视频特征拼进上下文</button>
+          </div>
+          <div class="q-feedback"></div>
+        </div>
+      </div>
+
+      <!-- ============ §06 ============ -->
+      <div class="section" id="experiments">
+        <div class="section-num">§ 06</div>
+        <h2>实验：3 副身体、9 个任务、两种场景的验收</h2>
+
+        <div class="cn-read">
+          <div class="cn-label">这一节解决什么</div>
+          <p>
+            方法讲完，验收两个主张：<strong>① 人类视频当记忆，比当训练数据 / 当上下文都好；② 好处能扛住真实场景漂移</strong>。评测设计里最关键的一对是 <strong>Orig vs New</strong>：Orig 在采集机器人数据的标准化 cubicle 里测（域内），New 把机器人搬进<strong>从未见过的家庭场景</strong>——灯光、桌高、物体实例同时全变（联合 OOD）。而人类演示视频本来就是在家庭场景录的，这让 New 设置正好考"从人类视频里取用现场知识"的能力。指标是 progress（部分得分制：每任务拆成加权里程碑，附录 D 给了全部 rubric），每格 25 次试验。
+          </p>
+        </div>
+
+        <div class="fig-interactive panel-below">
+          <div class="fig-block">
+            <div class="hotspot-wrap" data-hotspot-group="fig3">
+              <img src="../assets/figures/wam-ttt/fig-3.png" alt="Figure 3: Experimental setup — three embodiments">
+              <div class="hotspot" data-id="gripper" style="left:20%; top:45%;"
+                   data-title="Galbot G1 · 双臂二指夹爪"
+                   data-body="轮式双臂 + 平行二指夹爪。负责 Transfer Bottle 和 Stamp Paper（544 对数据）。注意它是三副身体里末端和人手差异最大的——夹爪连'手指'都没有，人类视频照样能 steer 它。"></div>
+              <div class="hotspot" data-id="unitree" style="left:42%; top:45%;"
+                   data-title="Unitree G1-Edu · 三指 Dex-3 手 + Zed Mini"
+                   data-body="人形 G1 配三指灵巧手，头戴 Zed Mini 相机。负责 Table Bussing / Pour Water / Deliver Drink（600 对数据）。"></div>
+              <div class="hotspot" data-id="human" style="left:63%; top:45%;"
+                   data-title="人类演示者 · 只有一台 GoPro"
+                   data-body="人类侧的全部装备：头戴 GoPro 拍第一视角。没有动捕、没有手套、没有 tracker——对比 Ψ₀ 遥操作那身行头（头显+手套+腰脚 tracker），这就是'演示门槛'的量级差异：任何人在任何场景做一遍就行。"></div>
+              <div class="hotspot" data-id="sharpa" style="left:85%; top:45%;"
+                   data-title="Galbot G1 + Sharpa Wave 灵巧手"
+                   data-body="每只手 22-DoF（双手 58 维动作）的高自由度灵巧手版本。负责最难的四个任务：Swap Place / Pyramid Stacking / Flip Steak / Multi-step Steak（1,142 对数据）。"></div>
+            </div>
+            <div class="fig-cap">
+              <span class="fig-num">Fig 3 · p.6</span>
+              Experimental setup.
+              <span class="fig-cn">三副身体 + 一个人：二指夹爪、三指 Dex-3、22-DoF Sharpa 灵巧手——同一套 WAM-TTT 协议横跨三种末端执行器；人类侧只需一台 GoPro。</span>
+            </div>
+          </div>
+          <div class="hotspot-panel"></div>
+        </div>
+
+        <h3>主结果（New · 未见家庭场景 · Table 1 重建）</h3>
+        <table class="kv-table">
+          <tr><th>方法</th><th>人类视频用法</th><th>9 任务平均 progress</th><th>vs WAM-TTT</th></tr>
+          <tr><td>π₀.₅</td><td>不用（VLA 基线）</td><td class="w">14.8</td><td class="bad">−31.4</td></tr>
+          <tr><td>LDA（骨干）</td><td>不用</td><td class="w">32.5</td><td class="bad">−13.7</td></tr>
+          <tr><td>EgoScale</td><td>预训练语料</td><td class="w">15.0</td><td class="bad">−31.2</td></tr>
+          <tr><td>WAM-Cotrain</td><td>co-training 数据</td><td class="w">25.3</td><td class="bad">−20.9</td></tr>
+          <tr><td>WAM-ICL</td><td>上下文 token</td><td class="w">7.1</td><td class="bad">−39.1</td></tr>
+          <tr><td><strong>WAM-TTT</strong></td><td><strong>测试时快权重记忆</strong></td><td class="win">46.2</td><td class="win">9 任务赢 7 平 1</td></tr>
+        </table>
+
+        <p>
+          唯一输掉的任务是 <em>Stamp Paper</em>（8.3 vs LDA 33.3）：盖章位姿在几何上极紧，家庭场景的扰动破坏了一种人类视频<strong>肉眼看不出、也就纠正不了</strong>的对齐——诚实地标出了"看演示"这个接口的信息上限（§4.2, p.7）。
+        </p>
+
+        <details class="en-quote">
+          <summary>展开原文 · 对设计假设最强的一条证据</summary>
+          <div class="quote-body">
+            <p>"The gap against WAM-ICL is the strongest piece of evidence for the design hypothesis: feeding the same human videos as in-context tokens fails to transfer skill to unseen home environments, whereas absorbing them as fast-weight memory does."</p>
+            <div class="quote-cite">— §4.2, p.7</div>
+          </div>
+        </details>
+
+        <h3>Orig → New：谁的人类数据红利能扛住场景漂移</h3>
+        <table class="kv-table">
+          <tr><th>方法</th><th>Orig（域内）</th><th>New（家庭）</th><th>留存率 New/Orig</th></tr>
+          <tr><td><strong>WAM-TTT</strong></td><td class="win">61.1</td><td class="win">46.2</td><td class="win">0.76</td></tr>
+          <tr><td>WAM-Cotrain</td><td class="bad">29.8（被人类数据拖垮）</td><td class="w">25.3</td><td class="w">0.85*</td></tr>
+          <tr><td>LDA</td><td class="w">50.2</td><td class="w">32.5</td><td class="w">0.65</td></tr>
+          <tr><td>EgoScale</td><td class="w">30.1</td><td class="w">15.0</td><td class="w">0.50</td></tr>
+          <tr><td>π₀.₅</td><td class="w">31.8</td><td class="w">14.8</td><td class="w">0.47</td></tr>
+          <tr><td>WAM-ICL</td><td class="w">48.4</td><td class="bad">7.1</td><td class="bad">0.15（灾难性崩塌）</td></tr>
+        </table>
+        <p>
+          三个读数（附录 C, p.17-18）：<strong>① WAM-ICL 的 0.15 是全文最响的警钟</strong>——把人类视频摆在上下文里，场景统计一变直接崩；<strong>② WAM-Cotrain 的 0.85* 是假象</strong>——起点（29.8）已经被 co-training 拖到比不用人类数据还低，"留存率高"只因没什么可失去的；<strong>③ WAM-TTT 唯一做到"域内最高 + 留存最高"</strong>——快权重只改人→机记忆，LDA 的预训练视觉推理原样保留。
+          </p>
+
+        <div class="fig-interactive panel-below">
+          <div class="fig-block">
+            <div class="hotspot-wrap" data-hotspot-group="fig4">
+              <img src="../assets/figures/wam-ttt/fig-4.png" alt="Figure 4: Qualitative rollouts">
+            </div>
+            <div class="fig-cap">
+              <span class="fig-num">Fig 4 · p.6</span>
+              Qualitative rollouts. For each unseen task we show a robot rollout filmstrip (right) and the paired human demonstration used as deployment-time Key/Value (left).
+              <span class="fig-cn">左列 = 部署时当 Key/Value 用的人类演示；右侧 = 机器人执行帧带。四行分别是超市取瓶、白板书写、叠杯、翻牛排——注意人类和机器人身处同一场景但身体完全不同。</span>
+            </div>
+          </div>
+        </div>
+
+        <div class="quiz"
+             data-correct="d"
+             data-explain="正确。附录 C 的分析点名了这个反直觉结果：WAM-Cotrain 在域内 Orig 只有 29.8，低于完全不用人类数据的 LDA（50.2）——'简单地用人类数据稀释机器人监督、又没有显式人机对齐机制，会主动伤害域内性能'。这是'人类数据必须用对地方'的最硬证据：同一批人类数据，co-train 是毒药，当测试时记忆是补药（61.1）。"
+             data-explain-wrong="查 Orig 列：LDA 50.2 vs WAM-Cotrain 29.8——加了人类数据反而掉了 20 分。co-training 稀释了机器人监督。">
+          <div class="q-label">🧠 理解检查</div>
+          <div class="q-text">同一批成对人类数据，用 co-training 方式混进外环训练（WAM-Cotrain），在域内 Orig 设置下发生了什么？</div>
+          <div class="q-options">
+            <button class="q-opt" data-k="a">比 LDA 骨干略好，比 WAM-TTT 略差</button>
+            <button class="q-opt" data-k="b">和 LDA 基本持平——人类数据没起作用</button>
+            <button class="q-opt" data-k="c">域内最好，但换场景就崩</button>
+            <button class="q-opt" data-k="d">反而比不用人类数据的 LDA 掉了约 20 分——稀释了机器人监督</button>
+          </div>
+          <div class="q-feedback"></div>
+        </div>
+      </div>
+
+      <!-- ============ §07 ============ -->
+      <div class="section" id="ablations">
+        <div class="section-num">§ 07</div>
+        <h2>消融：五个反事实，把每个设计钉死</h2>
+
+        <div class="cn-read">
+          <div class="cn-label">这一节解决什么</div>
+          <p>
+            主结果证明了"记忆路线"赢，但赢的到底是哪个零件？这一节按"如果不这样做会怎样"过五个反事实：不用 TTT 结构（换 LoRA）、不做 meta-training、不加记忆重建 loss、改变人机数据配比、给人类视频强加伪动作。每一个都对应一条曾经的"看似合理的替代方案"。
+          </p>
+        </div>
+
+        <h3>反事实 ① ~ ③：协议消融（Table 2 · Table Bussing / Swap Place）</h3>
+        <table class="kv-table">
+          <tr><th>变体</th><th>Table Bussing</th><th>Swap Place</th><th>说明</th></tr>
+          <tr><td><strong>WAM-TTT（完整）</strong></td><td class="win">100.0</td><td class="win">88.9</td><td>—</td></tr>
+          <tr><td>WAM-LoRA（换成 LoRA 适配）</td><td class="w">30.0</td><td class="bad">0.0</td><td>同样测试时更新参数，但用通用低秩适配替代 TTT 记忆结构——<strong>提升不是"随便调点参数"就有的</strong>，结构必须是被 meta 校准过的 K/V 记忆</td></tr>
+          <tr><td>w/o Meta-Training</td><td class="bad">9.0</td><td class="bad">0.0</td><td>跳过彩排直接测试时写记忆——接近全灭。<strong>没校准的读写头，机器人 Query 读不懂人类 K/V</strong></td></tr>
+          <tr><td>w/o Memory Recon.</td><td class="w">66.7</td><td class="w">72.0</td><td>去掉 L_KVM、只留视频预测——还能用但掉一截：结构化的"写入格式"约束有真实贡献</td></tr>
+          <tr><td>w/o TTT（冻结 WAM 裸测）</td><td class="w">40.0</td><td class="w">74.1</td><td>完全不看人类视频的下限——量出"看演示"本身值多少分</td></tr>
+        </table>
+
+        <h3>反事实 ④：数据配比——人类数据能 1:1 顶替机器人数据（E.4）</h3>
+        <table class="kv-table">
+          <tr><th>(机器人, 人类) / 任务</th><th>3 任务平均</th><th>读数</th></tr>
+          <tr><td>(100, 0)</td><td class="w">59.5</td><td>无人类数据基线</td></tr>
+          <tr><td>(10, 190)</td><td class="w">51.4</td><td>机器人数据砍到 10 条 → 掉——<strong>人类数据是替代品不是免费午餐</strong>，动作接地必须有底线</td></tr>
+          <tr><td><strong>(100, 100) 部署配置</strong></td><td class="win">74.1</td><td>加 100 条人类演示 = +14.6 分，而人类演示几乎零成本</td></tr>
+          <tr><td>(200, 0)</td><td class="w">73.7</td><td>同预算全换机器人数据 ≈ 持平 (100,100)——<strong>1 条人类演示 ≈ 1 条遥操作演示</strong>，但成本差一个量级</td></tr>
+          <tr><td>(100, 200)</td><td class="w">73.3</td><td>人类侧继续加量已饱和</td></tr>
+        </table>
+
+        <h3>反事实 ⑤：给人类视频强加伪动作 → 均匀变差（E.6）</h3>
+        <p>
+          把"要不要重定向"做成了实验：用 MediaPipe + MANO + EgoScale 式重定向器给每帧人类视频造出伪动作 $\tilde{a}^{human}$，再加一条 DINOv3 特征空间的前向动力学 loss。结果 4 任务平均 <strong>72.3 → 28.9（−43.4）</strong>，在二指夹爪上最惨（−41.4）——MANO 姿态里根本没有"开/合"信号，得手工造，噪声层层放大。结论支持全文的 action-free 设计：<strong>在当前单目手部跟踪成熟度下，往人类侧注入重定向伪动作是净负收益</strong>（p.28）。
+        </p>
+
+        <h3>泛化保持：适配了，但没把模型"带偏"（Fig.5 + Table 3）</h3>
+
+        <div class="fig-interactive panel-below">
+          <div class="fig-block">
+            <div class="hotspot-wrap" data-hotspot-group="fig5">
+              <img src="../assets/figures/wam-ttt/fig-5.png" alt="Figure 5: Generalization Setup">
+            </div>
+            <div class="fig-cap">
+              <span class="fig-num">Fig 5 · p.8</span>
+              Generalization Setup.
+              <span class="fig-cn">三种扰动：桌高垫高（左）、迪厅式彩色打光（中）、换机器人本体外观（右）——都是先用目标任务的人类视频适配完，再上扰动测的。</span>
+            </div>
+          </div>
+        </div>
+        <table class="kv-table">
+          <tr><th>Deliver Drink · 扰动</th><th>π₀.₅</th><th>LDA</th><th>WAM-ICL</th><th>WAM-TTT</th></tr>
+          <tr><td>灯光扰动</td><td class="w">28.0</td><td class="w">54.0</td><td class="bad">12.0</td><td class="win">66.0</td></tr>
+          <tr><td>空间位置扰动</td><td class="bad">0.0</td><td class="w">28.0</td><td class="w">20.0</td><td class="win">56.0</td></tr>
+        </table>
+        <p>
+          担心"看一段演示会过拟合到那条轨迹"？扰动测试说没有：适配后的 WAM-TTT 在灯光/空间扰动下依然全场最高——<strong>TTT 记忆做的是任务级适配，不是死记那段视频</strong>；被冻结的动作先验保住了基础模型原有的鲁棒性（§4.4, p.7-8）。附录 E.2 更极端：不给任何现场人类视频、直接把 meta-training 后的模型丢进全新实验室场景，行为依然可用——慢投影本身也学到了可迁移的东西。
+        </p>
+
+        <div class="quiz"
+             data-correct="a"
+             data-explain="正确。Table 2：w/o Meta-Training 是最惨的变体（9.0 / 0.0），比换 LoRA（30/0）、去 KVM（66.7/72）都低。原因：没有彩排，TTT 支路从未被训练成'人类 K/V ↔ 机器人 Q'的翻译接口，测试时写进去的记忆机器人根本读不懂。这说明 WAM-TTT 的核心资产不是 TTT 结构本身，而是 meta-training 校准出的那套读写协议。"
+             data-explain-wrong="对比 Table 2 各列：w/o Meta Training 是 9.0/0.0——比所有其他变体都低。'彩排'是整个系统的地基。">
+          <div class="q-label">🧠 理解检查</div>
+          <div class="q-text">协议消融里伤害最大的是去掉哪个组件？</div>
+          <div class="q-options">
+            <button class="q-opt" data-k="a">Meta-training——没校准的记忆接口，机器人读不懂人类 K/V</button>
+            <button class="q-opt" data-k="b">记忆重建 loss——没有它记忆完全失效</button>
+            <button class="q-opt" data-k="c">TTT 快权重——换成 LoRA 完全等效</button>
+            <button class="q-opt" data-k="d">视频预测 loss——KVM 一项就够</button>
+          </div>
+          <div class="q-feedback"></div>
+        </div>
+      </div>
+
+      <!-- ============ §08 ============ -->
+      <div class="section" id="connections">
+        <div class="section-num">§ 08</div>
+        <h2>与已读论文的联系 + 批判</h2>
+
+        <div class="cn-read">
+          <div class="cn-label">这一节解决什么</div>
+          <p>
+            把 WAM-TTT 放回地图。它引用列表里全是我们读过的老朋友：LDA 是它的底座，<strong>Fast-WAM、DiT4DiT、Cosmos 3、π₀.₇</strong> 都在 Related Work 里；和 <strong>Ψ₀</strong> 则构成"人类视频三种用法"最工整的对照。最后给几条保留意见。
+          </p>
+        </div>
+
+        <h3>人类视频的三种用法：一张对照表收全</h3>
+        <table class="kv-table">
+          <tr><th>维度</th><th>Ψ₀（上一篇）</th><th>EgoVLA / EgoScale 系</th><th>WAM-TTT（本篇）</th></tr>
+          <tr><td>人类视频进哪个阶段</td><td><strong>预训练</strong>（独占，800h）</td><td>预训练 / co-training</td><td><strong>部署时</strong>（每任务一小批）</td></tr>
+          <tr><td>视频被当成</td><td>动作先验 + 视觉表征的来源</td><td>训练数据（常配姿态/重定向）</td><td>测试时记忆（快权重）</td></tr>
+          <tr><td>要不要动作化</td><td>要——48 维任务空间单步动作（FAST token）</td><td>要——IK / 重定向 / 伪动作</td><td><strong>不要</strong>——纯视频预测吸收</td></tr>
+          <tr><td>换新任务变体的成本</td><td>80 条遥操作演示 + 40k 步微调</td><td>重新微调</td><td><strong>录一段人类视频 + 1 步梯度</strong></td></tr>
+          <tr><td>互补性</td><td colspan="3">正交可叠加：Ψ₀ 管"预训练学到强底座"，WAM-TTT 管"部署后低成本转向"——一个理想系统两个都要</td></tr>
+        </table>
+
+        <div class="callout purple">
+          <div class="callout-label">对应已读 WAM 系 · 谱系位置</div>
+          <p>
+            <strong>LDA</strong> 是本文底座（同为 Galbot/北大团队；Qwen3-VL-4B + MMDiT——和 Ψ₀ 的 Qwen3-VL-2B + MM-DiT 是同一技术堆栈的不同尺寸）。我们读过的实时 WAM 三部曲在它的 Related Work 里各就各位：<strong>DiT4DiT</strong>（video+action 联合建模）、<strong>Fast-WAM</strong>（"WAM 需要测试时未来想象吗"）、<strong>Cosmos 3</strong>（omnimodal）。注意区分两个"测试时"：<strong>τ₀-WM 的 TTC</strong> 是测试时<em>计算</em>（多算几条 rollout 挑最好），<strong>WAM-TTT</strong> 是测试时<em>训练</em>（梯度写权重）——前者花算力换质量、参数不变；后者花一步梯度换新技能、参数（快权重）改变。另外这套 TTT/fast-weight 记忆直接师承 LLM 侧的 <strong>TTT-RNN / Titans</strong>——"把上下文压进权重"的潮流正在从语言模型迁移到机器人。
+          </p>
+        </div>
+
+        <details class="en-quote">
+          <summary>展开原文 · Outlook：记忆接口可以泛化到任何模态</summary>
+          <div class="quote-body">
+            <p>"any auxiliary modality with a phase-pairable training signal could in principle drive a parallel fast-weight branch under the same loss-only-then-residual regime. We see WAM-TTT as a step toward WAM-based foundation model backbones whose attention structure carries explicit 'adaptation seats'."</p>
+            <div class="quote-cite">— Outlook, p.9</div>
+          </div>
+        </details>
+
+        <h3>批判与保留</h3>
+        <div class="callout red">
+          <div class="callout-label">五条保留意见</div>
+          <p>
+            <strong>① "零标注"不等于"零采集"</strong>：meta-training 需要 2,286 对<strong>成对</strong>人机演示——机器人侧照样是遥操作采的，人类侧还得去部署场景录。省的是标注和测试时的机器人数据，不是全部数据成本。<br>
+            <strong>② 相位对齐假设脆弱</strong>（论文自认 Limitation 1）：φ=t/T 线性配对假设人机执行同构同节奏；人中途犹豫、换顺序，对齐就错位，而且"loss 不会报警"。<br>
+            <strong>③ 适配边界没有刻画</strong>（Limitation 2）：部署任务离 meta-training 配对分布越远，快权重的表达力和冻结慢投影越成为瓶颈——论文承认没有实证刻画这个边界。9 个评测任务和 meta-training 是同一批任务分布（考的是场景/实例泛化，不是全新技能）。<br>
+            <strong>④ 生态封闭</strong>：底座（LDA）、机器人（Galbot ×2）、数据全部同一团队生态，第三方复现依赖其开源节奏；π₀.₅ 等外部基线是"客场作战"（同 Ψ₀ 的问题）。<br>
+            <strong>⑤ 和 loco-manipulation 关系不大</strong>：虽然用了 Unitree G1，但全部任务是桌面双臂操作，没有 locomotion 成分——归档到 WAM / 世界-动作模型方向比 Loco-Manipulation 更贴切。
+          </p>
+        </div>
+
+        <div class="callout">
+          <div class="callout-label">带走的三句话</div>
+          <p>
+            ① <strong>人类视频的价值取决于它被放进哪个阶段、以什么形式</strong>——co-train 是毒药（−20），上下文是玻璃（0.15 留存），快权重记忆是正解（+13.7 且 0.76 留存）。<br>
+            ② <strong>KVM loss 不是正则，是"当好一块 cross-attention 记忆"的变分定义</strong>——线性情形有闭式等价（附录 A），这是全文最漂亮的理论点。<br>
+            ③ <strong>meta-learning 买的是"一步写入"</strong>——N=1 步梯度完成技能吸收，因为"怎么快速学"本身被外环优化过了。
+          </p>
+        </div>
+
+        <div class="quiz"
+             data-correct="b"
+             data-explain="正确。τ₀-WM 的 TTC（test-time compute）：推理时多花算力（采样多条想象 rollout 再挑选），模型参数完全不变；WAM-TTT 的 TTT（test-time training）：推理前对新信号（人类视频）做梯度更新，把信息写进快权重——参数（的一小部分）真的变了。一个是'多想'，一个是'现学'。"
+             data-explain-wrong="两者都发生在'测试时'，但机制完全不同：TTC 不改任何参数（纯推理策略），TTT 用梯度改快权重（真正的学习）。">
+          <div class="q-label">🧠 理解检查</div>
+          <div class="q-text">τ₀-WM 的 TTC 和 WAM-TTT 的 TTT，本质区别是？</div>
+          <div class="q-options">
+            <button class="q-opt" data-k="a">TTC 用于视频生成，TTT 用于动作生成</button>
+            <button class="q-opt" data-k="b">TTC 是测试时多花算力挑结果、参数不变；TTT 是测试时做梯度更新、把新信息写进（快）权重</button>
+            <button class="q-opt" data-k="c">两者是同一技术的不同名字</button>
+            <button class="q-opt" data-k="d">TTC 需要人类视频，TTT 不需要</button>
+          </div>
+          <div class="q-feedback"></div>
+        </div>
+      </div>
+
+      <footer class="footer" style="padding:40px; text-align:center; color:var(--text3); font-size:13px;">
+        <a href="../index.html">← 返回首页</a>
+        &nbsp;·&nbsp;
+        <a href="https://arxiv.org/abs/2607.06988" target="_blank">arXiv:2607.06988</a>
+      </footer>
+    </main>
+  </div>
+</body>
+</html>

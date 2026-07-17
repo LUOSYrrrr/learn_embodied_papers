@@ -10,7 +10,10 @@
       "Bash(python3:*)",
       "Bash(pdftoppm:*)",
       "Bash(ls -la /Users/siyuanluo/STUDY/paper/learn_embodied_papers/assets/figures/openvla/fig-*.png)",
-      "Bash(find papers:*)"
+      "Bash(find papers:*)",
+      "WebSearch",
+      "Skill(zotero)",
+      "Skill(zotero:*)"
     ]
   }
 }

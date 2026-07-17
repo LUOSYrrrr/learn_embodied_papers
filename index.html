@@ -172,6 +172,7 @@
   <nav class="nav">
     <a class="nav-logo" href="index.html">Paper Notes</a>
     <div class="nav-links">
+      <a href="leaderboard/">论文榜单</a>
       <a href="https://github.com/LUOSYrrrr/learn_embodied_papers" target="_blank">GitHub</a>
       <a href="#about">关于</a>
     </div>
@@ -190,7 +191,7 @@
 
     <div class="intro-grid">
       <div class="intro-cell">
-        <div class="intro-cell-num">13</div>
+        <div class="intro-cell-num">33</div>
         <div class="intro-cell-label">已精读</div>
       </div>
       <div class="intro-cell">
@@ -198,7 +199,7 @@
         <div class="intro-cell-label">计划中</div>
       </div>
       <div class="intro-cell">
-        <div class="intro-cell-num">6</div>
+        <div class="intro-cell-num">7</div>
         <div class="intro-cell-label">覆盖方向</div>
       </div>
     </div>
@@ -209,6 +210,81 @@
       <span class="sh-hint">按更新时间排序</span>
     </div>
     <div class="recent-wrap">
+      <a class="recent-card" href="papers/wam-ttt.html">
+        <div class="recent-date">2026-07-16 · 刚完成</div>
+        <div class="recent-title">WAM-TTT · 测试时看人类演示，把技能写进快权重</div>
+        <div class="recent-sub">
+          北大 + Galbot（arXiv:2607.06988）：部署后 steering 新范式——人类视频不做重定向、不当上下文，
+          用自监督视频预测把它"写进"冻结 WAM 里的 TTT 快权重（1 步梯度）。meta-training 用 2286 对人机数据校准"人类 K/V ↔ 机器人 Q"读出接口。
+          3 本体 9 任务：46.2% vs ICL 7.1%；域内最高 + 场景漂移留存率最高（0.76）。含 co-training 反噬、伪动作 −43 分等硬核消融。
+        </div>
+        <div class="recent-tags">
+          <span class="status-badge status-done">✓ 已精读</span>
+          <span class="card-pill">北大 · Galbot · 2026</span>
+          <span class="card-pill">Test-Time Training · 快权重</span>
+        </div>
+      </a>
+
+      <a class="recent-card" href="papers/psi0.html">
+        <div class="recent-date">2026-07-16 · 刚完成</div>
+        <div class="recent-title">Ψ₀ · 通用人形 Loco-Manipulation 的开放基础模型</div>
+        <div class="recent-sub">
+          USC PSI Lab + NVIDIA（arXiv:2603.12263）：反 co-training 主张——VLM 从 800h 人类第一视角视频学任务先验（任务空间/单步/离散），
+          MM-DiT action expert 从 30h 真机数据学关节控制（关节空间/块/flow matching），两种动作分布不混训。
+          8 个长程任务比第二名 GR00T-N1.6 高 40%+，基线数据量是它的 10×。含 training-time RTC、三系统架构、遥操作全链路拆解。
+        </div>
+        <div class="recent-tags">
+          <span class="status-badge status-done">✓ 已精读</span>
+          <span class="card-pill">USC · NVIDIA · 2026</span>
+          <span class="card-pill">人类视频预训练 · MM-DiT</span>
+        </div>
+      </a>
+
+      <a class="recent-card" href="papers/humanoid-gpt.html">
+        <div class="recent-date">2026-07-16 · 刚完成</div>
+        <div class="recent-title">Humanoid-GPT · GPT 式序列建模做人形动作跟踪 + Scaling Law</div>
+        <div class="recent-sub">
+          清华 + Galbot（arXiv:2606.03985）：2B 帧动作语料训 ~300 个 PPO 专家，DAgger 并行蒸馏进 causal Transformer（5.7M–80M），
+          Unitree G1 零样本跟舞蹈/功夫/翻身起立。首次给出 motion tracking 的 scaling law——MLP/TCN 早饱和，Transformer 还在涨。
+          含与 SONIC 的逐维对比（相反的押注：架构 scale vs 接口生态）。
+        </div>
+        <div class="recent-tags">
+          <span class="status-badge status-done">✓ 已精读</span>
+          <span class="card-pill">清华 · Galbot · 2026</span>
+          <span class="card-pill">Scaling Law · DAgger 蒸馏</span>
+        </div>
+      </a>
+
+      <a class="recent-card" href="papers/deepwbc.html">
+        <div class="recent-date">2026-06-30 · 刚完成</div>
+        <div class="recent-title">DeepWBC · 腿臂统一全身控制策略（VBC 前身）</div>
+        <div class="recent-sub">
+          CMU CoRL 2022（Fu/Cheng/Pathak）：单个 RL 策略同时控制 Go1+WidowX 19 DoF，不分层、不解耦，学出人类般的腿臂协同。
+          首创两大技术并被 VBC 沿用：Advantage Mixing（拆解-混合解决高 DoF 信用分配）+ ROA（单阶段双向对齐 Sim2Real，RMA 的推广）。
+          含全部 RL 公式逐项解读 + DeepWBC→VBC 演进对照表。
+        </div>
+        <div class="recent-tags">
+          <span class="status-badge status-done">✓ 已精读</span>
+          <span class="card-pill">CMU · CoRL 2022</span>
+          <span class="card-pill">Advantage Mixing · ROA</span>
+        </div>
+      </a>
+
+      <a class="recent-card" href="papers/vbc-loco-manipulation.html">
+        <div class="recent-date">2026-06-30 · 刚完成</div>
+        <div class="recent-title">VBC · 腿足机器人视觉全身控制（Loco-Manipulation）</div>
+        <div class="recent-sub">
+          UCSD CoRL 2024：装了机械臂的四足狗（Unitree B1+Z1，19 DoF），用『腿+臂』全身协调去抓不同高度的物体——弯腰屈膝够到地面垃圾。
+          三阶段训练：低层 RL 通用全身策略 → 高层特权教师 RL → 视觉学生 DAgger 蒸馏；全程仿真训练，零真机数据 Sim2Real。
+          含完整 RL 公式逐项解读（PPO / 奖励表 / IK / ROA / DAgger）+ 复现操作总结。
+        </div>
+        <div class="recent-tags">
+          <span class="status-badge status-done">✓ 已精读</span>
+          <span class="card-pill">UCSD · CoRL 2024</span>
+          <span class="card-pill">Whole-Body · RL · Sim2Real</span>
+        </div>
+      </a>
+
       <a class="recent-card" href="papers/cosmos3.html">
         <div class="recent-date">2026-06-15 · 刚完成</div>
         <div class="recent-title">Cosmos 3 · 全模态世界模型（Omnimodal MoT）</div>
@@ -581,6 +657,59 @@
         </div>
       </details>
 
+      <!-- ═══════ Loco-Manipulation ═══════ -->
+      <details class="dir-panel">
+        <summary class="dir-summary">
+          <span class="dir-icon"></span>
+          <span class="dir-info">
+            <span class="dir-name">Loco-Manipulation · 移动操作</span>
+            <span class="dir-sub">边走边抓：腿/全身参与操作，扩大工作空间。分层 RL + Sim2Real 是主流路线。</span>
+          </span>
+          <span class="dir-stats"><span class="dir-count">8</span> 篇已读</span>
+          <span class="dir-arrow">&#9662;</span>
+        </summary>
+        <div class="dir-body">
+          <div class="dc-group">
+            <div class="dc-group-label label-core">① 腿足 Legged</div>
+            <a class="dc-item" href="papers/vbc-loco-manipulation.html">
+              <span class="dc-item-main">VBC · 视觉全身控制<span class="dc-item-en">Liu et al. CoRL 2024 · Unitree B1+Z1 · 19 DoF · 零真机数据</span></span>
+              <span class="status-badge status-done">✓</span>
+            </a>
+            <a class="dc-item" href="papers/deepwbc.html">
+              <span class="dc-item-main">DeepWBC · 统一全身策略<span class="dc-item-en">Fu et al. CoRL 2022 · Advantage Mixing + ROA · VBC 前身</span></span>
+              <span class="status-badge status-done">✓</span>
+            </a>
+          </div>
+          <div class="dc-group">
+            <div class="dc-group-label label-expand">② 人形 Humanoid</div>
+            <a class="dc-item" href="papers/vlk.html">
+              <span class="dc-item-main">VLK · Vision-Language-Kinematics<span class="dc-item-en">Wang et al. 2026 · 重建场景合成交互 · 预测运动学而非动作 · 0 遥操作 · Unitree G1</span></span>
+              <span class="status-badge status-done">✓</span>
+            </a>
+            <a class="dc-item" href="papers/openhlm.html">
+              <span class="dc-item-main">OpenHLM<span class="dc-item-en">Hu et al. 2026 · 全身人形 Loco-Manip 经验配方 · 13 个受控实验 · π₀.₅ · Unitree G1</span></span>
+              <span class="status-badge status-done">✓</span>
+            </a>
+            <a class="dc-item" href="papers/motionwam.html">
+              <span class="dc-item-main">MotionWAM<span class="dc-item-en">Zheng et al. 2026 · 实时人形 Loco-Manipulation 世界-动作模型</span></span>
+              <span class="status-badge status-done">✓</span>
+            </a>
+            <a class="dc-item" href="papers/sonic.html">
+              <span class="dc-item-main">SONIC<span class="dc-item-en">Luo et al. NVIDIA 2026 · 超大规模运动追踪 + 通用全身控制</span></span>
+              <span class="status-badge status-done">✓</span>
+            </a>
+            <a class="dc-item" href="papers/humanoid-gpt.html">
+              <span class="dc-item-main">Humanoid-GPT<span class="dc-item-en">Qi et al. 清华/Galbot 2026 · 2B 帧 · causal Transformer · tracking scaling law · 与 SONIC 对比</span></span>
+              <span class="status-badge status-done">✓</span>
+            </a>
+            <a class="dc-item" href="papers/psi0.html">
+              <span class="dc-item-main">Ψ₀<span class="dc-item-en">Wei et al. USC/NVIDIA 2026 · 800h 人类视频 + 30h 真机 · 解耦训练 · MM-DiT · G1</span></span>
+              <span class="status-badge status-done">✓</span>
+            </a>
+          </div>
+        </div>
+      </details>
+
       <!-- ═══════ 生成式基础 ═══════ -->
       <details class="dir-panel">
         <summary class="dir-summary">
@@ -589,7 +718,7 @@
             <span class="dir-name">生成式基础 · VAE 到 Flow</span>
             <span class="dir-sub">π₀ flow matching 的上游知识链：VAE → Diffusion → Score SDE → Flow</span>
           </span>
-          <span class="dir-stats"><span class="dir-count">2</span> 篇已读</span>
+          <span class="dir-stats"><span class="dir-count">3</span> 篇已读</span>
           <span class="dir-arrow">&#9662;</span>
         </summary>
         <div class="dir-body">
@@ -626,7 +755,7 @@
             <span class="dir-name">WAM · 世界-动作模型</span>
             <span class="dir-sub">世界模型生成 subgoal / 模拟未来，辅助策略学习</span>
           </span>
-          <span class="dir-stats"><span class="dir-count">6</span> 篇已读</span>
+          <span class="dir-stats"><span class="dir-count">8</span> 篇已读</span>
           <span class="dir-arrow">&#9662;</span>
         </summary>
         <div class="dir-body">
@@ -670,16 +799,8 @@
           </div>
           <div class="dc-group">
             <div class="dc-group-label label-improve">⑤ 实时 WAM</div>
-            <a class="dc-item" href="papers/sonic.html">
-              <span class="dc-item-main">SONIC<span class="dc-item-en">Luo et al. 2026 · 通用全身控制 · FSQ Universal Token</span></span>
-              <span class="status-badge status-done">✓</span>
-            </a>
             <a class="dc-item" href="papers/dit4dit.html">
               <span class="dc-item-main">DiT4DiT<span class="dc-item-en">Ma et al. 2026 · Video + Action 联合建模</span></span>
-              <span class="status-badge status-done">✓</span>
-            </a>
-            <a class="dc-item" href="papers/motionwam.html">
-              <span class="dc-item-main">MotionWAM<span class="dc-item-en">Zheng et al. 2026 · 人形 Loco-Manipulation</span></span>
               <span class="status-badge status-done">✓</span>
             </a>
             <a class="dc-item" href="papers/fast-wam.html">
@@ -688,6 +809,13 @@
             </a>
             <a class="dc-item" href="papers/tau0-wm.html">
               <span class="dc-item-main">τ₀-WM<span class="dc-item-en">Zhou et al. 2026 · 统一视频-动作世界模型 · TTC · 27K hrs</span></span>
+              <span class="status-badge status-done">✓</span>
+            </a>
+          </div>
+          <div class="dc-group">
+            <div class="dc-group-label label-expand">⑥ 部署适配 · Test-Time Training</div>
+            <a class="dc-item" href="papers/wam-ttt.html">
+              <span class="dc-item-main">WAM-TTT<span class="dc-item-en">Feng et al. 北大/Galbot 2026 · 人类视频 → TTT 快权重 · 零标注 steering</span></span>
               <span class="status-badge status-done">✓</span>
             </a>
           </div>

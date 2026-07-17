@@ -1,0 +1,10 @@
+{
+  "permissions": {
+    "allow": [
+      "Read(//Users/siyuanluo/Zotero/**)",
+      "Read(//Users/siyuanluo/Zotero/storage/**)",
+      "Bash(git clone *)",
+      "Edit(/.claude/skills/zotero/**)"
+    ]
+  }
+}

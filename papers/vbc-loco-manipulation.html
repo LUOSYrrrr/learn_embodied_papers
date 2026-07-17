@@ -1,0 +1,1075 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>VBC · 腿足机器人视觉全身控制 Loco-Manipulation</title>
+  <link rel="stylesheet" href="../assets/css/style.css">
+  <script src="../assets/js/theme.js"></script>
+  <script src="../assets/js/interactive.js" defer></script>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16/dist/katex.min.css">
+  <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16/dist/katex.min.js"></script>
+  <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16/dist/contrib/auto-render.min.js"
+          onload="renderMathInElement(document.body,{delimiters:[{left:'$$',right:'$$',display:true},{left:'$',right:'$',display:false}]})"></script>
+  <style>
+    .docs-layout { display: grid; grid-template-columns: 240px minmax(0, 1fr); max-width: 1400px; margin: 0 auto; }
+    .sidebar { position: sticky; top: 60px; height: calc(100vh - 60px); overflow-y: auto; padding: 24px 16px; border-right: 1px solid var(--border); background: var(--bg); }
+    .sidebar-title { font-family: var(--font-mono); font-size: 10px; color: var(--text3); letter-spacing: 0.08em; text-transform: uppercase; margin-bottom: 16px; padding-bottom: 8px; border-bottom: 1px solid var(--border); }
+    .sidebar-tree { list-style: none; margin: 0; padding: 0; }
+    .sidebar-tree li { margin: 4px 0; }
+    .sidebar-tree a { display: block; padding: 6px 10px; font-size: 13px; color: var(--text2); text-decoration: none; border-radius: 6px; transition: all 0.2s; }
+    .sidebar-tree a:hover { background: var(--glass-hover); color: var(--text); }
+    .sidebar-tree a.active { background: rgba(74, 222, 154, 0.1); color: var(--accent); }
+    .sidebar-tree .section-link { font-weight: 500; }
+    .main-content { min-width: 0; }
+    @media (max-width: 900px) { .docs-layout { grid-template-columns: 1fr; } .sidebar { display: none; } }
+
+    .paper-header { padding: 40px 40px 24px; max-width: 1200px; margin: 0 auto; }
+    .paper-venue { font-family: var(--font-mono); font-size: 11px; color: var(--text3); letter-spacing: 0.06em; margin-bottom: 10px; }
+    .paper-title { font-family: var(--font-serif); font-size: 28px; font-weight: 700; color: var(--text); line-height: 1.35; margin: 0 0 14px; }
+    .paper-authors { font-size: 14px; color: var(--text2); margin-bottom: 8px; }
+    .paper-badges { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 16px; }
+    .badge { font-family: var(--font-mono); font-size: 10px; padding: 4px 10px; border-radius: 6px; background: var(--bg3); color: var(--text2); border: 1px solid var(--border); }
+    .badge-green { background: rgba(74, 222, 154, 0.12); color: var(--accent); border-color: rgba(74, 222, 154, 0.3); }
+    .badge-blue { background: rgba(96, 165, 250, 0.12); color: var(--blue); border-color: rgba(96, 165, 250, 0.3); }
+    .badge-amber { background: rgba(245, 158, 11, 0.12); color: var(--amber); border-color: rgba(245, 158, 11, 0.3); }
+    .badge-purple { background: rgba(167, 139, 250, 0.12); color: var(--purple); border-color: rgba(167, 139, 250, 0.3); }
+
+    .section { padding: 32px 40px; max-width: 1200px; margin: 0 auto; border-top: 1px solid var(--border); }
+    .section-num { font-family: var(--font-mono); font-size: 11px; color: var(--accent); letter-spacing: 0.08em; margin-bottom: 6px; }
+    .section h2 { font-family: var(--font-serif); font-size: 22px; font-weight: 600; margin: 0 0 20px; color: var(--text); }
+    .section h3 { font-size: 17px; font-weight: 600; margin: 28px 0 12px; color: var(--text); }
+    .section p { font-size: 15px; line-height: 1.85; color: var(--text2); margin: 0 0 16px; }
+
+    .cn-read { background: var(--bg2); border-left: 3px solid var(--accent); padding: 18px 22px; margin: 20px 0; border-radius: 0 8px 8px 0; }
+    .cn-label { font-family: var(--font-mono); font-size: 10px; color: var(--accent); letter-spacing: 0.06em; text-transform: uppercase; margin-bottom: 8px; }
+    .cn-read p { margin: 0; font-size: 14.5px; line-height: 1.8; color: var(--text); }
+
+    .callout { background: var(--bg2); border: 1px solid var(--border); border-radius: 10px; padding: 18px 22px; margin: 20px 0; }
+    .callout-label { font-family: var(--font-mono); font-size: 10px; letter-spacing: 0.06em; text-transform: uppercase; margin-bottom: 8px; color: var(--text3); }
+    .callout p { margin: 0; font-size: 14px; line-height: 1.8; }
+    .callout.amber { border-color: var(--amber); background: rgba(245, 158, 11, 0.08); }
+    .callout.amber .callout-label { color: var(--amber); }
+    .callout.red { border-color: var(--accent3); background: rgba(255, 107, 107, 0.08); }
+    .callout.red .callout-label { color: var(--accent3); }
+    .callout.blue { border-color: var(--blue); background: rgba(96, 165, 250, 0.08); }
+    .callout.blue .callout-label { color: var(--blue); }
+    .callout.purple { border-color: var(--purple); background: rgba(167, 139, 250, 0.08); }
+    .callout.purple .callout-label { color: var(--purple); }
+
+    .fig-interactive { display: grid; grid-template-columns: minmax(0, 1fr) 280px; gap: 20px; margin: 24px 0; }
+    .fig-interactive.panel-below { grid-template-columns: 1fr; }
+    .fig-interactive.panel-below .hotspot-panel { position: static; margin-top: 16px; }
+    .fig-block { background: var(--bg2); border-radius: 10px; overflow: hidden; border: 1px solid var(--border); }
+    .fig-block img { width: 100%; height: auto; display: block; }
+    .fig-cap { padding: 14px 18px; font-size: 13px; color: var(--text2); border-top: 1px solid var(--border); }
+    .fig-num { font-family: var(--font-mono); font-size: 10px; color: var(--accent); margin-right: 8px; }
+    .fig-cn { display: block; margin-top: 6px; color: var(--text3); font-size: 12px; }
+
+    .hotspot-wrap { position: relative; }
+    .hotspot { position: absolute; width: 20px; height: 20px; background: rgba(74, 222, 154, 0.55); border: 2px solid var(--accent); border-radius: 50%; cursor: pointer; transform: translate(-50%, -50%); transition: all 0.2s; }
+    .hotspot:hover, .hotspot.active { background: var(--accent); transform: translate(-50%, -50%) scale(1.3); opacity: 1; }
+    .hotspot-panel { background: var(--bg2); border: 1px solid var(--border); border-radius: 10px; padding: 16px; }
+    .hp-title { font-size: 14px; font-weight: 600; color: var(--accent); margin-bottom: 8px; }
+    .hp-body { font-size: 13px; color: var(--text2); line-height: 1.7; }
+
+    .en-quote { background: var(--bg2); border: 1px solid var(--border); border-radius: 8px; margin: 16px 0; overflow: hidden; }
+    .en-quote summary { padding: 12px 16px; font-size: 13px; color: var(--text3); cursor: pointer; transition: background 0.2s; }
+    .en-quote summary:hover { background: var(--glass-hover); }
+    .quote-body { padding: 16px; border-top: 1px solid var(--border); }
+    .quote-body p { font-size: 13.5px; color: var(--text); font-style: italic; margin: 0 0 10px; }
+    .quote-cite { font-family: var(--font-mono); font-size: 11px; color: var(--text3); }
+
+    .step-walker { background: var(--bg2); border: 1px solid var(--border); border-radius: 10px; padding: 20px; margin: 24px 0; }
+    .sw-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px; }
+    .sw-title { font-size: 14px; font-weight: 600; color: var(--text); }
+    .sw-controls { display: flex; gap: 10px; align-items: center; }
+    .sw-btn { background: var(--bg3); border: 1px solid var(--border); color: var(--text); padding: 6px 12px; border-radius: 6px; cursor: pointer; font-size: 12px; }
+    .sw-btn:hover { background: var(--glass-hover); }
+    .sw-counter { font-family: var(--font-mono); font-size: 12px; color: var(--text3); }
+    .sw-progress { display: flex; gap: 6px; margin-bottom: 16px; }
+    .sw-dot { flex: 1; height: 3px; background: var(--border); border-radius: 2px; }
+    .sw-dot.active { background: var(--accent); }
+    .sw-step { display: none; }
+    .sw-step.active { display: block; }
+    .sw-step h4 { font-size: 14px; margin: 0 0 8px; color: var(--text); }
+    .sw-step p { font-size: 13px; color: var(--text2); margin: 0; line-height: 1.7; }
+
+    .quiz { background: var(--bg2); border: 1px solid var(--border); border-radius: 10px; padding: 20px; margin: 24px 0; }
+    .q-label { font-family: var(--font-mono); font-size: 10px; color: var(--amber); letter-spacing: 0.06em; text-transform: uppercase; margin-bottom: 10px; }
+    .q-text { font-size: 15px; color: var(--text); margin-bottom: 16px; font-weight: 500; }
+    .q-options { display: flex; flex-direction: column; gap: 8px; }
+    .q-opt { text-align: left; background: var(--bg3); border: 1px solid var(--border); color: var(--text); padding: 12px 16px; border-radius: 8px; cursor: pointer; font-size: 14px; transition: all 0.2s; }
+    .q-opt:hover { background: var(--glass-hover); border-color: var(--border2); }
+    .q-opt.correct { background: rgba(74, 222, 154, 0.15); border-color: var(--accent); }
+    .q-opt.wrong { background: rgba(255, 107, 107, 0.15); border-color: var(--accent3); }
+    .q-feedback { margin-top: 14px; padding: 12px; border-radius: 8px; font-size: 13px; display: none; line-height: 1.7; }
+    .q-feedback.show { display: block; }
+
+    .module-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 14px; margin: 20px 0; }
+    .module-card { background: var(--bg2); border: 1px solid var(--border); border-radius: 10px; padding: 18px; }
+    .module-card-name { font-family: var(--font-mono); font-size: 10px; color: var(--text3); letter-spacing: 0.06em; margin-bottom: 6px; }
+    .module-card-title { font-size: 15px; font-weight: 600; color: var(--text); margin-bottom: 8px; }
+    .module-card-desc { font-size: 13px; color: var(--text2); line-height: 1.6; }
+
+    .kv-table { width: 100%; border-collapse: collapse; margin: 16px 0; font-size: 13px; }
+    .kv-table td, .kv-table th { padding: 9px 13px; border: 1px solid var(--border); text-align: left; }
+    .kv-table th { background: var(--bg3); color: var(--text2); font-family: var(--font-mono); font-size: 11px; font-weight: 600; }
+    .kv-table td:first-child { background: var(--bg2); color: var(--text3); font-family: var(--font-mono); font-size: 11px; }
+    .kv-table td { color: var(--text); }
+    .kv-table td.w { font-family: var(--font-mono); color: var(--amber); text-align: right; }
+
+    .math-block { background: var(--bg2); padding: 20px; border-radius: 8px; margin: 20px 0; text-align: center; overflow-x: auto; }
+    .math-label { display: block; font-family: var(--font-mono); font-size: 11px; color: var(--text3); margin-top: 10px; }
+    .math-explain { background: var(--bg2); border-left: 3px solid var(--blue); padding: 16px 20px; margin: 16px 0; border-radius: 0 8px 8px 0; }
+    .me-title { font-size: 13px; font-weight: 600; color: var(--blue); margin-bottom: 12px; }
+    .math-explain dl { margin: 0; }
+    .math-explain dt { font-family: var(--font-mono); font-size: 12px; color: var(--accent); margin: 10px 0 4px; }
+    .math-explain dd { margin: 0 0 8px; font-size: 13px; color: var(--text2); line-height: 1.6; }
+
+    .term { border-bottom: 1px dotted var(--text3); cursor: help; position: relative; }
+    .term:hover::after { content: attr(data-en); position: absolute; bottom: 100%; left: 50%; transform: translateX(-50%); background: var(--bg3); padding: 6px 10px; border-radius: 6px; font-size: 11px; white-space: nowrap; border: 1px solid var(--border); color: var(--text2); z-index: 10; }
+
+    .repro-step { display: flex; gap: 16px; margin: 18px 0; }
+    .repro-num { flex-shrink: 0; width: 30px; height: 30px; border-radius: 50%; background: rgba(74,222,154,0.12); border: 1px solid var(--accent); color: var(--accent); font-family: var(--font-mono); font-size: 14px; display: flex; align-items: center; justify-content: center; font-weight: 600; }
+    .repro-body { flex: 1; }
+    .repro-body h4 { margin: 4px 0 8px; font-size: 15px; color: var(--text); }
+    .repro-body p { margin: 0 0 8px; font-size: 14px; }
+    .code-block { background: var(--bg3); border: 1px solid var(--border); border-radius: 8px; padding: 14px 16px; margin: 12px 0; overflow-x: auto; }
+    .code-block code { font-family: var(--font-mono); font-size: 12.5px; color: var(--text); white-space: pre; line-height: 1.6; }
+
+    @media (max-width: 900px) {
+      .fig-interactive { grid-template-columns: 1fr; }
+      .module-grid { grid-template-columns: 1fr; }
+      .paper-header, .section { padding-left: 20px; padding-right: 20px; }
+    }
+  </style>
+</head>
+<body>
+  <nav class="nav">
+    <a class="nav-logo" href="../index.html">Paper Notes</a>
+    <div class="nav-links">
+      <a href="../index.html">← 返回首页</a>
+    </div>
+  </nav>
+
+  <div class="docs-layout">
+    <aside class="sidebar">
+      <div class="sidebar-title">目录</div>
+      <ul class="sidebar-tree">
+        <li><a href="#overview" class="section-link">§01 问题与核心思想</a></li>
+        <li><a href="#framework" class="section-link">§02 两层框架总览</a></li>
+        <li><a href="#lowlevel" class="section-link">§03 低层全身策略 (RL)</a></li>
+        <li><a href="#highlevel" class="section-link">§04 高层任务规划 (师生蒸馏)</a></li>
+        <li><a href="#deploy" class="section-link">§05 视觉输入与实机部署</a></li>
+        <li><a href="#exp" class="section-link">§06 实验结果</a></li>
+        <li><a href="#repro" class="section-link">§07 复现操作总结</a></li>
+        <li><a href="#vla-link" class="section-link">§08 与 VLA 的联系</a></li>
+      </ul>
+    </aside>
+
+    <main class="main-content">
+      <div class="paper-header">
+        <div class="paper-venue">CoRL 2024 · arXiv 2403.16967 · Nov 2024 · UC San Diego · wholebody-b1.github.io</div>
+        <div class="paper-title">Visual Whole-Body Control for Legged Loco-Manipulation</div>
+        <div class="paper-authors">Minghuan Liu*, Zixuan Chen*, Xuxin Cheng, Yandong Ji, Rizhao Qiu, Ruihan Yang, Xiaolong Wang</div>
+        <div class="paper-badges">
+          <span class="badge badge-green">Whole-Body Control</span>
+          <span class="badge badge-blue">Legged Loco-Manipulation</span>
+          <span class="badge badge-purple">RL + Sim2Real</span>
+          <span class="badge badge-amber">Teacher-Student 蒸馏</span>
+          <span class="badge">Unitree B1 + Z1</span>
+          <span class="badge">19 DoF</span>
+          <span class="badge">零真机数据</span>
+        </div>
+      </div>
+
+      <!-- ============ §01 ============ -->
+      <div class="section" id="overview">
+        <div class="section-num">§ 01</div>
+        <h2>问题与核心思想：让"腿"也参与抓取</h2>
+
+        <div class="cn-read">
+          <div class="cn-label">这一节解决什么</div>
+          <p>
+            一只装了机械臂的四足狗，要去野外捡地上的垃圾。问题来了：<strong>机械臂太短，单靠手臂根本够不到地面</strong>。人类怎么做？我们会<strong>弯下腰、屈膝</strong>去够低处的东西——也就是说，<strong>腿不只是用来走路，还能扩大手臂的工作空间</strong>。VBC（Visual Whole-Body Control）的核心思想就是：把四条腿（12 DoF）、机械臂（6 DoF）、夹爪（1 DoF）<strong>共 19 个自由度当成一个整体来协调控制</strong>，并且全程只靠机器人自己的相机自主完成，不需要人遥操、不需要采集任何真机数据。
+          </p>
+        </div>
+
+        <p>
+          这是一个<span class="term" data-en="loco-manipulation">移动操作</span>（loco-manipulation）问题：既要<strong>移动</strong>（locomotion），又要<strong>操作</strong>（manipulation）。过去腿足机器人的视觉学习多用于走路（避障、爬楼梯、跳跃），而 loco-manipulation 需要更精细的控制，<strong>直接端到端学习几乎不可行</strong>——动作空间太大、信号太稀疏。VBC 的回答是一套<strong>分层 + 师生蒸馏 + Sim2Real</strong> 的三阶段训练流程。
+        </p>
+
+        <!-- Fig 1 teaser -->
+        <div class="fig-interactive panel-below">
+          <div class="fig-block">
+            <div class="hotspot-wrap" data-hotspot-group="fig1">
+              <img src="../assets/figures/vbc-loco-manipulation/fig-1.png" alt="Figure 1: Real-Robot input visualization and grasping trajectory">
+              <div class="hotspot" data-id="mask" style="left:30%; top:11%;"
+                   data-title="视觉输入 · Mask + Masked Depth"
+                   data-body="策略真正看到的不是 RGB，而是两路相机（Wrist 腕部 + Front 前置）的『分割掩码 + 掩码后的深度图』。只保留目标物体，背景全黑。这样 sim 和 real 之间几乎没有视觉 gap。"></div>
+              <div class="hotspot" data-id="indoor" style="left:13%; top:9%;"
+                   data-title="室内场景"
+                   data-body="机器人在客厅/办公室自主走近并抓取桌上、地上的物体。整套系统室内外通用。"></div>
+              <div class="hotspot" data-id="beach" style="left:18%; top:38%;"
+                   data-title="沙滩弯腰捡垃圾"
+                   data-body="经典 demo：机器人弯下身体、屈腿，让机械臂够到沙滩上的易拉罐——这正是『腿参与操作』的全身行为，静态高度方法做不到。"></div>
+              <div class="hotspot" data-id="forest" style="left:80%; top:38%;"
+                   data-title="野外/树林"
+                   data-body="在不平整的自然地形上完成抓取，验证低层策略对地形的鲁棒性（来自走路 RL 的底子）。"></div>
+              <div class="hotspot" data-id="object" style="left:55%; top:62%;"
+                   data-title="多样物体 · 多种高度"
+                   data-body="真机测试 14 种物体（规则形状、日常用品、不规则物），放在地面(0m)/箱子(~0.3m)/桌面(~0.5m)三种高度。几乎全部是仿真里没见过的物体。"></div>
+            </div>
+            <div class="fig-cap">
+              <span class="fig-num">Fig 1 · p.1</span>
+              Real-Robot input visualization and grasping trajectory. The policy is trained in simulation using visual inputs (masks and masked depth images from two views) and can be deployed in real robots without any real-world data collection or fine-tuning.
+              <span class="fig-cn">真机输入可视化与抓取轨迹。策略在仿真中用『双视角掩码+掩码深度』训练，无需任何真机数据采集或微调即可直接部署。</span>
+            </div>
+          </div>
+          <div class="hotspot-panel"></div>
+        </div>
+
+        <div class="callout">
+          <div class="callout-label">三大贡献 / 三阶段训练流程</div>
+          <p>
+            ① <strong>低层通用全身策略</strong>（universal low-level policy）：用 RL 训练一个能跟踪『任意末端执行器位姿 + 机身速度』的全身控制器，会自动弯腰屈膝。<br>
+            ② <strong>高层特权教师策略</strong>（privileged teacher）：用 RL 训练一个能拿到物体真实位姿/形状的『上帝视角』规划器，给低层下指令完成抓取。<br>
+            ③ <strong>视觉学生策略蒸馏</strong>（visuomotor student）：用在线模仿学习（DAgger）把教师蒸馏成只看深度图的视觉策略，全程仿真训练后零样本 Sim2Real。
+          </p>
+        </div>
+
+        <details class="en-quote">
+          <summary>展开原文 · 为什么需要全身协调</summary>
+          <div class="quote-body">
+            <p>"Our robot can go to the side of the road and pick up the trash on the grass. This will be unachievable without coordinating the legs of the robot, as the arm alone can hardly reach the ground."</p>
+            <div class="quote-cite">— §1 Introduction, p.2</div>
+          </div>
+        </details>
+
+        <div class="quiz"
+             data-correct="c"
+             data-explain="正确。VBC 的卖点是『whole-body』——把腿也用于扩大操作工作空间。论文 Fig 2 专门对比了 static-height 方法（机身高度固定，够不到地面）与 VBC（能弯腰屈膝够到地面物体）。"
+             data-explain-wrong="再想想：VBC 名字里的 V(visual) 和 WBC(whole-body control) 才是关键。它解决的不是走得更快，而是让腿和臂协调，去够手臂单独够不到的地方。">
+          <div class="q-label">🧠 理解检查</div>
+          <div class="q-text">VBC 中"腿"在抓取任务里扮演什么新角色？</div>
+          <div class="q-options">
+            <button class="q-opt" data-k="a">只负责走路，抓取时腿保持静止</button>
+            <button class="q-opt" data-k="b">让机器人走得更快以尽快靠近物体</button>
+            <button class="q-opt" data-k="c">通过弯腰/屈膝扩大机械臂工作空间，够到地面等低处物体</button>
+            <button class="q-opt" data-k="d">提供额外的抓取夹爪</button>
+          </div>
+          <div class="q-feedback"></div>
+        </div>
+      </div>
+
+      <!-- ============ §02 ============ -->
+      <div class="section" id="framework">
+        <div class="section-num">§ 02</div>
+        <h2>两层框架总览：高层动嘴、低层动手</h2>
+
+        <div class="cn-read">
+          <div class="cn-label">这一节解决什么</div>
+          <p>
+            上一节说『直接端到端学不动』。那怎么拆？VBC 把问题拆成<strong>两层</strong>：<strong>低层策略 (low-level)</strong> 是个『熟练的身体』——你告诉它『把手移到这个 3D 位姿、机身按这个速度走』，它就调动 19 个关节去实现，且对地形鲁棒；<strong>高层策略 (high-level)</strong> 是个『任务大脑』——它看着深度相机，决定『现在该往哪走、夹爪该移到哪、该不该合拢』。低层是<strong>任务无关</strong>的通用底座，高层才是<strong>任务相关</strong>的。这一节先看整张架构图，后两节分别拆解低层和高层怎么训。
+          </p>
+        </div>
+
+        <p>
+          下图是 VBC 的完整训练框架（Fig 3）。<strong>蓝色部分是低层目标到达策略</strong>（Goal-Reaching Policy），<strong>橙色部分是高层特权教师</strong>（Privileged Teacher），<strong>绿色部分是高层视觉学生</strong>（Visuomotor Student）。注意：高层有『教师』和『学生』两个版本——教师用上帝视角的物体位姿/点云训练，学生只用分割掩码+深度图，靠蒸馏继承教师的能力。
+        </p>
+
+        <!-- Fig 3 framework -->
+        <div class="fig-interactive panel-below">
+          <div class="fig-block">
+            <div class="hotspot-wrap" data-hotspot-group="fig3">
+              <img src="../assets/figures/vbc-loco-manipulation/fig-3.png" alt="Figure 3: The proposed VBC framework">
+              <div class="hotspot" data-id="pcd" style="left:12%; top:38%;"
+                   data-title="物体点云 · Object Point Clouds（教师专属）"
+                   data-body="特权信息：物体的 3D 点云。只有教师在仿真里能拿到。送入冻结的 PointNet 编码器，得到 1024 维形状隐向量 z^shape。"></div>
+              <div class="hotspot" data-id="pointnet" style="left:32%; top:34%;"
+                   data-title="预训练 PointNet 编码器（冻结）"
+                   data-body="把点云编码成 1024 维形状特征。预训练好后参数固定不变。论文消融显示：有了形状特征，处理 long box/cup/bowl/drill 等不规则物体明显更好。"></div>
+              <div class="hotspot" data-id="teacher-mlp" style="left:46%; top:42%;"
+                   data-title="教师 MLPs"
+                   data-body="输入 = 形状特征 z^shape + 物体位姿 s^obj + 本体感知 s^proprio（共 1094 维），输出高层动作 a_t（机身速度增量 + 末端位置增量 + 夹爪开合）。用 RL 训练。"></div>
+              <div class="hotspot" data-id="supervise" style="left:50%; top:64%;"
+                   data-title="supervise · 蒸馏监督"
+                   data-body="教师的输出动作作为 DAgger 的监督信号，指导下方绿色学生策略。学生在自己遇到的状态上请求教师纠正动作，MSE 对齐。"></div>
+              <div class="hotspot" data-id="masks" style="left:26%; top:80%;"
+                   data-title="分割掩码 + 掩码深度（学生输入）"
+                   data-body="学生只看得到：两路相机的物体分割掩码 o^image 和掩码后的深度图。背景全黑——这是 sim2real gap 极小的关键。"></div>
+              <div class="hotspot" data-id="cnn" style="left:39%; top:82%;"
+                   data-title="CNNs + MLPs（学生）"
+                   data-body="4 帧堆叠的图像过 2 层 CNN（kernel 5、3）→ 64 维隐向量，拼上本体感知，过 2 层 MLP 输出高层动作。结构与教师输出层对齐，便于蒸馏。"></div>
+              <div class="hotspot" data-id="hl-cmd" style="left:62%; top:70%;"
+                   data-title="High-level Commands · 高低层接口"
+                   data-body="高层输出的指令：目标末端执行器位姿 + 机身线/角速度 + 夹爪状态。蓝框部分喂给低层 MLP，红框部分（末端位姿）喂给 IK 控制器。"></div>
+              <div class="hotspot" data-id="ll-mlp" style="left:80%; top:42%;"
+                   data-title="低层策略 MLP（蓝色）"
+                   data-body="输入 = 本体感知 + 环境隐向量 z（extrinsics）+ 高层指令。3 层 MLP（128 维，ELU）。输出 12 条腿关节的目标角度，PD 转力矩。"></div>
+              <div class="hotspot" data-id="leg" style="left:95%; top:34%;"
+                   data-title="Leg Control · 腿控制"
+                   data-body="低层 MLP 直接输出 12 个腿关节目标角度。这是 RL 学到的全身行为承载体（弯腰、屈膝都在这里发生）。"></div>
+              <div class="hotspot" data-id="ik" style="left:74%; top:80%;"
+                   data-title="IK based controller · 手臂控制"
+                   data-body="手臂不由 RL 直接控关节，而是高层给末端 6-DoF 位姿目标，用伪逆雅可比 IK 解成关节角。论文验证 IK 比直接预测关节角精度高得多（见 §03）。"></div>
+              <div class="hotspot" data-id="arm" style="left:95%; top:72%;"
+                   data-title="Arm Control · 机械臂"
+                   data-body="Unitree Z1（6 DoF）+ 夹爪（1 DoF）。由 IK 控制器驱动，800Hz 高频跟踪末端位姿目标。"></div>
+            </div>
+            <div class="fig-cap">
+              <span class="fig-num">Fig 3 · p.4</span>
+              The proposed VBC framework. VBC trains a low-level control policy and a high-level planning policy using reinforcement learning and imitation learning.
+              <span class="fig-cn">VBC 框架：蓝=低层目标到达策略，橙=高层特权教师，绿=高层视觉学生。教师→学生靠 DAgger 蒸馏；高低层靠『高层指令』接口耦合；手臂由 IK 控制。</span>
+            </div>
+          </div>
+          <div class="hotspot-panel"></div>
+        </div>
+
+        <div class="step-walker" data-hotspot-group="fig3">
+          <div class="sw-header">
+            <div class="sw-title">🪜 跟着信号走一遍 · 从训练到推理</div>
+            <div class="sw-controls">
+              <button class="sw-btn prev">◀</button>
+              <span class="sw-counter">1 / 5</span>
+              <button class="sw-btn next">▶</button>
+            </div>
+          </div>
+          <div class="sw-progress">
+            <div class="sw-dot"></div><div class="sw-dot"></div><div class="sw-dot"></div><div class="sw-dot"></div><div class="sw-dot"></div>
+          </div>
+          <div class="sw-body">
+            <div class="sw-step active" data-hotspot="ll-mlp">
+              <h4>阶段一：先练好『身体』（蓝色，低层）</h4>
+              <p>独立用 RL 训练低层策略：随机采样各种末端位姿目标 + 机身速度命令，让它学会用全身（含弯腰）去跟踪。训完后<strong>冻结</strong>，作为后续所有任务的通用底座。</p>
+            </div>
+            <div class="sw-step" data-hotspot="teacher-mlp">
+              <h4>阶段二：练『上帝视角的大脑』（橙色，教师）</h4>
+              <p>固定低层，用 RL 训练高层教师。教师能直接读到物体真实位姿 s^obj 和点云形状 z^shape，学会下达正确的末端目标和机身速度去完成抓取。</p>
+            </div>
+            <div class="sw-step" data-hotspot="supervise">
+              <h4>阶段三：把大脑『蒸馏』给眼睛（supervise）</h4>
+              <p>教师看不见的东西（真实位姿）真机里没有。于是用 DAgger 在线模仿，把教师的决策蒸馏进只看深度图的学生策略。</p>
+            </div>
+            <div class="sw-step" data-hotspot="masks">
+              <h4>推理输入：只剩掩码 + 深度</h4>
+              <p>部署时学生只吃两路相机的分割掩码和掩码深度（背景全黑）。TrackingSAM 负责实时分割物体——这是 sim2real gap 小的关键。</p>
+            </div>
+            <div class="sw-step" data-hotspot="ik">
+              <h4>推理输出：高层指令 → 低层 + IK</h4>
+              <p>学生每步输出高层指令：机身速度增量喂给低层 MLP 控腿；末端位姿目标喂给 IK 控制器控臂。两者协同完成全身抓取。</p>
+            </div>
+          </div>
+        </div>
+
+        <div class="quiz"
+             data-correct="b"
+             data-explain="正确。低层策略是任务无关的『通用全身控制器』，训完即冻结，所有下游任务共用；高层才是任务相关的。这正是分层设计的意义——低层负责 how（怎么动身体），高层负责 what（做什么任务）。见 §3『a low-level controller is general for different tasks and the high-level policy is task-relevant』。"
+             data-explain-wrong="不对。VBC 明确说低层是 universal/general、任务无关的，训练高层时低层是固定（fixed pre-trained）的。把它们一起端到端训反而失败了（论文 Non-Hierarchical baseline 训不出来）。">
+          <div class="q-label">🧠 理解检查</div>
+          <div class="q-text">训练高层策略时，低层策略处于什么状态？</div>
+          <div class="q-options">
+            <button class="q-opt" data-k="a">和高层一起端到端联合训练</button>
+            <button class="q-opt" data-k="b">固定冻结，作为任务无关的通用底座</button>
+            <button class="q-opt" data-k="c">每个任务都重新训练一个低层</button>
+            <button class="q-opt" data-k="d">低层只在真机上微调</button>
+          </div>
+          <div class="q-feedback"></div>
+        </div>
+      </div>
+
+      <!-- ============ §03 LOW LEVEL ============ -->
+      <div class="section" id="lowlevel">
+        <div class="section-num">§ 03</div>
+        <h2>低层全身策略：用 RL 学一个会弯腰的身体</h2>
+
+        <div class="cn-read">
+          <div class="cn-label">这一节解决什么</div>
+          <p>
+            上一节说低层是『通用身体』，但它具体怎么训？这一节给出完整的 RL 配方。直觉：我们随机往空间里扔一个『手该去的目标位姿』和『机身该走的速度』，让策略用 19 个自由度去同时满足——为了够到低处目标，它会自发学会弯腰屈膝。下面把<strong>命令、观测、动作、奖励、IK、目标采样、ROA 域适应</strong>逐个讲清，每个公式都拆开解读。
+          </p>
+        </div>
+
+        <h3>3.1 命令、观测、动作（策略的输入输出）</h3>
+        <p>低层策略 $\pi_{\text{low}}$ 的<strong>命令</strong>（由高层或随机采样给出）定义为：</p>
+        <div class="math-block">
+          $$\mathbf{b}_t = [\mathbf{p}^{\text{cmd}},\, \mathbf{o}^{\text{cmd}},\, v^{\text{cmd}}_{\text{lin}},\, \omega^{\text{cmd}}_{\text{yaw}}]$$
+          <span class="math-label">低层命令向量 · §3.1, p.3</span>
+        </div>
+        <div class="math-explain">
+          <div class="me-title">逐项拆解</div>
+          <dl>
+            <dt>$\mathbf{p}^{\text{cmd}} \in \mathbb{R}^3$</dt>
+            <dd>末端执行器（夹爪）的<strong>目标位置</strong>，定义在一个『高度不变』的机器人坐标系下（见下方目标采样）。</dd>
+            <dt>$\mathbf{o}^{\text{cmd}} \in \mathbb{R}^3$</dt>
+            <dd>末端执行器的<strong>目标朝向</strong>，用欧拉角表示。</dd>
+            <dt>$v^{\text{cmd}}_{\text{lin}} \in \mathbb{R}$</dt>
+            <dd>机身<strong>前向线速度</strong>命令（x 轴）。训练时从 $[-0.6, 0.6]\,\text{m/s}$ 均匀采样。</dd>
+            <dt>$\omega^{\text{cmd}}_{\text{yaw}} \in \mathbb{R}$</dt>
+            <dd>机身<strong>偏航角速度</strong>命令。训练时从 $[-1.0, 1.0]\,\text{rad/s}$ 均匀采样。</dd>
+          </dl>
+        </div>
+
+        <p><strong>观测</strong>是一个 90 维向量，把机器人当前状态、历史动作、环境隐向量、步态时序、命令全拼在一起：</p>
+        <div class="math-block">
+          $$\mathbf{o}_t = [\mathbf{s}^{\text{base}}_t,\, \mathbf{s}^{\text{arm}}_t,\, \mathbf{s}^{\text{leg}}_t,\, \mathbf{a}_{t-1},\, \mathbf{z}_t,\, \mathbf{t}_t,\, \mathbf{b}_t]$$
+          <span class="math-label">低层观测（90 维）· §3.1, p.3</span>
+        </div>
+        <div class="math-explain">
+          <div class="me-title">逐项拆解</div>
+          <dl>
+            <dt>$\mathbf{s}^{\text{base}}_t \in \mathbb{R}^5$</dt>
+            <dd>机身状态：roll、pitch、yaw 角速度（姿态信息，注意不含绝对高度——高度不变坐标系的体现）。</dd>
+            <dt>$\mathbf{s}^{\text{arm}}_t \in \mathbb{R}^{12}$</dt>
+            <dd>手臂状态：每个臂关节（除末端）的位置与速度。</dd>
+            <dt>$\mathbf{s}^{\text{leg}}_t \in \mathbb{R}^{28}$</dt>
+            <dd>腿状态：每个腿关节的位置、速度，以及足端接触模式。</dd>
+            <dt>$\mathbf{a}_{t-1} \in \mathbb{R}^{12}$</dt>
+            <dd>上一步策略网络输出（12 条腿关节动作），帮助平滑。</dd>
+            <dt>$\mathbf{z}_t \in \mathbb{R}^{20}$</dt>
+            <dd><strong>环境外在隐向量</strong>（extrinsics），编码摩擦、质量等物理参数。训练时由特权编码器给出，真机由适应模块估计（见 ROA）。</dd>
+            <dt>$\mathbf{t}_t$</dt>
+            <dd><strong>时序参考变量</strong>：由每只脚的相位偏移和步态周期算出，鼓励学到稳定的小跑（trot）步态。</dd>
+            <dt>$\mathbf{b}_t$</dt>
+            <dd>上面定义的命令向量。</dd>
+          </dl>
+        </div>
+
+        <h3>3.2 RL 算法：PPO 目标函数</h3>
+        <p>低层与高层教师都用 <span class="term" data-en="Proximal Policy Optimization">近端策略优化</span>（PPO）训练。PPO 的核心是『别让新策略一步迈太大』——用一个被裁剪（clip）的代理目标限制更新幅度：</p>
+        <div class="math-block">
+          $$L^{\text{PPO}}(\theta_\pi) = \mathbb{E}_\pi\!\left[\min\!\big(r A,\; \text{clip}(r,\, 1-\epsilon,\, 1+\epsilon)\, A\big)\right]$$
+          <span class="math-label">Eq. 1 · PPO 代理目标 · §B.2</span>
+        </div>
+        <div class="math-explain">
+          <div class="me-title">逐项拆解</div>
+          <dl>
+            <dt>$r = \dfrac{\pi(a\mid s)}{\pi_{\text{old}}(a\mid s)}$</dt>
+            <dd><strong>概率比</strong>：新策略与旧策略对同一动作的概率之比。$r>1$ 表示新策略更偏好这个动作。</dd>
+            <dt>$A(s,a)$</dt>
+            <dd><strong>优势函数</strong>：这个动作比平均水平好多少（>0 该鼓励，<0 该抑制）。通常用 GAE 估计。</dd>
+            <dt>$\text{clip}(r, 1-\epsilon, 1+\epsilon)$</dt>
+            <dd>把概率比<strong>裁剪</strong>到 $[1-\epsilon, 1+\epsilon]$（典型 $\epsilon=0.2$），防止一次更新偏离旧策略太远。</dd>
+            <dt>$\min(\cdot,\cdot)$</dt>
+            <dd>取裁剪前后两项的<strong>较小值</strong>——这是个保守（悲观）下界，保证更新稳定不爆。</dd>
+            <dt>$\theta_\pi$</dt>
+            <dd>策略网络参数，最大化这个目标即完成一次更新。</dd>
+          </dl>
+        </div>
+        <div class="callout blue">
+          <div class="callout-label">类比</div>
+          <p>PPO 像<strong>系了安全绳的攀岩</strong>：优势函数 $A$ 告诉你哪条路线更好（往哪爬），clip 是安全绳（一次别窜太远），min 是『宁可慢点也别坠落』的保守原则。</p>
+        </div>
+
+        <h3>3.3 低层奖励函数（Table 2 全表逐项）</h3>
+        <p>
+          低层奖励由四类组成：<strong>命令跟踪</strong>（鼓励跟上速度/位姿）、<strong>能耗惩罚</strong>（鼓励平滑省力）、<strong>存活奖励</strong>（别摔）、<strong>相位奖励</strong>（学稳定步态）。其中速度跟踪用一个核函数 $\phi$：
+        </p>
+        <div class="math-block">
+          $$\phi(x) = \exp\!\left(-\frac{\lVert x \rVert^2}{0.25}\right)$$
+          <span class="math-label">速度跟踪核 · §C.1, p.16</span>
+        </div>
+        <div class="math-explain">
+          <div class="me-title">这个核在干嘛</div>
+          <dl>
+            <dt>$x = v^* - v$</dt>
+            <dd>命令速度与实际速度之<strong>差</strong>。差越小越好。</dd>
+            <dt>$\exp(-\lVert x\rVert^2 / 0.25)$</dt>
+            <dd>把『误差』变成『0~1 的奖励』：完全跟上（误差 0）得满分 1，误差越大奖励指数衰减。分母 0.25 控制衰减带宽。比直接用 $-\lVert x\rVert^2$ 更平滑、梯度更友好。</dd>
+          </dl>
+        </div>
+
+        <p>完整奖励项与权重（Table 2，$\mathbf{q}^*$ 为目标腿关节角，符号已并入权重列）：</p>
+        <table class="kv-table">
+          <tr><th>奖励项</th><th>定义</th><th style="text-align:right">权重</th></tr>
+          <tr><td>Linear vel tracking</td><td>$\phi(v^*_{b,xy}-v_{b,xy})$</td><td class="w">1.0</td></tr>
+          <tr><td>Yaw vel tracking</td><td>$\phi(v^*_{\text{yaw}}-\omega_b)$</td><td class="w">0.5</td></tr>
+          <tr><td>Angular vel penalty</td><td>$-\lVert\omega_{b,xy}\rVert^2$</td><td class="w">0.05</td></tr>
+          <tr><td>Joint torques</td><td>$-\lVert\tau\rVert^2$</td><td class="w">2e-5</td></tr>
+          <tr><td>Action rate</td><td>$-\lVert\ddot{\mathbf{q}}^*\rVert^2$</td><td class="w">0.25</td></tr>
+          <tr><td>Collisions</td><td>$-n_{\text{collision}}$</td><td class="w">0.001</td></tr>
+          <tr><td>Feet air time</td><td>$\sum_{f=1}^{4}(t_{\text{air},f}-0.5)$</td><td class="w">2.0</td></tr>
+          <tr><td>Default joint pos error</td><td>$\exp(-0.05\lVert\mathbf{q}-\mathbf{q}_{\text{default}}\rVert)$</td><td class="w">1.0</td></tr>
+          <tr><td>Linear velocity z</td><td>$\lVert v_{b,z}\rVert^2$</td><td class="w">−1.5</td></tr>
+          <tr><td>Base height</td><td>$\lVert h_b-h_{b,\text{target}}\rVert$</td><td class="w">−5.0</td></tr>
+          <tr><td>Swing phase tracking (force)</td><td>$\sum_{\text{foot}}\{1-\exp(-\lVert(\mathbf{f}^{\text{foot}})^2/\sigma_{cf}\rVert)\}$</td><td class="w">−0.2</td></tr>
+          <tr><td>Stance phase tracking (vel)</td><td>$\sum_{\text{foot}}\{1-\exp(-\lVert(\mathbf{v}^{\text{foot}})^2/\sigma_{cv}\rVert)\}$</td><td class="w">−0.2</td></tr>
+        </table>
+        <div class="math-explain">
+          <div class="me-title">几个关键项的直觉</div>
+          <dl>
+            <dt>Feet air time（权重最大之一 2.0）</dt>
+            <dd>鼓励每只脚有合理的腾空时间（>0.5s），避免碎步拖地，学出干净的小跑步态。</dd>
+            <dt>Swing/Stance phase tracking（相位力/速度）</dt>
+            <dd>$C^{\text{cmd}}_{\text{foot}}(\theta^{\text{cmd}},t)$ 算出每只脚『此刻该腾空还是该触地』。摆动相要求<strong>足端力小</strong>（不该踩地却踩了就罚），支撑相要求<strong>足端速度小</strong>（该踩稳却在滑就罚）。这对学稳定步态至关重要。</dd>
+            <dt>Base height（−5.0，惩罚最重）</dt>
+            <dd>机身高度偏离目标会被重罚——但目标高度是可变的，这正是『弯腰』的开关：高层/采样要求够低处时目标高度降低，机器人才会蹲下。</dd>
+          </dl>
+        </div>
+
+        <h3>3.4 手臂为什么用 IK 而非直接预测关节角</h3>
+        <p>
+          先前工作 DeepWBC 直接让 RL 输出手臂关节角，结果<strong>末端位姿精度很差</strong>。VBC 改为：策略只预测末端 6-DoF 位姿目标，再用<strong>伪逆雅可比 IK</strong> 解成关节角增量：
+        </p>
+        <div class="math-block">
+          $$\Delta\theta = J^{T}\big(J J^{T}\big)^{-1}\mathbf{e}$$
+          <span class="math-label">伪逆雅可比 IK · §3.1, p.4</span>
+        </div>
+        <div class="math-explain">
+          <div class="me-title">逐项拆解</div>
+          <dl>
+            <dt>$\Delta\theta \in \mathbb{R}^6$</dt>
+            <dd>当前关节角需要的<strong>增量</strong>，加到当前关节位置即得目标关节角。</dd>
+            <dt>$\mathbf{e} \in \mathbb{R}^6$</dt>
+            <dd>末端<strong>位姿误差</strong>：当前末端位姿与目标末端位姿（位置+欧拉角）之差。</dd>
+            <dt>$J$</dt>
+            <dd><strong>雅可比矩阵</strong>：关节角速度到末端速度的线性映射 $\dot{x}=J\dot\theta$。</dd>
+            <dt>$J^{T}(JJ^{T})^{-1}$</dt>
+            <dd>$J$ 的<strong>右伪逆</strong>（Moore-Penrose）。把末端的期望位移『反解』回最小范数的关节位移。</dd>
+          </dl>
+        </div>
+        <div class="callout">
+          <div class="callout-label">效果对比（Table 4，仿真 reach 实验）</div>
+          <p>站立时位置误差：直接预测关节角 0.236m → <strong>IK 0.047m</strong>；行走时 0.414m → <strong>IK 0.029m</strong>。朝向误差也大幅下降。IK 让末端控制精度提升约 5–14 倍，这是高层能完成精细抓取的前提。</p>
+        </div>
+
+        <h3>3.5 末端目标采样（让训练覆盖整个工作空间）</h3>
+        <p>
+          要训出鲁棒的全身控制器，必须采样<strong>各种各样</strong>的末端目标并平滑跟踪。目标在球坐标 $(l,p,y)$ 下采样，再在当前末端位置 $\mathbf{p}$ 与采样目标 $\mathbf{p}^{\text{end}}$ 之间做<strong>线性插值</strong>，得到每一步的平滑命令：
+        </p>
+        <div class="math-block">
+          $$\mathbf{p}^{\text{cmd}}_t = \frac{t}{T_{\text{traj}}}\mathbf{p} + \left(1-\frac{t}{T_{\text{traj}}}\right)\mathbf{p}^{\text{end}}, \quad t\in[0, T_{\text{traj}}]$$
+          <span class="math-label">末端目标插值 · §C.1, p.17</span>
+        </div>
+        <div class="math-explain">
+          <div class="me-title">逐项拆解</div>
+          <dl>
+            <dt>$(l,p,y)$ 采样范围</dt>
+            <dd>$l\in[0.4,0.95]$（半径/伸展），$p\in[-\pi/2.5,\,\pi/3]$（俯仰），$y\in[-1.2,1.2]$（偏航）。覆盖手臂前方一大片可达空间。</dd>
+            <dt>$T_{\text{traj}}$</dt>
+            <dd>一段插值轨迹的时长。到时间或目标会引起自碰撞/触地时<strong>重新采样</strong>新目标。</dd>
+            <dt>插值本身</dt>
+            <dd>把『瞬间跳到目标』变成『平滑地从当前位置走到目标』，避免命令突变让 RL 学崩。坐标系是<strong>高度-roll-pitch 不变</strong>的，目标只受机身水平移动和偏航影响，保证采样轨迹始终在一个局部球面内、彼此一致。</dd>
+          </dl>
+        </div>
+
+        <div class="fig-interactive">
+          <div class="fig-block">
+            <div class="hotspot-wrap" data-hotspot-group="fig9">
+              <img src="../assets/figures/vbc-loco-manipulation/fig-9.png" alt="Figure 9: Screenshots of low-level training">
+              <div class="hotspot" data-id="cyan" style="left:24%; top:40%;"
+                   data-title="青点 · 重采样原点"
+                   data-body="高度不变坐标系的原点，固定在机身一条竖直线上（与臂基同 Z 轴）。所有目标都相对它采样。"></div>
+              <div class="hotspot" data-id="yellow" style="left:8%; top:62%;"
+                   data-title="黄点 · 目标末端位姿"
+                   data-body="当前要够到的末端目标。可以在机身下方/前方/上方，逼机器人用全身去够。"></div>
+              <div class="hotspot" data-id="red" style="left:14%; top:78%;"
+                   data-title="红点 · 插值轨迹"
+                   data-body="从当前末端到目标之间的插值路径点，保证平滑跟踪。"></div>
+              <div class="hotspot" data-id="bend" style="left:78%; top:30%;"
+                   data-title="弯腰行为"
+                   data-body="右图机器人为了把末端举高/伸远，自发地调整机身姿态——这就是 whole-body 行为被奖励出来的样子。"></div>
+            </div>
+            <div class="fig-cap">
+              <span class="fig-num">Fig 9 · p.17</span>
+              Screenshots of low-level training. 青点=重采样原点，蓝/黄点=当前/目标末端位姿，红点=插值目标，红线=自碰撞检测范围。
+            </div>
+          </div>
+          <div class="hotspot-panel"></div>
+        </div>
+
+        <h3>3.6 ROA 域适应：让 sim 学到的东西能上真机</h3>
+        <p>
+          策略观测里有个环境隐向量 $\mathbf{z}$（编码摩擦、质量等），仿真里能从特权信息直接编码，<strong>真机里拿不到</strong>。VBC 用<span class="term" data-en="Regularized Online Adaptation">正则化在线适应</span>（ROA）解决：训一个『适应模块』只用<strong>历史观测</strong>来估计 $\mathbf{z}$。损失函数：
+        </p>
+        <div class="math-block">
+          $$L(\theta_{\pi^{\text{low}}}, \theta_\mu, \theta_\phi) = -L^{\text{PPO}}(\theta_{\pi^{\text{low}}}, \theta_\mu) + \lambda\big\lVert z^\mu - \text{sg}[z^\phi]\big\rVert_2 + \big\lVert \text{sg}[z^\mu] - z^\phi\big\rVert_2$$
+          <span class="math-label">Eq. 3 · ROA 低层损失 · §C.1, p.18</span>
+        </div>
+        <div class="math-explain">
+          <div class="me-title">逐项拆解</div>
+          <dl>
+            <dt>$z^\mu$</dt>
+            <dd><strong>特权编码器</strong> $\mu$ 的输出：用真实物理参数 $e$（摩擦、质量…）编码出的隐向量。是『正确答案』。</dd>
+            <dt>$z^\phi$</dt>
+            <dd><strong>适应模块</strong> $\phi$ 的输出：只用历史观测估计的隐向量。真机部署时用它代替 $z^\mu$。</dd>
+            <dt>$-L^{\text{PPO}}(\theta_{\pi^{\text{low}}},\theta_\mu)$</dt>
+            <dd>RL 项：联合优化策略和特权编码器（最大化 PPO 目标，故取负号做最小化）。</dd>
+            <dt>$\lambda\lVert z^\mu - \text{sg}[z^\phi]\rVert_2$</dt>
+            <dd><strong>正则项</strong>：把特权编码器 $z^\mu$ 往适应模块 $z^\phi$ 拉近（让『正确答案』也别太离谱、可被历史估出）。$\lambda$ 是拉格朗日乘子。</dd>
+            <dt>$\lVert \text{sg}[z^\mu] - z^\phi\rVert_2$</dt>
+            <dd><strong>模仿项</strong>：让适应模块 $z^\phi$ 去逼近特权编码器 $z^\mu$。</dd>
+            <dt>$\text{sg}[\cdot]$</dt>
+            <dd><strong>梯度停止</strong>（stop-gradient）算子：被它包住的量只当常数，不回传梯度。保证两个方向各自单向对齐。</dd>
+            <dt>$\lambda=0$ 时</dt>
+            <dd>退化为 <strong>RMA</strong>（先训特权策略，再单独监督适应模块）。ROA 是 RMA 的推广。论文中适应模块在 $\pi^{\text{low}}$ 和 $\mu$ 收敛后才开始训。</dd>
+          </dl>
+        </div>
+
+        <div class="fig-interactive panel-below">
+          <div class="fig-block">
+            <div class="hotspot-wrap" data-hotspot-group="fig10">
+              <img src="../assets/figures/vbc-loco-manipulation/fig-10.png" alt="Figure 10: ROA training">
+              <div class="hotspot" data-id="priv" style="left:11%; top:34%;"
+                   data-title="特权信息 → 特权编码器"
+                   data-body="摩擦、质量、CoM 等真实物理参数（仅 sim 可得）送入特权编码器 μ，得到 z^μ。"></div>
+              <div class="hotspot" data-id="adapt" style="left:22%; top:68%;"
+                   data-title="历史观测 → 适应模块"
+                   data-body="只用最近若干步的本体观测，过 2 层 CNN（适应模块 φ）估计 z^φ。真机用这个。"></div>
+              <div class="hotspot" data-id="latent" style="left:36%; top:30%;"
+                   data-title="Latent Env Extrinsics z"
+                   data-body="环境隐向量（20 维）。训练用 z^μ，测试/真机用 z^φ。"></div>
+              <div class="hotspot" data-id="sup" style="left:35%; top:50%;"
+                   data-title="supervise / regularize"
+                   data-body="蓝箭头=模仿（φ 学 μ），红箭头=正则（μ 也向 φ 靠拢）。双向对齐配合 stop-gradient。"></div>
+              <div class="hotspot" data-id="llp" style="left:73%; top:45%;"
+                   data-title="低层策略"
+                   data-body="训练时(Training Time)用 z^μ，测试时(Test Time)用 z^φ，输出腿控制，配合 IK 控制手臂。"></div>
+            </div>
+            <div class="fig-cap">
+              <span class="fig-num">Fig 10 · p.18</span>
+              Regularized Online Adaptation (ROA) training of the low-level policy.
+              <span class="fig-cn">ROA：特权编码器(μ)与适应模块(φ)双向对齐隐向量 z，让真机能只凭历史观测估出物理参数。</span>
+            </div>
+          </div>
+          <div class="hotspot-panel"></div>
+        </div>
+
+        <div class="quiz"
+             data-correct="a"
+             data-explain="正确。VBC 让 RL 只预测末端 6-DoF 位姿，再用伪逆雅可比 IK 解关节角。Table 4 显示这比直接预测关节角（DeepWBC 做法）位置精度高约 5–14 倍，是完成精细抓取的关键。"
+             data-explain-wrong="再看 §3.1『Arm control』：直接用 RL 控关节角（whole-body RL）难以精确控制末端位姿，所以 VBC 才改用 IK。">
+          <div class="q-label">🧠 理解检查</div>
+          <div class="q-text">VBC 的手臂控制方式是？</div>
+          <div class="q-options">
+            <button class="q-opt" data-k="a">RL 预测末端 6-DoF 位姿，伪逆雅可比 IK 解关节角</button>
+            <button class="q-opt" data-k="b">RL 直接输出 6 个臂关节力矩</button>
+            <button class="q-opt" data-k="c">遥操作手柄人工控制</button>
+            <button class="q-opt" data-k="d">固定轨迹回放，不做闭环</button>
+          </div>
+          <div class="q-feedback"></div>
+        </div>
+      </div>
+
+      <!-- ============ §04 HIGH LEVEL ============ -->
+      <div class="section" id="highlevel">
+        <div class="section-num">§ 04</div>
+        <h2>高层任务规划：特权教师 + 视觉学生蒸馏</h2>
+
+        <div class="cn-read">
+          <div class="cn-label">这一节解决什么</div>
+          <p>
+            低层会跟踪任意目标了，但『目标该是什么』谁来决定？这就是高层的活。直接用 RL + 视觉训高层非常难（视觉 RL 样本效率低）。VBC 的套路是<strong>先易后难</strong>：先训一个能作弊（拿到物体真实位姿+点云）的<strong>特权教师</strong>，再把它<strong>蒸馏</strong>成只看深度图的<strong>视觉学生</strong>。这一节讲教师的奖励设计（含全表逐项）和学生的 DAgger 蒸馏公式。
+          </p>
+        </div>
+
+        <h3>4.1 特权教师：观测与动作</h3>
+        <p>教师拿到一个 1094 维的特权观测，包含物体形状和位姿：</p>
+        <div class="math-block">
+          $$\mathbf{o}_t = [\mathbf{z}^{\text{shape}},\, \mathbf{s}^{\text{obj}}_t,\, \mathbf{s}^{\text{proprio}}_t,\, \mathbf{v}^{\text{base vel}}_t,\, \mathbf{a}_{t-1}]$$
+          <span class="math-label">高层教师特权观测（1094 维）· §3.2.1, p.4</span>
+        </div>
+        <div class="math-explain">
+          <div class="me-title">逐项拆解</div>
+          <dl>
+            <dt>$\mathbf{z}^{\text{shape}}\in\mathbb{R}^{1024}$</dt>
+            <dd>物体点云经<strong>冻结 PointNet++</strong> 编码的形状特征。训练全程不变。</dd>
+            <dt>$\mathbf{s}^{\text{obj}}_t\in\mathbb{R}^6$</dt>
+            <dd>物体在<strong>臂基局部坐标系</strong>下的位姿。用局部坐标天然编码了『手离物体多远』的信息。</dd>
+            <dt>$\mathbf{s}^{\text{proprio}}_t\in\mathbb{R}^{53}$</dt>
+            <dd>关节状态：夹爪关节位置 $\mathbf{q}_t\in\mathbb{R}^{19}$、不含夹爪的关节速度 $\dot{\mathbf{q}}_t\in\mathbb{R}^{18}$、末端位姿 $\mathbf{s}^{ee}_t\in\mathbb{R}^6$。</dd>
+            <dt>$\mathbf{v}^{\text{base vel}}_t\in\mathbb{R}^3$、$\mathbf{a}_{t-1}\in\mathbb{R}^9$</dt>
+            <dd>机身速度，以及上一次高层动作。</dd>
+          </dl>
+        </div>
+        <p>高层<strong>动作</strong> $\mathbf{a}_t\in\mathbb{R}^9$：末端位置增量 $\mathbf{p}^{\text{cmd}}_t\in\mathbb{R}^6$、机身线/偏航速度 $\mathbf{v}^{\text{cmd}}_t\in\mathbb{R}^2$、夹爪状态 $p^{\text{gripper}}_t\in\{0,1\}$（开/合）。这正好是低层需要的命令接口。</p>
+
+        <h3>4.2 高层奖励（Table 3 全表逐项）</h3>
+        <p>高层奖励分两类：<strong>阶段奖励</strong>（把抓取拆成接近→进展→完成三阶段，同一时刻只处于一个阶段）和<strong>辅助奖励</strong>（加速收敛、平滑动作、对准物体）。先看三个阶段奖励的定义：</p>
+        <div class="math-block">
+          $$r_{\text{approach}} = \min(d_{\text{closest}}-d,\, 0), \quad r^{\text{pickup}}_{\text{progress}} = \min(d-d_{\text{highest}},\, 0), \quad r_{\text{completion}} = \mathbb{1}(\text{Task completed})$$
+          <span class="math-label">三阶段奖励定义 · §C.2, p.18</span>
+        </div>
+        <div class="math-explain">
+          <div class="me-title">逐项拆解</div>
+          <dl>
+            <dt>$r_{\text{approach}}$（接近阶段）</dt>
+            <dd>$d$ 是夹爪到目标的当前最小距离，$d_{\text{closest}}$ 是历史最近距离。只有比『历史最近』更近才有奖励——鼓励单调靠近物体。</dd>
+            <dt>$r^{\text{pickup}}_{\text{progress}}$（进展阶段）</dt>
+            <dd>$d$ 是物体当前最大高度，$d_{\text{highest}}$ 是历史最高。把物体抬得比以前更高才有奖励——鼓励把物体往上拎。</dd>
+            <dt>$r_{\text{completion}}$（完成阶段）</dt>
+            <dd>指示函数：任务完成（物体高度超过阈值）给一次性大奖励。</dd>
+            <dt>关键设计</dt>
+            <dd>三阶段<strong>互斥</strong>，同一时刻只领其中一个阶段的奖励，避免不同阶段奖励互相干扰。</dd>
+          </dl>
+        </div>
+
+        <p>完整权重表（Table 3）：</p>
+        <table class="kv-table">
+          <tr><th>类别</th><th>奖励项 / 定义</th><th style="text-align:right">权重</th></tr>
+          <tr><td>Stage</td><td>$r_{\text{approach}}$ 接近</td><td class="w">0.5</td></tr>
+          <tr><td>Stage</td><td>$r_{\text{progress}}$ 进展</td><td class="w">1.0</td></tr>
+          <tr><td>Stage</td><td>$r_{\text{completion}}$ 完成</td><td class="w">3.5</td></tr>
+          <tr><td>Assist</td><td>$r_{\text{acc}}=1-\exp(-\lVert\dot{\mathbf{q}}_{t-1}-\dot{\mathbf{q}}_t\rVert)$</td><td class="w">−0.001</td></tr>
+          <tr><td>Assist</td><td>$r_{\text{cmd}}=-\lVert v^*_x + 0.25\exp(-\lVert v^*_x\rVert)\rVert$</td><td class="w">1.0</td></tr>
+          <tr><td>Assist</td><td>$r_{\text{action}}=1-\exp(-\lVert\mathbf{a}_{t-1}-\mathbf{a}_t\rVert)$</td><td class="w">−0.001</td></tr>
+          <tr><td>Assist</td><td>$r_{\text{ee orn}}=\cos(\mathbf{d}_{\text{obj}}\cdot\mathbf{d}_{\text{ee}})$</td><td class="w">0.01</td></tr>
+          <tr><td>Assist</td><td>$r_{\text{base orn}}=|\cos(\mathbf{d}_{\text{obj}},\mathbf{d}_{\text{base}})|$</td><td class="w">0.25</td></tr>
+          <tr><td>Assist</td><td>$r_{\text{base approach}}=1+\tanh(-10\lVert x_{\text{obj}}-x_{\text{base}}-0.6\rVert)$</td><td class="w">0.01</td></tr>
+        </table>
+        <div class="math-explain">
+          <div class="me-title">辅助奖励在防什么坑</div>
+          <dl>
+            <dt>$r_{\text{acc}}$ / $r_{\text{action}}$（负权重）</dt>
+            <dd>惩罚臂关节速度的剧变和高层动作的剧变——让动作平滑，便于 sim2real 迁移（真机受不了抖动指令）。</dd>
+            <dt>$r_{\text{cmd}}$</dt>
+            <dd>鼓励机器人在靠近物体时<strong>放慢机身速度</strong>（那个 $0.25\exp(-\lVert v^*_x\rVert)$ 项让它别一直全速冲）。</dd>
+            <dt>$r_{\text{ee orn}}$ / $r_{\text{base orn}}$</dt>
+            <dd>让<strong>夹爪朝向</strong>和<strong>机身朝向</strong>都对准物体（$\mathbf{d}$ 是机身/末端指向物体的方向）。保证相机一直能看到物体，不丢失跟踪。</dd>
+            <dt>$r_{\text{base approach}}$</dt>
+            <dd>机器人离物体远时鼓励靠近（在距离 0.6m 附近达到平衡）。</dd>
+          </dl>
+        </div>
+
+        <h3>4.3 学生蒸馏：DAgger 在线模仿</h3>
+        <p>
+          教师的『上帝视角』真机没有。于是用 <span class="term" data-en="Dataset Aggregation">数据聚合</span>（DAgger）把教师蒸馏成视觉学生：学生在<strong>自己遇到的状态</strong>上行动，但请教师给出『正确动作』作为监督，最小化两者动作差距：
+        </p>
+        <div class="math-block">
+          $$\hat\pi = \arg\min_{\pi\in\Pi}\, \mathbb{E}_{s\sim d_\pi}\big[\ell(s, \pi)\big]$$
+          <span class="math-label">Eq. 2 · DAgger 目标 · §B.3</span>
+        </div>
+        <div class="math-explain">
+          <div class="me-title">逐项拆解</div>
+          <dl>
+            <dt>$\hat\pi$</dt>
+            <dd>要学的<strong>学生策略</strong>（视觉策略）。</dd>
+            <dt>$s\sim d_\pi$</dt>
+            <dd>状态从<strong>学生自己的</strong>状态分布 $d_\pi$ 采样——这是 DAgger 的关键：不是在教师轨迹上学，而是在学生会真实遇到的状态上学，从而消除『分布漂移』。</dd>
+            <dt>$\ell(s,\pi)$</dt>
+            <dd>学生动作与教师动作的差距。VBC 里就是 <strong>MSE</strong>（均方误差）。</dd>
+            <dt>训练流程</dt>
+            <dd>先由教师采样初始转移『热启动』学生 → 再用学生采样、向教师请求纠正动作 → 反复聚合。比直接对视觉策略做 RL 更高效有效。</dd>
+          </dl>
+        </div>
+
+        <div class="callout amber">
+          <div class="callout-label">学生输入是什么</div>
+          <p>学生观测 $\mathbf{o}_t=[\mathbf{o}^{\text{image}}_t,\mathbf{s}^{\text{proprio}}_t,\mathbf{a}_{t-1}]$。其中 $\mathbf{o}^{\text{image}}$ 是<strong>物体分割掩码 + 掩码深度图</strong>（不是 RGB！）。用分割深度而非彩色图，是因为彩色图 sim-real gap 巨大。深度图还做了 hole-filling、最小 0.2m 裁剪、归一化，并加 RandomErasing/GaussianBlur/GaussianNoise/RandomRotation 增强。</p>
+        </div>
+
+        <div class="quiz"
+             data-correct="d"
+             data-explain="正确。学生用分割掩码+掩码深度图（背景全黑），刻意避开 RGB。原因：彩色图在 sim 和 real 之间差异极大（光照、纹理、渲染），而分割深度图的 sim-real gap 很小，这是 VBC 零样本迁移成功的核心原因之一。"
+             data-explain-wrong="再看 §3.2.2：『we turn to segmented depth images』『there is a huge gap for colored images』。学生刻意不用 RGB。">
+          <div class="q-label">🧠 理解检查</div>
+          <div class="q-text">视觉学生策略的图像输入用的是什么？为什么？</div>
+          <div class="q-options">
+            <button class="q-opt" data-k="a">RGB 彩色图，因为信息最丰富</button>
+            <button class="q-opt" data-k="b">物体点云，和教师一致</button>
+            <button class="q-opt" data-k="c">RGB + 深度的四通道图</button>
+            <button class="q-opt" data-k="d">分割掩码 + 掩码深度图，因为彩色图 sim-real gap 太大</button>
+          </div>
+          <div class="q-feedback"></div>
+        </div>
+      </div>
+
+      <!-- ============ §05 DEPLOY ============ -->
+      <div class="section" id="deploy">
+        <div class="section-num">§ 05</div>
+        <h2>视觉输入与实机部署：TrackingSAM + 多进程系统</h2>
+
+        <div class="cn-read">
+          <div class="cn-label">这一节解决什么</div>
+          <p>
+            学生要吃『物体分割掩码』，可真机怎么实时分割出目标物？而且高层(视觉，慢)、低层(控腿，50Hz)、手臂(IK，800Hz)频率天差地别，怎么协同？这一节讲两件落地工程：<strong>TrackingSAM</strong> 负责一次点选、全程跟踪分割；<strong>服务器-客户端多进程系统</strong>让不同频率的模块异步协作。这部分是论文能真正跑在真狗上的关键，也是你复现真机时最容易踩坑的地方。
+          </p>
+        </div>
+
+        <h3>5.1 硬件</h3>
+        <table class="kv-table">
+          <tr><td>四足</td><td>Unitree B1（12 DoF）</td></tr>
+          <tr><td>机械臂</td><td>Unitree Z1（6 DoF）+ 夹爪（1 DoF），装在 B1 背上 → 共 19 DoF</td></tr>
+          <tr><td>相机</td><td>2× RealSense D435：一个在头部、一个靠近夹爪（腕部）</td></tr>
+          <tr><td>板载算力</td><td>B1 自带计算机跑低层策略 + 手臂控制；额外 Nvidia Jetson Orin 跑高层视觉策略</td></tr>
+          <tr><td>供电</td><td>全部由 B1 电池供电，完全板载、无外接 PC（untethered）</td></tr>
+        </table>
+
+        <div class="fig-interactive">
+          <div class="fig-block">
+            <div class="hotspot-wrap" data-hotspot-group="fig4">
+              <img src="../assets/figures/vbc-loco-manipulation/fig-4.png" alt="Figure 4: Real robot system setup">
+              <div class="hotspot" data-id="cam" style="left:31%; top:28%;"
+                   data-title="D435 RGBD 相机"
+                   data-body="头部 + 腕部各一个。提供两路深度/掩码视角，互为补充，物体只要被一个相机看到就能传播掩码到另一视角。"></div>
+              <div class="hotspot" data-id="b1" style="left:55%; top:62%;"
+                   data-title="Unitree B1 四足"
+                   data-body="12 DoF 腿部。板载计算机跑低层 50Hz 控制 + 手臂 800Hz IK。"></div>
+            </div>
+            <div class="fig-cap">
+              <span class="fig-num">Fig 4 · p.5</span>
+              Real robot system setup. Unitree B1 + Z1 arm + 2 D435 cameras + onboard Jetson Orin。
+            </div>
+          </div>
+          <div class="hotspot-panel"></div>
+        </div>
+
+        <h3>5.2 TrackingSAM：一次点选，全程跟踪</h3>
+        <p>
+          系统需要的人工干预极少：每次重置时，用户在一路相机图像上<strong>点几下</strong>，SAM 生成初始分割掩码，之后用 <span class="term" data-en="Associating Objects with Transformers">AOT</span>（AOT-Tiny，基于 MobileNet，~10fps）实时跟踪该物体，并把掩码<strong>传播到两路相机</strong>。深度图经 hole-filling 和 clipping 预处理。只要物体对至少一个相机可见，掩码就能传到双视角，启动自动抓取。
+        </p>
+
+        <h3>5.3 异步多进程系统（Fig 12）</h3>
+        <div class="fig-interactive panel-below">
+          <div class="fig-block">
+            <div class="hotspot-wrap" data-hotspot-group="fig12">
+              <img src="../assets/figures/vbc-loco-manipulation/fig-12.png" alt="Figure 12: Server-client multi-processing system">
+              <div class="hotspot" data-id="hl" style="left:18%; top:48%;"
+                   data-title="High-Level Policy · 服务器(7Hz)"
+                   data-body="部署在 Jetson Orin（Computer 1）。综合双路视觉 + 低层请求里的状态，每 0.1s 收到一次请求就推理一次，返回高层动作。实际有效频率 6–8Hz。"></div>
+              <div class="hotspot" data-id="goal" style="left:43%; top:50%;"
+                   data-title="Goal Receiver Process(7Hz)"
+                   data-body="客户端进程，定期向服务器发请求、接收新的高层命令，再转给低层执行。"></div>
+              <div class="hotspot" data-id="quad" style="left:62%; top:50%;"
+                   data-title="Quadruped Control Process(50Hz)"
+                   data-body="跑低层策略，输出 12 腿关节目标角，50Hz。在等高层更新前持续用旧命令控制。"></div>
+              <div class="hotspot" data-id="arm" style="left:84%; top:50%;"
+                   data-title="Arm Control Process(800Hz)"
+                   data-body="IK 控制器以 800Hz 高频跟踪末端位姿目标。"></div>
+            </div>
+            <div class="fig-cap">
+              <span class="fig-num">Fig 12 · p.21</span>
+              The server-client multi-processing system design. 高层(慢、视觉)与低层控制(快、控制)异步运行在不同设备，靠旧命令保持控制直到高层更新。
+            </div>
+          </div>
+          <div class="hotspot-panel"></div>
+        </div>
+
+        <table class="kv-table">
+          <tr><th>组件</th><th>耗时(s)</th><th>阶段/设备</th></tr>
+          <tr><td>SAM 点选分割</td><td>1.369</td><td>初始化 · Jetson Orin 64GB</td></tr>
+          <tr><td>AOT 跟踪</td><td>0.083</td><td>自主运行</td></tr>
+          <tr><td>图像预处理</td><td>0.031</td><td>自主运行</td></tr>
+          <tr><td>高层模型推理</td><td>0.003</td><td>自主运行</td></tr>
+          <tr><td>低层模型推理</td><td>0.011</td><td>Jetson Xavier NX</td></tr>
+        </table>
+        <p style="font-size:13px;color:var(--text3)">高层总延迟（含跟踪+预处理）把高层有效频率限制在 6–8Hz；低层固定 50Hz。</p>
+      </div>
+
+      <!-- ============ §06 EXP ============ -->
+      <div class="section" id="exp">
+        <div class="section-num">§ 06</div>
+        <h2>实验结果：涌现的『重试』行为</h2>
+
+        <div class="cn-read">
+          <div class="cn-label">这一节解决什么</div>
+          <p>
+            前面讲完怎么训。这一节回答：到底好不好用？三个看点：① 形状特征对<strong>不规则物体</strong>帮助多大；② 不同高度（地面/箱子/桌面）下相比 floating-base 基线强多少；③ 一个有意思的涌现行为——<strong>抓失败会自己重试</strong>。
+          </p>
+        </div>
+
+        <h3>仿真：抓取成功率（Table 1，7 类物体，>300 episode/类）</h3>
+        <table class="kv-table">
+          <tr><th>策略</th><th>Ball</th><th>LongBox</th><th>Cup</th><th>Bowl</th><th>Drill</th></tr>
+          <tr><td>教师 Floating Base</td><td>0.63</td><td>0.20</td><td>0.71</td><td>0.55</td><td>0.07</td></tr>
+          <tr><td>教师 w.o. Shape</td><td><strong>0.96</strong></td><td>0.74</td><td>0.71</td><td>0.55</td><td>0.74</td></tr>
+          <tr><td>教师 VBC(完整)</td><td>0.89</td><td><strong>0.93</strong></td><td><strong>0.89</strong></td><td><strong>0.78</strong></td><td><strong>0.84</strong></td></tr>
+          <tr><td>学生 VBC(视觉)</td><td>0.67</td><td>0.42</td><td>0.74</td><td>0.52</td><td>0.47</td></tr>
+        </table>
+        <div class="callout">
+          <div class="callout-label">关键发现</div>
+          <p>① <strong>形状特征</strong>在规则物体（球）上略降，但在<strong>不规则物体</strong>（long box/cup/bowl/drill）上大幅提升——没有形状特征时策略只会瞄准物体几何中心抓，对复杂形状失效。② 学生比教师差不少，因为只靠视觉、且首次没抓住后物体姿态可能变得更难抓。③ long box 对学生最难（没形状特征难定位姿态）。</p>
+        </div>
+
+        <h3>真机：涌现的重试行为（Fig 7）</h3>
+        <p>
+          真机测 14 物体 × 3 高度，每次配置允许连续重试 5 次。关键观察：<strong>抓失败时机器人会自动重试，无需人干预</strong>——这是仿真训练里（含 10% 概率随机改变物体位姿）涌现出来的行为。重试让平均成功次数随尝试数显著上升。VBC 在所有高度（0m/0.3m/0.5m）都明显超过遥操 floating-base 基线，尤其在 0m 和 0.3m，因为基线机身高度固定、够不到。
+        </p>
+
+        <div class="quiz"
+             data-correct="c"
+             data-explain="正确。重试行为是仿真训练涌现的（训练中以 10% 概率随机改变物体位姿，逼策略学会失败后重新调整）。真机部署时无需人工干预，抓失败会自动再试，显著提升成功率。这是相比 model-based 方法的明显优势。"
+             data-explain-wrong="重试不是硬编码的状态机，也不是人遥操的——是 RL 在『随机改变物体位姿』的训练设置下自发学到的涌现行为。">
+          <div class="q-label">🧠 理解检查</div>
+          <div class="q-text">VBC 真机展示的『抓失败自动重试』是怎么来的？</div>
+          <div class="q-options">
+            <button class="q-opt" data-k="a">手写的有限状态机检测失败后回退</button>
+            <button class="q-opt" data-k="b">操作员看到失败后遥控重试</button>
+            <button class="q-opt" data-k="c">仿真训练涌现的行为（训练时随机改变物体位姿）</button>
+            <button class="q-opt" data-k="d">真机上额外微调出来的</button>
+          </div>
+          <div class="q-feedback"></div>
+        </div>
+
+        <div class="callout red">
+          <div class="callout-label">局限（§5 + Appendix I）</div>
+          <p>① <strong>视觉跟踪丢失</strong>：TrackingSAM 受相机抖动/遮挡/相似颜色干扰会丢目标（最常见失败原因）。② <strong>夹爪设计差</strong>：Z1 的喙状夹爪不是平行夹爪，容易把物体推开。③ <strong>深度估计不准</strong>：D435 对反光物体深度差。④ <strong>复合误差</strong>：分层系统每个模块都要够准。⑤ 只用掩码+深度、不用 RGB → 无法做依赖颜色的任务（分垃圾、按绿色按钮）。</p>
+        </div>
+      </div>
+
+      <!-- ============ §07 REPRO ============ -->
+      <div class="section" id="repro">
+        <div class="section-num">§ 07</div>
+        <h2>复现操作总结：从零到真机的完整路线</h2>
+
+        <div class="cn-read">
+          <div class="cn-label">这一节解决什么</div>
+          <p>
+            这一节是给你（想自己跑一遍 VBC）的<strong>实操路线图</strong>。注意：截至本笔记，作者只放了项目页 <code>wholebody-b1.github.io</code> 和视频，<strong>未必有完整开源代码</strong>——所以下面是『按论文配方自己搭』的复现路径，标注每步用到论文哪个公式/超参，以及最容易踩的坑。整体分三阶段训练 + 一阶段部署，<strong>全部在仿真里训，真机零数据</strong>。
+          </p>
+        </div>
+
+        <div class="callout amber">
+          <div class="callout-label">先决条件 / 软硬件清单</div>
+          <p>
+            <strong>仿真</strong>：Isaac Gym（GPU 并行，论文用 legged_gym 风格）。<strong>训练机</strong>：单张 GTX 4090 / 3090 够用（教师 ~36h、学生 ~48h）。<strong>真机（可选）</strong>：Unitree B1 + Z1 + 2×RealSense D435 + Jetson Orin。<strong>资产</strong>：B1+Z1 的 URDF/MJCF；YCB 数据集（33–34 个物体，分 7 类）；点云预训练 PointNet++。
+          </p>
+        </div>
+
+        <h3>阶段 0：环境与资产准备</h3>
+        <div class="repro-step">
+          <div class="repro-num">0</div>
+          <div class="repro-body">
+            <h4>搭仿真 + 导入机器人</h4>
+            <p>装 Isaac Gym + legged_gym 框架。把 B1（12 DoF 腿）+ Z1（6 DoF 臂）+ 夹爪拼成 19 DoF 单体 URDF，给腿关节配 PD 控制器、给臂关节配 PD + IK 控制器。导入 YCB 物体并按 7 类（ball / long box / square box / bottle / cup / bowl / drill）组织。</p>
+            <div class="code-block"><code># 关键参数对齐论文
+腿: 12 DoF, PD 控制, 输出=目标关节角
+臂: 6 DoF, IK 控制 (伪逆雅可比), 800Hz
+夹爪: 1 DoF, {0,1} 开/合
+低层控制频率: 50Hz   高层: 6-8Hz</code></div>
+          </div>
+        </div>
+
+        <h3>阶段 1：训练低层通用全身策略（§03）</h3>
+        <div class="repro-step">
+          <div class="repro-num">1</div>
+          <div class="repro-body">
+            <h4>用 PPO 训『会弯腰的身体』</h4>
+            <p><strong>观测</strong>=90 维（§3.1 那个向量）；<strong>命令</strong> $\mathbf{b}_t$ 含末端位姿 + 机身线/角速度，线速度采样 $[-0.6,0.6]$、偏航 $[-1.0,1.0]$。<strong>末端目标</strong>用球坐标 $(l,p,y)\in[0.4,0.95]\times[-\pi/2.5,\pi/3]\times[-1.2,1.2]$ 采样并按插值公式平滑跟踪。<strong>奖励</strong>用 Table 2 全套（命令跟踪 $\phi$ 核 + feet air time + swing/stance 相位 + base height 惩罚）。<strong>动作</strong>=12 腿关节目标角；手臂用 IK（$\Delta\theta=J^T(JJ^T)^{-1}\mathbf{e}$）。</p>
+            <div class="code-block"><code># 易踩坑
+1) base height 用可变目标（弯腰开关），别写死
+2) 手臂必须 IK，别让 RL 直接出臂关节角（精度差5-14x）
+3) 高度-roll-pitch 不变坐标系，目标只随水平移动+偏航变
+4) 域随机化: 地形/摩擦/质量/CoM/电机强度</code></div>
+          </div>
+        </div>
+        <div class="repro-step">
+          <div class="repro-num">2</div>
+          <div class="repro-body">
+            <h4>加 ROA 域适应（为 sim2real 铺路）</h4>
+            <p>先训好策略 $\pi^{\text{low}}$ + 特权编码器 $\mu$（输出 $z^\mu$，20 维）。收敛后再训适应模块 $\phi$（2 层 CNN，只吃历史观测，输出 $z^\phi$），用 Eq.3 双向对齐（$\lambda=0$ 即退化为 RMA）。真机用 $z^\phi$ 顶替 $z^\mu$。<strong>网络</strong>：低层 3 层 MLP（128, ELU）；特权编码器 2 层 MLP（hidden 64）。</p>
+          </div>
+        </div>
+
+        <h3>阶段 2：训练高层特权教师（§04）</h3>
+        <div class="repro-step">
+          <div class="repro-num">3</div>
+          <div class="repro-body">
+            <h4>冻结低层，用 PPO 训『上帝视角大脑』</h4>
+            <p><strong>观测</strong>=1094 维特权向量（含 $z^{\text{shape}}$ 1024 维 PointNet 形状特征 + 物体局部位姿 $s^{\text{obj}}$）。<strong>动作</strong> $a_t\in\mathbb{R}^9$=末端位置增量 + 机身线/偏航速度 + 夹爪开合。<strong>奖励</strong>用 Table 3：三阶段（approach 0.5 / progress 1.0 / completion 3.5，互斥）+ 辅助（平滑、朝向对准、靠近）。<strong>网络</strong>：冻结 PointNet 编码器 + 2 层 MLP。</p>
+            <div class="code-block"><code># 高层训练技巧（论文 Additional training techniques）
+1) Action delay: 加 1 步动作延迟模拟真机推理延迟
+2) Command clip curriculum: 线速度命令逐渐收紧
+3) Reward curriculum: r_cmd 在学会抓取后才加入
+4) 10% 概率随机改变物体位姿 → 涌现重试行为
+5) Forcing stop: 夹爪闭合时强制机身速度=0 (stop-then-pick)
+6) 高层频率随机化 6.25-8.33Hz, 臂 Kp/Kd 随机化
+7) 桌面高度 0-0.5m 随机, 物体位姿随机</code></div>
+          </div>
+        </div>
+
+        <h3>阶段 3：蒸馏视觉学生（§04.3）</h3>
+        <div class="repro-step">
+          <div class="repro-num">4</div>
+          <div class="repro-body">
+            <h4>DAgger 把教师蒸馏成只看深度的学生</h4>
+            <p><strong>学生观测</strong>=分割掩码 + 掩码深度图（两路相机）+ 本体感知 + 上一动作。<strong>网络</strong>：4 帧堆叠图过 2 层 CNN（kernel 5、3）→ 64 维，拼本体感知 → 2 层 MLP（hidden 64, ELU）。<strong>蒸馏</strong>用 Eq.2 DAgger（先教师热启动，再学生采样+教师纠正，MSE 对齐）。<strong>注意</strong>学生只能用 240 个并行环境（视觉渲染显存贵），教师能用 10240 个。深度图做 hole-filling + 最小 0.2m 裁剪 + 归一化 + 数据增强（RandomErasing/Blur/Noise/Rotation），并随机化相机延迟。</p>
+          </div>
+        </div>
+
+        <h3>阶段 4：真机部署（§05，可选）</h3>
+        <div class="repro-step">
+          <div class="repro-num">5</div>
+          <div class="repro-body">
+            <h4>搭 TrackingSAM + 多进程系统，零样本上真机</h4>
+            <p>① 部署 <strong>TrackingSAM</strong>：用户点选物体 → SAM 出初始掩码 → AOT-Tiny 实时跟踪并传播到双相机。② 搭<strong>服务器-客户端</strong>：Jetson Orin 跑高层(7Hz 请求/6-8Hz 有效) 作 server；B1 板载跑 Goal Receiver(7Hz) + 四足控制(50Hz) + 手臂 IK(800Hz) 作 client，异步通信、用旧命令保持控制。③ 直接加载仿真训好的学生策略，<strong>无需任何真机数据或微调</strong>。</p>
+            <div class="code-block"><code># 真机最常见失败点（按论文 Appendix I 排查）
+- 视觉跟踪丢失 (遮挡/抖动/相似色) ← 最常见
+- 反光物体深度估计差
+- 喙状夹爪推开物体
+- 分层复合误差累积</code></div>
+          </div>
+        </div>
+
+        <div class="callout blue">
+          <div class="callout-label">最小可行复现建议（如果你只想验证核心思想）</div>
+          <p>不一定要真机。<strong>仿真里跑通『阶段 1 低层 + 阶段 2 教师』</strong>，复现 Table 1 教师成功率（VBC 完整 vs w.o. shape），就足以验证『全身协调 + 形状特征』这两个核心贡献。学生蒸馏和真机是迁移工程，可后置。低层是一切的地基，务必先在仿真里确认它能稳定弯腰够到地面目标（对照 Fig 9）。</p>
+        </div>
+      </div>
+
+      <!-- ============ §08 VLA ============ -->
+      <div class="section" id="vla-link">
+        <div class="section-num">§ 08</div>
+        <h2>与 VLA / Embodied AI 的联系</h2>
+
+        <div class="cn-read">
+          <div class="cn-label">这一节解决什么</div>
+          <p>
+            你正在往 VLA 方向转，那 VBC 这套『分层 + 师生蒸馏 + Sim2Real』和 π₀ 那类 VLA 是什么关系？一句话：<strong>它们是机器人策略的两种互补范式</strong>——VLA 走『大数据 + 大模型 + 真机遥操』，VBC 走『仿真 RL + 特权蒸馏 + 零真机』。理解 VBC 能让你看清『为什么腿足/全身控制目前还没被 VLA 统一吃掉』。
+          </p>
+        </div>
+
+        <div class="module-grid">
+          <div class="module-card">
+            <div class="module-card-name">分层 vs 端到端</div>
+            <div class="module-card-title">高层规划 / 低层控制的解耦</div>
+            <div class="module-card-desc">VBC 的高层（出末端位姿+机身速度）很像 VLA 输出的『动作 token / 末端轨迹』，低层则是把抽象动作落到关节的 controller。π₀ 用 flow matching 直接出关节/末端动作，VBC 用 RL 低层+IK——但『高层语义、低层执行』的分工是相通的。</div>
+          </div>
+          <div class="module-card">
+            <div class="module-card-name">特权蒸馏 vs 模仿学习</div>
+            <div class="module-card-title">数据从哪来</div>
+            <div class="module-card-desc">VLA（如 π₀/OpenVLA）靠海量真机遥操数据做 BC；VBC 靠仿真特权教师 + DAgger 蒸馏，<strong>零真机数据</strong>。对腿足这种真机采数据极贵/危险的平台，VBC 路线更现实。</div>
+          </div>
+          <div class="module-card">
+            <div class="module-card-name">观测设计</div>
+            <div class="module-card-title">为什么不用 RGB</div>
+            <div class="module-card-desc">VBC 刻意用分割掩码+深度避开 sim-real gap；VLA 直接吃 RGB 但需要真机数据来覆盖 gap。这揭示一个权衡：<strong>要么用真实数据，要么用 gap 小的模态</strong>。</div>
+          </div>
+          <div class="module-card">
+            <div class="module-card-name">全身控制是 VLA 的短板</div>
+            <div class="module-card-title">VBC 补的洞</div>
+            <div class="module-card-desc">当前 VLA 大多在固定底座机械臂上。腿臂协调（弯腰、动态平衡）需要高频反应式控制，正是 RL 低层策略擅长、而自回归 VLA 还不擅长的。未来的全身 VLA 很可能要嫁接一个类似 VBC 的低层。</div>
+          </div>
+        </div>
+
+        <div class="callout purple">
+          <div class="callout-label">对应 VLA · 给转型者的一句话</div>
+          <p>把 VBC 读成『<strong>一个用 RL+蒸馏代替大数据的 VLA 下半身</strong>』。VLA 解决『看懂任务、出抽象动作』，VBC 解决『把抽象动作变成一只会弯腰的狗的 19 个关节力矩』。两者拼起来，才是能在野外自主干活的具身智能体。</p>
+        </div>
+
+        <div class="callout">
+          <div class="callout-label">一句话总结</div>
+          <p>VBC = 分层（任务无关低层 + 任务相关高层）+ 三阶段训练（低层 RL → 特权教师 RL → 视觉学生 DAgger 蒸馏）+ 全身协调（腿参与扩大工作空间）+ 零真机 Sim2Real（分割深度模态 + ROA + TrackingSAM）。让一只装臂的四足狗，自主在室内外不同高度抓取多样物体。</p>
+        </div>
+      </div>
+
+    </main>
+  </div>
+
+  <script>
+    // sidebar active highlight
+    const links = document.querySelectorAll('.sidebar-tree a');
+    const observer = new IntersectionObserver((entries) => {
+      entries.forEach(entry => {
+        if (entry.isIntersecting) {
+          links.forEach(l => l.classList.remove('active'));
+          const active = document.querySelector(`.sidebar-tree a[href="#${entry.target.id}"]`);
+          if (active) active.classList.add('active');
+        }
+      });
+    }, { rootMargin: '-20% 0px -70% 0px' });
+    document.querySelectorAll('.section').forEach(s => observer.observe(s));
+  </script>
+</body>
+</html>

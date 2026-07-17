@@ -1,0 +1,738 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>OpenHLM · 全身人形 Loco-Manipulation 的经验配方</title>
+  <link rel="stylesheet" href="../assets/css/style.css">
+  <script src="../assets/js/theme.js"></script>
+  <script src="../assets/js/interactive.js" defer></script>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16/dist/katex.min.css">
+  <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16/dist/katex.min.js"></script>
+  <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16/dist/contrib/auto-render.min.js"
+          onload="renderMathInElement(document.body,{delimiters:[{left:'$$',right:'$$',display:true},{left:'$',right:'$',display:false}]})"></script>
+  <style>
+    .docs-layout { display: grid; grid-template-columns: 240px minmax(0, 1fr); max-width: 1400px; margin: 0 auto; }
+    .sidebar { position: sticky; top: 60px; height: calc(100vh - 60px); overflow-y: auto; padding: 24px 16px; border-right: 1px solid var(--border); background: var(--bg); }
+    .sidebar-title { font-family: var(--font-mono); font-size: 10px; color: var(--text3); letter-spacing: 0.08em; text-transform: uppercase; margin-bottom: 16px; padding-bottom: 8px; border-bottom: 1px solid var(--border); }
+    .sidebar-tree { list-style: none; margin: 0; padding: 0; }
+    .sidebar-tree li { margin: 4px 0; }
+    .sidebar-tree a { display: block; padding: 6px 10px; font-size: 13px; color: var(--text2); text-decoration: none; border-radius: 6px; transition: all 0.2s; }
+    .sidebar-tree a:hover { background: var(--glass-hover); color: var(--text); }
+    .sidebar-tree a.active { background: rgba(74, 222, 154, 0.1); color: var(--accent); }
+    .sidebar-tree .section-link { font-weight: 500; }
+    .main-content { min-width: 0; }
+    @media (max-width: 900px) { .docs-layout { grid-template-columns: 1fr; } .sidebar { display: none; } }
+
+    .paper-header { padding: 40px 40px 24px; max-width: 1200px; margin: 0 auto; }
+    .paper-venue { font-family: var(--font-mono); font-size: 11px; color: var(--text3); letter-spacing: 0.06em; margin-bottom: 10px; }
+    .paper-title { font-family: var(--font-serif); font-size: 28px; font-weight: 700; color: var(--text); line-height: 1.35; margin: 0 0 14px; }
+    .paper-authors { font-size: 14px; color: var(--text2); margin-bottom: 8px; }
+    .paper-badges { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 16px; }
+    .badge { font-family: var(--font-mono); font-size: 10px; padding: 4px 10px; border-radius: 6px; background: var(--bg3); color: var(--text2); border: 1px solid var(--border); }
+    .badge-green { background: rgba(74, 222, 154, 0.12); color: var(--accent); border-color: rgba(74, 222, 154, 0.3); }
+    .badge-blue { background: rgba(96, 165, 250, 0.12); color: var(--blue); border-color: rgba(96, 165, 250, 0.3); }
+    .badge-amber { background: rgba(245, 158, 11, 0.12); color: var(--amber); border-color: rgba(245, 158, 11, 0.3); }
+    .badge-purple { background: rgba(167, 139, 250, 0.12); color: var(--purple); border-color: rgba(167, 139, 250, 0.3); }
+
+    .section { padding: 32px 40px; max-width: 1200px; margin: 0 auto; border-top: 1px solid var(--border); }
+    .section-num { font-family: var(--font-mono); font-size: 11px; color: var(--accent); letter-spacing: 0.08em; margin-bottom: 6px; }
+    .section h2 { font-family: var(--font-serif); font-size: 22px; font-weight: 600; margin: 0 0 20px; color: var(--text); }
+    .section h3 { font-size: 17px; font-weight: 600; margin: 28px 0 12px; color: var(--text); }
+    .section p { font-size: 15px; line-height: 1.85; color: var(--text2); margin: 0 0 16px; }
+
+    .cn-read { background: var(--bg2); border-left: 3px solid var(--accent); padding: 18px 22px; margin: 20px 0; border-radius: 0 8px 8px 0; }
+    .cn-label { font-family: var(--font-mono); font-size: 10px; color: var(--accent); letter-spacing: 0.06em; text-transform: uppercase; margin-bottom: 8px; }
+    .cn-read p { margin: 0; font-size: 14.5px; line-height: 1.8; color: var(--text); }
+
+    .callout { background: var(--bg2); border: 1px solid var(--border); border-radius: 10px; padding: 18px 22px; margin: 20px 0; }
+    .callout-label { font-family: var(--font-mono); font-size: 10px; letter-spacing: 0.06em; text-transform: uppercase; margin-bottom: 8px; color: var(--text3); }
+    .callout p { margin: 0; font-size: 14px; line-height: 1.8; }
+    .callout.amber { border-color: var(--amber); background: rgba(245, 158, 11, 0.08); }
+    .callout.amber .callout-label { color: var(--amber); }
+    .callout.red { border-color: var(--accent3); background: rgba(255, 107, 107, 0.08); }
+    .callout.red .callout-label { color: var(--accent3); }
+    .callout.blue { border-color: var(--blue); background: rgba(96, 165, 250, 0.08); }
+    .callout.blue .callout-label { color: var(--blue); }
+    .callout.purple { border-color: var(--purple); background: rgba(167, 139, 250, 0.08); }
+    .callout.purple .callout-label { color: var(--purple); }
+
+    .fig-interactive { display: grid; grid-template-columns: minmax(0, 1fr) 280px; gap: 20px; margin: 24px 0; }
+    .fig-interactive.panel-below { grid-template-columns: 1fr; }
+    .fig-interactive.panel-below .hotspot-panel { position: static; margin-top: 16px; }
+    .fig-block { background: var(--bg2); border-radius: 10px; overflow: hidden; border: 1px solid var(--border); }
+    .fig-block img { width: 100%; height: auto; display: block; }
+    .fig-cap { padding: 14px 18px; font-size: 13px; color: var(--text2); border-top: 1px solid var(--border); }
+    .fig-num { font-family: var(--font-mono); font-size: 10px; color: var(--accent); margin-right: 8px; }
+    .fig-cn { display: block; margin-top: 6px; color: var(--text3); font-size: 12px; }
+
+    .hotspot-wrap { position: relative; }
+    .hotspot { position: absolute; width: 20px; height: 20px; background: rgba(74, 222, 154, 0.55); border: 2px solid var(--accent); border-radius: 50%; cursor: pointer; transform: translate(-50%, -50%); transition: all 0.2s; }
+    .hotspot:hover, .hotspot.active { background: var(--accent); transform: translate(-50%, -50%) scale(1.3); opacity: 1; }
+    .hotspot-panel { background: var(--bg2); border: 1px solid var(--border); border-radius: 10px; padding: 16px; }
+    .hp-title { font-size: 14px; font-weight: 600; color: var(--accent); margin-bottom: 8px; }
+    .hp-body { font-size: 13px; color: var(--text2); line-height: 1.7; }
+
+    .en-quote { background: var(--bg2); border: 1px solid var(--border); border-radius: 8px; margin: 16px 0; overflow: hidden; }
+    .en-quote summary { padding: 12px 16px; font-size: 13px; color: var(--text3); cursor: pointer; transition: background 0.2s; }
+    .en-quote summary:hover { background: var(--glass-hover); }
+    .quote-body { padding: 16px; border-top: 1px solid var(--border); }
+    .quote-body p { font-size: 13.5px; color: var(--text); font-style: italic; margin: 0 0 10px; }
+    .quote-cite { font-family: var(--font-mono); font-size: 11px; color: var(--text3); }
+
+    .step-walker { background: var(--bg2); border: 1px solid var(--border); border-radius: 10px; padding: 20px; margin: 24px 0; }
+    .sw-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px; }
+    .sw-title { font-size: 14px; font-weight: 600; color: var(--text); }
+    .sw-controls { display: flex; gap: 10px; align-items: center; }
+    .sw-btn { background: var(--bg3); border: 1px solid var(--border); color: var(--text); padding: 6px 12px; border-radius: 6px; cursor: pointer; font-size: 12px; }
+    .sw-btn:hover { background: var(--glass-hover); }
+    .sw-counter { font-family: var(--font-mono); font-size: 12px; color: var(--text3); }
+    .sw-progress { display: flex; gap: 6px; margin-bottom: 16px; }
+    .sw-dot { flex: 1; height: 3px; background: var(--border); border-radius: 2px; }
+    .sw-dot.active { background: var(--accent); }
+    .sw-step { display: none; }
+    .sw-step.active { display: block; }
+    .sw-step h4 { font-size: 14px; margin: 0 0 8px; color: var(--text); }
+    .sw-step p { font-size: 13px; color: var(--text2); margin: 0; line-height: 1.7; }
+
+    .quiz { background: var(--bg2); border: 1px solid var(--border); border-radius: 10px; padding: 20px; margin: 24px 0; }
+    .q-label { font-family: var(--font-mono); font-size: 10px; color: var(--amber); letter-spacing: 0.06em; text-transform: uppercase; margin-bottom: 10px; }
+    .q-text { font-size: 15px; color: var(--text); margin-bottom: 16px; font-weight: 500; }
+    .q-options { display: flex; flex-direction: column; gap: 8px; }
+    .q-opt { text-align: left; background: var(--bg3); border: 1px solid var(--border); color: var(--text); padding: 12px 16px; border-radius: 8px; cursor: pointer; font-size: 14px; transition: all 0.2s; }
+    .q-opt:hover { background: var(--glass-hover); border-color: var(--border2); }
+    .q-opt.correct { background: rgba(74, 222, 154, 0.15); border-color: var(--accent); }
+    .q-opt.wrong { background: rgba(255, 107, 107, 0.15); border-color: var(--accent3); }
+    .q-feedback { margin-top: 14px; padding: 12px; border-radius: 8px; font-size: 13px; display: none; line-height: 1.7; }
+    .q-feedback.show { display: block; }
+
+    .module-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 14px; margin: 20px 0; }
+    .module-card { background: var(--bg2); border: 1px solid var(--border); border-radius: 10px; padding: 18px; }
+    .module-card-name { font-family: var(--font-mono); font-size: 10px; color: var(--text3); letter-spacing: 0.06em; margin-bottom: 6px; }
+    .module-card-title { font-size: 15px; font-weight: 600; color: var(--text); margin-bottom: 8px; }
+    .module-card-desc { font-size: 13px; color: var(--text2); line-height: 1.6; }
+
+    .kv-table { width: 100%; border-collapse: collapse; margin: 16px 0; font-size: 13px; }
+    .kv-table td, .kv-table th { padding: 9px 13px; border: 1px solid var(--border); text-align: left; }
+    .kv-table th { background: var(--bg3); color: var(--text2); font-family: var(--font-mono); font-size: 11px; font-weight: 600; }
+    .kv-table td:first-child { background: var(--bg2); color: var(--text3); font-family: var(--font-mono); font-size: 11px; }
+    .kv-table td { color: var(--text); }
+    .kv-table td.w { font-family: var(--font-mono); color: var(--amber); text-align: right; }
+    .kv-table td.win { color: var(--accent); font-weight: 600; }
+    .kv-table td.bad { color: var(--accent3); }
+
+    .math-block { background: var(--bg2); padding: 20px; border-radius: 8px; margin: 20px 0; text-align: center; overflow-x: auto; }
+    .math-label { display: block; font-family: var(--font-mono); font-size: 11px; color: var(--text3); margin-top: 10px; }
+    .math-explain { background: var(--bg2); border-left: 3px solid var(--blue); padding: 16px 20px; margin: 16px 0; border-radius: 0 8px 8px 0; }
+    .me-title { font-size: 13px; font-weight: 600; color: var(--blue); margin-bottom: 12px; }
+    .math-explain dl { margin: 0; }
+    .math-explain dt { font-family: var(--font-mono); font-size: 12px; color: var(--accent); margin: 10px 0 4px; }
+    .math-explain dd { margin: 0 0 8px; font-size: 13px; color: var(--text2); line-height: 1.6; }
+
+    .term { border-bottom: 1px dotted var(--text3); cursor: help; position: relative; }
+    .term:hover::after { content: attr(data-en); position: absolute; bottom: 100%; left: 50%; transform: translateX(-50%); background: var(--bg3); padding: 6px 10px; border-radius: 6px; font-size: 11px; white-space: nowrap; border: 1px solid var(--border); color: var(--text2); z-index: 10; }
+
+    .repro-step { display: flex; gap: 16px; margin: 18px 0; }
+    .repro-num { flex-shrink: 0; width: 30px; height: 30px; border-radius: 50%; background: rgba(74,222,154,0.12); border: 1px solid var(--accent); color: var(--accent); font-family: var(--font-mono); font-size: 14px; display: flex; align-items: center; justify-content: center; font-weight: 600; }
+    .repro-body { flex: 1; }
+    .repro-body h4 { margin: 4px 0 8px; font-size: 15px; color: var(--text); }
+    .repro-body p { margin: 0 0 8px; font-size: 14px; }
+    .code-block { background: var(--bg3); border: 1px solid var(--border); border-radius: 8px; padding: 14px 16px; margin: 12px 0; overflow-x: auto; }
+    .code-block code { font-family: var(--font-mono); font-size: 12.5px; color: var(--text); white-space: pre; line-height: 1.6; }
+
+    @media (max-width: 900px) {
+      .fig-interactive { grid-template-columns: 1fr; }
+      .module-grid { grid-template-columns: 1fr; }
+      .paper-header, .section { padding-left: 20px; padding-right: 20px; }
+    }
+  </style>
+</head>
+<body>
+  <nav class="nav">
+    <a class="nav-logo" href="../index.html">Paper Notes</a>
+    <div class="nav-links">
+      <a href="../index.html">← 返回首页</a>
+    </div>
+  </nav>
+
+  <div class="docs-layout">
+    <aside class="sidebar">
+      <div class="sidebar-title">目录</div>
+      <ul class="sidebar-tree">
+        <li><a href="#overview" class="section-link">§01 总览 · 13 个受控实验地图</a></li>
+        <li><a href="#benchmark" class="section-link">§02 HLM-12 基准 · 四类能力</a></li>
+        <li><a href="#teleop" class="section-link">§03 遥操作接口对比 ★核心</a></li>
+        <li><a href="#vla" class="section-link">§04 VLA 设计 · 输入/动作/预训练</a></li>
+        <li><a href="#cotrain" class="section-link">§05 异构协同训练 · 便宜数据</a></li>
+        <li><a href="#hardware" class="section-link">§06 硬件 · 鱼眼主视角 · 开源</a></li>
+        <li><a href="#takeaway" class="section-link">§07 工程借鉴清单</a></li>
+      </ul>
+    </aside>
+
+    <main class="main-content">
+      <div class="paper-header">
+        <div class="paper-venue">arXiv 2606.22174v1 · 20 Jun 2026 · Tsinghua / Shanghai Qi Zhi / Spirit AI · openhlm-project.github.io</div>
+        <div class="paper-title">OpenHLM: An Empirical Recipe for Whole-Body Humanoid Loco-Manipulation</div>
+        <div class="paper-authors">Yingdong Hu*, Haodong Zhu*, Boyuan Zheng*, Yihang Hu*, Tong Zhang*, Zunhao Chen, Junming Zhao, Ruiqian Nai, Yang Gao†</div>
+        <div class="paper-badges">
+          <span class="badge badge-green">Whole-Body Humanoid VLA</span>
+          <span class="badge badge-blue">Loco-Manipulation</span>
+          <span class="badge badge-purple">π₀.₅ backbone</span>
+          <span class="badge badge-amber">13 个受控实验</span>
+          <span class="badge">Unitree G1</span>
+          <span class="badge">Joint-based Teleop</span>
+          <span class="badge">开源 code+data+ckpt</span>
+        </div>
+      </div>
+
+      <!-- ============ §01 ============ -->
+      <div class="section" id="overview">
+        <div class="section-num">§ 01</div>
+        <h2>总览：不是新模型，是一张"该怎么搭"的配方地图</h2>
+
+        <div class="cn-read">
+          <div class="cn-label">这一节解决什么</div>
+          <p>
+            人做家务时是<strong>整个身体一起动</strong>的：脚踩垃圾桶踏板、蹲下去够低矮的架子、边走边推购物车。但现在几乎所有人形机器人系统都把上半身和下半身<strong>拆成两个独立控制器</strong>——上身用逆运动学（IK）控制手臂做操作，下身用一个 RL 走路控制器，中间只用"导航指令 + 机身高度"两根线连起来。结果就是：<strong>腿只是个轮子，机器人退化成了一台会走路的双臂桌面机械臂</strong>，蹲、踩、屈膝这类"腿也参与操作"的动作根本表达不出来。OpenHLM 问的是一个很务实的问题：<strong>要造一个把语言+像素直接映射到人形<em>全部</em>自由度的"全身原生"VLA，到底需要哪些设计决策？</strong>它给出的不是一个花哨的新架构，而是一份用 <strong>13 个"一次只改一个变量"的受控实验</strong>拼出来的<strong>工程配方（recipe）</strong>。
+          </p>
+        </div>
+
+        <p>
+          这也是这篇笔记采用的视角——OpenHLM 把"全身人形 loco-manipulation 该怎么搭"这件事，拆成了三个阶段、逐个变量做消融，每个决策都有真机数据背书。对任何做全身 VLA 的工作来说，它相当于一份<strong>别人已经替你踩过坑的 checklist</strong>。三个阶段（对应图 1 的三块）：
+        </p>
+
+        <!-- Fig 1 roadmap -->
+        <div class="fig-interactive panel-below">
+          <div class="fig-block">
+            <div class="hotspot-wrap" data-hotspot-group="fig1">
+              <img src="../assets/figures/openhlm/fig-1.png" alt="Figure 1: Overview of OpenHLM — three-phase roadmap">
+              <div class="hotspot" data-id="joint" style="left:26%; top:44%;"
+                   data-title="阶段一 · Joint-based 遥操作（选中项）"
+                   data-body="第一块比较三种遥操作接口：Decoupled（上下身解耦）/ Joint-based（全关节）/ SMPL-based。结论是选 Joint-based——直接控制机器人每一个关节，是唯一能表达蹲、踩、屈膝的接口。这也是决定'能采到什么数据'的源头。"></div>
+              <div class="hotspot" data-id="vr" style="left:27%; top:16%;"
+                   data-title="VR 控制信号 → 低层控制器"
+                   data-body="操作者戴 PICO VR + 身上绑动捕 tracker，动作经 GMR 在线重定向（retarget）到机器人关节，再交给一个通用运动追踪低层控制器（SONIC）以 50 Hz 跟踪。高层 VLA 只需 10 Hz 出全身指令。"></div>
+              <div class="hotspot" data-id="vlm" style="left:48%; top:40%;"
+                   data-title="阶段二 · VLA = VLM + Action Expert"
+                   data-body="骨干直接用 π₀.₅（PaliGemma 视觉语言模型 + Action Expert 动作专家），内部架构不动，只改'和人形对接的接口'。第二块专门消融：输入/动作格式、预训练来源、动作生成步数。"></div>
+              <div class="hotspot" data-id="q1" style="left:47%; top:68%;"
+                   data-title="Q1 · 输入 & 动作格式"
+                   data-body="动作投影层怎么初始化？动作维度怎么排序？绝对关节角还是相对增量？要不要喂本体感受（proprioception）？——四个接口选择，逐个消融。"></div>
+              <div class="hotspot" data-id="q2" style="left:41%; top:28%;"
+                   data-title="Q2 · 要不要机器人数据预训练"
+                   data-body="从 π₀.₅（在非人形机器人数据上预训练）初始化，vs 只有视觉语言预训练的 PaliGemma，vs 完全从头。结论：机器人预训练即使跨 embodiment 也大幅有用。"></div>
+              <div class="hotspot" data-id="cotrain" style="left:74%; top:44%;"
+                   data-title="阶段三 · 异构协同训练"
+                   data-body="全身遥操作太贵，用更便宜的数据源做 co-training：固定站立遥操作（Stationary Teleop，不走路）+ HuMI（机器人无关的可穿戴采集，人形版 UMI）。把策略扩展到全身遥操作没覆盖的新物体、新指令、新动作。"></div>
+            </div>
+            <div class="fig-cap">
+              <span class="fig-num">Fig 1 · p.2</span>
+              Overview of OpenHLM. A roadmap of controlled experiments in three phases: (I) compare teleop interfaces and adopt a joint-based whole-body controller; (II) adapt a manipulation VLA to the humanoid's full action space along several design axes; (III) extend the policy to new objects/instructions via co-training with stationary teleop or HuMI.
+              <span class="fig-cn">OpenHLM 总览：三阶段受控实验路线图——(I) 选 joint-based 全身控制器；(II) 把操作 VLA 沿多个设计轴适配到人形全动作空间；(III) 用便宜数据协同训练扩展到新物体/新指令。</span>
+            </div>
+          </div>
+          <div class="hotspot-panel"></div>
+        </div>
+
+        <h3>"13 个实验"到底是哪 13 个</h3>
+        <p>
+          这 13 个实验就是论文 §3–§4 的<strong>逐变量消融</strong>，一次只翻转一个设计选择，看真机 task progress 掉多少。下面这张表把它们对号入座，也是这篇笔记后面章节的骨架：
+        </p>
+
+        <table class="kv-table">
+          <tr><th>#</th><th>所在阶段</th><th>实验（翻转的变量）</th><th>结论</th></tr>
+          <tr><td>1</td><td>§3.1 遥操作</td><td>三种遥操作接口对比</td><td class="win">Joint-based 全关节胜</td></tr>
+          <tr><td>2</td><td>§3.1 遥操作</td><td>关节空间重定向 vs 原生 SMPL 记录</td><td class="win">在线 retarget 到关节（88 vs 75）</td></tr>
+          <tr><td>3</td><td>§3.1 遥操作</td><td>未来帧预览延迟 Δt 扫描</td><td class="win">0.2s 最优</td></tr>
+          <tr><td>4</td><td>§3.2 VLA</td><td>动作投影层初始化（weight surgery vs 随机）</td><td>weight surgery（小幅优）</td></tr>
+          <tr><td>5</td><td>§3.2 VLA</td><td>动作维度排序（双臂原序 vs 人形原生序）</td><td>保留预训练双臂序</td></tr>
+          <tr><td>6</td><td>§3.2 VLA</td><td>绝对关节角 vs 相对增量</td><td>绝对关节角</td></tr>
+          <tr><td>7</td><td>§3.2 VLA</td><td>喂/不喂本体感受</td><td>喂 proprioception</td></tr>
+          <tr><td>8</td><td>§3.2 VLA</td><td>预训练来源（π₀.₅ / PaliGemma / 从头）</td><td class="win">π₀.₅ 机器人预训练（91 vs 60 vs 42）</td></tr>
+          <tr><td>9</td><td>§3.2 VLA</td><td>单步 vs 多步动作生成</td><td class="win">保留多步 flow matching</td></tr>
+          <tr><td>10</td><td>§3.2 VLA</td><td>每任务演示数量扫描</td><td>40 条/任务够用</td></tr>
+          <tr><td>11</td><td>§3.3 协同</td><td>固定站立遥操作 co-training</td><td class="win">补新动作+新语义</td></tr>
+          <tr><td>12</td><td>§3.3 协同</td><td>HuMI 机器人无关数据 co-training</td><td>只补新语义、不补新动作</td></tr>
+          <tr><td>13</td><td>§4 系统级</td><td>长时序任务 vs GR00T N1.6 / Ψ₀</td><td class="win">半数据量反超两个 SOTA</td></tr>
+        </table>
+
+        <div class="callout">
+          <div class="callout-label">三个设计目标（贯穿全文）</div>
+          <p>
+            <strong>G1 全身原生</strong>：一个策略同时指挥所有关节，把手臂、膝盖、脚都当成潜在的操作执行器。<br>
+            <strong>G2 语言可调 + 每任务数据高效</strong>：单一策略靠语言 prompt 切换任务（而非换 checkpoint），每个新技能只需少量演示。<br>
+            <strong>G3 便宜数据可扩展</strong>：全身遥操作又慢又累，系统要能吃更便宜的异构数据源来省下遥操作成本。
+          </p>
+        </div>
+
+        <div class="quiz"
+             data-correct="c"
+             data-explain="正确。OpenHLM 的价值不在提出新架构（骨干直接用现成的 π₀.₅），而在于用 13 个一次只改一个变量的受控实验，把'全身人形 VLA 该怎么搭'的每个设计决策都做了消融、给出可复现的配方。这正是我们能直接借鉴的部分。"
+             data-explain-wrong="OpenHLM 骨干直接复用 π₀.₅、没提新架构；它也不是纯理论——每个决策都有真机 task progress 背书。它的核心贡献是'受控实验 + 工程配方'。">
+          <div class="q-label">🧠 理解检查</div>
+          <div class="q-text">OpenHLM 论文最主要的贡献是什么？</div>
+          <div class="q-options">
+            <button class="q-opt" data-k="a">提出了一个全新的 VLA 网络架构</button>
+            <button class="q-opt" data-k="b">纯理论分析，无真机实验</button>
+            <button class="q-opt" data-k="c">用 13 个受控消融，给出全身人形 VLA 的可复现工程配方</button>
+            <button class="q-opt" data-k="d">只做了遥操作系统，没碰模型</button>
+          </div>
+          <div class="q-feedback"></div>
+        </div>
+      </div>
+
+      <!-- ============ §02 ============ -->
+      <div class="section" id="benchmark">
+        <div class="section-num">§ 02</div>
+        <h2>HLM-12 基准：四类"逼你用全身"的能力</h2>
+
+        <div class="cn-read">
+          <div class="cn-label">这一节解决什么</div>
+          <p>
+            上一节说要做"全身原生"，但怎么<strong>证明</strong>一个策略真的用上了全身、而不是又退化成双臂机械臂？作者先立了一把尺子：<strong>HLM-12 基准</strong>，12 个语言条件任务，刻意分成<strong>四类能力</strong>，越往后越逼你调动腿和脚。评分不是简单的成功/失败，而是把每个任务拆成小步给<strong>连续分数 [0,1]（task progress）</strong>，每个 policy×task 跑 5 次取均值——这样"走到了但没抓到"和"啥也没干"能区分开。这一节先建立评测标准，后面所有消融的数字都长在这把尺子上。
+          </p>
+        </div>
+
+        <div class="fig-interactive panel-below">
+          <div class="fig-block">
+            <div class="hotspot-wrap" data-hotspot-group="fig2">
+              <img src="../assets/figures/openhlm/fig-2.png" alt="Figure 2: The HLM-12 Benchmark — four capability families">
+              <div class="hotspot" data-id="f1" style="left:16%; top:42%;"
+                   data-title="① 带移动的抓放 · Pick & Place with Locomotion"
+                   data-body="代表任务 Cola Placement：走到桌前、抓可乐罐、转身放到鼠标垫上、走回。把'走+抓+放'串进一个 rollout。这是任何方法都该过的基本能力检查——解耦控制原则上也能做。"></div>
+              <div class="hotspot" data-id="f2" style="left:40%; top:42%;"
+                   data-title="② 全身工作空间扩展 · Whole-Body Workspace Extension"
+                   data-body="代表任务 Shelf Cube Transfer：目标在上半身够不到的高/低处，策略必须协调屈髋、弯膝、躯干俯仰把末端送到位。开始逼你用下半身。"></div>
+              <div class="hotspot" data-id="f3" style="left:63%; top:46%;"
+                   data-title="③ 用身体部位当操作器 · Using Body Parts as Manipulators"
+                   data-body="代表任务 Bottle Disposal：非手臂部位本身就是末端执行器——脚踩踏板把垃圾桶盖顶开，同时手把瓶子扔进去。这类行为解耦控制器根本表达不出来。"></div>
+              <div class="hotspot" data-id="f4" style="left:86%; top:46%;"
+                   data-title="④ 约束下的移动操作 · Loco-Manipulation under Constraints"
+                   data-body="代表任务 Cart Pushing / Sword Extraction：环境或接触约束限定了可行动作——拔剑必须沿剑轴方向拉，推车必须保持稳固抓握再协调行走。"></div>
+            </div>
+            <div class="fig-cap">
+              <span class="fig-num">Fig 2 · p.3</span>
+              The HLM-12 Benchmark. Tasks fall into four capability families targeting different aspects of whole-body behavior, with one representative per family shown.
+              <span class="fig-cn">HLM-12 基准：12 个任务分成四类能力，图中每类展示一个代表任务。完整 12 任务规范见附录 A。</span>
+            </div>
+          </div>
+          <div class="hotspot-panel"></div>
+        </div>
+
+        <p>
+          <strong>评测协议怎么切分：</strong>大部分 §3.1 / §3.2 的消融跑在<strong>覆盖四类的 4 任务子集</strong>（Cola Placement / Shelf Cup Transfer / Bottle Disposal / Jar Opening）上；VLA 定型后在 <strong>8 个训练任务</strong>上确认能泛化；§3.3 协同训练额外引入 <strong>4 个 held-out 任务</strong>（全身遥操作从没覆盖过），凑齐 12 个；最后 §4 用一个跨越机器人大垂直工作空间的<strong>长时序任务</strong>做系统级对标。记住这套"4 → 8 → 12 → 长时序"的切分，后面看数字才不会串台。
+        </p>
+
+        <details class="en-quote">
+          <summary>展开原文 · 四类能力如何递进</summary>
+          <div class="quote-body">
+            <p>"(1) Pick-and-place with locomotion... a basic capability check for any approach. (2) Whole-body workspace extension... some target objects lie outside what upper-body articulation alone can cover. (3) Using body parts as manipulators... a non-arm body part is itself the end-effector. (4) Loco-manipulation under environmental constraint."</p>
+            <div class="quote-cite">— §2, p.3</div>
+          </div>
+        </details>
+      </div>
+
+      <!-- ============ §03 ============ -->
+      <div class="section" id="teleop">
+        <div class="section-num">§ 03</div>
+        <h2>遥操作接口对比：为什么 Joint-based 是最优解 ★核心借鉴</h2>
+
+        <div class="cn-read">
+          <div class="cn-label">这一节解决什么</div>
+          <p>
+            这是<strong>全文最核心的设计对比</strong>。上一节立了尺子，现在从最源头的问题开始：<strong>高层策略和低层控制器之间那根"接口"该怎么设计？</strong>这个接口一旦定了，就同时决定了两件事——<strong>操作者能演示出什么动作（数据能采成什么样）</strong>，以及 <strong>VLA 要学的动作表示长什么样</strong>。作者对比了三种业界代表性接口（图/表对应实验 #1），结论很干脆：<strong>Joint-based 全关节遥操作完胜</strong>——对任何输出 joint-based action 的系统，这一节相当于<strong>用受控实验替这条路线做了背书</strong>。
+          </p>
+        </div>
+
+        <p>
+          三种接口共享同一套<strong>本体感受状态</strong>：一个 32 维 body state（root roll、root pitch、yaw 角速度 + Unitree G1 的 29 个关节）加每只手一个夹爪标量。区别只在<strong>操作者能下达什么指令、以及录下来的 action 是什么</strong>：
+        </p>
+
+        <div class="module-grid">
+          <div class="module-card">
+            <div class="module-card-name">方案 ① · DECOUPLED CONTROL</div>
+            <div class="module-card-title">上下身解耦（GR00T 路线）</div>
+            <div class="module-card-desc">上身：操作者给头+双手目标，IK 解成上身关节；下身：一个 RL 控制器吃"机身速度+机身高度"指令走路。<strong>action 21 维</strong>（腰 3 + 左臂 7 + 右臂 7 + 机身高度 1 + 平面机身速度 3）。相当于"会走路的移动操作"，但<strong>脚/腿无法直接参与</strong>——踩踏板做不了。</div>
+          </div>
+          <div class="module-card">
+            <div class="module-card-name">方案 ② · VR 3-POINT</div>
+            <div class="module-card-title">VR 三点稀疏（SONIC/OmniH2O 路线）</div>
+            <div class="module-card-desc">操作者只给头+双腕三个关键点位姿 + 平面导航指令，运动规划器推断下半身。<strong>action 24 维</strong>（平面机身速度 3 + 三点各 3 维位置 = 9 + 三点各 4 维四元数 = 12）。对够取/抓握等手臂任务轻便自然，但<strong>对躯干/膝/脚只有间接控制</strong>，策略犹豫、rollout 时间拉长。</div>
+          </div>
+          <div class="module-card">
+            <div class="module-card-name">方案 ③ · JOINT-BASED ★</div>
+            <div class="module-card-title">全关节全身（本文采用）</div>
+            <div class="module-card-desc">PICO VR + 身上动捕 tracker 捕捉操作者全身，经 <span class="term" data-en="General Motion Retargeting">GMR</span> <strong>在线重定向到机器人每一个关节</strong>，SONIC 追踪。<strong>action 32 维</strong>（root roll/pitch + yaw 角速度 3 + 29 关节 = 14 臂 + 12 腿 + 3 腰）。对整条运动链<strong>直接控制</strong>——蹲、踩、腿当操作器都能表达。</div>
+          </div>
+          <div class="module-card">
+            <div class="module-card-name">方案 ④ · SMPL-BASED（实验 #2 的对照）</div>
+            <div class="module-card-title">原生 SMPL 人体表示</div>
+            <div class="module-card-desc">直接用 SMPL 人体参数当动作、跳过重定向步骤，理论上省掉不完美 retargeter 的误差。<strong>action 81 维</strong>（72 个 SMPL 关节坐标 + 6 维腕/臂精调 + 3）。维度太高、很多坐标冗余，反而更难学。</div>
+          </div>
+        </div>
+
+        <h3>实验 #1 · 三接口真机对比（Table 1）</h3>
+        <p>
+          三个任务、每任务 40 条演示、每种接口各训一个 VLA，真机各跑 5 次。<strong>紫色 ✗ = 该接口天生做不了这个任务</strong>：
+        </p>
+
+        <table class="kv-table">
+          <tr>
+            <th>遥操作接口</th>
+            <th>Cola 进度%</th><th>时长s</th><th>步数</th>
+            <th>Shelf 进度%</th><th>时长s</th><th>步数</th>
+            <th>Bottle 进度%</th><th>时长s</th><th>步数</th>
+          </tr>
+          <tr>
+            <td>Decoupled 解耦</td>
+            <td>66.7±14.9</td><td class="w">36.7</td><td class="bad">42.3</td>
+            <td>93.3±6.7</td><td class="w">33.6</td><td class="bad">38.4</td>
+            <td class="bad" colspan="3">✗ 踩不了踏板</td>
+          </tr>
+          <tr>
+            <td>VR 3-point 三点</td>
+            <td class="bad">40.0±6.7</td><td class="w">67.8</td><td>12.3</td>
+            <td class="bad" colspan="3">✗ 蹲不下去</td>
+            <td class="bad" colspan="3">✗ 踩不了踏板</td>
+          </tr>
+          <tr>
+            <td>Joint-based 全关节 ★</td>
+            <td class="win">86.7±8.2</td><td class="w">40.2</td><td class="win">12.0</td>
+            <td class="win">80.0±13.3</td><td class="w">41.8</td><td class="win">10.5</td>
+            <td class="win">85.0±6.1</td><td class="w">29.7</td><td class="win">10.3</td>
+          </tr>
+        </table>
+
+        <p>
+          读表要点：<strong>Joint-based 是唯一三个任务全通的接口</strong>（80–87% 进度）。更关键的是<strong>动作质量</strong>——它每次 rollout 只走 10–12 步，而解耦控制在 Cola 上要走 <strong>42.3 步</strong>（3.5× 膨胀），碎步、生硬、还会 ground-stomping；VR 三点则在可乐罐前<strong>犹豫不决</strong>，时长翻到 67.8s、进度只有 40%。解耦在 Shelf 上分数（93.3）甚至比 joint 高，但它<strong>整类"用身体部位操作"（Bottle）直接出局</strong>。覆盖面 + 自然度，joint-based 赢两头。
+        </p>
+
+        <div class="callout blue">
+          <div class="callout-label">工程上的直接启示</div>
+          <p>
+            对采用 <strong>joint-based（全关节目标）</strong>action 的系统，OpenHLM 这张表相当于用受控实验证明了这条路线的正确性：<strong>接口决定数据上限</strong>。想采到"蹲/踩/腿参与"这类全身数据，遥操作端就必须是全关节的；用解耦或 VR 三点，这些动作从源头就录不进数据集。</p>
+        </div>
+
+        <h3>实验 #2 · 关节重定向 vs 原生 SMPL（Fig 3）</h3>
+        <p>
+          既然要全身，那动作表示是用"人体 SMPL 参数"还是"机器人关节角"？SMPL 看似能省掉 retarget 误差，但结果反过来：<strong>关节表示 88% 平均进度 vs SMPL 75%</strong>。原因是 81 维 SMPL 里大量坐标对机器人是冗余的，维度一高、VLA 反而学不动。最惨的是 Bottle Disposal——SMPL 训的策略脚跟抬不够、够不到踏板（100 vs 53）。结论：<strong>采集时就在线把全身演示 retarget 到机器人 32 维关节空间</strong>，别留 SMPL。
+        </p>
+
+        <h3>实验 #3 · 未来帧预览延迟 = 0.2s（Fig 4）</h3>
+        <p>
+          低层运动追踪控制器有个可调的<strong>预览延迟 Δt</strong>：控制器提前看多远的参考动作再去跟踪。预览越长动作越平滑，但操作者的指令到落地的延迟也越大。扫 Δt ∈ {0, 0.2, 0.4, 0.6}s：<strong>0.2s 命中最佳平衡</strong>（67% 进度、演示时长基本等于零预览的 35s）。Δt=0 时操作者最跟手但机器人走路抖、跺脚；Δt=0.6s 时延迟压垮操作者，进度暴跌到 13%。<strong>后续所有阶段都用 0.2s。</strong>
+        </p>
+
+        <div class="callout">
+          <div class="callout-label">§3.1 定稿的数据采集管线</div>
+          <p>Joint-based 全身遥操作（PICO VR + tracker + GMR 在线重定向到 32 维关节）+ 0.2s 预览延迟 + 采集时即在线 retarget 到机器人关节空间。这套管线是后面所有实验的数据地基。</p>
+        </div>
+
+        <div class="quiz"
+             data-correct="b"
+             data-explain="正确。Bottle Disposal 需要脚踩踏板顶开桶盖——解耦控制的下半身只吃'机身速度+机身高度'指令、不直接控制脚，VR 三点只给头+双手三个点、对脚只有间接控制，两者都'by construction'做不了。只有 joint-based 直接控制每个关节（含腿/脚）才能表达踩踏板。"
+             data-explain-wrong="再想想'用身体部位当操作器'这类任务：踩踏板需要直接控制脚。解耦控制和 VR 三点都不直接控制下肢关节，所以做不了；joint-based 才行。">
+          <div class="q-label">🧠 理解检查</div>
+          <div class="q-text">为什么 Decoupled 和 VR 3-point 在 Bottle Disposal（脚踩踏板）上被标了 ✗？</div>
+          <div class="q-options">
+            <button class="q-opt" data-k="a">因为它们相机分辨率不够</button>
+            <button class="q-opt" data-k="b">因为它们不直接控制下肢关节/脚，踩踏板这个动作从接口上就表达不出来</button>
+            <button class="q-opt" data-k="c">因为它们训练数据太少</button>
+            <button class="q-opt" data-k="d">因为夹爪不支持</button>
+          </div>
+          <div class="q-feedback"></div>
+        </div>
+      </div>
+
+      <!-- ============ §04 ============ -->
+      <div class="section" id="vla">
+        <div class="section-num">§ 04</div>
+        <h2>VLA 设计：输入/动作格式、预训练、动作生成</h2>
+
+        <div class="cn-read">
+          <div class="cn-label">这一节解决什么</div>
+          <p>
+            接口定了、数据能采了，现在轮到高层策略本身——<strong>全文信息密度最高的"input 格式 + pretraining"消融就在这一节</strong>。作者不重造模型，直接拿现成的操作 VLA <strong>π₀.₅</strong>（内部架构一个字不改），只动<strong>它和人形对接的接口</strong>：输出的动作向量、输入的本体感受。然后把三个问题各自消融（对应图 5 三组颜色）：<strong>Q1 输入/动作格式怎么定、Q2 要不要机器人数据预训练、Q3 能不能用单步推理提速</strong>。一句话预告结论：Q1 的四个选择<strong>单个都不是瓶颈</strong>，Q2 的预训练来源<strong>是决定性的</strong>，Q3 提速<strong>会掉分</strong>。
+          </p>
+        </div>
+
+        <div class="fig-block" style="margin:24px 0;">
+          <img src="../assets/figures/openhlm/fig-5.png" alt="Figure 5: VLA design ablations on the 4-task subset">
+          <div class="fig-cap">
+            <span class="fig-num">Fig 5 · p.7</span>
+            VLA design ablations on the 4-task subset. <strong>Amber</strong>: interface ablations (Q1) — drops are minor, no single choice is the bottleneck. <strong>Rose</strong>: pretraining ablations (Q2) — robot pretraining (π₀.₅) dominates, PaliGemma & from-scratch collapse. <strong>Sage</strong>: one-step action generation (Q3) — both underperform the 10-step baseline by ~20 pts despite lower validation MSE.
+            <span class="fig-cn">紫=默认配置(Ours)。琥珀组=Q1 接口消融（掉分都很小）；玫红组=Q2 预训练（π₀.₅ 91% ≫ PaliGemma 60% ≫ 从头 42%）；鼠尾草绿组=Q3 单步动作（虽然验证 MSE 更低，真机反而掉 ~20 分）。</span>
+          </div>
+        </div>
+
+        <h3>Q1 · 输入 &amp; 动作格式的四个选择（图 5 琥珀组）</h3>
+        <p>
+          π₀.₅ 预训练的动作向量是 <strong>双臂 32 维</strong>，而人形要 <strong>34 维</strong>（§3.1 的 32 维 + 两个平行夹爪维）。围绕"输出动作 + 输入本体感受"这两根线，作者消融了四个选择：
+        </p>
+
+        <table class="kv-table">
+          <tr><th>#</th><th>选择</th><th>默认（采用）</th><th>翻转的坏选择</th></tr>
+          <tr><td>4</td><td>动作投影层初始化</td><td class="win">Weight surgery：把预训练权重拷进前 32 行/列，只对新增 2 维做 Xavier 初始化</td><td>整个 34 维投影层随机重初始化</td></tr>
+          <tr><td>5</td><td>动作维度排序</td><td class="win">保留预训练双臂序 [左臂7,左爪1,右臂7,右爪1]，人形的腿/腰/root 18 维<strong>接在末尾</strong></td><td>人形原生序（root+腿放最前）</td></tr>
+          <tr><td>6</td><td>动作目标</td><td class="win">绝对关节角</td><td>相对增量 $a_t - s_0$</td></tr>
+          <tr><td>7</td><td>本体感受输入</td><td class="win">把 34 维本体感受向量喂进 VLA</td><td>不喂，让策略从视觉推断身体姿态</td></tr>
+        </table>
+
+        <p>
+          结论有点反直觉：<strong>四个"坏选择"每个单独翻转，4 任务平均进度只掉一点点，没有单一瓶颈</strong>——小幅波动更像是鲁棒性下降或 5 次 rollout 的噪声。但作者补了一句关键提醒：<strong>坏选择不能叠加</strong>——同时"去掉本体感受 + 改用相对动作"会灾难性失败，因为策略一旦漂到分布外就靠视觉也拉不回来（没有本体感受这个锚）。
+        </p>
+
+        <div class="callout amber">
+          <div class="callout-label">可直接抄的 input/action 配方</div>
+          <p>
+            直接抄默认档：<strong>动作 = 绝对关节角</strong>；<strong>排序 = 沿用骨干的双臂序、人形专有维接在末尾</strong>（这样能最大化复用预训练权重）；<strong>初始化 = weight surgery 而非全随机</strong>；<strong>一定要喂本体感受</strong>（proprioception 是防漂移的锚，尤其头/腕相机看不清下半身时）。单看每一条收益不大，但"绝对动作 + 有本体感受"这个组合是<strong>不能省的底线</strong>。</p>
+        </div>
+
+        <h3>Q2 · 预训练来源：机器人预训练即使跨 embodiment 也决定性有用（图 5 玫红组）</h3>
+        <p>
+          这是全节最强的信号。三种初始化对比：<strong>π₀.₅（在静态/轮式双臂机器人数据上预训练，<em>不含任何人形数据</em>）91% ≫ PaliGemma（同架构但只有视觉语言预训练）60% ≫ 完全从头 42%</strong>。差距巨大。
+        </p>
+        <p>
+          藏在差距背后的<strong>惊人细节</strong>：PaliGemma 初始化和 π₀.₅ 初始化的模型，在 held-out 验证集上的<strong>动作 MSE 几乎一模一样</strong>；可一放到真机上就天差地别——PaliGemma 版抓取一直更弱、抓空了很少能重试，而 π₀.₅ 版会流畅地"看到错→纠正→重试"。这说明两件事：① π₀.₅ 预训练数据里那种<strong>闭环纠错行为先验</strong>（"see error, correct, retry"）能<strong>跨 embodiment 迁移</strong>，双臂→人形的 gap 是真实的，但远小于"有机器人预训练 vs 完全没有"的 gap；② <strong>动作 MSE 是个糟糕的代理指标</strong>，别拿它选模型。
+        </p>
+
+        <div class="callout red">
+          <div class="callout-label">最反直觉、也最该记住的一条</div>
+          <p>
+            §4 会看到：GR00T N1.6 和 Ψ₀ 的预训练数据里<strong>都</strong>混了 Unitree G1 人形数据，而 OpenHLM 的 π₀.₅ 初始化<strong>一条人形数据都没有</strong>——结果 OpenHLM 反而赢。<strong>往预训练里塞人形数据本身不够，能不能造出强人形 VLA 是"设计细节"的问题</strong>，而 §3 整篇就是在抠这些细节。别迷信"数据里有没有同构体"。</p>
+        </div>
+
+        <h3>Q3 · 单步动作生成会掉分（图 5 鼠尾草绿组）</h3>
+        <p>
+          π₀.₅ 的 flow-matching 动作头推理时要在多步（默认 10 步）上积分向量场，每次 ~90ms。想提速就试单步：① 单步 flow matching（推理时积分步数设 1）；② drifting model（一种天生支持单步的生成模型）。结果：<strong>两者验证 MSE 都更低（~0.007 vs 10 步的 ~0.009），但真机进度都掉了约 20 分</strong>。作者推测单步产生的动作虽然 ℓ₂ 上接近目标，却更抖、时间上不够平滑。<strong>保留多步 flow matching。</strong>（又一次印证：MSE 骗人。）
+        </p>
+
+        <h3>实验 #10 · 每任务 40 条演示够用（Fig 6）</h3>
+        <p>
+          扫每任务演示预算：5→52%、10→60%、20→85%、40→91%，<strong>最大的跃升在 10→20 条之间，40 条后基本饱和</strong>。40 条演示对中等难度任务约花熟练操作者 1.5 小时，是个"数据高效"的默认预算。带到 8 个训练任务（每任务 40 条）上，系统拿到 <strong>89% 平均进度</strong>——4 任务子集上的所有选择都能泛化到更广的训练分布。
+        </p>
+
+        <div class="quiz"
+             data-correct="c"
+             data-explain="正确。这是全文重复出现两次的核心教训：Q2 里 PaliGemma 和 π₀.₅ 验证 MSE 几乎相同但真机差 30 分；Q3 里单步生成 MSE 更低但真机掉 20 分。验证集动作 MSE 无法可靠预测真机表现——闭环纠错、时间平滑性这些决定真机成败的东西，MSE 量不出来。"
+             data-explain-wrong="注意 Q2 和 Q3 反复出现的同一个现象：MSE 更低/相同，真机却更差。作者明确说 action MSE 是 poor proxy。">
+          <div class="q-label">🧠 理解检查</div>
+          <div class="q-text">OpenHLM 在 Q2 和 Q3 里反复强调的一个"别踩的坑"是什么？</div>
+          <div class="q-options">
+            <button class="q-opt" data-k="a">学习率一定要用 cosine decay</button>
+            <button class="q-opt" data-k="b">动作维度必须按人形原生序排列</button>
+            <button class="q-opt" data-k="c">别用验证集动作 MSE 来选模型/配置——它无法预测真机表现</button>
+            <button class="q-opt" data-k="d">必须用 4 张 A800 训练</button>
+          </div>
+          <div class="q-feedback"></div>
+        </div>
+      </div>
+
+      <!-- ============ §05 ============ -->
+      <div class="section" id="cotrain">
+        <div class="section-num">§ 05</div>
+        <h2>异构协同训练：用便宜数据补全新任务</h2>
+
+        <div class="cn-read">
+          <div class="cn-label">这一节解决什么</div>
+          <p>
+            VLA 定型了，但要给<em>每个</em>新任务都采全身遥操作数据太贵（走路部分又慢又累）。这一节回答 G3：<strong>能不能用更便宜的数据源 co-training，把策略扩展到全身遥操作从没覆盖过的任务？</strong>作者试了两种便宜数据，并追问一个更细的问题——<strong>每种数据到底补的是"新语义理解"还是"新动作"？</strong>这一节和<strong>"数据利用"角度</strong>直接相关：它告诉你哪种便宜数据能省钱、能补什么、补不了什么。
+          </p>
+        </div>
+
+        <div class="module-grid">
+          <div class="module-card">
+            <div class="module-card-name">便宜数据源 ① · STATIONARY TELEOP</div>
+            <div class="module-card-title">固定站立遥操作（同构体、不走路）</div>
+            <div class="module-card-desc">同一台机器人、同一套 joint-based 接口，但<strong>只采"就地操作"那一段</strong>——机器人站定不走，操作者只演示手臂+夹爪+就地的躯干/高度调整。省掉遥操作走路部分，<strong>40 条只需 13 分钟（全遥操作要 21 分钟）</strong>。</div>
+          </div>
+          <div class="module-card">
+            <div class="module-card-name">便宜数据源 ② · HuMI</div>
+            <div class="module-card-title">机器人无关采集（人形版 UMI）</div>
+            <div class="module-card-desc">2 个装 GoPro 的 UMI 手持夹爪 + 5 个 HTC VIVE Ultimate tracker（双夹爪、骨盆、双脚）。人直接徒手演示，事后离线 IK 把 tracker 轨迹转成全身关节。<strong>机器人完全不在环，40 条只需 7 分钟</strong>，打包成和 joint-based 遥操作同格式，模型侧零改动就能混训。</div>
+          </div>
+        </div>
+
+        <div class="fig-block" style="margin:24px 0;">
+          <img src="../assets/figures/openhlm/fig-7.png" alt="Figure 7: Heterogeneous co-training results">
+          <div class="fig-cap">
+            <span class="fig-num">Fig 7 · p.8</span>
+            Heterogeneous co-training results on the 4 held-out tasks (9–12) and aggregate averages. 8-task baseline (米黄) vs Stationary co-training (浅紫) vs HuMI co-training (深紫) vs 12-task oracle (金).
+            <span class="fig-cn">在 4 个 held-out 任务上的协同训练结果。注意 Pouring（任务12，需要新动作"倒"）：Stationary 补到 80%，而 HuMI 只有 15%——HuMI 补不了新动作。两种协同都不回退原 8 个训练任务（Tasks 1–8 avg 都 ~87%）。</span>
+          </div>
+        </div>
+
+        <table class="kv-table">
+          <tr><th>Held-out 任务</th><th>8-task 基线</th><th>Stationary 协同</th><th>HuMI 协同</th><th>12-task oracle</th></tr>
+          <tr><td>9. Pig Placement（复用动作+新物体）</td><td class="bad">20</td><td class="win">100</td><td>80</td><td>100</td></tr>
+          <tr><td>10. Gum Can Placement（复用动作+新物体）</td><td class="bad">47</td><td class="win">93</td><td class="win">100</td><td>100</td></tr>
+          <tr><td>11. Shelf Cube Transfer（复用动作+新物体）</td><td class="bad">40</td><td>73</td><td>73</td><td>87</td></tr>
+          <tr><td>12. Pouring（<strong>需要新动作"倒"</strong>）</td><td class="bad">25</td><td class="win">80</td><td class="bad">15</td><td>90</td></tr>
+          <tr><td><strong>Tasks 9–12 平均</strong></td><td class="bad">33</td><td class="win">87</td><td>67</td><td>94</td></tr>
+          <tr><td>Tasks 1–8 平均（会不会回退）</td><td>89</td><td>87</td><td>87</td><td>87</td></tr>
+        </table>
+
+        <p>
+          <strong>Stationary 站立遥操作：新语义 + 新动作都能补。</strong>它把 held-out 4 任务的平均进度从 33% 拉到 87%，逼近 12-task oracle 的 94%，而且不回退原 8 个训练任务。任务 9–11 只是<strong>复用已有动作、换了新物体/新指令</strong>——站立数据提供了新语义（新物体识别、新指令 grounding）；任务 12 Pouring 需要 8 个训练任务里根本没有的<strong>"倒"这个新动作</strong>，站立数据也补上了（80%）。
+        </p>
+        <p>
+          <strong>HuMI 机器人无关数据：只补新语义、补不了新动作。</strong>在复用动作的任务 9–11 上，HuMI 和站立数据打平（grounding 新物体/指令没问题）；但在需要新动作的 Pouring 上，<strong>HuMI 只有 15%、失败</strong>。作者归因于人-机之间的 gap：即使离线 IK 重定向过，纯人手演示的轨迹和真机遥操作出来的还是不一样（相机是 RealSense vs 矫正后的 GoPro 鱼眼，夹爪是自适应平行爪 vs 刚性手持爪），当前数据规模下 HuMI 主要在<strong>监督语义、而非动作</strong>。代价是它只花站立遥操作约一半的人力时间。
+        </p>
+
+        <div class="callout blue">
+          <div class="callout-label">数据利用的可操作结论</div>
+          <p>
+            扩展到新任务时：<strong>需要新物体/新指令但动作已有 → 用 HuMI（最省，7 分钟/40 条）就够；需要机器人学会一个全新动作 → 必须上 Stationary 站立遥操作（13 分钟/40 条）或全身遥操作</strong>。HuMI 补不了新动作这个边界要记牢。</p>
+        </div>
+      </div>
+
+      <!-- ============ §06 ============ -->
+      <div class="section" id="hardware">
+        <div class="section-num">§ 06</div>
+        <h2>硬件、鱼眼主视角、开源数据 &amp; 系统级对标</h2>
+
+        <div class="cn-read">
+          <div class="cn-label">这一节解决什么</div>
+          <p>
+            最后收尾三件最实际的事：<strong>(a) 硬件与相机配置</strong>（回答"主视角是不是鱼眼"）、<strong>(b) 开源了什么</strong>（那批可直接复用的数据）、<strong>(c) 系统级对标</strong>（它到底比 GR00T N1.6 / Ψ₀ 强多少）。
+          </p>
+        </div>
+
+        <div class="fig-interactive panel-below">
+          <div class="fig-block">
+            <div class="hotspot-wrap" data-hotspot-group="fig9">
+              <img src="../assets/figures/openhlm/fig-9.png" alt="Figure 9/10: Humanoid robot hardware and HuMI hardware">
+              <div class="hotspot" data-id="head" style="left:16%; top:44%;"
+                   data-title="头部主相机 = Unitree SV1-25 立体鱼眼 ★"
+                   data-body="确认『主视角是鱼眼』：机器人头上装的是 Unitree SV1-25 立体鱼眼相机（相对水平线下倾 45°）。遥操作时 HMD 中央显示的就是这路鱼眼头部视角，两路腕部视角放在左上/右上角。"></div>
+              <div class="hotspot" data-id="wrist" style="left:26%; top:68%;"
+                   data-title="腕部相机 = 2× RealSense D405"
+                   data-body="每只手腕一台 Intel RealSense D405，提供近距离操作视角。头(鱼眼)+双腕(RealSense)构成 VLA 的视觉输入。"></div>
+              <div class="hotspot" data-id="gripper" style="left:22%; top:88%;"
+                   data-title="夹爪 = ChangingTek CTAG2F90-D"
+                   data-body="双手各一个自适应平行夹爪。这也是 action 里那 2 个夹爪标量维的来源。"></div>
+              <div class="hotspot" data-id="humi" style="left:68%; top:66%;"
+                   data-title="HuMI 采集端 = UMI 手持夹爪 + GoPro"
+                   data-body="右图：机器人无关采集用 2 个装 GoPro 的 UMI 手持夹爪。注意 GoPro 也是鱼眼——但和机器人 RealSense 腕视角有视觉 gap，混训时需矫正(rectify)。"></div>
+              <div class="hotspot" data-id="vive" style="left:74%; top:95%;"
+                   data-title="5× HTC VIVE Ultimate tracker"
+                   data-body="绑在双夹爪、骨盆、双脚，捕捉 6-DoF 全身姿态，离线 IK 转成全身关节。"></div>
+            </div>
+            <div class="fig-cap">
+              <span class="fig-num">Fig 9 / 10 · p.23</span>
+              Left: Humanoid robot hardware — Unitree G1 with a head-mounted Unitree SV1-25 stereo fisheye camera and two wrist RealSense D405. Right: HuMI hardware — handheld UMI grippers with GoPro cameras + HTC VIVE trackers.
+              <span class="fig-cn">左：人形机器人硬件——Unitree G1 + 头部 SV1-25 立体鱼眼 + 双腕 RealSense D405。右：HuMI 采集硬件——手持 UMI 夹爪(GoPro) + VIVE tracker。</span>
+            </div>
+          </div>
+          <div class="hotspot-panel"></div>
+        </div>
+
+        <div class="callout amber">
+          <div class="callout-label">鱼眼主视角 · 确认 &amp; 注意事项</div>
+          <p>
+            <strong>主视角确实是鱼眼</strong>：头部主相机是 Unitree SV1-25 立体鱼眼（下倾 45°），遥操作 HMD 中央呈现的就是这路鱼眼。HuMI 采集端的 GoPro 也是鱼眼，但论文明说：即使把 GoPro 图像 rectify 过，其腕部视角仍<strong>明显比机器人 RealSense 视角更广，留有可观的视觉 gap</strong>——如果要混用 OpenHLM 的鱼眼数据，这个 domain gap 要提前处理。
+          </p>
+        </div>
+
+        <h3>开源了什么（可直接复用的数据）</h3>
+        <p>
+          论文摘要明确："Our code, training data, and model checkpoints are available."——<strong>代码 + 训练数据 + 模型 checkpoint 全开</strong>（openhlm-project.github.io）。这批全关节、含全身 loco-manipulation 的真机数据（已开放 <strong>500 GB+</strong>），格式就是 §3.1 那套 32 维关节 + 双腕/头视角，<strong>可直接拿来做 co-training 数据或预训练素材</strong>。训练成本参考：4×A800、约 24 小时、30k 步、batch 128、action horizon 50、224×224；推理时生成 50 步 action chunk @ 30Hz，每次执行 25 步再重推（约 5/6 秒一次）。
+        </p>
+
+        <h3>实验 #13 · 系统级对标长时序任务（Table 2）</h3>
+        <p>
+          压轴：一个跨越机器人<strong>大垂直工作空间</strong>的长时序语言任务（走到矮咖啡桌右手拿水果1、走到中桌左手拿水果2、走到高架分别放进容器；水果从 5 选 2，共 20 种有序组合）。对标两个 SOTA 人形 VLA：
+        </p>
+
+        <table class="kv-table">
+          <tr><th>方法</th><th>进度 %</th><th>演示总时长</th><th>备注</th></tr>
+          <tr><td>Ψ₀（人形 egocentric 视频预训练）</td><td class="bad">48.8±4.4</td><td>2.70 h</td><td>抓取弱、够不到高架</td></tr>
+          <tr><td>GR00T N1.6（Cosmos-2B + DiT，解耦控制）</td><td class="bad">57.5±4.6</td><td>2.70 h</td><td>手臂走固定轨迹、不跟随语言指定的水果</td></tr>
+          <tr><td><strong>OpenHLM（HuMI 协同）</strong></td><td class="win">87.5±3.7</td><td class="win">1.14 h</td><td>不到一半演示时长反超</td></tr>
+          <tr><td>OpenHLM（teleop oracle 上界）</td><td>97.5±1.7</td><td>2.73 h</td><td>全 20 组都用全身遥操作</td></tr>
+        </table>
+
+        <p>
+          <strong>OpenHLM 用不到一半的演示时长（1.14h vs 2.70h）反超两个 SOTA 30+ 分</strong>，且逼近自己的 teleop 上界（97.5%）10 分以内。两个 baseline 都抓取弱、执行刻板臂轨迹、不跟随语言指定的目标水果——而它们预训练里<strong>都</strong>混了 G1 人形数据。再次印证 §4 那句话：<strong>混人形数据进预训练不够，配方细节才是关键。</strong>
+        </p>
+      </div>
+
+      <!-- ============ §07 ============ -->
+      <div class="section" id="takeaway">
+        <div class="section-num">§ 07</div>
+        <h2>工程借鉴清单</h2>
+
+        <div class="cn-read">
+          <div class="cn-label">这一节解决什么</div>
+          <p>
+            把前面 6 节压缩成一张<strong>能直接落地的 checklist</strong>，按四个角度（学习借鉴 / 实验借鉴 / 数据利用 / 设计对比）归好类。
+          </p>
+        </div>
+
+        <div class="callout">
+          <div class="callout-label">① 设计对比 · joint-based 接口路线已被背书</div>
+          <p>
+            OpenHLM 用受控实验（Table 1）证明 <strong>joint-based 全关节</strong>完胜 decoupled / VR 三点 / SMPL：唯一能全覆盖四类能力、动作最自然（10–12 步 vs 解耦 42 步）。<strong>结论：做全身系统就选 joint-based，别退回解耦。</strong>接口决定数据上限，想采蹲/踩/腿参与的数据，遥操作端必须是全关节的。
+          </p>
+        </div>
+
+        <div class="callout blue">
+          <div class="callout-label">② 实验借鉴 · input 格式 + pretraining 直接抄</div>
+          <p>
+            <strong>输入/动作格式</strong>：绝对关节角（非相对增量）；沿用骨干双臂序、人形专有维接末尾；投影层 weight surgery 初始化；<strong>必须喂本体感受</strong>（防漂移的锚）。<br>
+            <strong>预训练</strong>：从 π₀.₅ 初始化即可，<strong>不需要人形预训练数据</strong>——机器人预训练的闭环纠错先验能跨 embodiment 迁移。<br>
+            <strong>动作生成</strong>：保留多步 flow matching，别为省时上单步（会掉 ~20 分）。<br>
+            <strong>血泪教训</strong>：<span class="term" data-en="validation action MSE is a poor proxy">验证集动作 MSE 骗人</span>，别拿它选模型/配置，一切以真机 task progress 为准。
+          </p>
+        </div>
+
+        <div class="callout purple">
+          <div class="callout-label">③ 数据利用 · 500G 开源 + 鱼眼主视角</div>
+          <p>
+            <strong>500GB+ 开源数据</strong>（code+data+ckpt 全开）格式为 32 维关节 + 头(鱼眼)/双腕(RealSense)视角，可直接做 co-training / 预训练素材。<br>
+            <strong>主视角是鱼眼</strong>（Unitree SV1-25 立体鱼眼，下倾 45°）——复用时注意：HuMI 的 GoPro 鱼眼即使 rectify 后仍比 RealSense 更广，有 domain gap，混训要处理。<br>
+            <strong>扩展新任务的省钱策略</strong>：只换物体/指令（动作已有）→ 用 HuMI（7min/40条）；要学全新动作 → 必须 Stationary 站立遥操作（13min/40条）或全身遥操作。HuMI 补不了新动作。
+          </p>
+        </div>
+
+        <div class="callout amber">
+          <div class="callout-label">④ 学习借鉴 · 方法论本身</div>
+          <p>
+            OpenHLM 最值钱的其实是它的<strong>做事方式</strong>：不追新架构，而是把"该怎么搭"拆成一次只改一个变量的受控实验，每个决策都用真机数字定稿。做消融/写报告时可以照搬这套"roadmap of one-variable-at-a-time experiments"的组织法——先立基准（HLM-12 那样分能力档）、再逐轴消融、最后系统级对标。
+          </p>
+        </div>
+
+        <div class="callout red">
+          <div class="callout-label">已知局限（复用时的风险）</div>
+          <p>
+            ① 只在 Unitree G1 单一平台验证，换机器人/换更杂场景结论未必成立；② 协同训练还没追平全身遥操作（HuMI 教不了新动作，视觉/动作 gap 未解）；③ 没针对 loco-manipulation 专门设计 VLA 架构，几个现象（MSE 不预测真机、单步生成掉分）机理仍未解释清楚。
+          </p>
+        </div>
+
+        <div class="callout">
+          <div class="callout-label">一句话总结</div>
+          <p>
+            OpenHLM = <strong>joint-based 全身遥操作（数据源）+ π₀.₅ 初始化的人形适配 VLA（策略）+ 便宜异构数据协同训练（扩展）</strong>，用 13 个受控实验把每个设计决策钉死。要点：joint-based 接口路线被背书、input/pretraining 配方可直抄、500G 鱼眼数据可复用、"MSE 骗人"要牢记。
+          </p>
+        </div>
+      </div>
+
+    </main>
+  </div>
+
+  <script>
+    // sidebar active highlight
+    const links = document.querySelectorAll('.sidebar-tree a');
+    const observer = new IntersectionObserver((entries) => {
+      entries.forEach(entry => {
+        if (entry.isIntersecting) {
+          links.forEach(l => l.classList.remove('active'));
+          const active = document.querySelector(`.sidebar-tree a[href="#${entry.target.id}"]`);
+          if (active) active.classList.add('active');
+        }
+      });
+    }, { rootMargin: '-20% 0px -70% 0px' });
+    document.querySelectorAll('.section').forEach(s => observer.observe(s));
+  </script>
+</body>
+</html>
