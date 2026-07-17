@@ -7,7 +7,7 @@
 
 ---
 
-## 已收录（33 篇）· 按方向分类
+## 已收录（34 篇）· 按方向分类
 
 ### 🟣 VLA · 视觉-语言-动作（9 篇）
 
@@ -25,7 +25,7 @@
 | [OpenVLA](papers/openvla.html) | Kim et al. · 2024 | 7B 开源 VLA：Llama-2 + DINOv2/SigLIP，离散 action token |
 | [RT-2](papers/rt2.html) | Google DeepMind · 2023 | VLM 直接输出动作 token，VLA 范式开创者 |
 
-### 🦿 Loco-Manipulation · 移动操作（8 篇 + 1 附属）
+### 🦿 Loco-Manipulation · 移动操作（9 篇 + 1 附属）
 
 边走边抓：腿 / 全身参与操作，扩大工作空间。分层 RL + Sim2Real 是主流路线。
 
@@ -42,6 +42,7 @@
 | [SONIC](papers/sonic.html) | Luo et al. · NVIDIA · 2026 | 超大规模 motion tracking + 通用全身控制 |
 | [Humanoid-GPT](papers/humanoid-gpt.html) | Qi et al. · 清华/Galbot · 2026 | GPT 式序列建模做 motion tracking，2B 帧 scaling law，与 SONIC 对照 |
 | [Ψ₀](papers/psi0.html) | Wei et al. · USC/NVIDIA · 2026 | 解耦训练：800h 人类视频预训练 VLM + 30h 真机训 MM-DiT expert，超 GR00T 40%+ |
+| [Being-M0.7](papers/being-m07.html) | BeingBeyond · 2026 | 隐空间 WAM：预测未来 DINO 隐状态+运动而非像素，MoT 三流预训练 + 人机统一运动表示 |
 
 ### 🌍 WAM · 世界-动作模型（8 篇）
 
@@ -161,45 +162,39 @@ learn_embodied_papers/
 
 按推荐阅读顺序排列，📄 = 已有 PDF（本仓库或 Zotero）。
 
-### 第一优先：人形 Loco-Manipulation / WAM 新论文（Zotero `loco-manipulation` collection 已入库）
-
-| # | 论文 | 来源 | 一句话 |
-|---|------|------|--------|
-| 1 | **Being-M0.7** · BeingBeyond 2026 | [项目页](https://research.beingbeyond.com/being-m07) | 人形机器人 latent 世界-动作模型 |
-
-### 第二优先：生成式基础（补完 π₀ 的 flow matching 知识链）
+### 第一优先：生成式基础（补完 π₀ 的 flow matching 知识链）
 
 | # | 论文 | PDF 路径 | 一句话 |
 |---|------|---------|--------|
-| 4 | VAE · Kingma & Welling 2014 | 待下载 | latent space + reparameterization，Dreamer 的基础 |
-| 5 | DDPM · Ho et al. 2020 | 待下载 | 前向加噪→反向去噪，Diffusion Policy 的基础 |
-| 6 | Score SDE · Song et al. 2021 | 待下载（或读博客替代） | 统一 DDPM 为连续 SDE，DDPM→Flow 的桥梁 |
+| 1 | VAE · Kingma & Welling 2014 | 待下载 | latent space + reparameterization，Dreamer 的基础 |
+| 2 | DDPM · Ho et al. 2020 | 待下载 | 前向加噪→反向去噪，Diffusion Policy 的基础 |
+| 3 | Score SDE · Song et al. 2021 | 待下载（或读博客替代） | 统一 DDPM 为连续 SDE，DDPM→Flow 的桥梁 |
 
-### 第三优先：WAM 补课
-
-| # | 论文 | PDF 路径 | 一句话 |
-|---|------|---------|--------|
-| 7 | **SuSIE** · Black et al. 2023 | 待下载 | 图编辑模型生成 subgoal，π₀.₇ world model 的直接来源 |
-| 8 | **RT-1** · Brohan et al. 2023 | 📄 `pdfs/world-model/WAM/Brohan 等 - 2023 - RT-1...pdf` | VLA 鼻祖，Robotics Transformer |
-| 9 | **Genie** · Bruce et al. 2024 | 📄 `pdfs/world-model/WAM/Bruce 等 - 2024 - Genie...pdf` | 从单张图生成可交互环境 |
-
-### 第四优先：Dreamer 系列（latent world model）
+### 第二优先：WAM 补课
 
 | # | 论文 | PDF 路径 | 一句话 |
 |---|------|---------|--------|
-| 10 | World Models · Ha & Schmidhuber 2018 | 📄 `pdfs/world-model/Ha和Schmidhuber - 2018 - World Models.pdf` | VAE+RNN 开山之作 |
-| 11 | PlaNet / RSSM · Hafner 2019 | 📄 `pdfs/world-model/Hafner 等 - 2019 - Learning Latent Dynamics...pdf` | Latent dynamics for planning |
-| 12 | Dreamer v2 · Hafner 2022 | 📄 `pdfs/world-model/dreamer/Hafner 等 - 2022 - Mastering Atari...pdf` | 离散表征 + Atari |
-| 13 | Dreamer v3 · Hafner 2024 | 📄 `pdfs/world-model/dreamer/Hafner 等 - 2024 - Mastering Diverse Domains...pdf` | 跨域通用世界模型 |
+| 4 | **SuSIE** · Black et al. 2023 | 待下载 | 图编辑模型生成 subgoal，π₀.₇ world model 的直接来源 |
+| 5 | **RT-1** · Brohan et al. 2023 | 📄 `pdfs/world-model/WAM/Brohan 等 - 2023 - RT-1...pdf` | VLA 鼻祖，Robotics Transformer |
+| 6 | **Genie** · Bruce et al. 2024 | 📄 `pdfs/world-model/WAM/Bruce 等 - 2024 - Genie...pdf` | 从单张图生成可交互环境 |
 
-### 第五优先：JEPA 延续（已有基础）
+### 第三优先：Dreamer 系列（latent world model）
 
 | # | 论文 | PDF 路径 | 一句话 |
 |---|------|---------|--------|
-| 14 | V-JEPA · Bardes et al. 2024 | 📄 `pdfs/world-model/Bardes 等 - 2024 - Revisiting Feature Prediction...pdf` | JEPA 从图片到视频 |
-| 15 | V-JEPA 2 · Assran et al. 2025 | 📄 `pdfs/world-model/Assran 等 - 2025 - V-JEPA 2...pdf` | 加上规划能力 |
-| 16 | V-JEPA 2.1 · Mur-Labadia et al. 2026 | 📄 `pdfs/world-model/Mur-Labadia 等 - 2026 - V-JEPA 2.1...pdf` | Dense feature 改进 |
-| 17 | LeWorldModel · Maes et al. 2026 | 📄 `pdfs/world-model/Maes 等 - 2026 - LeWorldModel...pdf` | 端到端 pixel→action JEPA |
+| 7 | World Models · Ha & Schmidhuber 2018 | 📄 `pdfs/world-model/Ha和Schmidhuber - 2018 - World Models.pdf` | VAE+RNN 开山之作 |
+| 8 | PlaNet / RSSM · Hafner 2019 | 📄 `pdfs/world-model/Hafner 等 - 2019 - Learning Latent Dynamics...pdf` | Latent dynamics for planning |
+| 9 | Dreamer v2 · Hafner 2022 | 📄 `pdfs/world-model/dreamer/Hafner 等 - 2022 - Mastering Atari...pdf` | 离散表征 + Atari |
+| 10 | Dreamer v3 · Hafner 2024 | 📄 `pdfs/world-model/dreamer/Hafner 等 - 2024 - Mastering Diverse Domains...pdf` | 跨域通用世界模型 |
+
+### 第四优先：JEPA 延续（已有基础）
+
+| # | 论文 | PDF 路径 | 一句话 |
+|---|------|---------|--------|
+| 11 | V-JEPA · Bardes et al. 2024 | 📄 `pdfs/world-model/Bardes 等 - 2024 - Revisiting Feature Prediction...pdf` | JEPA 从图片到视频 |
+| 12 | V-JEPA 2 · Assran et al. 2025 | 📄 `pdfs/world-model/Assran 等 - 2025 - V-JEPA 2...pdf` | 加上规划能力 |
+| 13 | V-JEPA 2.1 · Mur-Labadia et al. 2026 | 📄 `pdfs/world-model/Mur-Labadia 等 - 2026 - V-JEPA 2.1...pdf` | Dense feature 改进 |
+| 14 | LeWorldModel · Maes et al. 2026 | 📄 `pdfs/world-model/Maes 等 - 2026 - LeWorldModel...pdf` | 端到端 pixel→action JEPA |
 
 ---
 
