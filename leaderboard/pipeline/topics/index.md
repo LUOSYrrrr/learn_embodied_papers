@@ -2,7 +2,7 @@
 
 Personal paper leaderboard covering robot world models (WAM), humanoid loco-manipulation, dexterous manipulation, and vision-language-action models. Built from arXiv metadata and Google Scholar citations.
 
-- Last updated: 2026-07-17 20:30 UTC
+- Last updated: 2026-07-18 20:11 UTC
 - Total indexed papers: 3541
 - Data sources: arXiv for discovery, citation cache for enrichment.
 
@@ -53,8 +53,8 @@ Personal paper leaderboard covering robot world models (WAM), humanoid loco-mani
 | 16 | [Representation-Aligned Tactile Grounding for Contact-Rich Robotic Manipulation](https://arxiv.org/abs/2607.14609) | 2026-07-16 | missing | 0.999 |
 | 17 | [MIDAS Hand: Modular low-Impedance Direct-drive Anthropomorphic Sensing Hand](https://arxiv.org/abs/2607.14487) | 2026-07-16 | missing | 0.999 |
 | 18 | [Active Real-World Factor-Based Evaluation for Generalist Robot Policies](https://arxiv.org/abs/2607.14439) | 2026-07-16 | missing | 0.999 |
-| 19 | [DiMaS: Distribution Matching for Steering Vision-Language-Action Models](https://arxiv.org/abs/2607.14280) | 2026-07-15 | missing | 0.999 |
-| 20 | [Never Too Late for Force: Accelerating VLA Post-Training with Reactive Force Injection](https://arxiv.org/abs/2607.14236) | 2026-07-15 | missing | 0.999 |
+| 19 | [DiMaS: Distribution Matching for Steering Vision-Language-Action Models](https://arxiv.org/abs/2607.14280) | 2026-07-15 | missing | 0.998 |
+| 20 | [Never Too Late for Force: Accelerating VLA Post-Training with Reactive Force Injection](https://arxiv.org/abs/2607.14236) | 2026-07-15 | missing | 0.998 |
 
 ## Rebuild
 
