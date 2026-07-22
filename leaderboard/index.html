@@ -8,7 +8,7 @@
       name="description"
       content="Personal paper leaderboard: world models (WAM), humanoid loco-manipulation, dexterous manipulation, and VLA."
     />
-    <link rel="stylesheet" href="./assets/styles.css?v=20260629-2" />
+    <link rel="stylesheet" href="./assets/styles.css?v=20260720-zotero" />
   </head>
   <body>
     <header class="topbar">
@@ -114,6 +114,7 @@
                 <h2>Results</h2>
                 <p id="results-summary" class="status"></p>
               </div>
+              <p id="zotero-hint" class="zotero-hint" title="先筛选/搜索到想要的一批，再点浏览器右上角的 Zotero Connector 插件，即可勾选并一键存入本地 Zotero"></p>
             </div>
 
             <div class="table-wrap">
@@ -133,12 +134,17 @@
               </table>
             </div>
 
+            <!-- 隐藏的 COinS 元数据：每个 .Z3988 span 对应一篇当前筛选出的论文，
+                 供 Zotero Connector 浏览器插件扫描并批量导入。表格用虚拟滚动，
+                 所以元数据必须放在这里（全集），不能依赖表格里可见的那几行。 -->
+            <div id="zotero-coins" hidden aria-hidden="true"></div>
+
           </section>
         </div>
       </section>
     </main>
 
-    <script type="module" src="./assets/app.js?v=20260629-2"></script>
+    <script type="module" src="./assets/app.js?v=20260720-zotero"></script>
   </body>
   </html>
 

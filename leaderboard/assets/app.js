@@ -46,6 +46,8 @@ const ui = {
   resultsSummary: document.querySelector("#results-summary"),
   resultsViewport: document.querySelector(".table-wrap"),
   resultsBody: document.querySelector("#results-body"),
+  zoteroCoins: document.querySelector("#zotero-coins"),
+  zoteroHint: document.querySelector("#zotero-hint"),
   clearButton: document.querySelector("#clear-button"),
   shareButton: document.querySelector("#share-button"),
   suggestionList: document.querySelector("#suggestion-list"),
@@ -404,6 +406,55 @@ function filterAndSort() {
   if (ui.resultsViewport) {
     ui.resultsViewport.scrollTop = 0;
   }
+  updateZoteroCoins();
+}
+
+// 一次给 Zotero Connector 暴露的最多论文数：既保护性能，也避免插件弹出
+// 几千条的勾选框。典型用法是先筛选/搜索到一小批再导入。
+const ZOTERO_COINS_LIMIT = 500;
+
+// 生成单篇论文的 COinS（OpenURL 1.0 KEV）上下文对象字符串。
+// Zotero Connector 的 COinS translator 会直接解析成条目（不回抓 arXiv），
+// 所以标题/作者/日期/arXiv ID/链接都要在这里给全。
+function buildCoinsTitle(paper) {
+  const pairs = [
+    ["ctx_ver", "Z39.88-2004"],
+    ["rft_val_fmt", "info:ofi/fmt:kev:mtx:journal"],
+    ["rft.genre", "preprint"],
+    ["rft.atitle", paper.title || ""],
+    ["rft.jtitle", "arXiv"],
+    ["rft.date", paper.published_date || ""],
+  ];
+  (paper.authors || []).forEach((author) => pairs.push(["rft.au", author]));
+  if (paper.arxiv_id) pairs.push(["rft_id", `info:arxiv/${paper.arxiv_id}`]);
+  if (paper.abs_url) pairs.push(["rft_id", paper.abs_url]);
+  return pairs.map(([key, value]) => `${key}=${encodeURIComponent(value)}`).join("&");
+}
+
+// 把当前筛选结果（全集，非虚拟滚动可见行）写入隐藏的 .Z3988 容器，
+// 供 Zotero Connector 扫描 DOM 批量识别。
+function updateZoteroCoins() {
+  if (!ui.zoteroCoins) return;
+  const items = state.filtered.slice(0, ZOTERO_COINS_LIMIT);
+  const fragment = document.createDocumentFragment();
+  items.forEach((paper) => {
+    const span = document.createElement("span");
+    span.className = "Z3988";
+    span.title = buildCoinsTitle(paper);
+    fragment.appendChild(span);
+  });
+  ui.zoteroCoins.replaceChildren(fragment);
+
+  if (ui.zoteroHint) {
+    const total = state.filtered.length;
+    if (total === 0) {
+      ui.zoteroHint.textContent = "";
+    } else if (total > ZOTERO_COINS_LIMIT) {
+      ui.zoteroHint.textContent = `⬆ Zotero：结果较多，仅前 ${ZOTERO_COINS_LIMIT} 篇可被插件识别，建议先筛选`;
+    } else {
+      ui.zoteroHint.textContent = `⬆ 点浏览器 Zotero 插件，可把当前 ${total} 篇一键存入本地库`;
+    }
+  }
 }
 
 function renderMeta() {
@@ -605,11 +656,14 @@ async function copyShareLink() {
 }
 
 async function init() {
+  // no-cache：数据每天更新，避免浏览器拿到陈旧的 papers.min.json（会导致
+  // 榜单/COinS 用旧数据）。文件不大，代价可忽略。
+  const fetchJson = (url) => fetch(url, { cache: "no-cache" }).then((response) => response.json());
   const [papers, tags, aliasMap, stats] = await Promise.all([
-    fetch("./data/papers.min.json").then((response) => response.json()),
-    fetch("./data/tags.json").then((response) => response.json()),
-    fetch("./data/aliases.json").then((response) => response.json()),
-    fetch("./data/stats.json").then((response) => response.json()),
+    fetchJson("./data/papers.min.json"),
+    fetchJson("./data/tags.json"),
+    fetchJson("./data/aliases.json"),
+    fetchJson("./data/stats.json"),
   ]);
 
   state.papers = papers;

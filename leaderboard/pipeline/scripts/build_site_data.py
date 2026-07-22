@@ -111,6 +111,8 @@ def build_site_rows() -> tuple[list[dict[str, Any]], list[dict[str, Any]], dict[
                 "keywords": keywords,
                 "abs_url": paper.get("abs_url", ""),
                 "pdf_url": paper.get("pdf_url", ""),
+                # 作者用于前端 COinS 元数据（Zotero Connector 一键导入）
+                "authors": paper.get("authors", []),
             }
         )
 

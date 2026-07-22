@@ -381,6 +381,28 @@ select {
   background: rgba(255, 255, 255, 0.55);
 }
 
+.results-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+  flex-wrap: wrap;
+}
+
+.zotero-hint {
+  margin: 0;
+  align-self: center;
+  font-size: 12px;
+  line-height: 1.5;
+  color: var(--muted);
+  cursor: help;
+  text-align: right;
+  max-width: 320px;
+}
+.zotero-hint:empty {
+  display: none;
+}
+
 .results-footer {
   border-top: 1px solid var(--border);
   border-bottom: 0;
