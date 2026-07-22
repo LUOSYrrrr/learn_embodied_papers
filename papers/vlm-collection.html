@@ -1,0 +1,374 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>VLM 架构合集 · 按组件拆解 · Paper Notes</title>
+  <link rel="stylesheet" href="../assets/css/style.css">
+  <script src="../assets/js/theme.js"></script>
+  <style>
+    /* 合集页专用：文献条目列表 */
+    .lit-list { display: flex; flex-direction: column; gap: 10px; margin: 18px 0; }
+    .lit-entry {
+      display: block; padding: 14px 16px; text-decoration: none;
+      background: var(--bg2); border: 1px solid var(--bg3); border-radius: 10px;
+      transition: border-color .15s ease, transform .15s ease;
+    }
+    .lit-entry:hover { border-color: var(--accent); transform: translateX(3px); }
+    .lit-top { display: flex; align-items: baseline; gap: 10px; flex-wrap: wrap; }
+    .lit-name { font-family: var(--font-mono); font-size: 14px; font-weight: 600; color: var(--text); }
+    .lit-venue { font-family: var(--font-mono); font-size: 11px; color: var(--text3); }
+    .lit-why { margin-top: 6px; font-size: 13.5px; line-height: 1.6; color: var(--text2); }
+    .lit-tag {
+      font-family: var(--font-mono); font-size: 10px; padding: 2px 7px; border-radius: 5px;
+      background: var(--bg3); color: var(--text2); white-space: nowrap;
+    }
+    .lit-tag.must { background: rgba(74,222,154,.14); color: var(--accent); }
+    .lit-tag.here { background: rgba(96,165,250,.14); color: var(--blue); }
+    .lit-arrow { color: var(--text3); font-size: 12px; }
+    .lit-entry:hover .lit-arrow { color: var(--accent); }
+    /* 顶部三段式流程图 */
+    .vlm-flow { display: flex; align-items: stretch; gap: 8px; margin: 22px 0; flex-wrap: wrap; }
+    .vlm-flow .box {
+      flex: 1 1 160px; min-width: 150px; padding: 14px; border-radius: 10px;
+      background: var(--bg2); border: 1px solid var(--bg3); text-align: center;
+    }
+    .vlm-flow .box .k { font-family: var(--font-mono); font-size: 11px; color: var(--text3); letter-spacing: .04em; }
+    .vlm-flow .box .n { font-family: var(--font-serif); font-size: 16px; color: var(--text); margin: 6px 0 4px; }
+    .vlm-flow .box .d { font-size: 11.5px; color: var(--text2); line-height: 1.5; }
+    .vlm-flow .arrow { align-self: center; color: var(--accent); font-size: 20px; }
+    .vlm-flow .box.enc { border-color: rgba(46,196,182,.4); }
+    .vlm-flow .box.conn { border-color: rgba(245,158,11,.4); }
+    .vlm-flow .box.llm { border-color: rgba(167,139,250,.4); }
+    @media (max-width: 640px) {
+      .vlm-flow { flex-direction: column; }
+      .vlm-flow .arrow { transform: rotate(90deg); }
+    }
+  </style>
+</head>
+<body>
+  <nav class="nav">
+    <a class="nav-logo" href="../index.html">Paper Notes</a>
+    <div class="nav-links">
+      <a href="../index.html">← 返回首页</a>
+    </div>
+  </nav>
+
+  <div class="page">
+    <div class="paper-page">
+      <a class="back-link" href="../index.html">← 所有笔记</a>
+
+      <div class="paper-header">
+        <div class="paper-venue">// VLM 架构 · 合集 / 阅读地图</div>
+        <h1 class="paper-title">VLM 架构合集：按组件拆解</h1>
+        <div class="paper-authors">Vision Encoder · Connector/Projector · LLM Backbone —— 附 MoE / Transformer 细节 / VLM→VLA 衔接</div>
+        <div class="paper-badges">
+          <span class="badge badge-green">合集 / Index</span>
+          <span class="badge badge-blue">VLM 内部结构</span>
+          <span class="badge badge-amber">面试向</span>
+        </div>
+      </div>
+
+      <div class="toc">
+        <div class="toc-title">// 目录</div>
+        <ol>
+          <li><a href="#overview">三段式总览：VLM = Encoder + Connector + LLM</a></li>
+          <li><a href="#encoder">§01 Vision Encoder（DINOv2 在这里）</a></li>
+          <li><a href="#connector">§02 Connector / Projector（对齐的核心）</a></li>
+          <li><a href="#llm">§03 LLM Backbone + Transformer / MoE 细节</a></li>
+          <li><a href="#align">§04 训练与对齐：几阶段、encoder 冻不冻</a></li>
+          <li><a href="#tovla">§05 VLM → VLA 衔接（必问衔接题）</a></li>
+          <li><a href="#order">阅读优先级</a></li>
+        </ol>
+      </div>
+
+      <!-- ============ 总览 ============ -->
+      <div class="section" id="overview">
+        <div class="section-num">§ 00</div>
+        <h2>三段式总览</h2>
+
+        <div class="callout">
+          <div class="callout-label">一句话</div>
+          <p>一个 VLM = <strong>视觉编码器（把图变成视觉 token）</strong> + <strong>连接器 / 投影器（把视觉 token 翻译进 LLM 的语义空间）</strong> + <strong>语言模型（自回归生成）</strong>。面试问的所有细节，都能挂到这三个槽里的某一个。</p>
+        </div>
+
+        <div class="vlm-flow">
+          <div class="box enc">
+            <div class="k">① VISION ENCODER</div>
+            <div class="n">视觉编码器</div>
+            <div class="d">图像切 patch → ViT → 视觉特征（CLIP / SigLIP / DINOv2）</div>
+          </div>
+          <div class="arrow">→</div>
+          <div class="box conn">
+            <div class="k">② CONNECTOR</div>
+            <div class="n">连接器 / 投影器</div>
+            <div class="d">视觉特征 → LLM embedding 空间（MLP / Q-Former / cross-attn / pixel shuffle）</div>
+          </div>
+          <div class="arrow">→</div>
+          <div class="box llm">
+            <div class="k">③ LLM BACKBONE</div>
+            <div class="n">语言模型</div>
+            <div class="d">视觉 token ⊕ 文本 token → 自回归输出文本 / 动作</div>
+          </div>
+        </div>
+
+        <div class="callout amber">
+          <div class="callout-label">怎么用这页</div>
+          <p>按组件读，每篇给了「为什么读它 / 它答的是哪道面试题」。带 <span class="lit-tag must">必读</span> 的是性价比最高的，带 <span class="lit-tag here">站内</span> 的已有精读笔记可直接点进去。时间紧就看最底下的<a href="#order">优先级</a>。</p>
+        </div>
+      </div>
+
+      <!-- ============ §01 Encoder ============ -->
+      <div class="section" id="encoder">
+        <div class="section-num">§ 01</div>
+        <h2>Vision Encoder：把图变成 token</h2>
+
+        <p>作用：图像切成 patch（如 14×14），过 ViT 得到一组视觉特征 token（如 336² 图 → 576 个 token）。核心分歧是<strong>用什么信号训这个 encoder</strong>，这直接决定了它擅长语义还是几何。</p>
+
+        <table class="kv-table">
+          <tr><th>路线</th><th>代表</th><th>训练信号</th><th>擅长</th><th>在具身里</th></tr>
+          <tr><td>语言对齐（对比学习）</td><td>CLIP · SigLIP</td><td>图-文对</td><td>语义强、天生和文本对齐，接 LLM 顺</td><td>VLM 默认</td></tr>
+          <tr><td class="win">自监督（SSL）</td><td><strong>DINOv2</strong> · MAE</td><td>纯图像（无文本）</td><td>稠密 / 空间 / 几何特征，细粒度定位强</td><td class="win">机器人偏爱</td></tr>
+          <tr><td>融合双 encoder</td><td>Prismatic · Cambrian-1</td><td>CLIP + DINOv2 拼接</td><td>兼得语义对齐 + 空间细节</td><td>兼顾派</td></tr>
+        </table>
+
+        <div class="callout blue">
+          <div class="callout-label">DINOv2 到底算什么（你问的）</div>
+          <p><strong>DINOv2 是一个自监督视觉 encoder，填的就是 ①「vision encoder」这个槽</strong>，和 CLIP-ViT 平级、可替换或并用。区别在训练信号：CLIP 用图文对做对比学习（语义、和语言对齐），DINOv2 用纯图像自监督（无需任何文本），产出的是<strong>稠密空间特征</strong>。所以 DINOv2 的表征在检测 / 分割 / 深度 / 对应点这类"看得细、懂几何"的任务上更强，但它<strong>没有语言语义</strong>，单独接 LLM 需要更多对齐数据。<br><br>为什么具身圈爱用它：操作任务（抓、放、对齐）吃的是<strong>空间几何</strong>而不是 caption 级语义——这也是很多 VLA（含 π₀ 用的视觉侧）倾向 DINOv2 或 CLIP+DINOv2 融合的原因。</p>
+        </div>
+
+        <div class="lit-list">
+          <a class="lit-entry" href="https://arxiv.org/abs/2103.00020" target="_blank" rel="noreferrer">
+            <div class="lit-top"><span class="lit-name">CLIP</span><span class="lit-venue">Radford et al. · OpenAI · 2021</span><span class="lit-tag must">必读</span><span class="lit-arrow">arXiv ↗</span></div>
+            <div class="lit-why">理解 vision encoder 怎么来的：对比学习把图文拉进同一空间。之后所有"视觉 encoder"默认就是 CLIP-ViT 这一类。</div>
+          </a>
+          <a class="lit-entry" href="https://arxiv.org/abs/2303.15343" target="_blank" rel="noreferrer">
+            <div class="lit-top"><span class="lit-name">SigLIP</span><span class="lit-venue">Zhai et al. · Google · 2023</span><span class="lit-arrow">arXiv ↗</span></div>
+            <div class="lit-why">CLIP 的升级：把对比学习的 softmax 换成 sigmoid loss，训练更省更稳。现在工业级 VLM（含 PaliGemma / π₀）默认用 SigLIP 而非 CLIP。</div>
+          </a>
+          <a class="lit-entry" href="https://arxiv.org/abs/2304.07193" target="_blank" rel="noreferrer">
+            <div class="lit-top"><span class="lit-name">DINOv2</span><span class="lit-venue">Oquab et al. · Meta · 2023</span><span class="lit-arrow">arXiv ↗</span></div>
+            <div class="lit-why">自监督 encoder 的代表。读它建立"语义对齐 vs 空间几何"这条分界线，理解具身为什么常换掉 CLIP。</div>
+          </a>
+          <a class="lit-entry" href="https://arxiv.org/abs/2406.16860" target="_blank" rel="noreferrer">
+            <div class="lit-top"><span class="lit-name">Cambrian-1</span><span class="lit-venue">Tong et al. · NYU · 2024</span><span class="lit-arrow">arXiv ↗</span></div>
+            <div class="lit-why">系统对比了各种 encoder（CLIP / SigLIP / DINOv2 / ConvNeXt）在 VLM 里的表现，并提出多 encoder 融合。想一次看清"选哪个 encoder"就读它。</div>
+          </a>
+        </div>
+      </div>
+
+      <!-- ============ §02 Connector ============ -->
+      <div class="section" id="connector">
+        <div class="section-num">§ 02</div>
+        <h2>Connector / Projector：对齐的核心</h2>
+
+        <p>作用：把视觉 encoder 的输出<strong>映射进 LLM 的 embedding 空间</strong>，再和文本 token 拼接（或注入）。这是面试的重灾区——"encoder 和 LM 怎么连"问的就是这块。五条主流路线：</p>
+
+        <div class="module-grid">
+          <div class="module-card">
+            <div class="module-card-name">MLP · LLaVA</div>
+            <div class="module-card-title">线性 / MLP 直投</div>
+            <div class="module-card-desc">一两层 MLP，视觉 token 数量不变（576 个）。保留全部信息、实现最简；缺点是 token 多、算力贵。<strong>当前主流。</strong></div>
+          </div>
+          <div class="module-card">
+            <div class="module-card-name">Q-FORMER · BLIP-2</div>
+            <div class="module-card-title">Query 抽取压缩</div>
+            <div class="module-card-desc">一组可学习 query 通过 cross-attention 从视觉特征里抽出固定数量（如 32）表征。压 token 数，但训练复杂、信息有损。</div>
+          </div>
+          <div class="module-card">
+            <div class="module-card-name">RESAMPLER · Flamingo</div>
+            <div class="module-card-title">Perceiver 重采样</div>
+            <div class="module-card-desc">固定数量 latent query 做 cross-attention 重采样，思路同 Q-Former。</div>
+          </div>
+          <div class="module-card">
+            <div class="module-card-name">CROSS-ATTN · Flamingo / Llama3.2-V</div>
+            <div class="module-card-title">插层式注入</div>
+            <div class="module-card-desc">不拼进输入序列，而是在 LLM 每隔几层插入 gated cross-attention 去读视觉特征。LLM 主干可冻结。</div>
+          </div>
+          <div class="module-card">
+            <div class="module-card-name">PIXEL SHUFFLE · InternVL / Qwen-VL</div>
+            <div class="module-card-title">空间下采样压缩</div>
+            <div class="module-card-desc">对 patch 做空间重排下采样压 token 数（如 4→1）。压缩靠它，投影仍用 MLP。</div>
+          </div>
+        </div>
+
+        <div class="callout amber">
+          <div class="callout-label">趋势（可以在面试补这句）</div>
+          <p>LLaVA 那套证明了「<strong>简单 MLP + 好数据</strong>」就足够打，所以主流回到 MLP；token 压缩交给 <strong>pixel shuffle</strong> 而不是 Q-Former。Q-Former 现在更多是"历史上的一种复杂解法"。</p>
+        </div>
+
+        <div class="lit-list">
+          <a class="lit-entry" href="https://arxiv.org/abs/2310.03744" target="_blank" rel="noreferrer">
+            <div class="lit-top"><span class="lit-name">LLaVA-1.5</span><span class="lit-venue">Liu et al. · 2023</span><span class="lit-tag must">必读 · 最该精读</span><span class="lit-arrow">arXiv ↗</span></div>
+            <div class="lit-why">两阶段训练范式、MLP projector、视觉指令数据构造——面试问的"怎么对齐""encoder 冻不冻"的标准答案全在这一篇。先读 LLaVA-1.5，再回看初版 LLaVA。</div>
+          </a>
+          <a class="lit-entry" href="https://arxiv.org/abs/2301.12597" target="_blank" rel="noreferrer">
+            <div class="lit-top"><span class="lit-name">BLIP-2</span><span class="lit-venue">Li et al. · Salesforce · 2023</span><span class="lit-arrow">arXiv ↗</span></div>
+            <div class="lit-why">Q-Former 出处。理解"为什么需要 connector"以及一种（偏复杂的）解法，好和 LLaVA 的极简 MLP 形成对照。</div>
+          </a>
+          <a class="lit-entry" href="https://arxiv.org/abs/2204.14198" target="_blank" rel="noreferrer">
+            <div class="lit-top"><span class="lit-name">Flamingo</span><span class="lit-venue">Alayrac et al. · DeepMind · 2022</span><span class="lit-arrow">arXiv ↗</span></div>
+            <div class="lit-why">cross-attention 插层这条路线的代表（+ Perceiver Resampler）。和"拼接式"是两种世界观，面试对比着讲很加分。</div>
+          </a>
+          <a class="lit-entry" href="https://arxiv.org/abs/2409.12191" target="_blank" rel="noreferrer">
+            <div class="lit-top"><span class="lit-name">Qwen2-VL</span><span class="lit-venue">Wang et al. · 阿里 · 2024</span><span class="lit-tag must">必读</span><span class="lit-arrow">arXiv ↗</span></div>
+            <div class="lit-why">现代工业级 VLM：动态分辨率（NaViT）、M-RoPE、encoder 解冻策略，技术报告写得极细。"细粒度感知怎么来"看它。</div>
+          </a>
+          <a class="lit-entry" href="https://arxiv.org/abs/2412.05271" target="_blank" rel="noreferrer">
+            <div class="lit-top"><span class="lit-name">InternVL 2.5</span><span class="lit-venue">Chen et al. · 上海 AI Lab · 2024</span><span class="lit-arrow">arXiv ↗</span></div>
+            <div class="lit-why">pixel shuffle 压 token + 大规模 encoder 的另一条工业路线，和 Qwen2-VL 对照读。</div>
+          </a>
+        </div>
+      </div>
+
+      <!-- ============ §03 LLM ============ -->
+      <div class="section" id="llm">
+        <div class="section-num">§ 03</div>
+        <h2>LLM Backbone + Transformer / MoE 细节</h2>
+
+        <p>视觉 token 进来后，真正做推理和生成的是 LLM。这一档考的是 Transformer block 的现代标配和 MoE。</p>
+
+        <h3>现代 block 结构（以 LLaMA 为例）</h3>
+        <div class="code-block"><code>x = x + Attn(RMSNorm(x))   # Pre-Norm：norm 在残差分支内
+x = x + FFN(RMSNorm(x))    # 残差是恒等直连（identity path）</code></div>
+        <table class="kv-table">
+          <tr><td>Norm</td><td><strong>RMSNorm</strong>（比 LayerNorm 少减均值，更快）+ <strong>Pre-Norm</strong>（Post-Norm 深层训练不稳）</td></tr>
+          <tr><td>Attention</td><td><strong>GQA</strong>（多 query head 共享一组 KV head，省 KV cache）+ <strong>RoPE</strong> 旋转位置编码 + causal mask</td></tr>
+          <tr><td>FFN</td><td><strong>SwiGLU</strong>：<code>W_down( SiLU(W_gate·x) * W_up·x )</code>，三个矩阵，中间维 ≈ 8/3·d</td></tr>
+        </table>
+
+        <div class="callout blue">
+          <div class="callout-label">"残差在激活前还是激活后" = Pre-Norm vs Post-Norm</div>
+          <p>现代模型用 <strong>Pre-Norm</strong>：残差是恒等直连，从输入直接加到子层输出，归一化在子层内部、激活之前。原始 Transformer 是 Post-Norm（<code>LayerNorm(x + Sublayer(x))</code>）。Pre-Norm 让梯度能沿残差流<strong>无衰减</strong>回传，深层稳、少需 warmup；代价是最终表征略差，于是有 DeepNorm / Sandwich Norm 这些折中。</p>
+        </div>
+
+        <h3>MoE：把 FFN 换成 N 个专家</h3>
+        <p>router（linear + softmax）给每个 token 打分，选 <strong>top-k</strong> 个 expert，输出按 gate 权重加权和。attention 层通常不做 MoE。路由策略：<strong>token-choice top-k</strong>（主流，但负载不均，需 aux load-balancing loss 或 capacity factor）；<strong>expert-choice</strong>（天然均衡，但有 token 落选、不适合自回归）；<strong>aux-loss-free</strong>（DeepSeek，用可学习 bias 调路由）。</p>
+        <table class="kv-table">
+          <tr><th>模型</th><th>路由</th><th>总参 / 激活</th><th>激活比</th></tr>
+          <tr><td>Mixtral 8×7B</td><td>8 选 2</td><td>47B / 13B</td><td>≈27%</td></tr>
+          <tr><td>DeepSeek-V3</td><td>256 路由 + 1 共享，选 8</td><td>671B / 37B</td><td class="win">≈5.5%</td></tr>
+          <tr><td>Qwen3-235B</td><td>细粒度专家</td><td>235B / 22B</td><td>≈9%</td></tr>
+        </table>
+        <div class="callout">
+          <div class="callout-label">DeepSeek 两个关键设计（面试常问）</div>
+          <p><strong>Shared expert</strong>：所有 token 都过的公共专家，学通用知识，让 routed expert 更专精。<strong>Aux-loss-free 负载均衡</strong>：给每个 expert 加可学习 bias 调节路由，避免辅助 loss 干扰主任务梯度。趋势 = 更细粒度专家 + 更低激活比。</p>
+        </div>
+
+        <div class="lit-list">
+          <a class="lit-entry" href="https://arxiv.org/abs/2401.04088" target="_blank" rel="noreferrer">
+            <div class="lit-top"><span class="lit-name">Mixtral 8×7B</span><span class="lit-venue">Mistral · 2024</span><span class="lit-tag must">必读 · 短</span><span class="lit-arrow">arXiv ↗</span></div>
+            <div class="lit-why">读完就懂 top-2 路由怎么实现。MoE 入门性价比最高的一篇。</div>
+          </a>
+          <a class="lit-entry" href="https://arxiv.org/abs/2412.19437" target="_blank" rel="noreferrer">
+            <div class="lit-top"><span class="lit-name">DeepSeek-V3</span><span class="lit-venue">DeepSeek · 2024</span><span class="lit-tag must">必读 · 最常问</span><span class="lit-arrow">arXiv ↗</span></div>
+            <div class="lit-why">细粒度专家 + shared expert + aux-loss-free，现在面试 MoE 几乎必问。配合 DeepSeekMoE（2401.06066）看设计动机。</div>
+          </a>
+          <a class="lit-entry" href="https://arxiv.org/abs/2101.03961" target="_blank" rel="noreferrer">
+            <div class="lit-top"><span class="lit-name">Switch Transformer</span><span class="lit-venue">Fedus et al. · Google · 2021</span><span class="lit-arrow">arXiv ↗</span></div>
+            <div class="lit-why">MoE 基础：top-1 路由 + 负载均衡 loss。理解 aux loss 从哪来。</div>
+          </a>
+          <a class="lit-entry" href="https://arxiv.org/abs/2002.05202" target="_blank" rel="noreferrer">
+            <div class="lit-top"><span class="lit-name">GLU Variants Improve Transformer</span><span class="lit-venue">Shazeer · 2020</span><span class="lit-arrow">arXiv ↗ · 三页</span></div>
+            <div class="lit-why">SwiGLU 出处。三页纸，讲清门控 FFN 为什么同参数量下 loss 更低。</div>
+          </a>
+          <a class="lit-entry" href="https://arxiv.org/abs/2002.04745" target="_blank" rel="noreferrer">
+            <div class="lit-top"><span class="lit-name">On Layer Normalization in the Transformer</span><span class="lit-venue">Xiong et al. · 2020</span><span class="lit-arrow">arXiv ↗</span></div>
+            <div class="lit-why">Pre-Norm vs Post-Norm 之争的理论分析。回答"残差在激活前还是后"的底气。</div>
+          </a>
+          <a class="lit-entry" href="https://arxiv.org/abs/2104.09864" target="_blank" rel="noreferrer">
+            <div class="lit-top"><span class="lit-name">RoFormer (RoPE)</span><span class="lit-venue">Su et al. · 2021</span><span class="lit-arrow">arXiv ↗</span></div>
+            <div class="lit-why">旋转位置编码出处。补 attention 位置编码细节；GQA 见 2305.13245。</div>
+          </a>
+        </div>
+      </div>
+
+      <!-- ============ §04 对齐训练 ============ -->
+      <div class="section" id="align">
+        <div class="section-num">§ 04</div>
+        <h2>训练与对齐：几阶段、encoder 冻不冻</h2>
+
+        <div class="module-grid">
+          <div class="module-card">
+            <div class="module-card-name">STAGE 1 · 对齐</div>
+            <div class="module-card-title">只训 projector</div>
+            <div class="module-card-desc">冻结 encoder + LLM，用图文对（CC3M/LAION）做 caption。目的：把视觉特征"翻译"进 LLM 能读的空间。projector 此时随机初始化、梯度噪声大，<strong>必须冻 encoder</strong>，否则会破坏 CLIP 预训练表征。</div>
+          </div>
+          <div class="module-card">
+            <div class="module-card-name">STAGE 1.5 · 可选</div>
+            <div class="module-card-title">解冻 encoder 精修</div>
+            <div class="module-card-desc">用高质量数据继续训 encoder，给<strong>远小于 LLM 的学习率（≈1/10）</strong>，提升 OCR / 细粒度定位。InternVL、Qwen2-VL 都在后期解冻 encoder。</div>
+          </div>
+          <div class="module-card">
+            <div class="module-card-name">STAGE 2 · 指令微调</div>
+            <div class="module-card-title">解冻 LLM（+projector）</div>
+            <div class="module-card-desc">用多模态指令数据（VQA / 多轮对话 / OCR / grounding）做 SFT。这一步让模型"会听话"。</div>
+          </div>
+        </div>
+
+        <div class="callout amber">
+          <div class="callout-label">"对齐时 encoder 冻不冻" 标准答法</div>
+          <p><strong>第一阶段一定冻</strong>（projector 随机、梯度噪声会毁掉视觉表征）；<strong>后期可解冻</strong>，给 1/10 学习率，能提升 OCR、细粒度定位。可举 InternVL / Qwen2-VL 为例。</p>
+        </div>
+
+        <div class="callout blue">
+          <div class="callout-label">LM head 是什么（顺带一问）</div>
+          <p>就是一个 <code>nn.Linear(hidden_size, vocab_size)</code>（无 bias），前面通常有 final RMSNorm，输出 logits 再 softmax。小模型常做 <strong>weight tying</strong>（和 embedding 共享权重省参数），LLaMA 系大模型则不共享。—— 记住这点，§05 的 VLA 衔接就是在这个 head 上做文章。</p>
+        </div>
+      </div>
+
+      <!-- ============ §05 → VLA ============ -->
+      <div class="section" id="tovla">
+        <div class="section-num">§ 05</div>
+        <h2>VLM → VLA：必问的衔接题</h2>
+
+        <div class="callout purple">
+          <div class="callout-label">"VLM 怎么变成 VLA" 一句话</div>
+          <p>两条路：<strong>①离散派</strong>——把 action 离散成 token，<strong>直接复用 LM head</strong> 让 VLM 像输出文字一样输出动作（RT-2 / OpenVLA）；<strong>②连续派</strong>——在 VLM 后接一个 <strong>action expert / diffusion / flow-matching head</strong> 输出连续高频动作（π₀ / RDT / GR00T）。前者简单但动作离散、频率低；后者连续平滑、适合精细高频控制。</p>
+        </div>
+
+        <div class="lit-list">
+          <a class="lit-entry" href="rt2.html">
+            <div class="lit-top"><span class="lit-name">RT-2</span><span class="lit-venue">Google DeepMind · 2023</span><span class="lit-tag here">站内精读</span><span class="lit-arrow">→</span></div>
+            <div class="lit-why">VLA 开山：把动作离散成 token 直接让 VLM 输出，复用 LM head。理解"离散派"的原点。</div>
+          </a>
+          <a class="lit-entry" href="openvla.html">
+            <div class="lit-top"><span class="lit-name">OpenVLA</span><span class="lit-venue">Kim et al. · 2024</span><span class="lit-tag here">站内精读</span><span class="lit-arrow">→</span></div>
+            <div class="lit-why">开源可复现：Prismatic VLM（CLIP+DINOv2）+ 动作 token，工程细节清楚。想看"离散派怎么落地"读它。</div>
+          </a>
+          <a class="lit-entry" href="pi0-vla-flow-model.html">
+            <div class="lit-top"><span class="lit-name">π₀</span><span class="lit-venue">Physical Intelligence · 2024</span><span class="lit-tag here">站内精读</span><span class="lit-arrow">→</span></div>
+            <div class="lit-why">连续派最热范式：PaliGemma + flow-matching action expert，输出连续高频动作。站内还有代码/数据 pipeline 拆解。</div>
+          </a>
+          <a class="lit-entry" href="https://arxiv.org/abs/2410.24164" target="_blank" rel="noreferrer">
+            <div class="lit-top"><span class="lit-name">RDT-1B</span><span class="lit-venue">清华 · 2024</span><span class="lit-arrow">arXiv ↗</span></div>
+            <div class="lit-why">双系统架构（VLM 慢思考 + DiT 快速动作生成）的代表，国内具身公司基本在跟这条线。GR00T N1 同思路。</div>
+          </a>
+        </div>
+      </div>
+
+      <!-- ============ 优先级 ============ -->
+      <div class="section" id="order">
+        <div class="section-num">§ ★</div>
+        <h2>阅读优先级</h2>
+        <div class="callout">
+          <div class="callout-label">时间紧就这四篇（覆盖九成问题）</div>
+          <p><strong>LLaVA-1.5 → Mixtral → DeepSeek-V3 → π₀ / OpenVLA</strong>。<br>
+          LLaVA-1.5 拿下 encoder/connector/对齐/冻结；Mixtral+DeepSeek-V3 拿下 MoE；π₀/OpenVLA 拿下 VLM→VLA 衔接。Transformer 细节（SwiGLU / Pre-Norm / RoPE）三篇短的随手补。</p>
+        </div>
+        <div class="callout red">
+          <div class="callout-label">面试提醒</div>
+          <p>上次面试官问 VLA 你答不了解，之后所有问题都往 VLM 内部挖——他在验证"具身架构懂但底层细节虚"这个判断。把 §05 这条线补上，就能主动接住"VLM 怎么变成 VLA"这道必问衔接题，把被动挖细节变成主动展示体系。</p>
+        </div>
+      </div>
+
+    </div>
+
+    <footer class="footer">
+      <a href="../index.html">← 返回首页</a>
+      &nbsp;·&nbsp;
+      <span style="color:var(--text3)">VLM 架构合集 · 按组件拆解</span>
+    </footer>
+  </div>
+</body>
+</html>
