@@ -1,0 +1,338 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>BagelVLA · 交织式视觉-语言-动作生成的长程操作</title>
+  <link rel="stylesheet" href="../assets/css/style.css">
+  <script src="../assets/js/theme.js"></script>
+  <script src="../assets/js/interactive.js" defer></script>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16/dist/katex.min.css">
+  <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16/dist/katex.min.js"></script>
+  <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16/dist/contrib/auto-render.min.js"
+          onload="renderMathInElement(document.body,{delimiters:[{left:'$$',right:'$$',display:true},{left:'$',right:'$',display:false}]})"></script>
+  <style>
+    .docs-layout { display: grid; grid-template-columns: 240px minmax(0, 1fr); max-width: 1400px; margin: 0 auto; }
+    .sidebar { position: sticky; top: 60px; height: calc(100vh - 60px); overflow-y: auto; padding: 24px 16px; border-right: 1px solid var(--border); background: var(--bg); }
+    .sidebar-title { font-family: var(--font-mono); font-size: 10px; color: var(--text3); letter-spacing: 0.08em; text-transform: uppercase; margin-bottom: 16px; padding-bottom: 8px; border-bottom: 1px solid var(--border); }
+    .sidebar-tree { list-style: none; margin: 0; padding: 0; }
+    .sidebar-tree li { margin: 4px 0; }
+    .sidebar-tree a { display: block; padding: 6px 10px; font-size: 13px; color: var(--text2); text-decoration: none; border-radius: 6px; transition: all 0.2s; }
+    .sidebar-tree a:hover { background: var(--glass-hover); color: var(--text); }
+    .sidebar-tree a.active { background: rgba(74, 222, 154, 0.1); color: var(--accent); }
+    .sidebar-tree .section-link { font-weight: 500; }
+    .main-content { min-width: 0; }
+    @media (max-width: 900px) { .docs-layout { grid-template-columns: 1fr; } .sidebar { display: none; } }
+
+    .paper-header { padding: 40px 40px 24px; max-width: 1200px; margin: 0 auto; }
+    .paper-venue { font-family: var(--font-mono); font-size: 11px; color: var(--text3); letter-spacing: 0.06em; margin-bottom: 10px; }
+    .paper-title { font-family: var(--font-serif); font-size: 28px; font-weight: 700; color: var(--text); line-height: 1.35; margin: 0 0 14px; }
+    .paper-authors { font-size: 14px; color: var(--text2); margin-bottom: 8px; }
+    .paper-badges { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 16px; }
+    .badge { font-family: var(--font-mono); font-size: 10px; padding: 4px 10px; border-radius: 6px; background: var(--bg3); color: var(--text2); border: 1px solid var(--border); }
+    .badge-green { background: rgba(74, 222, 154, 0.12); color: var(--accent); border-color: rgba(74, 222, 154, 0.3); }
+    .badge-blue { background: rgba(96, 165, 250, 0.12); color: var(--blue); border-color: rgba(96, 165, 250, 0.3); }
+    .badge-amber { background: rgba(245, 158, 11, 0.12); color: var(--amber); border-color: rgba(245, 158, 11, 0.3); }
+    .badge-purple { background: rgba(167, 139, 250, 0.12); color: var(--purple); border-color: rgba(167, 139, 250, 0.3); }
+
+    .section { padding: 32px 40px; max-width: 1200px; margin: 0 auto; border-top: 1px solid var(--border); }
+    .section-num { font-family: var(--font-mono); font-size: 11px; color: var(--accent); letter-spacing: 0.08em; margin-bottom: 6px; }
+    .section h2 { font-family: var(--font-serif); font-size: 22px; font-weight: 600; margin: 0 0 20px; color: var(--text); }
+    .section h3 { font-size: 17px; font-weight: 600; margin: 28px 0 12px; color: var(--text); }
+    .section p { font-size: 15px; line-height: 1.85; color: var(--text2); margin: 0 0 16px; }
+
+    .cn-read { background: var(--bg2); border-left: 3px solid var(--accent); padding: 18px 22px; margin: 20px 0; border-radius: 0 8px 8px 0; }
+    .cn-label { font-family: var(--font-mono); font-size: 10px; color: var(--accent); letter-spacing: 0.06em; text-transform: uppercase; margin-bottom: 8px; }
+    .cn-read p { margin: 0; font-size: 14.5px; line-height: 1.8; color: var(--text); }
+
+    .callout { background: var(--bg2); border: 1px solid var(--border); border-radius: 10px; padding: 18px 22px; margin: 20px 0; }
+    .callout-label { font-family: var(--font-mono); font-size: 10px; letter-spacing: 0.06em; text-transform: uppercase; margin-bottom: 8px; color: var(--text3); }
+    .callout p { margin: 0; font-size: 14px; line-height: 1.8; }
+    .callout.amber { border-color: var(--amber); background: rgba(245, 158, 11, 0.08); }
+    .callout.amber .callout-label { color: var(--amber); }
+    .callout.red { border-color: var(--accent3); background: rgba(255, 107, 107, 0.08); }
+    .callout.red .callout-label { color: var(--accent3); }
+    .callout.blue { border-color: var(--blue); background: rgba(96, 165, 250, 0.08); }
+    .callout.blue .callout-label { color: var(--blue); }
+    .callout.purple { border-color: var(--purple); background: rgba(167, 139, 250, 0.08); }
+    .callout.purple .callout-label { color: var(--purple); }
+
+    .fig-interactive { display: grid; grid-template-columns: minmax(0, 1fr) 280px; gap: 20px; margin: 24px 0; }
+    .fig-interactive.panel-below { grid-template-columns: 1fr; }
+    .fig-interactive.panel-below .hotspot-panel { position: static; margin-top: 16px; }
+    .fig-block { background: var(--bg2); border-radius: 10px; overflow: hidden; border: 1px solid var(--border); }
+    .fig-block img { width: 100%; height: auto; display: block; }
+    .fig-cap { padding: 14px 18px; font-size: 13px; color: var(--text2); border-top: 1px solid var(--border); }
+    .fig-num { font-family: var(--font-mono); font-size: 10px; color: var(--accent); margin-right: 8px; }
+    .fig-cn { display: block; margin-top: 6px; color: var(--text3); font-size: 12px; }
+
+    .hotspot-wrap { position: relative; }
+    .hotspot { position: absolute; width: 20px; height: 20px; background: rgba(74, 222, 154, 0.55); border: 2px solid var(--accent); border-radius: 50%; cursor: pointer; transform: translate(-50%, -50%); transition: all 0.2s; }
+    .hotspot:hover, .hotspot.active { background: var(--accent); transform: translate(-50%, -50%) scale(1.3); opacity: 1; }
+    .hotspot-panel { background: var(--bg2); border: 1px solid var(--border); border-radius: 10px; padding: 16px; }
+    .hp-title { font-size: 14px; font-weight: 600; color: var(--accent); margin-bottom: 8px; }
+    .hp-body { font-size: 13px; color: var(--text2); line-height: 1.7; }
+
+    .en-quote { background: var(--bg2); border: 1px solid var(--border); border-radius: 8px; margin: 16px 0; overflow: hidden; }
+    .en-quote summary { padding: 12px 16px; font-size: 13px; color: var(--text3); cursor: pointer; transition: background 0.2s; }
+    .en-quote summary:hover { background: var(--glass-hover); }
+    .quote-body { padding: 16px; border-top: 1px solid var(--border); }
+    .quote-body p { font-size: 13.5px; color: var(--text); font-style: italic; margin: 0 0 10px; }
+    .quote-cite { font-family: var(--font-mono); font-size: 11px; color: var(--text3); }
+
+    .step-walker { background: var(--bg2); border: 1px solid var(--border); border-radius: 10px; padding: 20px; margin: 24px 0; }
+    .sw-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px; }
+    .sw-title { font-size: 14px; font-weight: 600; color: var(--text); }
+    .sw-controls { display: flex; gap: 10px; align-items: center; }
+    .sw-btn { background: var(--bg3); border: 1px solid var(--border); color: var(--text); padding: 6px 12px; border-radius: 6px; cursor: pointer; font-size: 12px; }
+    .sw-btn:hover { background: var(--glass-hover); }
+    .sw-counter { font-family: var(--font-mono); font-size: 12px; color: var(--text3); }
+    .sw-progress { display: flex; gap: 6px; margin-bottom: 16px; }
+    .sw-dot { flex: 1; height: 3px; background: var(--border); border-radius: 2px; }
+    .sw-dot.active { background: var(--accent); }
+    .sw-step { display: none; }
+    .sw-step.active { display: block; }
+    .sw-step h4 { font-size: 14px; margin: 0 0 8px; color: var(--text); }
+    .sw-step p { font-size: 13px; color: var(--text2); margin: 0; line-height: 1.7; }
+
+    .quiz { background: var(--bg2); border: 1px solid var(--border); border-radius: 10px; padding: 20px; margin: 24px 0; }
+    .q-label { font-family: var(--font-mono); font-size: 10px; color: var(--amber); letter-spacing: 0.06em; text-transform: uppercase; margin-bottom: 10px; }
+    .q-text { font-size: 15px; color: var(--text); margin-bottom: 16px; font-weight: 500; }
+    .q-options { display: flex; flex-direction: column; gap: 8px; }
+    .q-opt { text-align: left; background: var(--bg3); border: 1px solid var(--border); color: var(--text); padding: 12px 16px; border-radius: 8px; cursor: pointer; font-size: 14px; transition: all 0.2s; }
+    .q-opt:hover { background: var(--glass-hover); border-color: var(--border2); }
+    .q-opt.correct { background: rgba(74, 222, 154, 0.15); border-color: var(--accent); }
+    .q-opt.wrong { background: rgba(255, 107, 107, 0.15); border-color: var(--accent3); }
+    .q-feedback { margin-top: 14px; padding: 12px; border-radius: 8px; font-size: 13px; display: none; line-height: 1.7; }
+    .q-feedback.show { display: block; }
+
+    .module-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 14px; margin: 20px 0; }
+    .module-card { background: var(--bg2); border: 1px solid var(--border); border-radius: 10px; padding: 18px; }
+    .module-card-name { font-family: var(--font-mono); font-size: 10px; color: var(--text3); letter-spacing: 0.06em; margin-bottom: 6px; }
+    .module-card-title { font-size: 15px; font-weight: 600; color: var(--text); margin-bottom: 8px; }
+    .module-card-desc { font-size: 13px; color: var(--text2); line-height: 1.6; }
+
+    .kv-table { width: 100%; border-collapse: collapse; margin: 16px 0; font-size: 13px; }
+    .kv-table td, .kv-table th { padding: 9px 13px; border: 1px solid var(--border); text-align: left; }
+    .kv-table th { background: var(--bg3); color: var(--text2); font-family: var(--font-mono); font-size: 11px; font-weight: 600; }
+    .kv-table td:first-child { background: var(--bg2); color: var(--text3); font-family: var(--font-mono); font-size: 11px; }
+    .kv-table td { color: var(--text); }
+    .kv-table td.w { font-family: var(--font-mono); color: var(--amber); text-align: right; }
+    .kv-table td.win { color: var(--accent); font-weight: 600; }
+    .kv-table td.bad { color: var(--accent3); }
+
+    .math-block { background: var(--bg2); padding: 20px; border-radius: 8px; margin: 20px 0; text-align: center; overflow-x: auto; }
+    .math-label { display: block; font-family: var(--font-mono); font-size: 11px; color: var(--text3); margin-top: 10px; }
+    .math-explain { background: var(--bg2); border-left: 3px solid var(--blue); padding: 16px 20px; margin: 16px 0; border-radius: 0 8px 8px 0; }
+    .me-title { font-size: 13px; font-weight: 600; color: var(--blue); margin-bottom: 12px; }
+    .math-explain dl { margin: 0; }
+    .math-explain dt { font-family: var(--font-mono); font-size: 12px; color: var(--accent); margin: 10px 0 4px; }
+    .math-explain dd { margin: 0 0 8px; font-size: 13px; color: var(--text2); line-height: 1.6; }
+
+    .term { border-bottom: 1px dotted var(--text3); cursor: help; position: relative; }
+    .term:hover::after { content: attr(data-en); position: absolute; bottom: 100%; left: 50%; transform: translateX(-50%); background: var(--bg3); padding: 6px 10px; border-radius: 6px; font-size: 11px; white-space: nowrap; border: 1px solid var(--border); color: var(--text2); z-index: 10; }
+
+    .code-block { background: var(--bg3); border: 1px solid var(--border); border-radius: 8px; padding: 14px 16px; margin: 12px 0; overflow-x: auto; }
+    .code-block code { font-family: var(--font-mono); font-size: 12.5px; color: var(--text); white-space: pre; line-height: 1.6; }
+
+    @media (max-width: 900px) {
+      .fig-interactive { grid-template-columns: 1fr; }
+      .module-grid { grid-template-columns: 1fr; }
+      .paper-header, .section { padding-left: 20px; padding-right: 20px; }
+    }
+  </style>
+</head><body>
+  <nav class="nav">
+    <a class="nav-logo" href="../index.html">Paper Notes</a>
+    <div class="nav-links">
+      <a href="../index.html">← 返回首页</a>
+      <a href="pi07-steerable-generalist.html">π₀.₇ 笔记</a>
+      <a href="openvla.html">OpenVLA 笔记</a>
+    </div>
+  </nav>
+
+  <div class="docs-layout">
+    <aside class="sidebar">
+      <div class="sidebar-title">目录</div>
+      <ul class="sidebar-tree">
+        <li><a class="section-link" href="#overview">§01 总览 · 论文五问</a></li>
+        <li><a class="section-link" href="#interleaved">§02 交织式规划：怎么建模</a></li>
+        <li><a class="section-link" href="#arch">§03 架构 · MoT 三专家</a></li>
+        <li><a class="section-link" href="#rfg">§04 双 Flow-Matching + RFG ★</a></li>
+        <li><a class="section-link" href="#data">§05 数据引擎 + 两阶段训练</a></li>
+        <li><a class="section-link" href="#exp">§06 实验</a></li>
+        <li><a class="section-link" href="#connections">§07 与 VLA / 具身的联系</a></li>
+      </ul>
+    </aside>
+
+    <main class="main-content">
+      <div class="paper-header">
+        <div class="paper-venue">// VLA · 统一多模态 · ByteDance Seed + 清华 · 2026-02 (arXiv:2602.09849v2)</div>
+        <h1 class="paper-title">BagelVLA: Enhancing Long-Horizon Manipulation via Interleaved Vision-Language-Action Generation</h1>
+        <div class="paper-authors">Yucheng Hu, Jianke Zhang, Yuanfei Luo, … Wei Li, Jianyu Chen · Tsinghua University &amp; ByteDance Seed</div>
+        <div class="paper-badges">
+          <span class="badge badge-purple">VLA</span>
+          <span class="badge badge-blue">统一理解+生成 (Bagel/MoT)</span>
+          <span class="badge badge-green">Interleaved 规划</span>
+          <span class="badge badge-amber">长程操作</span>
+          <span class="badge">Residual Flow Guidance</span>
+        </div>
+      </div>
+
+      <!-- ============ §01 总览 ============ -->
+      <div class="section" id="overview">
+        <div class="section-num">§ 01</div>
+        <h2>总览 · 论文五问</h2>
+
+        <div class="cn-read">
+          <div class="cn-label">这一节解决什么</div>
+          <p>2 分钟建立全局：BagelVLA 想让机器人做长程操作时能像人一样<strong>"想清楚下一步 → 想象做完的样子 → 再动手"</strong>，
+          并且把这三件事<strong>交织（interleave）在同一个模型里</strong>，而不是拼三个独立模块。下面用五问 + 数据交代把来龙去脉说清。</p>
+        </div>
+
+        <table class="kv-table">
+          <tr><td>① 背景</td><td>通用操作机器人需要三种能力：<strong>理解</strong>指令该干嘛、<strong>预测</strong>做完会怎样、<strong>执行</strong>动作。长程任务（如"按 红→黄→蓝→绿 顺序堆积木"）里，一句全局指令背后<strong>隐含一条多阶段因果链</strong>——传统 VLA 直接 <span class="term" data-en="global instruction → action">指令→动作</span> 黑箱映射学不动这条链。</td></tr>
+          <tr><td>② 基于什么</td><td>从 <strong>Bagel</strong>（字节的统一"理解+生成"多模态模型，单 transformer 用 <span class="term" data-en="Mixture of Transformers">MoT</span> 同时读+生成文本和图像）初始化；理解/生成专家用 <strong>Qwen2.5-LLM-7B</strong> 架构；视觉编码 <strong>SigLIP2</strong>（理解）+ <strong>FLUX VAE</strong>（生成）；动作用 <strong>Flow Matching</strong>。</td></tr>
+          <tr><td>③ 前人缺陷</td><td>现有 VLA <strong>要么只做语言规划</strong>（缺视觉预测）<strong>、要么只做视觉预测</strong>（缺逻辑推理），把它们当<strong>孤立模块</strong>；视频预测派（VPP、Cosmos Policy）没有专门 VLM backbone，复杂推理任务指令跟随差；离散/连续动作派都忽略了 VLM 预训练与 VLA 微调间的<strong>对齐鸿沟</strong>，微调后多模态能力退化。</td></tr>
+          <tr><td>④ 核心 insight</td><td>别人把"想（语言）、看（预测未来帧）、做（动作）"拆成独立模块再串起来；BagelVLA 发现应把三者<strong>交织进同一个 transformer 的动作执行循环</strong>——先出文字子任务、再预测未来关键帧、再据此生成动作，一条显式因果链。且预测未来帧不必从零生成（太贵）：用 <strong>RFG（残差流引导）</strong>把当前帧当噪声先验、单步去噪就抽出预测特征，几乎零延迟。</td></tr>
+          <tr><td>⑤ 效果</td><td>仿真 + 真机多个 benchmark 上<strong>显著超基线</strong>，尤其<strong>需要多阶段推理的长程任务</strong>；真机对未见指令 / 未见物体摆放泛化强。（具体数字见 <a href="#exp">§06</a>）</td></tr>
+        </table>
+
+        <div class="callout purple">
+          <div class="callout-label">一句话 · 和 π₀.₇ 的关系</div>
+          <p>你读过的 <a href="pi07-steerable-generalist.html">π₀.₇</a> 也用"world model 生成 subgoal 图"，但那是<strong>外挂一个独立 world model（BAGEL 14B）异步生成 subgoal</strong>；BagelVLA 是把生成能力<strong>内化进同一个统一模型</strong>并和动作生成在去噪循环里交织——这是两种"用视觉想象辅助动作"的不同工程路线，正好对照读。</p>
+        </div>
+
+        <!-- Fig 1 -->
+        <div class="fig-interactive panel-below">
+          <div class="fig-block">
+            <div class="hotspot-wrap" data-hotspot-group="fig1">
+              <img src="../assets/figures/bagelvla/fig-1.png" alt="Figure 1: Overview of BagelVLA framework — data and three capabilities">
+              <div class="hotspot" data-id="self" style="left:15%; top:30%;"
+                   data-title="Self-Collected Data · 自采真机数据"
+                   data-body="团队自采的专家演示（含 wrist/top 相机 + proprioception）。这部分被手工标注了子任务 l_t 和关键帧，用来把基础模型的推理/生成能力迁移到具身。"></div>
+              <div class="hotspot" data-id="open" style="left:18%; top:44%;"
+                   data-title="Open-Resourced Robot Data · 开源机器人数据"
+                   data-body="Agibot / Open-galaxea / RoboTwin 等公开数据集。缺细粒度标注的用 Seed-1.5-VL-thinking 自动合成子任务 l_t + 切时间边界，再过滤保质量。"></div>
+              <div class="hotspot" data-id="wheel" style="left:50%; top:33%;"
+                   data-title="四类数据混合 · Data Engine"
+                   data-body="中央轮盘：Self-Collected / Open-resourced / VQA / Human-video 四类数据按特性配比。机器人数据教具身技能，通用数据（VQA+人类视频）保住基础模型原有的理解和生成能力。"></div>
+              <div class="hotspot" data-id="human" style="left:82%; top:40%;"
+                   data-title="Egocentric Human Video · 第一视角人类视频"
+                   data-body="人类第一视角操作视频（视觉动态来源）。因场景复杂，不标子任务，只预测每段操作的最终帧——补充视觉预测能力、又不破坏语言能力。"></div>
+              <div class="hotspot" data-id="ling" style="left:17%; top:76%;"
+                   data-title="① Linguistic Planning · 语言规划"
+                   data-body="给全局指令 + 观测，模型先用 &lt;think&gt; 推理出<strong>当前该做的子任务</strong>（如'答案是11，去拿积木1'）。这是 VLM 的任务分解能力。"></div>
+              <div class="hotspot" data-id="visual" style="left:50%; top:76%;"
+                   data-title="② Visual Forecasting · 视觉预测"
+                   data-body="模型当 world model，条件在子任务上<strong>生成未来关键帧（key frame）</strong>——把'做完这一步会变成什么样'画出来，作为动作的视觉锚点。"></div>
+              <div class="hotspot" data-id="act" style="left:82%; top:76%;"
+                   data-title="③ Action Generation · 动作生成"
+                   data-body="同时借助视觉预测和文字计划，输出连续动作序列 [0.1, 0.3, …]。三步交织在一个执行循环里，不是三个独立模型串联。"></div>
+            </div>
+            <div class="fig-cap">
+              <span class="fig-num">Fig 1 · p.2</span>
+              Overview of our framework. BagelVLA integrates linguistic planning, visual forecasting, and action generation within a single framework, trained on a massive hybrid dataset (general multimodal + large-scale robotic data).
+              <span class="fig-cn">左：四类混合数据（自采 / 开源机器人 / VQA / 人类视频）。右下三框：一个统一模型里交织的三种能力——语言规划、视觉预测、动作生成。</span>
+            </div>
+          </div>
+          <div class="hotspot-panel"></div>
+        </div>
+
+        <h3>数据集交代（Stage 1 预训练用量）</h3>
+        <p>论文 §3.5 明确列了预训练各数据源的规模——这直接决定了"能力从哪来"：</p>
+        <table class="kv-table">
+          <tr><th>数据源</th><th>规模</th><th>喂给什么能力</th></tr>
+          <tr><td>General VQA</td><td class="w">2.98M QA 对</td><td>语言 co-training，防止基础语言能力退化</td></tr>
+          <tr><td>Human-hand（人类手部）</td><td class="w">310k episodes</td><td>视觉动态（visual dynamics）</td></tr>
+          <tr><td>Open-source Robot</td><td class="w">146k episodes</td><td>语言规划 + 视觉动态</td></tr>
+          <tr><td>Open-source Robot</td><td class="w">297k episodes</td><td>视觉动态</td></tr>
+          <tr><td>Self-collected Real Robot</td><td class="w">75k episodes</td><td>语言规划 + 视觉动态（自采、标注最细）</td></tr>
+        </table>
+        <div class="callout amber">
+          <div class="callout-label">注意 · 两阶段的分工</div>
+          <p>Stage 1 只训<strong>理解 + 生成</strong>两个专家（学语言规划 + 关键帧预测），<strong>动作专家还没上场</strong>；Stage 2 才引入动作专家、微调整个模型把"语言 + 预测的视觉动态 + 控制"耦合起来。这样先保住基础模型的推理/生成，再叠加低层控制。（细节见 <a href="#data">§05</a>）</p>
+        </div>
+
+        <div class="quiz"
+             data-correct="c"
+             data-explain="正确。BagelVLA 的核心区别是把语言规划、视觉预测、动作生成三者交织进同一个统一 transformer（从 Bagel 初始化），而不是三个独立模块串联——这正是它能处理长程因果链的原因。"
+             data-explain-wrong="再想想：论文反复强调现有方法把这三种能力当'孤立模块（isolated modules）'，而 BagelVLA 的贡献恰恰是把它们统一交织。">
+          <div class="q-label">🧠 理解检查</div>
+          <div class="q-text">BagelVLA 相对现有 VLA 最本质的不同是什么？</div>
+          <div class="q-options">
+            <button class="q-opt" data-k="a">用了更大的视觉编码器</button>
+            <button class="q-opt" data-k="b">第一个把动作离散成 token</button>
+            <button class="q-opt" data-k="c">把语言规划/视觉预测/动作生成交织进一个统一模型，而非独立模块串联</button>
+            <button class="q-opt" data-k="d">完全不需要机器人数据，只用人类视频</button>
+          </div>
+          <div class="q-feedback"></div>
+        </div>
+      </div>
+
+      <!-- ============ §02–§07 占位（确认方向后展开） ============ -->
+      <div class="section" id="interleaved">
+        <div class="section-num">§ 02</div>
+        <h2>交织式规划：怎么建模</h2>
+        <div class="cn-read">
+          <div class="cn-label">这一节将讲</div>
+          <p>把长程操作建模成联合分布 $p(a_t, v_{t+k}, l_t \mid v_t, L)$ 的因式分解（语言规划 → 视觉预测 → 动作生成三步条件链）+ 训练目标 $\mathcal{J}=-(\mathcal{L}_l+\mathcal{L}_v+\mathcal{L}_a)$。<em>（待展开）</em></p>
+        </div>
+      </div>
+
+      <div class="section" id="arch">
+        <div class="section-num">§ 03</div>
+        <h2>架构 · MoT 三专家</h2>
+        <div class="cn-read">
+          <div class="cn-label">这一节将讲</div>
+          <p>Fig 2：理解专家 / 生成专家 / 动作专家共享 Multi-modal Self-Attention，各自 KQV+FFN；理解生成专家从 Bagel 初始化，动作专家 2B（MLP 缩到 1/5）走 KV-cache 异步高频出动作。<em>（待展开）</em></p>
+        </div>
+      </div>
+
+      <div class="section" id="rfg">
+        <div class="section-num">§ 04</div>
+        <h2>双 Flow-Matching 的四种耦合方案 + RFG ★核心</h2>
+        <div class="cn-read">
+          <div class="cn-label">这一节将讲</div>
+          <p>Fig 3：Complete / Joint / Single-step 三种"图像去噪 × 动作去噪"的耦合方式，延迟与精度的权衡；再到 <strong>RFG（Residual Flow Guidance）</strong>——把当前帧当噪声先验 $v^{\tau=0}_{t+k}\sim\mathcal{N}(v_t,I)$，让 world model 只建模"变化"而非重建静态背景，单步去噪、大幅降延迟。这是全文最该精读的一节。<em>（待展开）</em></p>
+        </div>
+      </div>
+
+      <div class="section" id="data">
+        <div class="section-num">§ 05</div>
+        <h2>数据引擎 + 两阶段训练</h2>
+        <div class="cn-read">
+          <div class="cn-label">这一节将讲</div>
+          <p>四类数据的处理管线（自动标注子任务/关键帧、Seed-1.5-VL-thinking 合成标签）+ 两阶段训练配方。<em>（待展开）</em></p>
+        </div>
+      </div>
+
+      <div class="section" id="exp">
+        <div class="section-num">§ 06</div>
+        <h2>实验</h2>
+        <div class="cn-read">
+          <div class="cn-label">这一节将讲</div>
+          <p>仿真 + 真机 benchmark 结果、消融（四种去噪方案对比、RFG 降低去噪步数、交织规划的收益）。<em>（待读 §4 后展开）</em></p>
+        </div>
+      </div>
+
+      <div class="section" id="connections">
+        <div class="section-num">§ 07</div>
+        <h2>与 VLA / 具身的联系</h2>
+        <div class="cn-read">
+          <div class="cn-label">这一节将讲</div>
+          <p>和 π₀ / π₀.₇（外挂 world model）、VPP / Cosmos Policy（视频预测派）、RT-2 / OpenVLA（离散动作派）的路线对比；"统一模型内化生成 vs 外挂生成模块"的取舍。<em>（待展开）</em></p>
+        </div>
+      </div>
+
+      <footer class="footer" style="padding:40px; text-align:center; color:var(--text3); font-size:13px;">
+        <a href="../index.html">← 返回首页</a>
+        &nbsp;·&nbsp;
+        <a href="https://arxiv.org/abs/2602.09849" target="_blank">arXiv:2602.09849</a>
+        &nbsp;·&nbsp;
+        <a href="https://cladernyjorn.github.io/BagelVLA.github.io" target="_blank">项目页 ↗</a>
+      </footer>
+    </main>
+  </div>
+</body>
+</html>
