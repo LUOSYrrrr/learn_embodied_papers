@@ -2,7 +2,7 @@
 
 Personal paper leaderboard covering robot world models (WAM), humanoid loco-manipulation, dexterous manipulation, and vision-language-action models. Built from arXiv metadata and Google Scholar citations.
 
-- Last updated: 2026-07-31 20:40 UTC
+- Last updated: 2026-08-01 20:24 UTC
 - Total indexed papers: 3634
 - Data sources: arXiv for discovery, citation cache for enrichment.
 
@@ -50,11 +50,11 @@ Personal paper leaderboard covering robot world models (WAM), humanoid loco-mani
 | 13 | [World Action Planner: Generalizable Decision-Making with Action-Conditioned World Models](https://arxiv.org/abs/2607.27599) | 2026-07-30 | missing | 0.999 |
 | 14 | [Cross-Embodiment Transfer via Behavior-Aligned Representations](https://arxiv.org/abs/2607.27549) | 2026-07-30 | missing | 0.999 |
 | 15 | [Failure Detection for Surgical Robot Imitation Policies via Flow-Matching World Modeling](https://arxiv.org/abs/2607.27511) | 2026-07-29 | missing | 0.999 |
-| 16 | [TurboVLA: Real-Time Vision-Language-Action Model at 32 Hz on an RTX 4090 with <1 GB VRAM](https://arxiv.org/abs/2607.27205) | 2026-07-29 | missing | 0.999 |
-| 17 | [DLAM: Distributional Latent Actions with Temporal Constraints](https://arxiv.org/abs/2607.27138) | 2026-07-29 | missing | 0.999 |
-| 18 | [Mitigating Compounding Error via Video Representation Regularization](https://arxiv.org/abs/2607.27036) | 2026-07-29 | missing | 0.999 |
-| 19 | [What Can Latent World Models Know? Physical Parameter Identifiability in Multimodal Predictive Representations](https://arxiv.org/abs/2607.27017) | 2026-07-29 | missing | 0.999 |
-| 20 | [RL$^2$-VLA: Adaptive RL Latent Compositional Steering with Test-Time Scaling for Vision-Language-Action Models](https://arxiv.org/abs/2607.26991) | 2026-07-29 | missing | 0.999 |
+| 16 | [TurboVLA: Real-Time Vision-Language-Action Model at 32 Hz on an RTX 4090 with <1 GB VRAM](https://arxiv.org/abs/2607.27205) | 2026-07-29 | missing | 0.998 |
+| 17 | [DLAM: Distributional Latent Actions with Temporal Constraints](https://arxiv.org/abs/2607.27138) | 2026-07-29 | missing | 0.998 |
+| 18 | [Mitigating Compounding Error via Video Representation Regularization](https://arxiv.org/abs/2607.27036) | 2026-07-29 | missing | 0.998 |
+| 19 | [What Can Latent World Models Know? Physical Parameter Identifiability in Multimodal Predictive Representations](https://arxiv.org/abs/2607.27017) | 2026-07-29 | missing | 0.998 |
+| 20 | [RL$^2$-VLA: Adaptive RL Latent Compositional Steering with Test-Time Scaling for Vision-Language-Action Models](https://arxiv.org/abs/2607.26991) | 2026-07-29 | missing | 0.998 |
 
 ## Rebuild
 
