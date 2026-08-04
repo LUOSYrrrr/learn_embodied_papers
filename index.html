@@ -191,7 +191,7 @@
 
     <div class="intro-grid">
       <div class="intro-cell">
-        <div class="intro-cell-num">34</div>
+        <div class="intro-cell-num">36</div>
         <div class="intro-cell-label">已精读</div>
       </div>
       <div class="intro-cell">
@@ -210,6 +210,36 @@
       <span class="sh-hint">按更新时间排序</span>
     </div>
     <div class="recent-wrap">
+      <a class="recent-card" href="papers/ego2robot.html">
+        <div class="recent-date">2026-08-04 · 刚完成（重点：数据质检）</div>
+        <div class="recent-title">Ego2Robot · 从第一视角人类数据合成机器人数据</div>
+        <div class="recent-sub">
+          人大 + Qwen（arXiv:2608.02580）：把第一视角人类操作视频批量转成机器人训练数据（重定向手部动作 + 视觉替换人手为机器人臂），
+          产出 18,561h / 15 形态，最大 ego-to-robot 数据集。笔记重点拆解<strong>三级质检</strong>——L1 帧级物理合法性（IK/自碰撞/穿模 + 稳定性腐蚀）、
+          L2 统计级（分位数外扩 + 突变，&gt;60% 弃 episode）、L3 VLM 语义一致性（Qwen3.5 审视频，附 prompt 原文拆解）。
+        </div>
+        <div class="recent-tags">
+          <span class="status-badge status-done">✓ 已精读</span>
+          <span class="card-pill">数据合成 · 2026</span>
+          <span class="card-pill">三级质检 · Ego→Robot</span>
+        </div>
+      </a>
+
+      <a class="recent-card" href="papers/bagelvla.html">
+        <div class="recent-date">2026-07-31 · 进行中（§01 已成）</div>
+        <div class="recent-title">BagelVLA · 交织式视觉-语言-动作生成的长程操作</div>
+        <div class="recent-sub">
+          清华 + ByteDance Seed（arXiv:2602.09849）：从 Bagel（统一理解+生成 MoT）初始化，把语言规划 / 视觉预测 / 动作生成
+          <strong>交织进一个统一模型</strong>处理长程操作；核心 RFG（残差流引导）把当前帧当噪声先验、单步去噪抽预测特征降延迟。
+          目前 §01 总览 + Fig 1 已成，核心章节展开中。
+        </div>
+        <div class="recent-tags">
+          <span class="status-badge status-done">◐ §01 已成</span>
+          <span class="card-pill">VLA · 统一多模态</span>
+          <span class="card-pill">Interleaved · RFG</span>
+        </div>
+      </a>
+
       <a class="recent-card" href="papers/vlm-collection.html">
         <div class="recent-date">2026-07-22 · 合集</div>
         <div class="recent-title">VLM 架构合集 · 按组件拆解（Encoder / Connector / LLM）</div>
@@ -543,7 +573,7 @@
             <span class="dir-name">VLA · 视觉-语言-动作</span>
             <span class="dir-sub">把 VLM 作为 backbone，直接从感知+指令映射到机器人动作。当前 embodied 主流路线。</span>
           </span>
-          <span class="dir-stats"><span class="dir-count">9</span> 篇已读</span>
+          <span class="dir-stats"><span class="dir-count">10</span> 篇已读</span>
           <span class="dir-arrow">&#9662;</span>
         </summary>
         <div class="dir-body">
@@ -575,6 +605,10 @@
             </a>
             <a class="dc-item" href="papers/pi0-data-pipeline.html">
               <span class="dc-item-main">π₀ 数据 Pipeline<span class="dc-item-en">openpi · transforms</span></span>
+              <span class="status-badge status-done">✓</span>
+            </a>
+            <a class="dc-item" href="papers/qwen-robotmanip.html">
+              <span class="dc-item-main">Qwen-RobotManip · 对齐后才能规模化<span class="dc-item-en">Qwen Team 2026 · H2R · Cross-Embodiment · G1 数据 Pipeline</span></span>
               <span class="status-badge status-done">✓</span>
             </a>
             <a class="dc-item" href="papers/openvla.html">
@@ -699,7 +733,7 @@
             <span class="dir-name">Loco-Manipulation · 移动操作</span>
             <span class="dir-sub">边走边抓：腿/全身参与操作，扩大工作空间。分层 RL + Sim2Real 是主流路线。</span>
           </span>
-          <span class="dir-stats"><span class="dir-count">9</span> 篇已读</span>
+          <span class="dir-stats"><span class="dir-count">10</span> 篇已读</span>
           <span class="dir-arrow">&#9662;</span>
         </summary>
         <div class="dir-body">
@@ -716,6 +750,10 @@
           </div>
           <div class="dc-group">
             <div class="dc-group-label label-expand">② 人形 Humanoid</div>
+            <a class="dc-item" href="papers/humi.html">
+              <span class="dc-item-main">HuMI · Robot-Free 全身操作<span class="dc-item-en">Nai et al. 2026 · 便携人类演示 · Fig. 4 计划/执行参考系 · Unitree G1</span></span>
+              <span class="status-badge status-done">✓</span>
+            </a>
             <a class="dc-item" href="papers/vlk.html">
               <span class="dc-item-main">VLK · Vision-Language-Kinematics<span class="dc-item-en">Wang et al. 2026 · 重建场景合成交互 · 预测运动学而非动作 · 0 遥操作 · Unitree G1</span></span>
               <span class="status-badge status-done">✓</span>
