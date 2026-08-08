@@ -2,7 +2,7 @@
 
 Personal paper leaderboard covering robot world models (WAM), humanoid loco-manipulation, dexterous manipulation, and vision-language-action models. Built from arXiv metadata and Google Scholar citations.
 
-- Last updated: 2026-08-07 20:04 UTC
+- Last updated: 2026-08-08 19:51 UTC
 - Total indexed papers: 3728
 - Data sources: arXiv for discovery, citation cache for enrichment.
 
@@ -48,13 +48,13 @@ Personal paper leaderboard covering robot world models (WAM), humanoid loco-mani
 | 11 | [In-Context VLA: Endowing Vision-Language-Action Models with Language via In-Context Post-Training and Agentic Tool Use](https://arxiv.org/abs/2608.05738) | 2026-08-06 | missing | 0.999 |
 | 12 | [LAWM-3D: Learning 3D-Aware Latent Actions from Human Videos for Generalizable Robot World Models](https://arxiv.org/abs/2608.05706) | 2026-08-06 | missing | 0.999 |
 | 13 | [JoyAI-RA 0.5: Scaling Robot Manipulation Learning via Dual Action Alignment](https://arxiv.org/abs/2608.05674) | 2026-08-06 | missing | 0.999 |
-| 14 | [World-to-Wrist: Task-Conditioned Future Wrist Modeling for Fine-Grained Robot Manipulation](https://arxiv.org/abs/2608.05369) | 2026-08-05 | missing | 0.999 |
-| 15 | [BridgeVLA++: A Data-Efficient, Generalizable, and Memory-Augmented Vision-Language-Action Framework for 3D Manipulation](https://arxiv.org/abs/2608.05042) | 2026-08-05 | missing | 0.999 |
-| 16 | [DreamWAM: Beyond RGB Future Prediction for World Action Models](https://arxiv.org/abs/2608.04996) | 2026-08-05 | missing | 0.999 |
-| 17 | [RORA: Realistic Object Reconstruction with Articulation](https://arxiv.org/abs/2608.04842) | 2026-08-05 | missing | 0.999 |
-| 18 | [Explicit Language Memory for Long-Horizon Planning in Vision-Language-Action Models](https://arxiv.org/abs/2608.04765) | 2026-08-05 | missing | 0.999 |
-| 19 | [Suppression Sticks, Locality Is Fragile: A Closed-Loop Target-and-Control Audit of Task-Vector Negation in VLA Policies](https://arxiv.org/abs/2608.04692) | 2026-08-05 | missing | 0.999 |
-| 20 | [MobileWAM: Bridging World Action Models to Mobile Manipulation with Chain-of-Foresight](https://arxiv.org/abs/2608.04657) | 2026-08-05 | missing | 0.999 |
+| 14 | [World-to-Wrist: Task-Conditioned Future Wrist Modeling for Fine-Grained Robot Manipulation](https://arxiv.org/abs/2608.05369) | 2026-08-05 | missing | 0.998 |
+| 15 | [BridgeVLA++: A Data-Efficient, Generalizable, and Memory-Augmented Vision-Language-Action Framework for 3D Manipulation](https://arxiv.org/abs/2608.05042) | 2026-08-05 | missing | 0.998 |
+| 16 | [DreamWAM: Beyond RGB Future Prediction for World Action Models](https://arxiv.org/abs/2608.04996) | 2026-08-05 | missing | 0.998 |
+| 17 | [RORA: Realistic Object Reconstruction with Articulation](https://arxiv.org/abs/2608.04842) | 2026-08-05 | missing | 0.998 |
+| 18 | [Explicit Language Memory for Long-Horizon Planning in Vision-Language-Action Models](https://arxiv.org/abs/2608.04765) | 2026-08-05 | missing | 0.998 |
+| 19 | [Suppression Sticks, Locality Is Fragile: A Closed-Loop Target-and-Control Audit of Task-Vector Negation in VLA Policies](https://arxiv.org/abs/2608.04692) | 2026-08-05 | missing | 0.998 |
+| 20 | [MobileWAM: Bridging World Action Models to Mobile Manipulation with Chain-of-Foresight](https://arxiv.org/abs/2608.04657) | 2026-08-05 | missing | 0.998 |
 
 ## Rebuild
 
