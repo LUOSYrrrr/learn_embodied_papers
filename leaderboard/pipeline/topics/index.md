@@ -2,59 +2,59 @@
 
 Personal paper leaderboard covering robot world models (WAM), humanoid loco-manipulation, dexterous manipulation, and vision-language-action models. Built from arXiv metadata and Google Scholar citations.
 
-- Last updated: 2026-08-10 20:07 UTC
-- Total indexed papers: 3741
+- Last updated: 2026-08-11 20:09 UTC
+- Total indexed papers: 3767
 - Data sources: arXiv for discovery, citation cache for enrichment.
 
 ## Total Ranking
 
 | Rank | Title | Published | Citations | Score |
 | --- | --- | --- | --- | --- |
-| 1 | [SimWAM: A Simple World Action Model for End-to-End Autonomous Driving](https://arxiv.org/abs/2608.07468) | 2026-08-07 | missing | 1.000 |
-| 2 | [Depth-Wise Probing and Pruning of the Planning Token in a Driving Vision-Language-Action Model](https://arxiv.org/abs/2608.07361) | 2026-08-07 | missing | 1.000 |
-| 3 | [TEMPO: Semantic-Action Decoupled RL Post-Training for Vision-Language-Action Models](https://arxiv.org/abs/2608.07314) | 2026-08-07 | missing | 1.000 |
-| 4 | [WNM-3D: A World Navigation Model with 3D Scene Conditioning for Closed-Loop VLN](https://arxiv.org/abs/2608.07267) | 2026-08-07 | missing | 1.000 |
-| 5 | [AutoIntervene: Calibrated Intervention for Action-Chunking Imitation Learning Policies](https://arxiv.org/abs/2608.07065) | 2026-08-07 | missing | 1.000 |
-| 6 | [C2Dex: Contact-Consistent Reconstruction and Retargeting for Dexterous Manipulation from Monocular Video](https://arxiv.org/abs/2608.07045) | 2026-08-07 | missing | 1.000 |
-| 7 | [A Haptic Robot Finger Designed for Guqin Instrument Playing](https://arxiv.org/abs/2608.07002) | 2026-08-07 | missing | 1.000 |
-| 8 | [Decoupling Intention from Trajectory: A Representational Deduction Framework for World Action Models](https://arxiv.org/abs/2608.06994) | 2026-08-07 | missing | 1.000 |
-| 9 | [Cross-View Action Consistency for Camera-Robust Vision-Language-Action Policies](https://arxiv.org/abs/2608.06965) | 2026-08-07 | missing | 1.000 |
-| 10 | [Is Forward Prediction Enough? Physical State Grounding for JEPA World Models](https://arxiv.org/abs/2608.06799) | 2026-08-07 | missing | 1.000 |
-| 11 | [AtlasVLA: Persistent World-Ego State Modeling for Vision-Language-Action Models](https://arxiv.org/abs/2608.06729) | 2026-08-07 | missing | 1.000 |
-| 12 | [CrossTracer: Cross-Embodiment Navigation via VLA Model Reasoning and Trace Residuals Adapting](https://arxiv.org/abs/2608.06688) | 2026-08-07 | missing | 1.000 |
-| 13 | [Fast and Accurate: An Adaptive VLA Inference Framework through Environment-aware Model Selection](https://arxiv.org/abs/2608.06434) | 2026-08-06 | missing | 1.000 |
-| 14 | [$ω$-0: A Latent Predictive World Action Model for Concurrent Humanoid Loco-Manipulation](https://arxiv.org/abs/2608.06375) | 2026-08-06 | missing | 1.000 |
-| 15 | [DyPES-VLA: Learning Shared Dynamics Priors and Embodiment-Specific Control for Cross-Embodiment Manipulation](https://arxiv.org/abs/2608.06374) | 2026-08-06 | missing | 1.000 |
-| 16 | [GeniWorld: A Generalizable Interactive World Model for Robotic Manipulation via Visual Actions](https://arxiv.org/abs/2608.06332) | 2026-08-06 | missing | 1.000 |
-| 17 | [From Passive Mirrors to Active Agents: Holonic Digital Twins for Physical AI over Networks](https://arxiv.org/abs/2608.06227) | 2026-08-06 | missing | 1.000 |
-| 18 | [Adaptive-WAM: Quality-Guided Early-Exit Planning from Intermediate Video-Diffusion Features](https://arxiv.org/abs/2608.06008) | 2026-08-06 | missing | 1.000 |
-| 19 | [Beyond Flat Policies: Hierarchical Post-Training for Embodied Agents in Robotic Manipulation](https://arxiv.org/abs/2608.05999) | 2026-08-06 | missing | 1.000 |
-| 20 | [SkillMemo: Expert-guided Skill Memory Framework for Compositional Embodied Manipulation](https://arxiv.org/abs/2608.05970) | 2026-08-06 | missing | 1.000 |
+| 1 | [Energy-Structured Latent World Models with Neural Time Fields for Physically Constistent Open-World Motion Planning](https://arxiv.org/abs/2608.09876) | 2026-08-10 | missing | 1.000 |
+| 2 | [RynnValue: Scaling Robotic Value Foundation Models with Temporal Distance](https://arxiv.org/abs/2608.09853) | 2026-08-10 | missing | 1.000 |
+| 3 | [SLIM-0.5B: Learning Action-Grounded Predictive Latents for Robot Manipulation](https://arxiv.org/abs/2608.09771) | 2026-08-10 | missing | 1.000 |
+| 4 | [World Tokens: Enhancing Embodied Policies with Training-Time World Modeling](https://arxiv.org/abs/2608.09730) | 2026-08-10 | missing | 1.000 |
+| 5 | [verdi: retrieval is not transfer for continual world model optimization](https://arxiv.org/abs/2608.09537) | 2026-08-10 | missing | 1.000 |
+| 6 | [HarnessWAM: Bridging Prediction and Deliberation in World Action Models](https://arxiv.org/abs/2608.09516) | 2026-08-10 | missing | 1.000 |
+| 7 | [Rethink Before You Execute: Adaptive Execution for World Action Models](https://arxiv.org/abs/2608.09492) | 2026-08-10 | missing | 1.000 |
+| 8 | [RecoverFly: A Failure-Aware Reinforcement Learning Post-Training Framework for Aerial Vision-Language Navigation](https://arxiv.org/abs/2608.09467) | 2026-08-10 | missing | 1.000 |
+| 9 | [VANE: Reliable Test-Time Training for Vision-Language-Action Models via Future Visual Representation Prediction](https://arxiv.org/abs/2608.09448) | 2026-08-10 | missing | 1.000 |
+| 10 | [Skills in Weights, Memory in Code: Hybrid Learning for Memory-Dependent Robot Manipulation](https://arxiv.org/abs/2608.09410) | 2026-08-10 | missing | 1.000 |
+| 11 | [JEPA-WAM: Learning Vision-Language-Action Policies with Joint-Embedding World Modeling](https://arxiv.org/abs/2608.09381) | 2026-08-10 | missing | 1.000 |
+| 12 | [WorldSimProbe: Diagnosing Simulator Faithfulness in Action-Conditioned World Models for Embodied Manipulation](https://arxiv.org/abs/2608.09298) | 2026-08-10 | missing | 1.000 |
+| 13 | [Trajectory Divergence Horizon Decision for Reliable Dual-Arm Surgical Subtask Manipulation](https://arxiv.org/abs/2608.09125) | 2026-08-10 | missing | 1.000 |
+| 14 | [Latent World Models with Monotone Planning Costs for Image-Goal Navigation](https://arxiv.org/abs/2608.09073) | 2026-08-10 | missing | 1.000 |
+| 15 | [From Recovery to Drop-off: How Action Post-training Reduces a VLM's Late-Layer Depth Decodability](https://arxiv.org/abs/2608.08904) | 2026-08-09 | missing | 1.000 |
+| 16 | [SG-WAM: Text-Grounded and Spatial-aware Semantic Guidance for World-Action Models](https://arxiv.org/abs/2608.08839) | 2026-08-09 | missing | 1.000 |
+| 17 | [WA-SpecDec: World-Aware Speculative Decoding for Vision-Language-Action Models](https://arxiv.org/abs/2608.08725) | 2026-08-09 | missing | 1.000 |
+| 18 | [Vid2WAM: Distilling Video Diffusion Priors into World Action Models](https://arxiv.org/abs/2608.08558) | 2026-08-09 | missing | 1.000 |
+| 19 | [4D-WAM: Infusing Spatiotemporal Awareness into World Action Models through Trajectory Fields](https://arxiv.org/abs/2608.08023) | 2026-08-08 | missing | 1.000 |
+| 20 | [Auditing Instruction-Trajectory Mismatches in Multimodal Robot Demonstrations](https://arxiv.org/abs/2608.07895) | 2026-08-08 | missing | 1.000 |
 
 ## Hot Ranking
 
 | Rank | Title | Published | Citations | Score |
 | --- | --- | --- | --- | --- |
-| 1 | [SimWAM: A Simple World Action Model for End-to-End Autonomous Driving](https://arxiv.org/abs/2608.07468) | 2026-08-07 | missing | 0.998 |
-| 2 | [Depth-Wise Probing and Pruning of the Planning Token in a Driving Vision-Language-Action Model](https://arxiv.org/abs/2608.07361) | 2026-08-07 | missing | 0.998 |
-| 3 | [TEMPO: Semantic-Action Decoupled RL Post-Training for Vision-Language-Action Models](https://arxiv.org/abs/2608.07314) | 2026-08-07 | missing | 0.998 |
-| 4 | [WNM-3D: A World Navigation Model with 3D Scene Conditioning for Closed-Loop VLN](https://arxiv.org/abs/2608.07267) | 2026-08-07 | missing | 0.998 |
-| 5 | [AutoIntervene: Calibrated Intervention for Action-Chunking Imitation Learning Policies](https://arxiv.org/abs/2608.07065) | 2026-08-07 | missing | 0.998 |
-| 6 | [C2Dex: Contact-Consistent Reconstruction and Retargeting for Dexterous Manipulation from Monocular Video](https://arxiv.org/abs/2608.07045) | 2026-08-07 | missing | 0.998 |
-| 7 | [A Haptic Robot Finger Designed for Guqin Instrument Playing](https://arxiv.org/abs/2608.07002) | 2026-08-07 | missing | 0.998 |
-| 8 | [Decoupling Intention from Trajectory: A Representational Deduction Framework for World Action Models](https://arxiv.org/abs/2608.06994) | 2026-08-07 | missing | 0.998 |
-| 9 | [Cross-View Action Consistency for Camera-Robust Vision-Language-Action Policies](https://arxiv.org/abs/2608.06965) | 2026-08-07 | missing | 0.998 |
-| 10 | [Is Forward Prediction Enough? Physical State Grounding for JEPA World Models](https://arxiv.org/abs/2608.06799) | 2026-08-07 | missing | 0.998 |
-| 11 | [AtlasVLA: Persistent World-Ego State Modeling for Vision-Language-Action Models](https://arxiv.org/abs/2608.06729) | 2026-08-07 | missing | 0.998 |
-| 12 | [CrossTracer: Cross-Embodiment Navigation via VLA Model Reasoning and Trace Residuals Adapting](https://arxiv.org/abs/2608.06688) | 2026-08-07 | missing | 0.998 |
-| 13 | [Fast and Accurate: An Adaptive VLA Inference Framework through Environment-aware Model Selection](https://arxiv.org/abs/2608.06434) | 2026-08-06 | missing | 0.997 |
-| 14 | [$ω$-0: A Latent Predictive World Action Model for Concurrent Humanoid Loco-Manipulation](https://arxiv.org/abs/2608.06375) | 2026-08-06 | missing | 0.997 |
-| 15 | [DyPES-VLA: Learning Shared Dynamics Priors and Embodiment-Specific Control for Cross-Embodiment Manipulation](https://arxiv.org/abs/2608.06374) | 2026-08-06 | missing | 0.997 |
-| 16 | [GeniWorld: A Generalizable Interactive World Model for Robotic Manipulation via Visual Actions](https://arxiv.org/abs/2608.06332) | 2026-08-06 | missing | 0.997 |
-| 17 | [From Passive Mirrors to Active Agents: Holonic Digital Twins for Physical AI over Networks](https://arxiv.org/abs/2608.06227) | 2026-08-06 | missing | 0.997 |
-| 18 | [Adaptive-WAM: Quality-Guided Early-Exit Planning from Intermediate Video-Diffusion Features](https://arxiv.org/abs/2608.06008) | 2026-08-06 | missing | 0.997 |
-| 19 | [Beyond Flat Policies: Hierarchical Post-Training for Embodied Agents in Robotic Manipulation](https://arxiv.org/abs/2608.05999) | 2026-08-06 | missing | 0.997 |
-| 20 | [SkillMemo: Expert-guided Skill Memory Framework for Compositional Embodied Manipulation](https://arxiv.org/abs/2608.05970) | 2026-08-06 | missing | 0.997 |
+| 1 | [Energy-Structured Latent World Models with Neural Time Fields for Physically Constistent Open-World Motion Planning](https://arxiv.org/abs/2608.09876) | 2026-08-10 | missing | 0.999 |
+| 2 | [RynnValue: Scaling Robotic Value Foundation Models with Temporal Distance](https://arxiv.org/abs/2608.09853) | 2026-08-10 | missing | 0.999 |
+| 3 | [SLIM-0.5B: Learning Action-Grounded Predictive Latents for Robot Manipulation](https://arxiv.org/abs/2608.09771) | 2026-08-10 | missing | 0.999 |
+| 4 | [World Tokens: Enhancing Embodied Policies with Training-Time World Modeling](https://arxiv.org/abs/2608.09730) | 2026-08-10 | missing | 0.999 |
+| 5 | [verdi: retrieval is not transfer for continual world model optimization](https://arxiv.org/abs/2608.09537) | 2026-08-10 | missing | 0.999 |
+| 6 | [HarnessWAM: Bridging Prediction and Deliberation in World Action Models](https://arxiv.org/abs/2608.09516) | 2026-08-10 | missing | 0.999 |
+| 7 | [Rethink Before You Execute: Adaptive Execution for World Action Models](https://arxiv.org/abs/2608.09492) | 2026-08-10 | missing | 0.999 |
+| 8 | [RecoverFly: A Failure-Aware Reinforcement Learning Post-Training Framework for Aerial Vision-Language Navigation](https://arxiv.org/abs/2608.09467) | 2026-08-10 | missing | 0.999 |
+| 9 | [VANE: Reliable Test-Time Training for Vision-Language-Action Models via Future Visual Representation Prediction](https://arxiv.org/abs/2608.09448) | 2026-08-10 | missing | 0.999 |
+| 10 | [Skills in Weights, Memory in Code: Hybrid Learning for Memory-Dependent Robot Manipulation](https://arxiv.org/abs/2608.09410) | 2026-08-10 | missing | 0.999 |
+| 11 | [JEPA-WAM: Learning Vision-Language-Action Policies with Joint-Embedding World Modeling](https://arxiv.org/abs/2608.09381) | 2026-08-10 | missing | 0.999 |
+| 12 | [WorldSimProbe: Diagnosing Simulator Faithfulness in Action-Conditioned World Models for Embodied Manipulation](https://arxiv.org/abs/2608.09298) | 2026-08-10 | missing | 0.999 |
+| 13 | [Trajectory Divergence Horizon Decision for Reliable Dual-Arm Surgical Subtask Manipulation](https://arxiv.org/abs/2608.09125) | 2026-08-10 | missing | 0.999 |
+| 14 | [Latent World Models with Monotone Planning Costs for Image-Goal Navigation](https://arxiv.org/abs/2608.09073) | 2026-08-10 | missing | 0.999 |
+| 15 | [From Recovery to Drop-off: How Action Post-training Reduces a VLM's Late-Layer Depth Decodability](https://arxiv.org/abs/2608.08904) | 2026-08-09 | missing | 0.999 |
+| 16 | [SG-WAM: Text-Grounded and Spatial-aware Semantic Guidance for World-Action Models](https://arxiv.org/abs/2608.08839) | 2026-08-09 | missing | 0.999 |
+| 17 | [WA-SpecDec: World-Aware Speculative Decoding for Vision-Language-Action Models](https://arxiv.org/abs/2608.08725) | 2026-08-09 | missing | 0.999 |
+| 18 | [Vid2WAM: Distilling Video Diffusion Priors into World Action Models](https://arxiv.org/abs/2608.08558) | 2026-08-09 | missing | 0.999 |
+| 19 | [4D-WAM: Infusing Spatiotemporal Awareness into World Action Models through Trajectory Fields](https://arxiv.org/abs/2608.08023) | 2026-08-08 | missing | 0.998 |
+| 20 | [Auditing Instruction-Trajectory Mismatches in Multimodal Robot Demonstrations](https://arxiv.org/abs/2608.07895) | 2026-08-08 | missing | 0.998 |
 
 ## Rebuild
 
