@@ -139,6 +139,7 @@
       .fig-interactive { grid-template-columns: 1fr; }
       .module-grid { grid-template-columns: 1fr; }
       .paper-header, .section { padding-left: 20px; padding-right: 20px; }
+      .kv-table { display: block; max-width: 100%; overflow-x: auto; }
     }
   </style>
 </head><body>
@@ -194,13 +195,13 @@
           <tr><td>① 背景</td><td>通用操作机器人需要三种能力：<strong>理解</strong>指令该干嘛、<strong>预测</strong>做完会怎样、<strong>执行</strong>动作。长程任务（如"按 红→黄→蓝→绿 顺序堆积木"）里，一句全局指令背后<strong>隐含一条多阶段因果链</strong>——传统 VLA 直接 <span class="term" data-en="global instruction → action">指令→动作</span> 黑箱映射学不动这条链。</td></tr>
           <tr><td>② 基于什么</td><td>从 <strong>Bagel</strong>（字节的统一"理解+生成"多模态模型，单 transformer 用 <span class="term" data-en="Mixture of Transformers">MoT</span> 同时读+生成文本和图像）初始化；理解/生成专家用 <strong>Qwen2.5-LLM-7B</strong> 架构；视觉编码 <strong>SigLIP2</strong>（理解）+ <strong>FLUX VAE</strong>（生成）；动作用 <strong>Flow Matching</strong>。</td></tr>
           <tr><td>③ 前人缺陷</td><td>现有 VLA <strong>要么只做语言规划</strong>（缺视觉预测）<strong>、要么只做视觉预测</strong>（缺逻辑推理），把它们当<strong>孤立模块</strong>；视频预测派（VPP、Cosmos Policy）没有专门 VLM backbone，复杂推理任务指令跟随差；离散/连续动作派都忽略了 VLM 预训练与 VLA 微调间的<strong>对齐鸿沟</strong>，微调后多模态能力退化。</td></tr>
-          <tr><td>④ 核心 insight</td><td>别人把"想（语言）、看（预测未来帧）、做（动作）"拆成独立模块再串起来；BagelVLA 发现应把三者<strong>交织进同一个 transformer 的动作执行循环</strong>——先出文字子任务、再预测未来关键帧、再据此生成动作，一条显式因果链。且预测未来帧不必从零生成（太贵）：用 <strong>RFG（残差流引导）</strong>把当前帧当噪声先验、单步去噪就抽出预测特征，几乎零延迟。</td></tr>
-          <tr><td>⑤ 效果</td><td>仿真 + 真机多个 benchmark 上<strong>显著超基线</strong>，尤其<strong>需要多阶段推理的长程任务</strong>；真机对未见指令 / 未见物体摆放泛化强。（具体数字见 <a href="#exp">§06</a>）</td></tr>
+          <tr><td>④ 核心 insight</td><td>不只让模型说出下一个文本子任务，还强制它补上<strong>“做完这一步的关键帧”</strong>，再让动作专家同时条件于文本计划和视觉未来。RFG 用当前帧作为强先验，让动作只读一步图像去噪产生的预测特征；它降低了视觉前瞻开销，但论文报告的整个动作 chunk 推理仍约为 <strong>1.2 s</strong>。</td></tr>
+          <tr><td>⑤ 效果</td><td>仿真 + 真机多个 benchmark 上超过论文复现的 <strong>π₀、RDT、UP-VLA 和 VPP</strong>，尤其是它自己设计的多阶段积木/算术任务。论文<strong>没有</strong>和 π₀.₅ 做实验对比，更不能由这些结果推出它领先 π₀.₇。（具体数字见 <a href="#exp">§06</a>）</td></tr>
         </table>
 
         <div class="callout purple">
-          <div class="callout-label">一句话 · 和 π₀.₇ 的关系</div>
-          <p>你读过的 <a href="pi07-steerable-generalist.html">π₀.₇</a> 也用"world model 生成 subgoal 图"，但那是<strong>外挂一个独立 world model（BAGEL 14B）异步生成 subgoal</strong>；BagelVLA 是把生成能力<strong>内化进同一个统一模型</strong>并和动作生成在去噪循环里交织——这是两种"用视觉想象辅助动作"的不同工程路线，正好对照读。</p>
+          <div class="callout-label">先把和 π 系列的关系说清楚</div>
+          <p><a href="pi05-open-world.html">π₀.₅</a> 已经是“先生成文本子任务，再生成动作 chunk”；BagelVLA 在中间多加了一个<strong>可学的关键帧预测因子</strong>。<a href="pi07-steerable-generalist.html">π₀.₇</a> 则在系统层面用独立 high-level policy + BAGEL world model 异步产生文本/视觉 subgoal。因此三者功能范式已经很接近；BagelVLA 的特色是<strong>统一 MoT 序列内的联合建模</strong>，不是“第一个会拆任务”。</p>
         </div>
 
         <!-- Fig 1 -->
@@ -228,7 +229,7 @@
                    data-body="模型当 world model，条件在子任务上<strong>生成未来关键帧（key frame）</strong>——把'做完这一步会变成什么样'画出来，作为动作的视觉锚点。"></div>
               <div class="hotspot" data-id="act" style="left:82%; top:76%;"
                    data-title="③ Action Generation · 动作生成"
-                   data-body="同时借助视觉预测和文字计划，输出连续动作序列 [0.1, 0.3, …]。三步交织在一个执行循环里，不是三个独立模型串联。"></div>
+                   data-body="同时借助视觉预测和文字计划，输出连续动作序列 [0.1, 0.3, …]。三个专家是独立 Transformer，但被组织在同一个 MoT 序列、共享注意力与联合损失中，不是三个完全割裂的系统。"></div>
             </div>
             <div class="fig-cap">
               <span class="fig-num">Fig 1 · p.2</span>
@@ -256,14 +257,14 @@
 
         <div class="quiz"
              data-correct="c"
-             data-explain="正确。BagelVLA 的核心区别是把语言规划、视觉预测、动作生成三者交织进同一个统一 transformer（从 Bagel 初始化），而不是三个独立模块串联——这正是它能处理长程因果链的原因。"
+             data-explain="正确。BagelVLA 的核心是用统一 MoT 序列和注意力把语言规划、关键帧预测、动作生成联合建模。三个专家仍是独立 Transformer，“统一”指训练序列、条件链和损失的联合，不是只有一套参数。"
              data-explain-wrong="再想想：论文反复强调现有方法把这三种能力当'孤立模块（isolated modules）'，而 BagelVLA 的贡献恰恰是把它们统一交织。">
           <div class="q-label">🧠 理解检查</div>
           <div class="q-text">BagelVLA 相对现有 VLA 最本质的不同是什么？</div>
           <div class="q-options">
             <button class="q-opt" data-k="a">用了更大的视觉编码器</button>
             <button class="q-opt" data-k="b">第一个把动作离散成 token</button>
-            <button class="q-opt" data-k="c">把语言规划/视觉预测/动作生成交织进一个统一模型，而非独立模块串联</button>
+            <button class="q-opt" data-k="c">用统一 MoT 序列联合建模语言规划/视觉预测/动作，并让动作读取视觉去噪 latent</button>
             <button class="q-opt" data-k="d">完全不需要机器人数据，只用人类视频</button>
           </div>
           <div class="q-feedback"></div>
@@ -275,8 +276,85 @@
         <div class="section-num">§ 02</div>
         <h2>交织式规划：怎么建模</h2>
         <div class="cn-read">
-          <div class="cn-label">这一节将讲</div>
-          <p>把长程操作建模成联合分布 $p(a_t, v_{t+k}, l_t \mid v_t, L)$ 的因式分解（语言规划 → 视觉预测 → 动作生成三步条件链）+ 训练目标 $\mathcal{J}=-(\mathcal{L}_l+\mathcal{L}_v+\mathcal{L}_a)$。<em>（待展开）</em></p>
+          <div class="cn-label">这一节解决什么</div>
+          <p>上一节说了“想 → 想象 → 动手”，但还没说<strong>为什么一定要把这条链写进概率模型</strong>。答案是：长程指令隐含多个阶段，直接学“整句指令 → 当前动作”会把任务边界、目标状态和动作全部混在一起。BagelVLA 把它强制分解成三个可监督的中间变量；读完本节，你会看懂这个分解与 π₀.₅/π₀.₇ 的真实关系。</p>
+        </div>
+
+        <h3>2.1 从黑箱动作映射，改成显式因果链</h3>
+        <p>传统语言条件策略直接学 $p_\theta(a_t\mid v_t,L)$：输入当前观测 $v_t$ 和全局指令 $L$，立即猜动作 chunk $a_t$。这适合“拿起红色杯子”，却不适合“按橙、粉、绿的顺序搭两层积木”：同一句 $L$ 在不同时刻对应不同子目标。</p>
+
+        <div class="math-block">
+          $$p_\theta(a_t,v_{t+k},l_t\mid v_t,L)
+          =p_\theta(l_t\mid v_t,L)\;
+           p_\theta(v_{t+k}\mid v_t,L,l_t)\;
+           p_\theta(a_t\mid v_t,L,l_t,v_{t+k})$$
+          <span class="math-label">Eq. §3.1 · Interleaved planning factorization · p.4</span>
+        </div>
+        <div class="math-explain">
+          <div class="me-title">逐项拆解 · 把公式当作三层工单</div>
+          <dl>
+            <dt>$v_t, L$</dt>
+            <dd>当前相机/本体观测与用户的全局指令，是三层的共同上下文。</dd>
+            <dt>$p_\theta(l_t\mid v_t,L)$</dt>
+            <dd><strong>语言规划</strong>：先决定当前阶段的文本子任务 $l_t$，例如“先拿粉色积木”。</dd>
+            <dt>$p_\theta(v_{t+k}\mid v_t,L,l_t)$</dt>
+            <dd><strong>视觉前瞻</strong>：想象子任务做完后的关键帧 $v_{t+k}$，把抽象语言变成空间目标。</dd>
+            <dt>$p_\theta(a_t\mid v_t,L,l_t,v_{t+k})$</dt>
+            <dd><strong>动作生成</strong>：动作不仅看当前图和指令，还同时看“下一步是什么”和“做完应该长什么样”。</dd>
+          </dl>
+        </div>
+
+        <div class="math-block">
+          $$\mathcal{L}_{\mathrm{total}}
+          =\mathcal{L}_{l}+\mathcal{L}_{v}+\mathcal{L}_{a}$$
+          <span class="math-label">Eq. §3.1 · 三个可监督目标的总和 · p.4</span>
+        </div>
+        <div class="math-explain">
+          <div class="me-title">逐项拆解 · 为什么不只监督最后的动作</div>
+          <dl>
+            <dt>$\mathcal{L}_{l}$</dt>
+            <dd>文本交叉熵，让子任务符合真实阶段标注。</dd>
+            <dt>$\mathcal{L}_{v}$</dt>
+            <dd>关键帧 Flow Matching 损失，让视觉专家学会子任务完成后的状态变化。</dd>
+            <dt>$\mathcal{L}_{a}$</dt>
+            <dd>动作 Flow Matching 损失，把文本计划和预测视觉落到连续控制。详细速度场公式留到 <a href="#rfg">§04</a> 再拆。</dd>
+          </dl>
+        </div>
+
+        <details class="en-quote">
+          <summary>展开原文 · 为什么不直接从指令猜动作</summary>
+          <div class="quote-body">
+            <p>"Instead of a black-box mapping, we require the model to explicitly reason through the causal chain of the task."</p>
+            <div class="quote-cite">— §3.1, p.4</div>
+          </div>
+        </details>
+
+        <h3>2.2 你问得对：这和 π₀.₅ / π₀.₇ 并不是三个时代</h3>
+        <p>论文的写法容易让人以为其他 VLA 都是“指令直接到动作”。但 BagelVLA 自己在引言中已将 π₀.₅ 引为高层规划工作（Ref. [18]）；它的实验表只对比了 π₀，没有对比 π₀.₅。</p>
+        <table class="kv-table">
+          <tr><th>系统</th><th>概念上的执行链</th><th>关键区别</th></tr>
+          <tr><td>π₀.₅</td><td>$L,v_t\rightarrow l_t\rightarrow a_t$</td><td>同一 VLA 先自回归生成文本 subtask，再用 Flow Matching action expert 生成动作；<strong>已经在拆任务</strong>。</td></tr>
+          <tr><td>BagelVLA</td><td>$L,v_t\rightarrow l_t\rightarrow v_{t+k}\rightarrow a_t$</td><td>在文本 subtask 和动作之间显式加入关键帧随机变量，并让动作读图像去噪的中间 latent。</td></tr>
+          <tr><td>π₀.₇</td><td>high-level policy $\rightarrow l_t$；world model $\rightarrow$ visual subgoal；VLA $\rightarrow a_t$</td><td>功能上也有文本+视觉子目标，但公开架构是辅助模型异步生成 prompt，再由主 VLA 执行。</td></tr>
+        </table>
+        <div class="callout red">
+          <div class="callout-label">审稿视角 · 证据边界</div>
+          <p>这张表是<strong>架构解读，不是论文实验结果</strong>。BagelVLA 没有在同数据、同本体上对比 π₀.₅；π₀.₇ 又在 BagelVLA 提交后发布。因此这篇论文能证明“加文本规划+关键帧监督对它的任务有效”，不能证明“这条路线优于 PI 的最新系统”。</p>
+        </div>
+
+        <div class="quiz"
+             data-correct="b"
+             data-explain="正确。π₀.₅ 已经会生成文本子任务；BagelVLA 的数学新增量是把未来关键帧作为显式随机变量，放在子任务和动作之间（§3.1, p.4）。"
+             data-explain-wrong="π₀.₅ 并不是纯粹的指令→动作黑箱；它已经有文本 subtask。再看三者的执行链，找 BagelVLA 额外引入的变量。">
+          <div class="q-label">🧠 理解检查</div>
+          <div class="q-text">如果和 π₀.₅ 比，BagelVLA 的核心数学增量是什么？</div>
+          <div class="q-options">
+            <button class="q-opt" data-k="a">第一次让 VLA 生成文本子任务</button>
+            <button class="q-opt" data-k="b">把未来关键帧显式放进子任务→动作的条件链</button>
+            <button class="q-opt" data-k="c">把连续动作全部换成离散 token</button>
+            <button class="q-opt" data-k="d">取消动作标注，只用网络视频训练</button>
+          </div>
+          <div class="q-feedback"></div>
         </div>
       </div>
 
@@ -284,8 +362,147 @@
         <div class="section-num">§ 03</div>
         <h2>架构 · MoT 三专家</h2>
         <div class="cn-read">
-          <div class="cn-label">这一节将讲</div>
-          <p>Fig 2：理解专家 / 生成专家 / 动作专家共享 Multi-modal Self-Attention，各自 KQV+FFN；理解生成专家从 Bagel 初始化，动作专家 2B（MLP 缩到 1/5）走 KV-cache 异步高频出动作。<em>（待展开）</em></p>
+          <div class="cn-label">这一节解决什么</div>
+          <p>上一节已经有了三段概率链，但还缺一台能让文本、图像和连续动作互相看见的机器。本节把 Fig.2 逐层拆开：<strong>“统一”不等于只有一个 Transformer</strong>，而是三个独立专家在同一多模态序列中用自注意力交流。读完你能分清哪些参数是 Bagel 带来的，哪些是为动作新加的。</p>
+        </div>
+
+        <div class="module-grid">
+          <div class="module-card">
+            <div class="module-card-name">EXPERT 01 · 7B</div>
+            <div class="module-card-title">Understanding Expert</div>
+            <div class="module-card-desc">Qwen2.5-7B 形状的 LLM 专家，通过 SigLIP2 读多视角图像，自回归输出当前 subtask。损失是文本 CE。</div>
+          </div>
+          <div class="module-card">
+            <div class="module-card-name">EXPERT 02 · 7B</div>
+            <div class="module-card-title">Generation Expert</div>
+            <div class="module-card-desc">同样采用 Qwen2.5-7B 形状，用 FLUX VAE 把图像压到 latent，再用 Flow Matching 预测子任务完成后的关键帧。</div>
+          </div>
+          <div class="module-card">
+            <div class="module-card-name">EXPERT 03 · 2B</div>
+            <div class="module-card-title">Action Expert</div>
+            <div class="module-card-desc">28 层独立 Transformer，隐层宽度保持 3584，但 MLP intermediate size 缩到 3584，用 Flow Matching 生成连续 action chunk。</div>
+          </div>
+          <div class="module-card">
+            <div class="module-card-name">CONNECTOR</div>
+            <div class="module-card-title">Multi-modal Self-Attention</div>
+            <div class="module-card-desc">各类 token 拥有自己的 QKV/FFN 路由，但放在同一交织序列中建模条件关系。动作 token 能注意当前观测、文本子任务与图像去噪 latent。</div>
+          </div>
+        </div>
+
+        <div class="fig-interactive panel-below">
+          <div class="fig-block">
+            <div class="hotspot-wrap" data-hotspot-group="fig2">
+              <img src="../assets/figures/bagelvla/fig-2.png" alt="Figure 2: BagelVLA Mixture-of-Transformers architecture">
+              <div class="hotspot" data-id="context" style="left:16.9%; top:21.8%;"
+                   data-title="Context · 全局指令"
+                   data-body="全局任务 L 和当前观测的语义上下文。它不直接规定关节动作，而是先约束理解专家生成当前子任务。"></div>
+              <div class="hotspot" data-id="observation" style="left:39.9%; top:21.8%;"
+                   data-title="Observation · 多视角当前观测"
+                   data-body="多个相机视角同时经过 SigLIP2 产生 ViT token，经过 FLUX VAE 产生生成 token。两套编码器分别偏语义理解和像素生成。"></div>
+              <div class="hotspot" data-id="noise-state" style="left:67.9%; top:21.8%;"
+                   data-title="Noise + Robot State · 两条流的起点"
+                   data-body="图像分支从噪声 latent 开始向关键帧流动；动作分支读取 proprioception 并从动作噪声开始去噪。RFG 会在后续把图像起点改成以当前帧为均值。"></div>
+              <div class="hotspot" data-id="understanding" style="left:26.0%; top:49.8%;"
+                   data-title="Und.QKV / Und.FFN · 理解专家"
+                   data-body="处理文本和理解型视觉 token，通过自回归解码输出 subtask。它从 Bagel 预训练初始化，不是从机器人动作数据里从零学语义。"></div>
+              <div class="hotspot" data-id="generation" style="left:55.9%; top:49.8%;"
+                   data-title="Gen.QKV / Gen.FFN · 生成专家"
+                   data-body="在文本 subtask 和当前多视角观测条件下，预测关键帧的 Flow Matching 速度场。它的中间去噪 latent 可被动作专家直接读取。"></div>
+              <div class="hotspot" data-id="action" style="left:88.9%; top:49.8%;"
+                   data-title="State/Act QKV+FFN · 动作专家"
+                   data-body="将本体状态与动作 token 路由到 2B 专家。它用 KV-cache 复用较慢更新的文本/视觉上下文，以更高频率生成新动作。"></div>
+              <div class="hotspot" data-id="tokenizer" style="left:50.0%; top:35.0%;"
+                   data-title="Multi-modal Tokenizer · 同序列不同路由"
+                   data-body="文本、ViT、VAE、proprioception 和 action 都被换成 token，再按图中的交织顺序放入模型。统一的是序列和条件关系，不是所有 token 共用同一 FFN。"></div>
+              <div class="hotspot" data-id="outputs" style="left:66.9%; top:83.8%;"
+                   data-title="Subtask → Keyframe → Action · 三个训练出口"
+                   data-body="底部三个出口对应 CE、图像 FM、动作 FM 三种损失。重点不是同时吐出三个结果，而是后一项能条件在前一项的输出/中间表示上。"></div>
+            </div>
+            <div class="fig-cap">
+              <span class="fig-num">Fig 2 · p.5</span>
+              BagelVLA uses a Mixture-of-Transformers architecture with independent linguistic, visual, and action transformers organized as one interleaved sequence.
+              <span class="fig-cn">上方是五类输入，中间是各自 QKV/FFN 路由+多模态自注意力，下方是 subtask、keyframe、action 三个出口。</span>
+            </div>
+          </div>
+          <div class="hotspot-panel"></div>
+        </div>
+
+        <div class="step-walker" data-hotspot-group="fig2">
+          <div class="sw-header">
+            <div class="sw-title">🪜 跟着一次推理走完 Fig.2</div>
+            <div class="sw-controls">
+              <button class="sw-btn prev">◀</button>
+              <span class="sw-counter">1 / 6</span>
+              <button class="sw-btn next">▶</button>
+            </div>
+          </div>
+          <div class="sw-progress">
+            <div class="sw-dot"></div><div class="sw-dot"></div><div class="sw-dot"></div>
+            <div class="sw-dot"></div><div class="sw-dot"></div><div class="sw-dot"></div>
+          </div>
+          <div class="sw-body">
+            <div class="sw-step active" data-hotspot="context">
+              <h4>第 1 步：读全局指令</h4>
+              <p>模型看到“按指定颜色搭积木”和当前画面，但暂时不猜关节动作。</p>
+            </div>
+            <div class="sw-step" data-hotspot="observation">
+              <h4>第 2 步：一张图走两种编码</h4>
+              <p>SigLIP2 提供语义/定位特征，FLUX VAE 提供能被图像生成器去噪的 latent，两者不可互相替代。</p>
+            </div>
+            <div class="sw-step" data-hotspot="understanding">
+              <h4>第 3 步：语言专家选当前 subtask</h4>
+              <p>理解专家根据当前进度输出“把紫色积木放到蓝色积木旁边”，把全局指令缩成当前阶段。</p>
+            </div>
+            <div class="sw-step" data-hotspot="generation">
+              <h4>第 4 步：生成专家预测关键帧</h4>
+              <p>它根据 subtask 和当前图从噪声向目标图流动。默认 RFG 推理时，动作只需读第一步去噪特征。</p>
+            </div>
+            <div class="sw-step" data-hotspot="action">
+              <h4>第 5 步：动作专家联合读条件</h4>
+              <p>2B 专家读观测、全局指令、subtask、图像去噪 latent 和本体状态，通过 Flow Matching 还原 action chunk。</p>
+            </div>
+            <div class="sw-step" data-hotspot="outputs">
+              <h4>第 6 步：执行后重新观测</h4>
+              <p>机器人执行 chunk，再把真实新画面放回下一轮。这才是闭环；生成的关键帧只是条件，不能代替真实反馈。</p>
+            </div>
+          </div>
+        </div>
+
+        <h3>3.1 参数表揭示了“统一”的真正含义</h3>
+        <table class="kv-table">
+          <tr><th>模块</th><th>大小</th><th>输入 → 输出</th><th>损失</th></tr>
+          <tr><td>Understanding</td><td class="w">7B</td><td>Image/Text → Text</td><td>CE</td></tr>
+          <tr><td>Generation</td><td class="w">7B</td><td>Image latent → Keyframe</td><td>MSE (Flow Matching)</td></tr>
+          <tr><td>Action</td><td class="w">2B</td><td>Proprio/Action noise → Action</td><td>MSE (Flow Matching)</td></tr>
+        </table>
+        <p>三个专家都有 28 层、3584 hidden size；理解/生成专家的 intermediate size 是 18944，动作专家只有 3584。总专家参数约 16B；MoT 的稀疏性发生在 <strong>token 路由</strong>层面——某模态 token 只经过对应的 QKV/FFN。一次同时含文本、图像和动作 token 的前向仍可能动用多个专家，不能把“总 16B”简单理解成“每步只跑 7B/2B”。</p>
+
+        <details class="en-quote">
+          <summary>展开原文 · MoT 其实是三个独立 Transformer</summary>
+          <div class="quote-body">
+            <p>"three independent transformers specialized for linguistic, visual, and action modalities"</p>
+            <div class="quote-cite">— Fig.2 caption, p.5</div>
+          </div>
+        </details>
+
+        <div class="callout amber">
+          <div class="callout-label">工程解读 · 40/72Hz 不等于 40/72Hz 高层重规划</div>
+          <p>论文报告 RTX 5090 上约 <strong>1.2 s / action chunk</strong>，chunk size 48，所以把 chunk 内动作指令换算为 40Hz；异步执行时通过降低文本/视觉 KV 刷新频率可报告 72Hz。这些是<strong>低层动作输出频率</strong>，不是每秒调用 72 次 7B 世界模型重新规划；对突发扰动的高层反应速度仍取决于上下文刷新周期。</p>
+        </div>
+
+        <div class="quiz"
+             data-correct="d"
+             data-explain="正确。Fig.2 caption 明确说是三个 independent transformers；它们通过交织 token 序列、多模态自注意力与联合损失建立条件关系（Fig.2, p.5；Appendix A, p.18）。"
+             data-explain-wrong="不要把“统一”理解成“只有一个 Transformer/一套 FFN”。回到 Fig.2 看 Und./Gen./State/Act 各自的 QKV 和 FFN 路由。">
+          <div class="q-label">🧠 理解检查</div>
+          <div class="q-text">BagelVLA 口中的“统一架构”最准确的理解是什么？</div>
+          <div class="q-options">
+            <button class="q-opt" data-k="a">所有模态完全共用一套 QKV 和 FFN</button>
+            <button class="q-opt" data-k="b">一个 2B 模型同时完成文本、图像和动作</button>
+            <button class="q-opt" data-k="c">三个专家互不传递任何中间表示</button>
+            <button class="q-opt" data-k="d">三个独立 Transformer 被组织进统一 token 序列和条件链</button>
+          </div>
+          <div class="q-feedback"></div>
         </div>
       </div>
 
