@@ -1,0 +1,474 @@
+                                         SplatSim: Zero-Shot Sim2Real Transfer of RGB Manipulation Policies
+                                                               Using Gaussian Splatting
+                                           M. Nomaan Qureshi1 , Sparsh Garg1 , Francisco Yandun1 , David Held1 , George Kantor1 , Abhisesh Silwal1
+
+
+                                           Abstract— Sim2Real transfer, particularly for manipulation
+                                        policies relying on RGB images, remains a critical challenge
+                                        in robotics due to the significant domain shift between syn-
+                                        thetic and real-world visual data. In this paper, we propose
+                                        SplatSim, a novel framework that leverages Gaussian Splatting
+                                        as the primary rendering primitive to reduce the Sim2Real
+
+
+
+
+arXiv:2409.10161v3 [cs.RO] 7 Oct 2024
+                                        gap for RGB-based manipulation policies. By replacing tradi-
+                                        tional mesh representations with Gaussian Splats in simulators,
+                                        SplatSim produces highly photorealistic synthetic data while
+                                        maintaining the scalability and cost-efficiency of simulation.
+                                        We demonstrate the effectiveness of our framework by training
+                                        manipulation policies within SplatSim and deploying them in
+                                        the real world in a zero-shot manner, achieving an average
+                                        success rate of 86.25%, compared to 97.5% for policies trained
+                                        on real-world data. Videos can be found on our project page:
+                                        https://splatsim.github.io                                        Fig. 1: We employ Gaussian Splatting [8] as the primary render-
+                                                                                                          ing primitive within existing simulation environments to generate
+                                                             I. INTRODUCTION                              highly photorealistic synthetic data for robotic manipulation tasks.
+                                           The Sim2Real problem, a focal challenge in robotics, per-      Our framework retains all the traditional advantages of simula-
+                                        tains to the transfer of control policies learned in simulated    tors—including scalability, cost-efficiency, and safety—while en-
+                                                                                                          hancing visual realism. Policies trained exclusively on this synthetic
+                                        environments to real world settings. Recently, significant        data exhibit zero-shot transfer capabilities to real-world scenarios,
+                                        progress has been made in deploying controllers trained in        achieving performance comparable to those trained on real-world
+                                        simulation to the real world in a zero-shot manner. Robots        datasets.
+                                        have demonstrated the ability to walk on rough terrains [1],      robot observes in the simulator is very different from the
+                                        [2], perform in-hand object rotation [3], [4], [5], [6], and      distribution of images it would see in the real world. This
+                                        grasp previously unseen objects [7]. Notably, all of these        makes “vision Sim2Real an out-of-domain generalization
+                                        methods rely on perception modalities like depth, tactile         problem” [9], a fundamental challenge in machine learning
+                                        sensing, or point cloud inputs, which have gained significant     that is still unsolved. For this reason, policies trained on
+                                        attention due to the relatively small Sim2Real gap they offer.    simulated images often struggle when applied to distributions
+                                        The reduced discrepancy between simulated and real-world          of real-world images.
+                                        data in these modalities has led to remarkable progress,
+                                                                                                             In this paper, we propose a systematic and novel method
+                                        reinforcing the idea that policies trained on modalities that
+                                                                                                          to reduce the Sim2Real gap for RGB images, by leveraging
+                                        can be simulated well, can be transferred well.
+                                                                                                          Gaussian Splatting [8] as a photorealistic render, using
+                                           In contrast, RGB images are rarely used as the primary
+                                                                                                          existing simulators as the physics backbone. We propose
+                                        sensing modality in robot learning applications. over other
+                                                                                                          utilizing Gaussian Splatting [8] as the primary rendering
+                                        commonly used modalities in Sim2Real transfer. They cap-
+                                                                                                          primitive, replacing traditional mesh-based representations
+                                        ture crucial visual details such as color, texture, lighting,
+                                                                                                          in existing simulators, to significantly improve the photo-
+                                        and surface reflectivity, to name a few, which are essential
+                                                                                                          realism of rendered scenes. By integrating these renderings
+                                        for understanding complex environments. For instance, in a
+                                                                                                          of simulated demonstrations with state-of-the-art behavior
+                                        simple task of plucking ripe fruits, color is a key feature
+                                                                                                          cloning techniques, we introduce a framework for zero-
+                                        for determining ripeness—an inference straightforward in
+                                                                                                          shot transfer of manipulation policies trained entirely on
+                                        RGB space but difficult and impractical with depth or tactile
+                                                                                                          simulation data, to the real world. Our key contributions are
+                                        inputs. Additionally, RGB images are easy to acquire in
+                                                                                                          as follows:
+                                        real-world environments with cameras and align closely with
+                                                                                                             • We propose a novel and scalable data generation frame-
+                                        human perception, making them well-suited for interpreting
+                                        intricate details in dynamic and complex scenes.                        work, “SplatSim” for manipulation tasks. SplatSim is
+                                           But why has it been difficult to deploy policies trained             focused predominantly on bridging the vision Sim2Real
+                                        in simulation with RGB information to the real world? The               gap by leveraging photorealistic renderings generated
+                                        problem lies in the fact that the distribution of images the            through Gaussian Splatting, replacing traditional mesh
+                                                                                                                representation in the rendering pipeline of the simulator.
+                                            1 All authors are with the Carnegie Mellon University, USA.      • We show how to leverage Robot Splat Models and
+    Object Splat Models, along with the simulator as a            still requires depth at test time and cannot work with just
+    physics backend, to generate photorealistic trajectories      RGB images in the real world.
+    of robot-object interactions. Our method eliminates the
+    need for the real-world data collection to learn these        B. Gaussian Splatting for Robotics
+    interactions, and relies solely on an initial video of           Gaussian Splatting [8] is a state-of-the-art rendering tech-
+    the static scene with the robot. We further demonstrate       nique that models scenes using 3D Gaussian primitives,
+    how these renderings, when combined with simulated            offering an efficient and photorealistic representation of
+    demonstrations, can be utilized to generate high-quality      complex geometries. In contrast to NeRF [35] and its deriva-
+    synthetic datasets for behavior cloning methods.              tives [36], [37], [38], the explicit, point cloud-like structure of
+  • We demonstrate the effectiveness of our framework by          Gaussian Splats enables easier manipulation, which has led
+    deploying RGB policies, trained entirely in simulation,       to numerous subsequent works focused on dynamic Gaussian
+    to the real world in a zero-shot manner across four tasks,    Splatting models [39], [40], [41], [42], [43]. This explicit
+    achieving an average success rate of 86.25%, compared         nature of Gaussian Splatting has also garnered interest in
+    to 97.5% for policies trained on the real-world data.         the robotics community, with recent studies applying it to
+                                                                  language-guided manipulation [44], object grasping [45],
+                   II. R ELATED W ORKS                            and deformable object manipulation [46]. The two related
+                                                                  works, Embodied Gaussians [47] and RoboStudio [48], focus
+A. Sim2real                                                       on learning from real-world data. Embodied Gaussians [47]
+   Robotics simulation tools like [10], [11], [12], [13], [14],   directly learns a forward model for robot-object interactions,
+[15], [16], [11] have become invaluable in scaling up robot       requiring real-world data for each new robot and object,
+learning due to several advantages including parallelization,     while we offload dynamics to a physics engine and focus on
+cost and time efficiency, and safety. Recent advancements in      RGB-based policy deployment. RoboStudio [48] combines
+transferring learned policies from simulation to the real world   simulation with Gaussian Splatting but focuses on system
+have demonstrated impressive results, particularly in domains     identification, whereas our approach generates synthetic data
+that leverage modalities with a low Sim2Real gap, such            for real-world deployment using existing simulators. Another
+as depth, point cloud, proprioception, or tactile feedback.       closely related work to our method is [49], which combines
+These modalities have enabled robots to perform contact-rich      Gaussian Splatting with a simulator, but it is focused on navi-
+tasks like quadruped locomotion [1], [17], [2], [18], [19] and    gation. Unlike manipulation tasks, the agent in their approach
+bipedal locomotion [20], [21], dexterous manipulation [3],        does not interact with or manipulate the environment.
+[4], [5], [6], [7], manipulation of articulated objects [22],
+                                                                                        III. P RELIMINARY
+[23], among others [24], [25], [26], [27].
+   However, Sim2Real transfer for RGB-based manipula-             A. Rigid Body Transformations in Gaussian Splatting
+tion policies remains challenging. Several prior works [28],         In Gaussian Splatting, segmented objects within a scene
+[29], [30], [31] have explored Sim2Real transfer for RGB-         can undergo rigid body transformations, such as translation
+based manipulation policies using domain randomization            and rotation, while still maintaining high-quality renderings.
+techniques. These approaches, however, often require task-        Each object, represented by a set of 3D Gaussians, can
+specific tuning and environment engineering, which can be         be transformed using a homogeneous transformation matrix
+both labor-intensive and difficult to achieve accurately in       T , defined by the rotation R and translation t. For a 3D
+traditional physics simulators. In contrast, our method elim-     Gaussian with mean position µ and covariance matrix Σ,
+inates the need for task-specific adjustments and leverages       the transformed position µ′ and covariance Σ′ under the rigid
+an initial scan of the target deployment environment, signif-     transformation are given by:
+icantly simplifying the process. Other existing approaches
+such as domain adaptation [32], often rely on extensive                                     µ′ = Rµ + t                          (1)
+offline data collection of real-world object interactions. Our                              Σ′ = RΣRT                            (2)
+method requires only an initial video of the static scene            Applying these transformations updates the position and
+without the need for additional real-world data collection.       orientation of the 3D Gaussians of the object while preserv-
+   In this work, we address the challenge of transferring         ing the corresponding geometric properties. Despite making
+RGB-based policies for manipulation tasks using Gaussian          these changes in the object’s configuration, the Gaussian
+Splatting, which requires rendering complex interactions          representation enables smooth and accurate renderings.
+between objects and the robot. A work notably related to
+ours is RialTo [33] which uses a Real2Sim2Real approach                                    IV. M ETHOD
+similar to ours. However, their policy is still trained on           The key premise of our method is that if each rigid
+point clouds, which requires depth during execution time.         body in the Gaussian Splat representation of the real-world
+In contrast, SplatSim only uses RGB images for learning           scene can be accurately segmented, and its corresponding
+and policy deployment. Another recent work Maniwhere [34]         homogeneous transformation relative to the simulator is
+does large-scale reinforcement learning in simulation and         identified, then it becomes feasible to render the rigid body
+shows generalization to the real world, however, their method     in novel poses. The rigid bodies can include links of the
+Fig. 2: Top: Our proposed SplatSim framework. Expert demonstrations are collected (a) in a physics simulator (PyBullet). In our case, these
+demonstrations come either from human experts (teleoperation via Gello [50]) or through a privileged information-based motion planner.
+The trajectories from the simulator are then fed to the simulator-aligned splat models of the scene and the object (b). We transform the
+3D Gaussians to manipulate the static Gaussian Splat models, as delineated in Sec. IV-C, to extract photorealistic renderings of the scene
+at novel joint and object poses, which serve as the RGB state observations for the diffusion policy. Along with these RGB observations,
+diffusion policy [51] also takes the end effector position and orientation as the input. We augment the end effector states as well. Bottom:
+Once trained with the sim data, we freeze the policy and directly deploy it to the real-world setting.
+
+robot, links of the gripper, articulated objects, or simple non-         state at each time step t is defined as st = (qt , x1t , . . . , xnt ),
+deformable objects. By applying this process to all rigid                where qt ∈ Rm denotes the robot’s joint angles and xkt =
+bodies interacting with the robot in simulation, we can                  (pkt , Rtk ) represents the position pkt ∈ R3 and orientation
+generate photorealistic renderings for an entire demonstration           Rtk ∈ SO(3) of the k-th object in the scene. The corre-
+trajectory. This approach is analogous to traditional rendering          sponding action at = (pet , Rte ) refers to the end effector’s
+in simulators; however, instead of using mesh primitives, we             position pet ∈ R3 and orientation Rte ∈ SO(3).
+utilize Gaussian Splats as the underlying representation. This               The renderings I sim , derived from these simulated states
+approach allows us to be more effective at capturing the                 st , are used as inputs to train the policy πI . The policy relies
+detailed visual fidelity of real-world scenes.                           solely on real-world RGB images I real at test time.
+   The following subsections describe our method. We begin
+by formalizing the problem statement in Sec. IV-A and                    B. Definitions of Coordinate Frames and Transformations
+notations in Sec. IV-B. Next, we detail the segmentation and                We define several coordinate frames to clarify the relation-
+rendering of each robot link at novel joint poses in Sec. IV-C,          ships between the real-world scene, the simulator, and the
+individual objects at new positions in Sec. IV-D, and grippers           splat point clouds. The real-world coordinate frame, denoted
+in Sec. IV-E. Sec. IV-F covers the rendering of complete                 as Freal , serves as the primary reference frame. Both the
+robot-object interaction trajectories, followed by the policy            simulator coordinate frame, Fsim , and the real-world robot
+training protocol in Sec. IV-G.                                          frame, Frobot , are aligned with Freal . This alignment ensures
+                                                                         that the robot’s base in the simulator and the real world share
+A. Problem Statement                                                     the same coordinate system.
+   We define Sreal as the Gaussian Splat of a real-world                    Additionally, the splat coordinate frame, denoted as Fsplat ,
+scene, captured from multiple RGB viewpoints, including                  represents the frame of the base of the robot in the Gaussian
+                                   k
+the robot. We also define Sobj         as the splat of the k-th object   Splat of the scene Sreal . The robot base in the splat point
+in the scene, captured from multiple viewpoints. Our goal                cloud has a different frame from Freal , and we account for
+                                                                                                                                 Fsplat
+is to use Sreal for generating photorealistic renderings I sim           this difference by using the transformation matrix TFrobot     .
+of a robot operating in any simulator (e.g., PyBullet). Then,               We also define the k-th object frame in the simulator,
+we can leverage this representation to collect demonstrations            Fk−obj,sim , where objects are initialized in SIM at the
+using the expert E for training RGB-based policies.                      origin with no rotation. The k-th object frame in the splat,
+   The expert E generates a trajectory τE consisting of state-           Fk−obj,splat , represents the object’s position and orientation
+action pairs {(s1 , a1 ), . . . , (sT , aT )} for a full episode. The    in its Gaussian splat Sobj . The object frames Fk−obj,sim and
+Fk−obj,splat are later aligned during the simulation and splat                        D. Object Splat Models
+                                            F
+process using the transformation matrix TFkk−obj,sim
+                                              −obj,splat .                                Similar to the robot rendering, we use ICP to align
+                                                                                                                       k
+                                                                                      each object’s 3D Gaussians Sobj      to its simulated ground
+                                                                                      truth point cloud. In this way, we get the transformation
+   Align Robot Gaussians to Sim Frame and Segment Robot Links                           Fk−obj,splat                                   k
+                                                                                      TFk−obj,sim    , which transforms the splat in Sobj  frame to
+                                                                                      simulator frame. Given the position pkt ∈ st and orientation
+                                                                                      Rtk ∈ st can be used to calculate the transformation of object
+                                                                                      Tfkk−obj from its original simulator frame Fk−obj,sim . Using
+    Gaussian Splat
+     of the scene
+                     Point cloud from
+                       3D means
+                                        ICP between
+                                        splat and sim
+                                                        Segment
+                                                        each link
+                                                                    Segmented
+                                                                    3D means          Tfkk−obj we can get the object’s 3D Gaussians in Sreal frame
+                                                                                      with the transformation :
+                                                                                                           F                         F
+                                                                                                               ) · Tfk−obj
+                                                                                                         splat −1
+                                                                                                  T = (TFrobot        k
+                                                                                                                               k−obj,splat
+                                                                                                                           · TFk−obj,sim                   (4)
+Fig. 3: The robot is visualized in a static scene by first creating
+a Gaussian splat of the scene with the robot in its home position.                       Once the transformation for the object is calculated, we
+The robot’s point cloud is manually segmented and aligned with                        can again use Eq. 1 and Eq. 2 to transform the 3D Gaussians
+the canonical robot frame using the ICP algorithm. Each robot
+link is then segmented, and forward kinematics transformations                        related to the object. Then we use the Gaussian Splatting
+are applied, enabling the rendering of the robot at arbitrary joint                   rendering framework [8] to render the object at its new
+configurations.                                                                       position and orientation.
+
+
+C. Robot Splat Models
+   Our method for obtaining robot renderings at novel joint
+poses is summarized in Fig. 3. It follows a three-step
+approach:
+   1) Alignment of Gaussian Splat Robot Frame to the
+Simulator Frame: In order to combine the Gaussian Splat
+representation Sreal with the simulator, we first manually                            Fig. 4: We use a KNN-based classifier for segmenting links for
+segment out the 3D Gaussians associated with the robot. The                           articulated objects like parallel jaw grippers. We train a KNN model
+means of these 3D Gaussians form a point cloud which is                               with the ground truth point labeling from the URDF model of the
+aligned with the ground truth point cloud obtained from the                           end effector.
+simulator. To achieve this, we use the Iterative Closest Point
+                                                                                      E. Articulated Object
+(ICP) algorithm, which produces the desired transformation
+  Fsplat                                                                                 While CAD axis-aligned bounding boxes allow straight-
+TFrobot  .
+   2) Segmentation of the Robot Links: To associate the 3D                            forward segmentation of robot links, certain objects, such
+Gaussians with their respective links in Sreal , we leverage                          as parallel jaw grippers, present challenges due to their
+the ground truth bounding boxes of the robot’s links, pro-                            misalignment with standard axes, that is, the gripper links
+vided by its CAD model. This method allows us to isolate                              are not neatly segmented out by just using bounding boxes
+the 3D Gaussians corresponding to each link in the real-                              in the 3D space. To address this, we employ a ground truth
+                            l
+world scene, denoted as Sreal   , where l refers to the l-th link                     K-Nearest Neighbour (KNN) classifier trained on labeled
+of the robot.                                                                         simulator point clouds as in Fig. 4 (a), which enables
+   3) Forward Kinematics Transformation: Once we have                                 inference of the link class for each 3D Gaussian in the
+the 3D Gaussians for individual links and the frames aligned,                         aligned splat as shown in Fig. 4 (b).
+we can use the robot’s forward kinematics to get the robot                            F. Rendering Simulated Trajectories using SplatSim
+pose at arbitrary joint angles qt ∈ st , given by the simulator.
+In this work, we use the forward kinematics routine from                                 Now that we are able to render individual rigid bodies
+PyBullet to get the Transformation Tfl k for link l in the                            in the scene, we can use this to represent any simulated
+robot’s canonical frame Fsim . The transformation of the 3D                           trajectory τE with photorealistic accuracy. We use these
+Gaussians can be calculated as :                                                      state-based transformations along with methods described
+                                                                                      in Sec. IV-C, IV-D to get the demonstration for our policy
+                                  F                         F
+                            splat −1
+                     T = (TFrobot ) · Tfl k · TFrobot
+                                                splat
+                                                                                (3)   to learn from τG = {(I1sim , a1 ), (I2sim , a2 ), . . . , (ITsim , aT )}.
+                                                                                      This data is used by policy to predict actions from the
+            F
+           splat
+where TFrobot    is the transformation matrix to get the robot                        synthetically generated images.
+from splat frame to the simulation frame. Once the transfor-
+mation for each link is calculated, we use Eq. 1 and Eq. 2                            G. Policy Training and Deployment
+to transform the 3D Gaussians related to individual links of                             For learning from the generated demonstrations τG in the
+the robot. The robot at novel poses is then rendered by the                           simulator, we employ Diffusion Policy [51], [52], which is
+standard Gaussian Splatting rendering framework [8].                                  the state of the art for behavior cloning. Although our method
+                                                    Successful Trials                Human Effort to Collect Data
+                          Task
+                                                    (Out of 40 Trials)                         (hours)
+                                       Sim2Sim    Real2Real    Sim2Real (SplatSim)   Simulator     Real World
+                         T-Push         100%       100%              90%                3.0            3.5
+                     Pick-Up-Apple      100%       100%              95%               0.0∗            3.5
+                     Orange-On-Plate    97.5%       95%              90%               0.0∗            6.0
+                        Assembly         85%        90%              70%               0.0∗            7.5
+                          Total        95.62%      97.5%            86.25%              3.0           20.5
+                     ∗ Automated process
+
+
+TABLE I: Comparison of task success rates and data collection times across various manipulation tasks. Our policies trained solely on
+synthetic data achieve an 86.25% zero-shot Sim2Real performance, comparable to those trained on real-world data. By leveraging the
+automation capabilities of simulators, we significantly reduce the human effort required for data generation.
+
+
+significantly mitigates the vision Sim2Real gap, discrep-            need for human intervention entirely. This enables the gener-
+ancies between the simulated and real-world environments             ation of large-scale, high-quality demonstration datasets with
+remain. For instance, simulated scenes lack shadows, and             minimal manual input. As a result, the simulator drastically
+rigid body assumptions can lead to improper rendering of             reduces the time and effort required for data collection. As
+flexible components such as robot cables. To address these           shown in Table I, while real-world demonstration collection
+issues, we incorporate image augmentations similar to [53]           required about 20.5 hours, the same tasks were completed
+during policy training, which includes adding gaussian noise,        in just 3 hours in the simulator, underscoring the efficiency
+random erasing and adjusting brightness and contrast of the          and scalability of our approach.
+image. These augmentations notably enhance the robustness
+                                                                     B. Zero-Shot Policy Deployment Results
+of the policy and improve its performance during real-world
+deployment.                                                             We evaluate the zero-shot deployment of our policies
+                                                                     across four contact-rich real-world tasks, using task success
+                      V. E XPERIMENTS                                rate as the primary metric. As shown in Table I, our method
+                                                                     achieves an average success rate of 86.25% for zero-shot
+   To evaluate the effectiveness of our framework in bridg-          Sim2Real transfer, compared to 97.5% for policies trained
+ing the Sim2Real gap for RGB-based manipulation tasks,               directly on real-world data, highlighting the effectiveness
+we conducted extensive experiments across four real-world            of our approach. All experiments were conducted using a
+manipulation tasks. We begin by detailing the data collection        UR5 robot equipped with a Robotiq 2F-85 gripper and 2
+process in both the simulator and real-world environments.           Intel Realsense D455 cameras [54] with deployment on an
+We then compare the performance of policies trained on               NVIDIA RTX 3080Ti GPU for the Diffusion Policy [51].
+our synthetic data with Real2Real policies—those trained                1) T-Push Task: The T-Push task, popularized by Diffu-
+on real-world data and deployed in real-world environ-               sion Policy [51], captures the dynamics of non-prehensile
+ments. This comparison demonstrates the high fidelity of             manipulation, which involves controlling both object motion
+our synthetic data, showing that policies trained within our         and contact forces. For training, a human expert collected
+framework can be deployed to real-world tasks without fine-          160 demonstrations in simulation using the Gello teleoper-
+tuning. Additionally, we assess Sim2Sim performance by               ation [50]. While testing, the robot started from a random
+training and evaluating policies entirely within the SplatSim,       location and achieved a 90% success rate (36/40 trials)
+allowing us to quantify the degradation in performance               in zero-shot Sim2Real transfer as shown in Table I. This
+during Sim2Real transfer. Lastly, we investigate the effects         result shows the effectiveness of our framework in handling
+of data augmentation on the transfer process and evaluate            the dynamics of pushing without fine-tuning on real-world
+the visual fidelity of the photorealistic renderings generated       demonstrations. Additionally, the performance of our method
+by the SplatSim framework.                                           is comparable to Real2Real (40/40) and Sim2Sim (40/40).
+                                                                        2) Pick-Up-Apple Task: The Pick-Up-Apple task involves
+A. Demonstrations in the Real World and Simulation
+                                                                     grasping and manipulating the full pose of an object (i.e.,
+   In the real world, demonstrations for each task were              position and orientation) in 3D. This task was designed
+manually collected by a human expert. In contrast, the               to evaluate the robot’s grasping capabilities when trained
+simulator streamlines this process by employing privileged           using our simulated renderings. A motion planner, leveraging
+information-based motion planners, which automatically               privileged state information from the simulator (accurate
+generate data using privileged information, such as the posi-        position and orientation of each rigid body in the scene),
+tion and orientation of each rigid body in the scene. The sim-       generated 400 demonstrations with randomized end-effector
+ulator not only reduces effort by automating resets between          positions and orientations. During real-world trials, our pol-
+demonstrations when a human expert is involved but more              icy achieved a 95% success rate (38/40 trials) in zero-shot
+importantly, it leverages motion planners that eliminate the         Sim2Real transfer, as shown in Table I.
+             Fig. 5: SplatSim Rollout: enderings from our SplatSim framework across four different manipulation tasks.
+
+
+   3) Orange on Plate Task: In this task the robot has to pick     that the simulated images closely approximates the visual
+up an orange and place it on a plate. In simulation, a motion      quality of the real-world RGB observations.
+planner with access to privileged information, generated 400
+demonstrations. The end-effector position and initial gripper      D. Effect of Augmentations
+state were randomized during training. During testing, the            To quantify the impact of data augmentations on the
+robot always started from a home position. We achieved             Sim2Real performance of our policy, we conducted exper-
+a 90% success rate (36/40 trials) in zero-shot Sim2Real            iments comparing policies trained with and without aug-
+transfer.                                                          mentations. While the Diffusion-Policy performs effectively
+   4) Assembly Task: In this task the robot has to put a           without augmentations in consistent environments (e.g.,
+cuboid block on top of another cuboid. The robot starts at the     Sim2Sim or Real2Real scenarios), transferring a policy
+home position with the green cube already grasped and has to       trained in simulation to the real world introduces domain
+place it on top of the red cube. The task is particularly tough    shifts that necessitate additional robustness as the renderings
+since the robot has to make a precise placement otherwise the      can’t capture dynamic details like changing reflections and
+cube will fall and will lead to a failure case. Our Sim2Real       shadows. We incorporated augmentations such as random
+policy achieved a performance of 70% (28/40 trials) on this        noise addition, Color Jitter, and random erasing during
+task, compared to 95% on Sim2Sim and 90% on Real2Real.             training to address these shifts. These augmentations improve
+                                                                   the performance of the policy from 21% to 86.25% across
+                                                                   four tasks in Sec. V-B.
+C. Quantifying Robot Renderings                                                          VI. C ONCLUSION
+  We quantitatively evaluate the accuracy of rendered robot           In this work, we tackled the challenge of reducing the
+images at various joint configurations by comparing them           Sim2Real gap for RGB-based manipulation policies by
+with the real-world images. We assess the quality of the           leveraging Gaussian Splatting as a photorealistic rendering
+robot’s renderings across 300 different robot joint angles. To     technique, integrated with existing simulators for physics-
+measure the similarity between the rendered and real-world         based interactions. Our framework enables zero-shot transfer
+images, we employ two metrics commonly used in image               of RGB-based manipulation policies trained in simulation
+rendering assessment: Peak Signal-to-Noise Ratio (PSNR)            to real-world environments. While our framework advances
+and Structural Similarity Index Measure (SSIM). Despite the        the current state-of-the-art, it is still limited to rigid body
+variations in joint configurations, the renderings achieve an      manipulation and cannot handle complex objects such as
+average PSNR of 22.62 and an SSIM of 0.7845, indicating            cloth, liquids, or plants. In the future, our plan is to combine
+our framework with reinforcement learning-based methods to                     [14] J. Gu, F. Xiang, X. Li, Z. Ling, X. Liu, T. Mu, Y. Tang, S. Tao, X. Wei,
+acquire more dynamic skills. We will also further improve                           Y. Yao, X. Yuan, P. Xie, Z. Huang, R. Chen, and H. Su, “Maniskill2:
+                                                                                    A unified benchmark for generalizable manipulation skills,” in Inter-
+our system to train and deploy robots in highly complex and                         national Conference on Learning Representations, 2023.
+contact-rich tasks in the real world. Specifically, agricultural               [15] T. Mu, Z. Ling, F. Xiang, D. Yang, X. Li, S. Tao, Z. Huang, Z. Jia, and
+tasks such as pruning and harvesting, which require data that                       H. Su, “Maniskill: Generalizable manipulation skill benchmark with
+                                                                                    large-scale demonstrations.” in NeurIPS Datasets and Benchmarks,
+is challenging to obtain under field conditions, could greatly                      J. Vanschoren and S.-K. Yeung, Eds., 2021. [Online]. Available: http://
+benefit from our proposed method.                                                   dblp.uni-trier.de/db/conf/nips/neurips2021db.html#MuLXYLLTHJ021
+                                                                               [16] S. Tao, F. Xiang, A. Shukla, Y. Qin, X. Hinrichsen, X. Yuan,
+                       ACKNOWLEDGEMENT                                              C. Bao, X. Lin, Y. Liu, T. kai Chan, Y. Gao, X. Li, T. Mu,
+                                                                                    N. Xiao, A. Gurha, Z. Huang, R. Calandra, R. Chen, S. Luo,
+   We would like to express our gratitude to Prof. Shubham                          and H. Su, “Maniskill3: Gpu parallelized robotics simulation and
+Tulsiani for his valuable insights during the early develop-                        rendering for generalizable embodied ai,” 2024. [Online]. Available:
+                                                                                    https://arxiv.org/abs/2410.00425
+ment of this idea. We also extend our thanks to Anurag                         [17] D. Hoeller, N. Rudin, D. Sako, and M. Hutter, “Anymal parkour:
+Ghosh and Ayush Jain for their thoughtful feedback in                               Learning agile navigation for quadrupedal robots,” 2023. [Online].
+refining the manuscript. This work is in part supported by                          Available: https://arxiv.org/abs/2306.14874
+NSF/USDA-NIFA AIIRA AI Research Institute 2021-67021-                          [18] Z. Zhuang, Z. Fu, J. Wang, C. Atkeson, S. Schwertfeger, C. Finn, and
+                                                                                    H. Zhao, “Robot parkour learning,” in Conference on Robot Learning
+35329 and USDA-NIFA/NSF National Robotics Initiative                                (CoRL), 2023.
+2021-67021-35974.                                                              [19] Z. Fu, X. Cheng, and D. Pathak, “Deep whole-body control: Learning
+                                                                                    a unified policy for manipulation and locomotion,” in Proceedings of
+                             R EFERENCES                                            The 6th Conference on Robot Learning, ser. Proceedings of Machine
+                                                                                    Learning Research, K. Liu, D. Kulic, and J. Ichnowski, Eds., vol.
+ [1] A. Agarwal, A. Kumar, J. Malik, and D. Pathak, “Legged locomotion              205. PMLR, 14–18 Dec 2023, pp. 138–149. [Online]. Available:
+     in challenging terrains using egocentric vision,” CoRL, 2022.                  https://proceedings.mlr.press/v205/fu23a.html
+ [2] X. Cheng, K. Shi, A. Agarwal, and D. Pathak, “Extreme parkour with        [20] I. Radosavovic, T. Xiao, B. Zhang, T. Darrell, J. Malik, and
+     legged robots,” in 2024 IEEE International Conference on Robotics              K. Sreenath, “Learning humanoid locomotion with transformers,”
+     and Automation (ICRA), 2024, pp. 11 443–11 450.                                arXiv:2303.03381, 2023.
+ [3] H. Qi, A. Kumar, R. Calandra, Y. Ma, and J. Malik, “In-                   [21] A. Kumar, Z. Li, J. Zeng, D. Pathak, K. Sreenath, and J. Malik, “Adapt-
+     hand object rotation via rapid motor adaptation,” in 6th Annual                ing rapid motor adaptation for bipedal robots,” in 2022 IEEE/RSJ
+     Conference on Robot Learning, 2022. [Online]. Available: https:                International Conference on Intelligent Robots and Systems (IROS),
+     //openreview.net/forum?id=Xux9gSS7WE0                                          2022, pp. 1161–1168.
+ [4] Y. Yuan, H. Che, Y. Qin, B. Huang, Z.-H. Yin, K.-W. Lee, Y. Wu,           [22] B. Eisner, H. Zhang, and D. Held, “FlowBot3D: Learning 3D Artic-
+     S.-C. Lim, and X. Wang, “Robot synesthesia: In-hand manipulation               ulation Flow to Manipulate Articulated Objects,” in Proceedings of
+     with visuotactile sensing,” in 2024 IEEE International Conference on           Robotics: Science and Systems, New York City, NY, USA, June 2022.
+     Robotics and Automation (ICRA), 2024, pp. 6558–6565.                      [23] H. Zhang, B. Eisner, and D. Held, “Flowbot++: Learning generalized
+ [5] A. Handa, A. Allshire, V. Makoviychuk, A. Petrenko, R. Singh, J. Liu,          articulated objects manipulation via articulation projection,” in 7th
+     D. Makoviichuk, K. Van Wyk, A. Zhurkevich, B. Sundaralingam,                   Annual Conference on Robot Learning, 2023.
+     and Y. Narang, “Dextreme: Transfer of agile in-hand manipulation          [24] E. Su, C. Jia, Y. Qin, W. Zhou, A. Macaluso, B. Huang,
+     from simulation to reality,” in 2023 IEEE International Conference             and X. Wang, “Sim2real manipulation on unknown objects with
+     on Robotics and Automation (ICRA), 2023, pp. 5977–5984.                        tactile-based reinforcement learning,” 2024. [Online]. Available:
+ [6] Z.-H. Yin, B. Huang, Y. Qin, Q. Chen, and X. Wang, “Rotating                   https://arxiv.org/abs/2403.12170
+     without seeing: Towards in-hand dexterity through touch.” in
+                                                                               [25] W. Zhou, B. Jiang, F. Yang, C. Paxton, and D. Held, “Hacman:
+     Robotics: Science and Systems, K. E. Bekris, K. Hauser, S. L.
+                                                                                    Learning hybrid actor-critic maps for 6d non-prehensile manipulation,”
+     Herbert, and J. Yu, Eds., 2023. [Online]. Available: http://dblp.
+                                                                                    in 7th Annual Conference on Robot Learning, 2023.
+     uni-trier.de/db/conf/rss/rss2023.html#YinHQCW23
+ [7] T. G. W. Lum, M. Matak, V. Makoviychuk, A. Handa, A. Allshire,            [26] A. Loquercio, E. Kaufmann, R. Ranftl, A. Dosovitskiy, V. Koltun, and
+     T. Hermans, N. D. Ratliff, and K. V. Wyk, “Dextrah-g: Pixels-to-               D. Scaramuzza, “Deep drone racing: From simulation to reality with
+     action dexterous arm-hand grasping with geometric fabrics,” 2024.              domain randomization,” IEEE Transactions on Robotics, 2019.
+     [Online]. Available: https://arxiv.org/abs/2407.02274                     [27] B. Huang, Y. Chen, T. Wang, Y. Qin, Y. Yang, N. Atanasov, and
+ [8] B. Kerbl, G. Kopanas, T. Leimkühler, and G. Drettakis, “3d gaussian           X. Wang, “Dynamic handover: Throw and catch with bimanual
+     splatting for real-time radiance field rendering,” ACM Transactions            hands,” in 7th Annual Conference on Robot Learning, 2023. [Online].
+     on Graphics, vol. 42, no. 4, July 2023. [Online]. Available:                   Available: https://openreview.net/forum?id=dgwvY3H8PAS
+     https://repo-sam.inria.fr/fungraph/3d-gaussian-splatting/                 [28] S. James, A. J. Davison, and E. Johns, “Transferring end-to-end
+ [9] H. Yu, “On sim2real transfer in robotics,” https://www.haonanyu.blog/          visuomotor control from simulation to real world for a multi-
+     post/sim2real/, 2024, blog post.                                               stage task,” in Proceedings of the 1st Annual Conference on
+[10] E. Coumans and Y. Bai, “Pybullet, a python module for physics sim-             Robot Learning, ser. Proceedings of Machine Learning Research,
+     ulation for games, robotics and machine learning,” http://pybullet.org,        S. Levine, V. Vanhoucke, and K. Goldberg, Eds., vol. 78.
+     2016–2021.                                                                     PMLR, 13–15 Nov 2017, pp. 334–343. [Online]. Available:
+[11] M. Mittal, C. Yu, Q. Yu, J. Liu, N. Rudin, D. Hoeller, J. L. Yuan,             https://proceedings.mlr.press/v78/james17a.html
+     R. Singh, Y. Guo, H. Mazhar, A. Mandlekar, B. Babich, G. State,           [29] J. Matas, S. James, and A. J. Davison, “Sim-to-real reinforcement
+     M. Hutter, and A. Garg, “Orbit: A unified simulation framework for             learning for deformable object manipulation,” in Proceedings of The
+     interactive robot learning environments,” IEEE Robotics and Automa-            2nd Conference on Robot Learning, ser. Proceedings of Machine
+     tion Letters, vol. 8, no. 6, pp. 3740–3747, 2023.                              Learning Research, A. Billard, A. Dragan, J. Peters, and J. Morimoto,
+[12] E. Todorov, T. Erez, and Y. Tassa, “Mujoco: A physics                          Eds., vol. 87. PMLR, 29–31 Oct 2018, pp. 734–743. [Online].
+     engine for model-based control.” in IROS. IEEE, 2012, pp.                      Available: https://proceedings.mlr.press/v87/matas18a.html
+     5026–5033. [Online]. Available: http://dblp.uni-trier.de/db/conf/iros/    [30] J. Tobin, R. Fong, A. Ray, J. Schneider, W. Zaremba, and P. Abbeel,
+     iros2012.html#TodorovET12                                                      “Domain randomization for transferring deep neural networks from
+[13] C. Aguero, N. Koenig, I. Chen, H. Boyer, S. Peters, J. Hsu, B. Gerkey,         simulation to the real world,” in 2017 IEEE/RSJ International Con-
+     S. Paepcke, J. Rivero, J. Manzo, E. Krotkov, and G. Pratt, “Inside             ference on Intelligent Robots and Systems (IROS), 2017, pp. 23–30.
+     the virtual robotics challenge: Simulating real-time robotic disaster     [31] S. James, P. Wohlhart, M. Kalakrishnan, D. Kalashnikov, A. Irpan,
+     response,” Automation Science and Engineering, IEEE Transactions               J. Ibarz, S. Levine, R. Hadsell, and K. Bousmalis, “Sim-to-real via sim-
+     on, vol. 12, no. 2, pp. 494–506, April 2015.                                   to-sim: Data-efficient robotic grasping via randomized-to-canonical
+     adaptation networks,” in 2019 IEEE/CVF Conference on Computer                  M. D. Kennedy, and M. Schwager, “Splat-MOVER: Multi-stage, open-
+     Vision and Pattern Recognition (CVPR), 2019, pp. 12 619–12 629.                vocabulary robotic manipulation via editable gaussian splatting,” in
+[32] K. Rao, C. Harris, A. Irpan, S. Levine, J. Ibarz, and M. Khansari, “Rl-        8th Annual Conference on Robot Learning, 2024. [Online]. Available:
+     cyclegan: Reinforcement learning aware simulation-to-real,” in 2020            https://openreview.net/forum?id=8XFT1PatHy
+     IEEE/CVF Conference on Computer Vision and Pattern Recognition            [45] M. Ji, R.-Z. Qiu, X. Zou, and X. Wang, “Graspsplats: Efficient
+     (CVPR), 2020, pp. 11 154–11 163.                                               manipulation with 3d feature splatting,” in 8th Annual Conference
+[33] M. T. Villasevil, A. Simeonov, Z. Li, A. Chan, T. Chen, A. Gupta,              on Robot Learning, 2024. [Online]. Available: https://openreview.net/
+     and P. Agrawal, “Reconciling Reality through Simulation: A Real-To-            forum?id=pPhTsonbXq
+     Sim-to-Real Approach for Robust Manipulation,” in Proceedings of          [46] B. P. Duisterhof, Z. Mandi, Y. Yao, J.-W. Liu, J. Seidenschwarz, M. Z.
+     Robotics: Science and Systems, Delft, Netherlands, July 2024.                  Shou, D. Ramanan, S. Song, S. Birchfield, B. Wen, and J. Ichnowski,
+[34] Z. Yuan, T. Wei, S. Cheng, G. Zhang, Y. Chen, and H. Xu,                       “Deformgs: Scene flow in highly deformable scenes for deformable
+     “Learning to manipulate anywhere: A visual generalizable framework             object manipulation,” in The 16th International Workshop on the
+     for reinforcement learning,” in 8th Annual Conference on Robot                 Algorithmic Foundations of Robotics (WAFR), 2024.
+     Learning, 2024. [Online]. Available: https://openreview.net/forum?id=     [47] J. Abou-Chakra, K. Rana, F. Dayoub, and N. Suenderhauf, “Physically
+     jart4nhCQr                                                                     embodied gaussian splatting: A realtime correctable world model
+[35] B. Mildenhall, P. P. Srinivasan, M. Tancik, J. T. Barron, R. Ramamoor-         for robotics,” in 8th Annual Conference on Robot Learning, 2024.
+     thi, and R. Ng, “Nerf: Representing scenes as neural radiance fields           [Online]. Available: https://openreview.net/forum?id=AEq0onGrN2
+     for view synthesis,” in ECCV, 2020.                                       [48] H. Lou, Y. Liu, Y. Pan, Y. Geng, J. Chen, W. Ma, C. Li, L. Wang,
+[36] T. Müller, A. Evans, C. Schied, and A. Keller, “Instant neural                H. Feng, L. Shi, L. Luo, and Y. Shi, “Robo-gs: A physics consistent
+     graphics primitives with a multiresolution hash encoding,” ACM                 spatial-temporal model for robotic arm with hybrid representation,”
+     Trans. Graph., vol. 41, no. 4, pp. 102:1–102:15, Jul. 2022. [Online].          2024. [Online]. Available: https://arxiv.org/abs/2408.14873
+     Available: https://doi.org/10.1145/3528223.3530127                        [49] A. Quach, M. Chahine, A. Amini, R. Hasani, and D. Rus, “Gaussian
+[37] J. T. Barron, B. Mildenhall, M. Tancik, P. Hedman, R. Martin-Brualla,          splatting to real world flight navigation transfer with liquid networks,”
+     and P. P. Srinivasan, “Mip-nerf: A multiscale representation for anti-         in 8th Annual Conference on Robot Learning, 2024. [Online].
+     aliasing neural radiance fields,” ICCV, 2021.                                  Available: https://openreview.net/forum?id=ubq7Co6Cbv
+[38] A. Yu, V. Ye, M. Tancik, and A. Kanazawa, “pixelNeRF: Neural              [50] P. Wu, Y. Shentu, Z. Yi, X. Lin, and P. Abbeel, “Gello: A general, low-
+     radiance fields from one or few images,” in CVPR, 2021.                        cost, and intuitive teleoperation framework for robot manipulators,”
+[39] J. Luiten, G. Kopanas, B. Leibe, and D. Ramanan, “Dynamic 3d                   2023.
+     gaussians: Tracking by persistent dynamic view synthesis,” in 3DV,        [51] C. Chi, S. Feng, Y. Du, Z. Xu, E. Cousineau, B. Burchfiel, and S. Song,
+     2024.                                                                          “Diffusion policy: Visuomotor policy learning via action diffusion,” in
+[40] G. Wu, T. Yi, J. Fang, L. Xie, X. Zhang, W. Wei, W. Liu, Q. Tian,              Proceedings of Robotics: Science and Systems (RSS), 2023.
+     and X. Wang, “4d gaussian splatting for real-time dynamic scene           [52] C. Chi, Z. Xu, S. Feng, E. Cousineau, Y. Du, B. Burchfiel, R. Tedrake,
+     rendering,” in Proceedings of the IEEE/CVF Conference on Computer              and S. Song, “Diffusion policy: Visuomotor policy learning via action
+     Vision and Pattern Recognition (CVPR), June 2024, pp. 20 310–20 320.           diffusion,” The International Journal of Robotics Research, 2024.
+[41] Y. Chen, C. Gu, J. Jiang, X. Zhu, and L. Zhang, “Periodic vibration       [53] A. Byravan, J. Humplik, L. Hasenclever, A. Brussee, F. Nori,
+     gaussian: Dynamic urban scene reconstruction and real-time render-             T. Haarnoja, B. Moran, S. Bohez, F. Sadeghi, B. Vujatovic, and
+     ing,” arXiv:2311.18561, 2023.                                                  N. Heess, “Nerf2real: Sim2real transfer of vision-guided bipedal
+[42] J. Bae, S. Kim, Y. Yun, H. Lee, G. Bang, and Y. Uh, “Per-gaussian              motion skills using neural radiance fields,” in 2023 IEEE International
+     embedding-based deformation for deformable 3d gaussian splatting,”             Conference on Robotics and Automation (ICRA), 2023, pp. 9362–
+     in European Conference on Computer Vision (ECCV), 2024.                        9369.
+[43] T. Xie, Z. Zong, Y. Qiu, X. Li, Y. Feng, Y. Yang, and C. Jiang, “Phys-    [54] L. Keselman, J. I. Woodfill, A. Grunnet-Jepsen, and A. Bhowmik,
+     gaussian: Physics-integrated 3d gaussians for generative dynamics,”            “Intel(r) realsense(tm) stereoscopic depth cameras,” in 2017 IEEE
+     arXiv preprint arXiv:2311.12198, 2023.                                         Conference on Computer Vision and Pattern Recognition Workshops
+[44] O. Shorinwa, J. Tucker, A. Smith, A. Swann, T. Chen, R. Firoozi,               (CVPRW), 2017, pp. 1267–1276.
+

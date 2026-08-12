@@ -1,17 +1,17 @@
 <!DOCTYPE html>
+
 <html lang="zh-CN">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Cosmos-Predict2.5 · NVIDIA 视频世界模型基座</title>
-  <link rel="stylesheet" href="../assets/css/style.css">
-  <script src="../assets/js/theme.js"></script>
-  <script src="../assets/js/interactive.js" defer></script>
-  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16/dist/katex.min.css">
-  <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16/dist/katex.min.js"></script>
-  <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16/dist/contrib/auto-render.min.js"
-          onload="renderMathInElement(document.body,{delimiters:[{left:'$$',right:'$$',display:true},{left:'$',right:'$',display:false}]})"></script>
-  <style>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Cosmos-Predict2.5 · NVIDIA 视频世界模型基座</title>
+<link href="../assets/css/style.css" rel="stylesheet"/>
+<script src="../assets/js/theme.js"></script>
+<script defer="" src="../assets/js/interactive.js"></script>
+<link href="https://cdn.jsdelivr.net/npm/katex@0.16/dist/katex.min.css" rel="stylesheet"/>
+<script defer="" src="https://cdn.jsdelivr.net/npm/katex@0.16/dist/katex.min.js"></script>
+<script defer="" onload="renderMathInElement(document.body,{delimiters:[{left:'$$',right:'$$',display:true},{left:'$',right:'$',display:false}]})" src="https://cdn.jsdelivr.net/npm/katex@0.16/dist/contrib/auto-render.min.js"></script>
+<style>
     .docs-layout { display: grid; grid-template-columns: 220px minmax(0, 1fr); max-width: 1400px; margin: 0 auto; }
     .sidebar { position: sticky; top: 60px; height: calc(100vh - 60px); overflow-y: auto; padding: 24px 16px; border-right: 1px solid var(--border); background: var(--bg); }
     .sidebar-title { font-family: var(--font-mono); font-size: 10px; color: var(--text3); letter-spacing: 0.08em; text-transform: uppercase; margin-bottom: 16px; padding-bottom: 8px; border-bottom: 1px solid var(--border); }
@@ -147,629 +147,522 @@
 </head>
 <body>
 <nav class="nav">
-  <div class="nav-inner">
-    <a class="nav-logo" href="../index.html">← Embodied Notes</a>
-    <div class="nav-links">
-      <a href="dreamdojo.html">DreamDojo</a>
-      <a href="cosmos3.html">Cosmos 3</a>
-      <a href="../index.html">首页</a>
-    </div>
-    <button class="theme-toggle" onclick="toggleTheme()" title="切换主题">◐</button>
-  </div>
+<div class="nav-inner">
+<a class="nav-logo" href="../index.html">← Embodied Notes</a>
+<div class="nav-links">
+<a href="dreamdojo.html">DreamDojo</a>
+<a href="cosmos3.html">Cosmos 3</a>
+<a href="../index.html">首页</a>
+</div>
+<button class="theme-toggle" onclick="toggleTheme()" title="切换主题">◐</button>
+</div>
 </nav>
-
 <div style="height:56px"></div>
-
 <div class="docs-layout">
-  <!-- Sidebar -->
-  <aside class="sidebar">
-    <div class="sidebar-title">Cosmos-Predict2.5</div>
-    <ul class="sidebar-tree">
-      <li><a href="#s01">§01 论文定位</a></li>
-      <li><a href="#s02">§02 数据管道</a></li>
-      <li><a href="#s03">§03 模型架构</a></li>
-      <li><a href="#s04">§04 训练配方</a></li>
-      <li><a href="#s05">§05 Cosmos-Transfer2.5</a></li>
-      <li><a href="#s06">§06 下游应用</a></li>
-      <li><a href="#s07">§07 实验结果</a></li>
-      <li><a href="#s08">§08 与 Embodied AI 的联系</a></li>
-    </ul>
-  </aside>
-
-  <main class="main-content">
-    <!-- Paper Header -->
-    <div class="paper-header">
-      <div class="paper-venue">NVIDIA · arXiv:2511.00062 · 2026-02-24</div>
-      <div class="paper-title">World Simulation with Video Foundation Models for Physical AI<br>
-        <span style="font-size:20px;color:var(--text2)">Cosmos-Predict2.5 · 面向 Physical AI 的视频基础世界模型</span>
-      </div>
-      <div class="paper-authors">NVIDIA Research</div>
-      <div class="paper-badges">
-        <span class="badge badge-green">世界模型</span>
-        <span class="badge badge-green">视频生成</span>
-        <span class="badge badge-blue">Flow Matching</span>
-        <span class="badge badge-blue">DiT</span>
-        <span class="badge badge-amber">Physical AI</span>
-        <span class="badge badge-purple">RL Post-training</span>
-        <span class="badge">2B / 14B 开源</span>
-      </div>
-    </div>
-
-    <!-- §01 论文定位 -->
-    <div class="section" id="s01">
-      <div class="section-num">§ 01</div>
-      <h2>论文定位：为什么机器人训练需要视频世界模型</h2>
-
-      <div class="cn-read">
-        <div class="cn-label">这一节解决什么</div>
-        <p>在真实世界里训练机器人又贵又危险——机器出错可能损坏设备或伤人，而且要覆盖所有场景几乎不可能。<strong>解决思路</strong>：用一个高质量的"视频世界模拟器"来替代真实环境，让机器人的感知、规划和策略评估全部在"数字世界"里进行，调好了再部署到真实硬件。Cosmos-Predict2.5 就是 NVIDIA 提供的这把"数字世界生成引擎"——可以根据文字、图片或视频片段，生成物理上真实可信的未来视频。</p>
-      </div>
-
-      <p>Cosmos-Predict2.5 是对前一代 Cosmos-Predict1 的全面升级，核心改进体现在三个维度：</p>
-
-      <div class="module-grid">
-        <div class="module-card">
-          <div class="module-card-name">IMPROVEMENT 01 · 训练目标</div>
-          <div class="module-card-title">EDM → Flow Matching</div>
-          <div class="module-card-desc">把扩散模型的噪声预测目标换成速度场预测（Flow Matching），训练信号更直接，推理步数更少，生成质量更稳定。</div>
-        </div>
-        <div class="module-card">
-          <div class="module-card-name">IMPROVEMENT 02 · 文字理解</div>
-          <div class="module-card-title">T5 → Cosmos-Reason1</div>
-          <div class="module-card-desc">把通用的 T5 文字编码器替换为专为 Physical AI 设计的 VLM（Cosmos-Reason1），提供更丰富的语义表示，文字控制更精准。</div>
-        </div>
-        <div class="module-card">
-          <div class="module-card-name">IMPROVEMENT 03 · 后训练</div>
-          <div class="module-card-title">SFT + RL + 模型合并</div>
-          <div class="module-card-desc">引入强化学习（VideoAlign 奖励模型）+ TIES/DARE 模型合并，把各领域专项模型融合为一个全能统一模型。</div>
-        </div>
-        <div class="module-card">
-          <div class="module-card-name">NEW · 伴生模型</div>
-          <div class="module-card-title">Cosmos-Transfer2.5</div>
-          <div class="module-card-desc">ControlNet 风格的 Sim2Real 转换器，把仿真器渲染图（IsaacSim 等）转化为真实感视频，体积比前代小 3.5×。</div>
-        </div>
-      </div>
-
-      <table class="kv-table">
-        <tr><td>统一模式</td><td>Text2World / Image2World / Video2World 三种模式合并为一个模型</td></tr>
-        <tr><td>模型规格</td><td>Cosmos-Predict2.5-2B（32层）和 14B（36层），3D RoPE 位置编码</td></tr>
-        <tr><td>视频压缩</td><td>WAN2.1 VAE，时间×空间 = 4×8×8 压缩比；生成 93 帧 @ 16fps ≈ 5.8 秒视频</td></tr>
-        <tr><td>开源协议</td><td>NVIDIA Open Model License，代码和权重均公开</td></tr>
-      </table>
-
-      <div class="callout purple">
-        <div class="callout-label">与 DreamDojo 的关系</div>
-        <p>DreamDojo（2026）直接使用 Cosmos-Predict2.5 作为视频生成骨架，并在其上加入了"潜在动作注入"和"Self Forcing 蒸馏"机制，使其能接受机器人动作条件，实现跨具身泛化的世界模型。MotionWAM / SONIC 同样以 Cosmos-Predict2.5 为基底，加入自己的动作条件机制。</p>
-      </div>
-
-      <div class="quiz"
-           data-correct="c"
-           data-explain="Cosmos-Predict2.5 是视频世界模型基座，本身不直接输出动作。DreamDojo/MotionWAM 等工作在其上加了动作条件机制，才能处理机器人动作。"
-           data-explain-wrong="Cosmos-Predict2.5 主要输出的是视频帧，不是动作序列。">
-        <div class="q-label">🧠 理解检查</div>
-        <div class="q-text">Cosmos-Predict2.5 相比 Cosmos-Predict1 最核心的训练目标变化是什么？</div>
-        <div class="q-options">
-          <button class="q-opt" data-k="a">从 Transformer 换成了 CNN 骨架</button>
-          <button class="q-opt" data-k="b">从 Flow Matching 换成了 EDM 扩散</button>
-          <button class="q-opt" data-k="c">从 EDM 扩散换成了 Flow Matching，预测速度场而非噪声</button>
-          <button class="q-opt" data-k="d">引入了 Mamba 状态空间模型</button>
-        </div>
-        <div class="q-feedback"></div>
-      </div>
-    </div>
-
-    <!-- §02 数据管道 -->
-    <div class="section" id="s02">
-      <div class="section-num">§ 02</div>
-      <h2>数据管道：7 阶段视频策展，只有 4% 通过</h2>
-
-      <div class="cn-read">
-        <div class="cn-label">这一节解决什么</div>
-        <p>上一节确立了 Cosmos-Predict2.5 相比 Cosmos-1 的改进方向。但好模型的前提是好数据——论文在原有 Cosmos-1 数据管道上做了大规模扩充和质量升级。核心结论：<strong>从 350 亿原始视频中只保留 2 亿高质量片段（约 4% 存活率）</strong>，用于预训练。严格过滤是生成质量的关键保障。</p>
-      </div>
-
-      <h3>七阶段过滤管线</h3>
-
-      <div class="fig-interactive panel-below">
-        <div class="fig-block">
-          <div class="hotspot-wrap" data-hotspot-group="fig1">
-            <img src="../assets/figures/cosmos-predict2/fig-1.png" alt="Fig 1: 视频数据策展管线">
-            <div class="hotspot" data-id="shot" style="left:18%; top:30%"
-                 data-title="Shot-Aware Video Splitting · 镜头感知分割"
-                 data-body="用高精度镜头边界检测模型把长视频切成单镜头片段，确保每段没有跨镜头跳切。低于 5 秒的片段直接丢弃，保留 5-60 秒的片段。"></div>
-            <div class="hotspot" data-id="filter" style="left:47%; top:25%"
-                 data-title="多级过滤器组 · Multi-stage Filters"
-                 data-body="六重过滤：① 美学质量评分（运动幅度打分）② OCR 检测（去掉文字遮挡）③ 感知质量过滤（DOVER-like）④ 语义伪影检测（VTSS）⑤ VLM 高精度过滤 ⑥ 内容类型分类器。最终仅约 4% 的片段存活。"></div>
-            <div class="hotspot" data-id="caption" style="left:72%; top:20%"
-                 data-title="Video Captioning · 视频字幕生成"
-                 data-body="用 Qwen2.5-VL-7B 将每个片段切成 5 秒窗口，为每个窗口生成短/中/长三种长度的描述，既作为监督信号也作为推理时的条件 Prompt。"></div>
-            <div class="hotspot" data-id="dedup" style="left:72%; top:55%"
-                 data-title="Semantic Deduplication · 语义去重"
-                 data-body="基于 Embedding 聚类，在每个簇内两两比较，去除语义相似的片段，保留最高分辨率版本。支持增量去重（新片段与旧片段比较）。"></div>
-            <div class="hotspot" data-id="shard" style="left:87%; top:72%"
-                 data-title="Sharding · 分片归档"
-                 data-body="按 26 种内容类型 × 分辨率 × 纵横比 × 时长四个轴进行分片，支持课程学习和领域采样，最终产出 2 亿片段预训练数据集。"></div>
-          </div>
-          <div class="fig-cap">
-            <span class="fig-num">Fig 1 · p.5</span>
+<!-- Sidebar -->
+<aside class="sidebar">
+<div class="sidebar-title">Cosmos-Predict2.5</div>
+<ul class="sidebar-tree">
+<li><a href="#s01">§01 论文定位</a></li>
+<li><a href="#s02">§02 数据管道</a></li>
+<li><a href="#s03">§03 模型架构</a></li>
+<li><a href="#s04">§04 训练配方</a></li>
+<li><a href="#s05">§05 Cosmos-Transfer2.5</a></li>
+<li><a href="#s06">§06 下游应用</a></li>
+<li><a href="#s07">§07 实验结果</a></li>
+<li><a href="#s08">§08 与 Embodied AI 的联系</a></li>
+</ul>
+</aside>
+<main class="main-content">
+<!-- Paper Header -->
+<div class="paper-header">
+<div class="paper-venue">NVIDIA · arXiv:2511.00062 · 2026-02-24</div>
+<div class="paper-title">World Simulation with Video Foundation Models for Physical AI<br/>
+<span style="font-size:20px;color:var(--text2)">Cosmos-Predict2.5 · 面向 Physical AI 的视频基础世界模型</span>
+</div>
+<div class="paper-authors">NVIDIA Research</div>
+<div class="paper-badges">
+<span class="badge badge-green">世界模型</span>
+<span class="badge badge-green">视频生成</span>
+<span class="badge badge-blue">Flow Matching</span>
+<span class="badge badge-blue">DiT</span>
+<span class="badge badge-amber">Physical AI</span>
+<span class="badge badge-purple">RL Post-training</span>
+<span class="badge">2B / 14B 开源</span>
+</div>
+</div>
+<!-- §01 论文定位 -->
+<div class="section" id="s01">
+<div class="section-num">§ 01</div>
+<h2>论文定位：为什么机器人训练需要视频世界模型</h2>
+<div class="cn-read">
+<div class="cn-label">这一节解决什么</div>
+<p>在真实世界里训练机器人又贵又危险——机器出错可能损坏设备或伤人，而且要覆盖所有场景几乎不可能。<strong>解决思路</strong>：用一个高质量的"视频世界模拟器"来替代真实环境，让机器人的感知、规划和策略评估全部在"数字世界"里进行，调好了再部署到真实硬件。Cosmos-Predict2.5 就是 NVIDIA 提供的这把"数字世界生成引擎"——可以根据文字、图片或视频片段，生成物理上真实可信的未来视频。</p>
+</div>
+<p>Cosmos-Predict2.5 是对前一代 Cosmos-Predict1 的全面升级，核心改进体现在三个维度：</p>
+<div class="module-grid">
+<div class="module-card">
+<div class="module-card-name">IMPROVEMENT 01 · 训练目标</div>
+<div class="module-card-title">EDM → Flow Matching</div>
+<div class="module-card-desc">把扩散模型的噪声预测目标换成速度场预测（Flow Matching），训练信号更直接，推理步数更少，生成质量更稳定。</div>
+</div>
+<div class="module-card">
+<div class="module-card-name">IMPROVEMENT 02 · 文字理解</div>
+<div class="module-card-title">T5 → Cosmos-Reason1</div>
+<div class="module-card-desc">把通用的 T5 文字编码器替换为专为 Physical AI 设计的 VLM（Cosmos-Reason1），提供更丰富的语义表示，文字控制更精准。</div>
+</div>
+<div class="module-card">
+<div class="module-card-name">IMPROVEMENT 03 · 后训练</div>
+<div class="module-card-title">SFT + RL + 模型合并</div>
+<div class="module-card-desc">引入强化学习（VideoAlign 奖励模型）+ TIES/DARE 模型合并，把各领域专项模型融合为一个全能统一模型。</div>
+</div>
+<div class="module-card">
+<div class="module-card-name">NEW · 伴生模型</div>
+<div class="module-card-title">Cosmos-Transfer2.5</div>
+<div class="module-card-desc">ControlNet 风格的 Sim2Real 转换器，把仿真器渲染图（IsaacSim 等）转化为真实感视频，体积比前代小 3.5×。</div>
+</div>
+</div>
+<table class="kv-table">
+<tr><td>统一模式</td><td>Text2World / Image2World / Video2World 三种模式合并为一个模型</td></tr>
+<tr><td>模型规格</td><td>Cosmos-Predict2.5-2B（32层）和 14B（36层），3D RoPE 位置编码</td></tr>
+<tr><td>视频压缩</td><td>WAN2.1 VAE，时间×空间 = 4×8×8 压缩比；生成 93 帧 @ 16fps ≈ 5.8 秒视频</td></tr>
+<tr><td>开源协议</td><td>NVIDIA Open Model License，代码和权重均公开</td></tr>
+</table>
+<div class="callout purple">
+<div class="callout-label">与 DreamDojo 的关系</div>
+<p>DreamDojo（2026）直接使用 Cosmos-Predict2.5 作为视频生成骨架，并在其上加入了"潜在动作注入"和"Self Forcing 蒸馏"机制，使其能接受机器人动作条件，实现跨具身泛化的世界模型。MotionWAM / SONIC 同样以 Cosmos-Predict2.5 为基底，加入自己的动作条件机制。</p>
+</div>
+<div class="quiz" data-correct="c" data-explain="Cosmos-Predict2.5 是视频世界模型基座，本身不直接输出动作。DreamDojo/MotionWAM 等工作在其上加了动作条件机制，才能处理机器人动作。" data-explain-wrong="Cosmos-Predict2.5 主要输出的是视频帧，不是动作序列。">
+<div class="q-label">🧠 理解检查</div>
+<div class="q-text">Cosmos-Predict2.5 相比 Cosmos-Predict1 最核心的训练目标变化是什么？</div>
+<div class="q-options">
+<button class="q-opt" data-k="a">从 Transformer 换成了 CNN 骨架</button>
+<button class="q-opt" data-k="b">从 Flow Matching 换成了 EDM 扩散</button>
+<button class="q-opt" data-k="c">从 EDM 扩散换成了 Flow Matching，预测速度场而非噪声</button>
+<button class="q-opt" data-k="d">引入了 Mamba 状态空间模型</button>
+</div>
+<div class="q-feedback"></div>
+</div>
+</div>
+<!-- §02 数据管道 -->
+<div class="section" id="s02">
+<div class="section-num">§ 02</div>
+<h2>数据管道：7 阶段视频策展，只有 4% 通过</h2>
+<div class="cn-read">
+<div class="cn-label">这一节解决什么</div>
+<p>上一节确立了 Cosmos-Predict2.5 相比 Cosmos-1 的改进方向。但好模型的前提是好数据——论文在原有 Cosmos-1 数据管道上做了大规模扩充和质量升级。核心结论：<strong>从 350 亿原始视频中只保留 2 亿高质量片段（约 4% 存活率）</strong>，用于预训练。严格过滤是生成质量的关键保障。</p>
+</div>
+<h3>七阶段过滤管线</h3>
+<div class="fig-interactive panel-below">
+<div class="fig-block">
+<div class="hotspot-wrap" data-hotspot-group="fig1">
+<img alt="Fig 1: 视频数据策展管线" src="../assets/figures/cosmos-predict2/fig-1.png"/>
+<div class="hotspot" data-body="用高精度镜头边界检测模型把长视频切成单镜头片段，确保每段没有跨镜头跳切。低于 5 秒的片段直接丢弃，保留 5-60 秒的片段。" data-id="shot" data-title="Shot-Aware Video Splitting · 镜头感知分割" style="left:18%; top:30%"></div>
+<div class="hotspot" data-body="六重过滤：① 美学质量评分（运动幅度打分）② OCR 检测（去掉文字遮挡）③ 感知质量过滤（DOVER-like）④ 语义伪影检测（VTSS）⑤ VLM 高精度过滤 ⑥ 内容类型分类器。最终仅约 4% 的片段存活。" data-id="filter" data-title="多级过滤器组 · Multi-stage Filters" style="left:47%; top:25%"></div>
+<div class="hotspot" data-body="用 Qwen2.5-VL-7B 将每个片段切成 5 秒窗口，为每个窗口生成短/中/长三种长度的描述，既作为监督信号也作为推理时的条件 Prompt。" data-id="caption" data-title="Video Captioning · 视频字幕生成" style="left:72%; top:20%"></div>
+<div class="hotspot" data-body="基于 Embedding 聚类，在每个簇内两两比较，去除语义相似的片段，保留最高分辨率版本。支持增量去重（新片段与旧片段比较）。" data-id="dedup" data-title="Semantic Deduplication · 语义去重" style="left:72%; top:55%"></div>
+<div class="hotspot" data-body="按 26 种内容类型 × 分辨率 × 纵横比 × 时长四个轴进行分片，支持课程学习和领域采样，最终产出 2 亿片段预训练数据集。" data-id="shard" data-title="Sharding · 分片归档" style="left:87%; top:72%"></div>
+</div>
+<div class="fig-cap">
+<span class="fig-num">Fig 1 · p.5</span>
             Our video curation pipeline transforms raw, unstructured video data from diverse real-world sources into a high-quality, annotated, deduplicated, and sharded dataset.
             <span class="fig-cn">视频策展管线：从海量原始视频 → 高质量训练数据集。7 个阶段，只有约 4% 的片段最终进入训练。</span>
-          </div>
-        </div>
-        <div class="hotspot-panel">
-          <div class="hp-empty">点击图中绿点查看各阶段说明</div>
-        </div>
-      </div>
-
-      <h3>5 个领域专项数据集</h3>
-
-      <p>在通用预训练数据之外，论文还为 Physical AI 的五个目标领域定制了专项数据：</p>
-
-      <div class="module-grid">
-        <div class="module-card">
-          <div class="module-card-name">DOMAIN 01 · ROBOTICS</div>
-          <div class="module-card-title">机器人操作视频</div>
-          <div class="module-card-desc">收录 AgiBot-Beta（254k）、DROID（141k）、GR00T（3k）等数据集，增速和视角统一化处理；Caption 包含运动类型、部件信息、相机运动等。</div>
-        </div>
-        <div class="module-card">
-          <div class="module-card-name">DOMAIN 02 · AUTONOMOUS DRIVING</div>
-          <div class="module-card-title">自动驾驶多视角</div>
-          <div class="module-card-desc">310 万个 20 秒环视视频片段（7 路摄像头），覆盖美国/欧洲多种道路、天气、光照条件；Caption 包含交通行为、速度、方向信息。</div>
-        </div>
-        <div class="module-card">
-          <div class="module-card-name">DOMAIN 03 · SMART SPACES</div>
-          <div class="module-card-title">智能空间场景</div>
-          <div class="module-card-desc">仓库、工厂、建筑工地等工业场景视频，约 40k 片段；VLM 过滤确保场景相关性。</div>
-        </div>
-        <div class="module-card">
-          <div class="module-card-name">DOMAIN 04 · HUMAN DYNAMICS</div>
-          <div class="module-card-title">人体动态</div>
-          <div class="module-card-desc">YOLOX + RTMPose 标注人体姿态，保留每帧至少有一人占 3% 以上画面的片段，用于增强人类运动模拟能力。</div>
-        </div>
-      </div>
-
-      <details class="en-quote">
-        <summary>展开原文 · 数据管道规模对比</summary>
-        <div class="quote-body">
-          <p>"In contrast to the pipeline in [Cosmos-Predict1], the [Cosmos-Predict2.5] pipeline scales to a much larger volume, processing 35 million hours of raw video compared to 20 million clips and producing over 6 billion clips from which 200 million high-quality clips are retained."</p>
-          <div class="quote-cite">— §2.1, p.6</div>
-        </div>
-      </details>
-    </div>
-
-    <!-- §03 模型架构 -->
-    <div class="section" id="s03">
-      <div class="section-num">§ 03</div>
-      <h2>模型架构：Flow Matching DiT + WAN2.1 VAE + Cosmos-Reason1</h2>
-
-      <div class="cn-read">
-        <div class="cn-label">这一节解决什么</div>
-        <p>有了好数据，接下来是建模方式。Cosmos-Predict2.5 的架构是一个<strong>潜变量扩散 Transformer（Latent DiT）</strong>，核心可以理解为：先用 VAE 把视频压缩成"潜在视频"，然后用一个 DiT（Diffusion Transformer）在潜变量空间里学习"如何从噪声走向真实视频"。训练目标从上一代的 EDM 噪声预测改成了更直接的 Flow Matching 速度场预测。</p>
-      </div>
-
-      <h3>Flow Matching：比扩散模型更直接的训练目标</h3>
-
-      <p>可以把生成过程想象成从 A 地（纯噪声 $\mathbf{x}_0$）走到 B 地（真实视频 $\mathbf{x}_1$）。EDM 是"猜测下一步的噪声"，Flow Matching 是"直接告诉模型往哪个方向走、走多快"——更直接，也更好优化。</p>
-
-      <div class="math-block">
+</div>
+</div>
+<div class="hotspot-panel">
+<div class="hp-empty">点击图中绿点查看各阶段说明</div>
+</div>
+</div>
+<h3>5 个领域专项数据集</h3>
+<p>在通用预训练数据之外，论文还为 Physical AI 的五个目标领域定制了专项数据：</p>
+<div class="module-grid">
+<div class="module-card">
+<div class="module-card-name">DOMAIN 01 · ROBOTICS</div>
+<div class="module-card-title">机器人操作视频</div>
+<div class="module-card-desc">收录 AgiBot-Beta（254k）、DROID（141k）、GR00T（3k）等数据集，增速和视角统一化处理；Caption 包含运动类型、部件信息、相机运动等。</div>
+</div>
+<div class="module-card">
+<div class="module-card-name">DOMAIN 02 · AUTONOMOUS DRIVING</div>
+<div class="module-card-title">自动驾驶多视角</div>
+<div class="module-card-desc">310 万个 20 秒环视视频片段（7 路摄像头），覆盖美国/欧洲多种道路、天气、光照条件；Caption 包含交通行为、速度、方向信息。</div>
+</div>
+<div class="module-card">
+<div class="module-card-name">DOMAIN 03 · SMART SPACES</div>
+<div class="module-card-title">智能空间场景</div>
+<div class="module-card-desc">仓库、工厂、建筑工地等工业场景视频，约 40k 片段；VLM 过滤确保场景相关性。</div>
+</div>
+<div class="module-card">
+<div class="module-card-name">DOMAIN 04 · HUMAN DYNAMICS</div>
+<div class="module-card-title">人体动态</div>
+<div class="module-card-desc">YOLOX + RTMPose 标注人体姿态，保留每帧至少有一人占 3% 以上画面的片段，用于增强人类运动模拟能力。</div>
+</div>
+</div>
+<details class="en-quote">
+<summary>展开原文 · 数据管道规模对比</summary>
+<div class="quote-body">
+<p>"In contrast to the pipeline in [Cosmos-Predict1], the [Cosmos-Predict2.5] pipeline scales to a much larger volume, processing 35 million hours of raw video compared to 20 million clips and producing over 6 billion clips from which 200 million high-quality clips are retained."</p>
+<div class="quote-cite">— §2.1, p.6</div>
+</div>
+</details>
+</div>
+<!-- §03 模型架构 -->
+<div class="section" id="s03">
+<div class="section-num">§ 03</div>
+<h2>模型架构：Flow Matching DiT + WAN2.1 VAE + Cosmos-Reason1</h2>
+<div class="cn-read">
+<div class="cn-label">这一节解决什么</div>
+<p>有了好数据，接下来是建模方式。Cosmos-Predict2.5 的架构是一个<strong>潜变量扩散 Transformer（Latent DiT）</strong>，核心可以理解为：先用 VAE 把视频压缩成"潜在视频"，然后用一个 DiT（Diffusion Transformer）在潜变量空间里学习"如何从噪声走向真实视频"。训练目标从上一代的 EDM 噪声预测改成了更直接的 Flow Matching 速度场预测。</p>
+</div>
+<h3>Flow Matching：比扩散模型更直接的训练目标</h3>
+<p>可以把生成过程想象成从 A 地（纯噪声 $\mathbf{x}_0$）走到 B 地（真实视频 $\mathbf{x}_1$）。EDM 是"猜测下一步的噪声"，Flow Matching 是"直接告诉模型往哪个方向走、走多快"——更直接，也更好优化。</p>
+<div class="math-block">
         $$\mathbf{x}_t = (1-t)\mathbf{x} + t\boldsymbol{\epsilon}, \quad t \in [0,1]$$
         <span class="math-label">Eq. 1 · 线性插值路径（从真实数据 x 到噪声 ε 的直线）</span>
-      </div>
-      <div class="math-explain">
-        <div class="me-title">逐项拆解</div>
-        <dl>
-          <dt>$\mathbf{x}_t$</dt>
-          <dd>时刻 $t$ 的中间状态：$t=0$ 时是真实视频，$t=1$ 时是纯噪声</dd>
-          <dt>$(1-t)\mathbf{x} + t\boldsymbol{\epsilon}$</dt>
-          <dd>在真实视频和噪声之间做线性插值——相当于"按比例混合"</dd>
-        </dl>
-      </div>
-
-      <div class="math-block">
+</div>
+<div class="math-explain">
+<div class="me-title">逐项拆解</div>
+<dl>
+<dt>$\mathbf{x}_t$</dt>
+<dd>时刻 $t$ 的中间状态：$t=0$ 时是真实视频，$t=1$ 时是纯噪声</dd>
+<dt>$(1-t)\mathbf{x} + t\boldsymbol{\epsilon}$</dt>
+<dd>在真实视频和噪声之间做线性插值——相当于"按比例混合"</dd>
+</dl>
+</div>
+<div class="math-block">
         $$\mathbf{v}_t = \boldsymbol{\epsilon} - \mathbf{x}$$
         <span class="math-label">Eq. 2 · Ground truth 速度场（从真实视频指向噪声的方向向量）</span>
-      </div>
-
-      <div class="math-block">
+</div>
+<div class="math-block">
         $$\mathcal{L}(\theta) = \mathbb{E}_{\mathbf{x},\boldsymbol{\epsilon},t} \left\| \mathbf{u}(\mathbf{x}_t, t; \mathbf{c}; \theta) - \mathbf{v}_t \right\|^2$$
         <span class="math-label">Eq. 3 · Flow Matching Loss（预测速度场 vs 真实速度场的 MSE）</span>
-      </div>
-      <div class="math-explain">
-        <div class="me-title">逐项拆解</div>
-        <dl>
-          <dt>$\mathbf{u}(\mathbf{x}_t, t; \mathbf{c}; \theta)$</dt>
-          <dd>模型输出的速度预测，条件 $\mathbf{c}$ 包含文字 embedding、参考帧等</dd>
-          <dt>$\mathbf{v}_t = \boldsymbol{\epsilon} - \mathbf{x}$</dt>
-          <dd>Ground truth 速度场——从噪声方向指向真实数据（类比 GPS 导航的"目标方向"）</dd>
-          <dt>$\|\cdot\|^2$</dt>
-          <dd>MSE 损失，让预测速度和真实速度尽量一致</dd>
-        </dl>
-      </div>
-
-      <h3>整体架构图</h3>
-
-      <div class="fig-interactive panel-below">
-        <div class="fig-block">
-          <div class="hotspot-wrap" data-hotspot-group="fig2">
-            <img src="../assets/figures/cosmos-predict2/fig-2.png" alt="Fig 2: Cosmos-Predict2.5 整体架构">
-            <div class="hotspot" data-id="reason1" style="left:18%; top:55%"
-                 data-title="Cosmos-Reason1 · 文字编码器"
-                 data-body="替换 Cosmos-1 的 T5 编码器。Cosmos-Reason1 是专为 Physical AI 设计的 VLM，从多个 Transformer 层的激活拼接后投影到 1024 维——同时捕获局部和全局语义。支持视觉输入（图像/视频），为未来的视觉风格控制奠基。"></div>
-            <div class="hotspot" data-id="wan21" style="left:72%; top:22%"
-                 data-title="WAN2.1 VAE · 视频压缩器"
-                 data-body="时间压缩 4×，空间压缩 8×8，总压缩比 4×8×8=256。输入 93 帧视频 → 压缩到 24 个潜变量帧。在此基础上再做 1×2×2 的 patch 合并，进一步降低 DiT 的计算量。"></div>
-            <div class="hotspot" data-id="dit" style="left:72%; top:60%"
-                 data-title="DiT Block · 扩散 Transformer 块"
-                 data-body="每个 DiT 块包含：LayerNorm + Self-Attention（3D RoPE）→ LayerNorm + Cross-Attention（接受文字 embedding）→ LayerNorm + FFN（GELU）。移除了绝对位置 embedding，仅保留 3D RoPE 相对位置编码，增强对不同分辨率和序列长度的泛化。"></div>
-            <div class="hotspot" data-id="cond" style="left:88%; top:35%"
-                 data-title="Conditioning Frames · 条件帧"
-                 data-body="Image2World 模式：1-5 帧参考图作为条件；Video2World 模式：多帧视频作为条件。实现方式是把条件帧对应位置的 noisy token 直接替换为 clean token（frame replacement strategy）。"></div>
-          </div>
-          <div class="fig-cap">
-            <span class="fig-num">Fig 2 · p.9</span>
+</div>
+<div class="math-explain">
+<div class="me-title">逐项拆解</div>
+<dl>
+<dt>$\mathbf{u}(\mathbf{x}_t, t; \mathbf{c}; \theta)$</dt>
+<dd>模型输出的速度预测，条件 $\mathbf{c}$ 包含文字 embedding、参考帧等</dd>
+<dt>$\mathbf{v}_t = \boldsymbol{\epsilon} - \mathbf{x}$</dt>
+<dd>Ground truth 速度场——从噪声方向指向真实数据（类比 GPS 导航的"目标方向"）</dd>
+<dt>$\|\cdot\|^2$</dt>
+<dd>MSE 损失，让预测速度和真实速度尽量一致</dd>
+</dl>
+</div>
+<h3>整体架构图</h3>
+<div class="fig-interactive panel-below">
+<div class="fig-block">
+<div class="hotspot-wrap" data-hotspot-group="fig2">
+<img alt="Fig 2: Cosmos-Predict2.5 整体架构" src="../assets/figures/cosmos-predict2/fig-2.png"/>
+<div class="hotspot" data-body="替换 Cosmos-1 的 T5 编码器。Cosmos-Reason1 是专为 Physical AI 设计的 VLM，从多个 Transformer 层的激活拼接后投影到 1024 维——同时捕获局部和全局语义。支持视觉输入（图像/视频），为未来的视觉风格控制奠基。" data-id="reason1" data-title="Cosmos-Reason1 · 文字编码器" style="left:18%; top:55%"></div>
+<div class="hotspot" data-body="时间压缩 4×，空间压缩 8×8，总压缩比 4×8×8=256。输入 93 帧视频 → 压缩到 24 个潜变量帧。在此基础上再做 1×2×2 的 patch 合并，进一步降低 DiT 的计算量。" data-id="wan21" data-title="WAN2.1 VAE · 视频压缩器" style="left:72%; top:22%"></div>
+<div class="hotspot" data-body="每个 DiT 块包含：LayerNorm + Self-Attention（3D RoPE）→ LayerNorm + Cross-Attention（接受文字 embedding）→ LayerNorm + FFN（GELU）。移除了绝对位置 embedding，仅保留 3D RoPE 相对位置编码，增强对不同分辨率和序列长度的泛化。" data-id="dit" data-title="DiT Block · 扩散 Transformer 块" style="left:72%; top:60%"></div>
+<div class="hotspot" data-body="Image2World 模式：1-5 帧参考图作为条件；Video2World 模式：多帧视频作为条件。实现方式是把条件帧对应位置的 noisy token 直接替换为 clean token（frame replacement strategy）。" data-id="cond" data-title="Conditioning Frames · 条件帧" style="left:88%; top:35%"></div>
+</div>
+<div class="fig-cap">
+<span class="fig-num">Fig 2 · p.9</span>
             Overall architecture of [Cosmos-Predict2.5]. Left: Cosmos-Reason1 as text encoder. Right: DiT blocks with Self-Attention, Cross-Attention, and Feed-forward layers modulated by time embedding.
             <span class="fig-cn">左侧 Cosmos-Reason1 负责文字理解，右侧 DiT 在潜变量空间预测速度场，生成条件可以是纯文字、参考图，或参考视频。</span>
-          </div>
-        </div>
-        <div class="hotspot-panel">
-          <div class="hp-empty">点击图中绿点查看架构细节</div>
-        </div>
-      </div>
-
-      <div class="callout amber">
-        <div class="callout-label">关键设计决策</div>
-        <p><strong>去掉了绝对位置 embedding</strong>：Cosmos-1 用了绝对位置 embedding（固定了分辨率和帧数范围），Predict2.5 只保留 3D RoPE 相对位置编码。这让模型在后训练阶段可以处理更高分辨率（720p）和更长视频序列，而不受预训练时序列长度的限制。</p>
-      </div>
-
-      <div class="quiz"
-           data-correct="b"
-           data-explain="WAN2.1 VAE 的压缩比是 4×8×8（时间×高×宽），即时间压缩 4 倍，空间每个维度压缩 8 倍。93 帧 → 24 个潜变量帧，分辨率也对应缩小。"
-           data-explain-wrong="注意这里是时间×空间两个维度，空间是 8×8 不是 4×4。">
-        <div class="q-label">🧠 理解检查</div>
-        <div class="q-text">WAN2.1 VAE 的时空压缩比是多少？原始 93 帧视频压缩后对应多少潜变量帧？</div>
-        <div class="q-options">
-          <button class="q-opt" data-k="a">压缩比 4×4×4，压缩后 23 帧</button>
-          <button class="q-opt" data-k="b">压缩比 4×8×8，压缩后 24 帧（latent frames）</button>
-          <button class="q-opt" data-k="c">压缩比 8×8×8，压缩后 12 帧</button>
-          <button class="q-opt" data-k="d">压缩比 2×16×16，压缩后 47 帧</button>
-        </div>
-        <div class="q-feedback"></div>
-      </div>
-    </div>
-
-    <!-- §04 训练配方 -->
-    <div class="section" id="s04">
-      <div class="section-num">§ 04</div>
-      <h2>训练配方：预训练 → SFT → 模型合并 → RL → 蒸馏</h2>
-
-      <div class="cn-read">
-        <div class="cn-label">这一节解决什么</div>
-        <p>架构确定了，下一个问题是怎么训练。Cosmos-Predict2.5 采用了一条复杂但精心设计的五阶段训练流水线。每个阶段解决不同的问题：预训练建立通用世界知识，SFT 打磨各领域专项能力，模型合并把专项能力融合，RL 对齐人类偏好，蒸馏提升推理速度。</p>
-      </div>
-
-      <div class="step-walker" data-hotspot-group="fig3">
-        <div class="sw-header">
-          <div class="sw-title">🪜 五阶段训练流水线</div>
-          <div class="sw-controls">
-            <button class="sw-btn prev">◀</button>
-            <span class="sw-counter">1 / 5</span>
-            <button class="sw-btn next">▶</button>
-          </div>
-        </div>
-        <div class="sw-progress">
-          <div class="sw-dot"></div>
-          <div class="sw-dot"></div>
-          <div class="sw-dot"></div>
-          <div class="sw-dot"></div>
-          <div class="sw-dot"></div>
-        </div>
-        <div class="sw-body">
-          <div class="sw-step active" data-hotspot="none">
-            <h4>第 1 阶段：多分辨率渐进预训练</h4>
-            <p>从 Text2Image @ 256p 出发，逐步提升到 Video2World @ 720p（1280×704），共 5 个课程阶段。用 logit-normal 时间步采样 + shifted schedule（β=5 @ 720p）确保高噪声区域充分训练。训练结束后在 4K 视频上做 cooldown 微调，提升细节和运动流畅度。数据：2 亿片段。</p>
-          </div>
-          <div class="sw-step" data-hotspot="none">
-            <h4>第 2 阶段：领域专项 SFT（监督微调）</h4>
-            <p>用 InternVideo2 embedding 训练多头分类器把数据分成 6 类：客体永久性（10.4M）、高运动（1.0M）、复杂场景（1.6M）、驾驶（3.1M）、机器人操作（730k）、4K（388k）。每个领域单独训练一个专项 SFT 模型（30k iterations，batch=256），各自在专项测试集上都显著优于预训练基底。</p>
-          </div>
-          <div class="sw-step" data-hotspot="none">
-            <h4>第 3 阶段：模型合并（Model Merging）</h4>
-            <p>用 TIES/DARE-TIES 等 4 种权重合并方法，通过网格搜索超参数生成 20+ 个候选合并模型，人工评估选出最佳。最终合并模型（Model Soup 变体）在通用域 + 所有专项领域上同时取得高水平，避免了单模型遗忘问题。</p>
-          </div>
-          <div class="sw-step" data-hotspot="none">
-            <h4>第 4 阶段：强化学习（RL Post-training）</h4>
-            <p>采用 VideoAlign 作为奖励模型（VLM-based，评估文字对齐度、运动质量、视觉质量）。使用 GRPO 算法：每个 Prompt 生成 8 个输出，按奖励归一化后计算优势值。在合并模型上训练 256 步（batch=32）。结果：RL 版本在人类投票中约 40% 胜出（vs 18.9% 败）。</p>
-          </div>
-          <div class="sw-step" data-hotspot="none">
-            <h4>第 5 阶段：时间步蒸馏（Timestep Distillation）</h4>
-            <p>用混合前向-反向联合蒸馏框架（rCM），把教师模型（35 步）蒸馏为学生模型（4 步），量化指标几乎无损（Table 7/8 显示 Domain Score 差距 &lt;1%）。基础设施支持 Flash Attention + JVP、FSDP2、Context Parallelism。</p>
-          </div>
-        </div>
-      </div>
-
-      <h3>SFT + 模型合并的效果</h3>
-
-      <div class="fig-interactive">
-        <div class="fig-block">
-          <div class="hotspot-wrap" data-hotspot-group="fig3_sft">
-            <img src="../assets/figures/cosmos-predict2/fig-3.png" alt="Fig 3: SFT 领域性能提升">
-            <div class="hotspot" data-id="robotic" style="left:84%; top:50%"
-                 data-title="Robotic Manipulation 领域最显著"
-                 data-body="机器人操作领域 SFT 胜率高达 72.6%（vs 19% 基底），说明领域专项数据对机器人场景的提升效果最大——因为通用预训练数据中机器人视频比例极少。"></div>
-            <div class="hotspot" data-id="driving" style="left:65%; top:50%"
-                 data-title="Driving 领域 47.9% 提升"
-                 data-body="自动驾驶领域 SFT 的胜率约 47.9%，得益于 310 万个 7 路环视视频片段的专项训练数据。"></div>
-          </div>
-          <div class="fig-cap">
-            <span class="fig-num">Fig 3 · p.12</span>
+</div>
+</div>
+<div class="hotspot-panel">
+<div class="hp-empty">点击图中绿点查看架构细节</div>
+</div>
+</div>
+<div class="callout amber">
+<div class="callout-label">关键设计决策</div>
+<p><strong>去掉了绝对位置 embedding</strong>：Cosmos-1 用了绝对位置 embedding（固定了分辨率和帧数范围），Predict2.5 只保留 3D RoPE 相对位置编码。这让模型在后训练阶段可以处理更高分辨率（720p）和更长视频序列，而不受预训练时序列长度的限制。</p>
+</div>
+<div class="quiz" data-correct="b" data-explain="WAN2.1 VAE 的压缩比是 4×8×8（时间×高×宽），即时间压缩 4 倍，空间每个维度压缩 8 倍。93 帧 → 24 个潜变量帧，分辨率也对应缩小。" data-explain-wrong="注意这里是时间×空间两个维度，空间是 8×8 不是 4×4。">
+<div class="q-label">🧠 理解检查</div>
+<div class="q-text">WAN2.1 VAE 的时空压缩比是多少？原始 93 帧视频压缩后对应多少潜变量帧？</div>
+<div class="q-options">
+<button class="q-opt" data-k="a">压缩比 4×4×4，压缩后 23 帧</button>
+<button class="q-opt" data-k="b">压缩比 4×8×8，压缩后 24 帧（latent frames）</button>
+<button class="q-opt" data-k="c">压缩比 8×8×8，压缩后 12 帧</button>
+<button class="q-opt" data-k="d">压缩比 2×16×16，压缩后 47 帧</button>
+</div>
+<div class="q-feedback"></div>
+</div>
+</div>
+<!-- §04 训练配方 -->
+<div class="section" id="s04">
+<div class="section-num">§ 04</div>
+<h2>训练配方：预训练 → SFT → 模型合并 → RL → 蒸馏</h2>
+<div class="cn-read">
+<div class="cn-label">这一节解决什么</div>
+<p>架构确定了，下一个问题是怎么训练。Cosmos-Predict2.5 采用了一条复杂但精心设计的五阶段训练流水线。每个阶段解决不同的问题：预训练建立通用世界知识，SFT 打磨各领域专项能力，模型合并把专项能力融合，RL 对齐人类偏好，蒸馏提升推理速度。</p>
+</div>
+<div class="step-walker" data-hotspot-group="fig3">
+<div class="sw-header">
+<div class="sw-title">🪜 五阶段训练流水线</div>
+<div class="sw-controls">
+<button class="sw-btn prev">◀</button>
+<span class="sw-counter">1 / 5</span>
+<button class="sw-btn next">▶</button>
+</div>
+</div>
+<div class="sw-progress">
+<div class="sw-dot"></div>
+<div class="sw-dot"></div>
+<div class="sw-dot"></div>
+<div class="sw-dot"></div>
+<div class="sw-dot"></div>
+</div>
+<div class="sw-body">
+<div class="sw-step active" data-hotspot="none">
+<h4>第 1 阶段：多分辨率渐进预训练</h4>
+<p>从 Text2Image @ 256p 出发，逐步提升到 Video2World @ 720p（1280×704），共 5 个课程阶段。用 logit-normal 时间步采样 + shifted schedule（β=5 @ 720p）确保高噪声区域充分训练。训练结束后在 4K 视频上做 cooldown 微调，提升细节和运动流畅度。数据：2 亿片段。</p><div class="step-beginner"><div class="sb-label">给第一次接触这个领域的读者</div><p><strong>输入是什么：</strong>随机噪声，以及当前画面、语言指令或机器人状态等条件信息。噪声只是生成过程的起点，不是机器人真的要执行的动作。</p><p><strong>这一步究竟做什么：</strong>从 Text2Image @ 256p 出发，逐步提升到 Video2World @ 720p（1280×704），共 5 个课程阶段。用 logit-normal 时间步采样 + shifted schedule（β=5 @ 720p）确保高噪声区域充分训练。训练结束后在 4K 视频上做 cooldown 微调，提升细节和运动流畅度。数据：2 亿片段。</p><p><strong>输出到哪里：</strong>参数得到更新的模型，或能供下一轮训练使用的新监督信号。这个结果会交给下一步“阶段：领域专项 SFT（监督微调）”继续处理。</p><p><strong>为什么不能省略：</strong>前面的数据或分数本身不会自动改变模型；必须通过损失函数把误差信号变成参数更新。</p></div>
+</div>
+<div class="sw-step" data-hotspot="none">
+<h4>第 2 阶段：领域专项 SFT（监督微调）</h4>
+<p>用 InternVideo2 embedding 训练多头分类器把数据分成 6 类：客体永久性（10.4M）、高运动（1.0M）、复杂场景（1.6M）、驾驶（3.1M）、机器人操作（730k）、4K（388k）。每个领域单独训练一个专项 SFT 模型（30k iterations，batch=256），各自在专项测试集上都显著优于预训练基底。</p><div class="step-beginner"><div class="sb-label">给第一次接触这个领域的读者</div><p><strong>输入是什么：</strong>来自上一步“阶段：多分辨率渐进预训练”的产物：参数得到更新的模型，或能供下一轮训练使用的新监督信号。本步骤还会按论文设置读取当前条件、时间步或训练信号。</p><p><strong>这一步究竟做什么：</strong>用 InternVideo2 embedding 训练多头分类器把数据分成 6 类：客体永久性（10.4M）、高运动（1.0M）、复杂场景（1.6M）、驾驶（3.1M）、机器人操作（730k）、4K（388k）。每个领域单独训练一个专项 SFT 模型（30k iterations，batch=256），各自在专项测试集上都显著优于预训练基底。</p><p><strong>输出到哪里：</strong>参数得到更新的模型，或能供下一轮训练使用的新监督信号。这个结果会交给下一步“阶段：模型合并（Model Merging）”继续处理。</p><p><strong>为什么不能省略：</strong>前面的数据或分数本身不会自动改变模型；必须通过损失函数把误差信号变成参数更新。</p><div class="sb-terms"><strong>术语先翻译：</strong>SFT（监督微调）：给模型看标准答案，让它照着专家演示学习；embedding（向量表征）：用一串数字表示一个画面、词语或状态，使模型能比较和运算。</div></div>
+</div>
+<div class="sw-step" data-hotspot="none">
+<h4>第 3 阶段：模型合并（Model Merging）</h4>
+<p>用 TIES/DARE-TIES 等 4 种权重合并方法，通过网格搜索超参数生成 20+ 个候选合并模型，人工评估选出最佳。最终合并模型（Model Soup 变体）在通用域 + 所有专项领域上同时取得高水平，避免了单模型遗忘问题。</p><div class="step-beginner"><div class="sb-label">给第一次接触这个领域的读者</div><p><strong>输入是什么：</strong>来自上一步“阶段：领域专项 SFT（监督微调）”的产物：参数得到更新的模型，或能供下一轮训练使用的新监督信号。本步骤还会按论文设置读取当前条件、时间步或训练信号。</p><p><strong>这一步究竟做什么：</strong>用 TIES/DARE-TIES 等 4 种权重合并方法，通过网格搜索超参数生成 20+ 个候选合并模型，人工评估选出最佳。最终合并模型（Model Soup 变体）在通用域 + 所有专项领域上同时取得高水平，避免了单模型遗忘问题。</p><p><strong>输出到哪里：</strong>参数得到更新的模型，或能供下一轮训练使用的新监督信号。这个结果会交给下一步“阶段：强化学习（RL Post-training）”继续处理。</p><p><strong>为什么不能省略：</strong>它承担上下两步之间的接口；缺少它，前一步产生的信息无法以正确格式或正确含义传到下一步。</p></div>
+</div>
+<div class="sw-step" data-hotspot="none">
+<h4>第 4 阶段：强化学习（RL Post-training）</h4>
+<p>采用 VideoAlign 作为奖励模型（VLM-based，评估文字对齐度、运动质量、视觉质量）。使用 GRPO 算法：每个 Prompt 生成 8 个输出，按奖励归一化后计算优势值。在合并模型上训练 256 步（batch=32）。结果：RL 版本在人类投票中约 40% 胜出（vs 18.9% 败）。</p><div class="step-beginner"><div class="sb-label">给第一次接触这个领域的读者</div><p><strong>输入是什么：</strong>来自上一步“阶段：模型合并（Model Merging）”的产物：参数得到更新的模型，或能供下一轮训练使用的新监督信号。本步骤还会按论文设置读取当前条件、时间步或训练信号。</p><p><strong>这一步究竟做什么：</strong>采用 VideoAlign 作为奖励模型（VLM-based，评估文字对齐度、运动质量、视觉质量）。使用 GRPO 算法：每个 Prompt 生成 8 个输出，按奖励归一化后计算优势值。在合并模型上训练 256 步（batch=32）。结果：RL 版本在人类投票中约 40% 胜出（vs 18.9% 败）。</p><p><strong>输出到哪里：</strong>一个或多个候选未来、动作或轨迹，以及必要的中间状态。这个结果会交给下一步“阶段：时间步蒸馏（Timestep Distillation）”继续处理。</p><p><strong>为什么不能省略：</strong>它承担上下两步之间的接口；缺少它，前一步产生的信息无法以正确格式或正确含义传到下一步。</p><div class="sb-terms"><strong>术语先翻译：</strong>RL（强化学习）：让模型试着行动，再根据成功、失败或奖励调整策略；advantage（优势）：某个动作比当前平均选择好多少；正值表示更值得增加概率。</div></div>
+</div>
+<div class="sw-step" data-hotspot="none">
+<h4>第 5 阶段：时间步蒸馏（Timestep Distillation）</h4>
+<p>用混合前向-反向联合蒸馏框架（rCM），把教师模型（35 步）蒸馏为学生模型（4 步），量化指标几乎无损（Table 7/8 显示 Domain Score 差距 &lt;1%）。基础设施支持 Flash Attention + JVP、FSDP2、Context Parallelism。</p><div class="step-beginner"><div class="sb-label">给第一次接触这个领域的读者</div><p><strong>输入是什么：</strong>来自上一步“阶段：强化学习（RL Post-training）”的产物：一个或多个候选未来、动作或轨迹，以及必要的中间状态。本步骤还会按论文设置读取当前条件、时间步或训练信号。</p><p><strong>这一步究竟做什么：</strong>用混合前向-反向联合蒸馏框架（rCM），把教师模型（35 步）蒸馏为学生模型（4 步），量化指标几乎无损（Table 7/8 显示 Domain Score 差距 &lt;1%）。基础设施支持 Flash Attention + JVP、FSDP2、Context Parallelism。</p><p><strong>输出到哪里：</strong>参数得到更新的模型，或能供下一轮训练使用的新监督信号。这是图中这条链路的最终产物，随后会进入真实执行、模型更新或指标评测。</p><p><strong>为什么不能省略：</strong>前面的数据或分数本身不会自动改变模型；必须通过损失函数把误差信号变成参数更新。</p></div>
+</div>
+</div>
+</div>
+<h3>SFT + 模型合并的效果</h3>
+<div class="fig-interactive">
+<div class="fig-block">
+<div class="hotspot-wrap" data-hotspot-group="fig3_sft">
+<img alt="Fig 3: SFT 领域性能提升" src="../assets/figures/cosmos-predict2/fig-3.png"/>
+<div class="hotspot" data-body="机器人操作领域 SFT 胜率高达 72.6%（vs 19% 基底），说明领域专项数据对机器人场景的提升效果最大——因为通用预训练数据中机器人视频比例极少。" data-id="robotic" data-title="Robotic Manipulation 领域最显著" style="left:84%; top:50%"></div>
+<div class="hotspot" data-body="自动驾驶领域 SFT 的胜率约 47.9%，得益于 310 万个 7 路环视视频片段的专项训练数据。" data-id="driving" data-title="Driving 领域 47.9% 提升" style="left:65%; top:50%"></div>
+</div>
+<div class="fig-cap">
+<span class="fig-num">Fig 3 · p.12</span>
             Domain-specific SFT training improves the performance of the pretrained model on each domain.
             <span class="fig-cn">各领域 SFT 后与预训练基底的对比：机器人领域 SFT 胜率高达 72.6%，提升最显著。</span>
-          </div>
-        </div>
-        <div class="hotspot-panel">
-          <div class="hp-empty">点击图中绿点查看解读</div>
-        </div>
-      </div>
-
-      <div class="fig-interactive">
-        <div class="fig-block">
-          <div class="hotspot-wrap" data-hotspot-group="fig4_radar">
-            <img src="../assets/figures/cosmos-predict2/fig-4.png" alt="Fig 4: 模型合并雷达图">
-            <div class="hotspot" data-id="soup" style="left:50%; top:28%"
-                 data-title="Model Soup（最终选择）"
-                 data-body="蓝色雷达图。模型合并让单个模型在全部维度（Object Permanence、High Motion、Complex Scene、Driving、Robotic Manipulation、General）上均衡超越单一 SFT 专项模型，同时不损失通用能力（General 维度 52.5%）。"></div>
-            <div class="hotspot" data-id="base" style="left:50%; top:72%"
-                 data-title="Base Model（预训练基底）"
-                 data-body="黑色实线。预训练模型在 General 维度 48.1%，但在专项领域（Robotic Manipulation、High Motion 等）远落后于 SFT 模型。模型合并解决了这个不均衡问题。"></div>
-          </div>
-          <div class="fig-cap">
-            <span class="fig-num">Fig 4 · p.12</span>
+</div>
+</div>
+<div class="hotspot-panel">
+<div class="hp-empty">点击图中绿点查看解读</div>
+</div>
+</div>
+<div class="fig-interactive">
+<div class="fig-block">
+<div class="hotspot-wrap" data-hotspot-group="fig4_radar">
+<img alt="Fig 4: 模型合并雷达图" src="../assets/figures/cosmos-predict2/fig-4.png"/>
+<div class="hotspot" data-body="蓝色雷达图。模型合并让单个模型在全部维度（Object Permanence、High Motion、Complex Scene、Driving、Robotic Manipulation、General）上均衡超越单一 SFT 专项模型，同时不损失通用能力（General 维度 52.5%）。" data-id="soup" data-title="Model Soup（最终选择）" style="left:50%; top:28%"></div>
+<div class="hotspot" data-body="黑色实线。预训练模型在 General 维度 48.1%，但在专项领域（Robotic Manipulation、High Motion 等）远落后于 SFT 模型。模型合并解决了这个不均衡问题。" data-id="base" data-title="Base Model（预训练基底）" style="left:50%; top:72%"></div>
+</div>
+<div class="fig-cap">
+<span class="fig-num">Fig 4 · p.12</span>
             Merged model gets the best of all the worlds while maintaining performance on the general domain.
             <span class="fig-cn">模型合并（蓝色）在六大维度上全面超越预训练基底（黑色），且保住了通用域（General）能力。</span>
-          </div>
-        </div>
-        <div class="hotspot-panel">
-          <div class="hp-empty">点击图中绿点查看解读</div>
-        </div>
-      </div>
-
-      <div class="callout">
-        <div class="callout-label">核心结论</div>
-        <p><strong>RL 后训练有效</strong>：在 pre-trained 模型和合并模型上，RL 都显著提升了 VideoAlign 奖励（文字对齐 +0.14，视觉质量 +0.23）。人类投票结果：RL 版本约 40% 胜率 vs 合并模型的 19.6%。蒸馏基本无损（4步 vs 35步，Domain Score 差距 &lt;1%）。</p>
-      </div>
-    </div>
-
-    <!-- §05 Cosmos-Transfer2.5 -->
-    <div class="section" id="s05">
-      <div class="section-num">§ 05</div>
-      <h2>Cosmos-Transfer2.5：仿真→真实的 ControlNet 桥梁</h2>
-
-      <div class="cn-read">
-        <div class="cn-label">这一节解决什么</div>
-        <p>训练好了世界生成模型，下一个问题是：机器人训练常用 NVIDIA IsaacSim 等物理仿真器生成的图像，但仿真器图像和真实图像之间存在明显的"视觉鸿沟"——光照、纹理、阴影都太假。Cosmos-Transfer2.5 就是一个"图像翻译器"，把仿真器渲染的图（或者深度图、边缘图、语义分割图等条件）转换成视觉上真实可信的视频，弥合 Sim2Real 差距。</p>
-      </div>
-
-      <p>架构上继承自 Cosmos-Transfer1-7B，但做了关键改进：把 4 个控制块均匀分布在主干每隔 7 层插入一个（而非全部插在最前面），让控制信号更均匀渗透到网络各层，生成更一致。</p>
-
-      <div class="fig-interactive panel-below">
-        <div class="fig-block">
-          <div class="hotspot-wrap" data-hotspot-group="fig9">
-            <img src="../assets/figures/cosmos-predict2/fig-9.png" alt="Fig 9: Transfer2.5 vs Transfer1 对比">
-            <div class="hotspot" data-id="prompt" style="left:18%; top:30%"
-                 data-title="Prompt Alignment 改善"
-                 data-body="Transfer2.5（下行）比 Transfer1-7B（上行）更好地遵循文字描述中关于颜色、材质等属性的描述（如"红色高光抛光面板"）。减少了视觉幻觉（hallucination）。"></div>
-            <div class="hotspot" data-id="control" style="left:68%; top:65%"
-                 data-title="Edge Control 精确遵循"
-                 data-body="使用边缘图（Edge map）作为控制条件，Transfer2.5 生成的视频边缘轮廓和控制输入高度吻合，同时光照和纹理具有真实感。Transfer1 在这方面有明显偏差。"></div>
-            <div class="hotspot" data-id="halluc" style="left:43%; top:65%"
-                 data-title="长视频错误积累减少"
-                 data-body="在自动回归长视频生成中（每段 93 帧），Transfer2.5 的 RNDS 曲线（Relative Normalized Dover Score）随 chunk 数下降更平缓，说明错误积累（幻觉、不一致）显著少于 Transfer1-7B。"></div>
-          </div>
-          <div class="fig-cap">
-            <span class="fig-num">Fig 9 · p.20</span>
+</div>
+</div>
+<div class="hotspot-panel">
+<div class="hp-empty">点击图中绿点查看解读</div>
+</div>
+</div>
+<div class="callout">
+<div class="callout-label">核心结论</div>
+<p><strong>RL 后训练有效</strong>：在 pre-trained 模型和合并模型上，RL 都显著提升了 VideoAlign 奖励（文字对齐 +0.14，视觉质量 +0.23）。人类投票结果：RL 版本约 40% 胜率 vs 合并模型的 19.6%。蒸馏基本无损（4步 vs 35步，Domain Score 差距 &lt;1%）。</p>
+</div>
+</div>
+<!-- §05 Cosmos-Transfer2.5 -->
+<div class="section" id="s05">
+<div class="section-num">§ 05</div>
+<h2>Cosmos-Transfer2.5：仿真→真实的 ControlNet 桥梁</h2>
+<div class="cn-read">
+<div class="cn-label">这一节解决什么</div>
+<p>训练好了世界生成模型，下一个问题是：机器人训练常用 NVIDIA IsaacSim 等物理仿真器生成的图像，但仿真器图像和真实图像之间存在明显的"视觉鸿沟"——光照、纹理、阴影都太假。Cosmos-Transfer2.5 就是一个"图像翻译器"，把仿真器渲染的图（或者深度图、边缘图、语义分割图等条件）转换成视觉上真实可信的视频，弥合 Sim2Real 差距。</p>
+</div>
+<p>架构上继承自 Cosmos-Transfer1-7B，但做了关键改进：把 4 个控制块均匀分布在主干每隔 7 层插入一个（而非全部插在最前面），让控制信号更均匀渗透到网络各层，生成更一致。</p>
+<div class="fig-interactive panel-below">
+<div class="fig-block">
+<div class="hotspot-wrap" data-hotspot-group="fig9">
+<img alt="Fig 9: Transfer2.5 vs Transfer1 对比" src="../assets/figures/cosmos-predict2/fig-9.png"/>
+<div class="hotspot" data-body="Transfer2.5（下行）比 Transfer1-7B（上行）更好地遵循文字描述中关于颜色、材质等属性的描述（如" data-id="prompt" data-title="Prompt Alignment 改善" style="left:18%; top:30%" 红色高光抛光面板"）。减少了视觉幻觉（hallucination）。"=""></div>
+<div class="hotspot" data-body="使用边缘图（Edge map）作为控制条件，Transfer2.5 生成的视频边缘轮廓和控制输入高度吻合，同时光照和纹理具有真实感。Transfer1 在这方面有明显偏差。" data-id="control" data-title="Edge Control 精确遵循" style="left:68%; top:65%"></div>
+<div class="hotspot" data-body="在自动回归长视频生成中（每段 93 帧），Transfer2.5 的 RNDS 曲线（Relative Normalized Dover Score）随 chunk 数下降更平缓，说明错误积累（幻觉、不一致）显著少于 Transfer1-7B。" data-id="halluc" data-title="长视频错误积累减少" style="left:43%; top:65%"></div>
+</div>
+<div class="fig-cap">
+<span class="fig-num">Fig 9 · p.20</span>
             Sample comparison results of [Cosmos-Transfer2.5-2B] vs [Cosmos-Transfer1-7B].
             <span class="fig-cn">Transfer2.5（下）在 Prompt 对齐、幻觉控制、条件遵循三方面均优于 Transfer1-7B（上），且体积小 3.5×。</span>
-          </div>
-        </div>
-        <div class="hotspot-panel">
-          <div class="hp-empty">点击图中绿点查看对比详情</div>
-        </div>
-      </div>
-
-      <table class="result-table">
-        <tr>
-          <th>模型</th>
-          <th>Blur SSIM↑</th>
-          <th>Edge F1↑</th>
-          <th>Depth si-RMSE↓</th>
-          <th>Seg mIoU↑</th>
-          <th>Overall Quality↑</th>
-        </tr>
-        <tr>
-          <td class="row-head">Cosmos-Transfer1-7B Uniform</td>
-          <td>0.82</td><td>0.26</td><td>0.70</td><td>0.74</td><td>9.24</td>
-        </tr>
-        <tr>
-          <td class="row-head">Cosmos-Transfer2.5-2B Blur</td>
-          <td class="highlight">0.90</td><td>0.26</td><td class="highlight">0.59</td><td class="highlight">0.75</td><td class="highlight">9.75</td>
-        </tr>
-        <tr>
-          <td class="row-head">Cosmos-Transfer2.5-2B Uniform</td>
-          <td>0.87</td><td>0.41</td><td>0.67</td><td class="highlight">0.76</td><td>9.31</td>
-        </tr>
-      </table>
-
-      <div class="callout blue">
-        <div class="callout-label">类比理解</div>
-        <p>Cosmos-Transfer2.5 类比于图像领域的 ControlNet（Stable Diffusion + 骨架/边缘控制）。区别在于：① 作用于视频而非图像；② 使用 Cosmos-Predict2.5 的 Flow Matching DiT 而非 U-Net；③ 专为 Physical AI（机器人、自动驾驶）场景定制了训练数据。</p>
-      </div>
-    </div>
-
-    <!-- §06 下游应用 -->
-    <div class="section" id="s06">
-      <div class="section-num">§ 06</div>
-      <h2>下游应用：机器人策略学习 / 合成数据 / 多视角驾驶</h2>
-
-      <div class="cn-read">
-        <div class="cn-label">这一节解决什么</div>
-        <p>Cosmos-Transfer2.5 的各项能力如何在真实 Physical AI 任务中落地？论文展示了三个核心应用：(1) 用合成视频增强机器人策略训练；(2) 为 VLA 模型生成多样化训练数据；(3) 多视角视频生成支持自动驾驶仿真。</p>
-      </div>
-
-      <h3>应用 1：机器人策略视觉增强</h3>
-      <p>实验设置：双臂 Kinova Gen3 机器人，100 次人类遥操作苹果/碗抓放演示，训练 UNet-based Diffusion Policy。测试时引入对抗性视觉扰动（改变背景、物体外观、光照），评估策略鲁棒性。</p>
-      <p>Cosmos-Transfer2.5 生成多样化视觉风格的增强视频（改变颜色、纹理、光照）→ 扩充训练集 → 成功率大幅提升，尤其在 OOD（out-of-distribution）视觉条件下。</p>
-
-      <h3>应用 2：VLA 合成数据生成</h3>
-      <p>用 Cosmos-Predict2.5 生成机器人操作的合成视频，作为 VLA 模型（如 π₀）的训练数据来源。动作条件由已有机器人数据的动作序列提供，视频生成覆盖更多场景和视觉变化，缓解 VLA 训练数据稀缺问题。</p>
-
-      <h3>应用 3：相机可控多视角驾驶仿真</h3>
-      <p>在 Cosmos-Predict2.5 上微调出多视角生成能力，以世界场景图（road boundary + 3D bounding boxes）作为控制条件，同步生成 7 路摄像头的一致性视频，用于自动驾驶策略评估和数据增强。</p>
-
-      <div class="callout purple">
-        <div class="callout-label">对 VLA 研究的意义</div>
-        <p>这三个应用共同指向同一个问题的解决方案：<strong>真实机器人数据稀缺</strong>。用 Cosmos-Predict2.5 生成的合成视频可以：① 弥补稀有任务的训练数据不足；② 提供可控的 OOD 测试场景；③ 通过 Sim2Real 转换让仿真器数据也变得"可用"。这和 DreamDojo 的核心动机高度一致。</p>
-      </div>
-    </div>
-
-    <!-- §07 实验结果 -->
-    <div class="section" id="s07">
-      <div class="section-num">§ 07</div>
-      <h2>实验结果：PAI-Bench 指标 + 人类偏好评估</h2>
-
-      <div class="cn-read">
-        <div class="cn-label">这一节解决什么</div>
-        <p>用 PAI-Bench（Physical AI Generation Benchmark）评估，包含两个分数：Domain Score（VQA-based，跨 7 个物理 AI 领域）和 Quality Score（8 个文字到视频/图像生成指标的平均）。综合来看，Cosmos-Predict2.5 在 I2W 任务上拿到最好成绩，在 T2W 任务上与更大的 Wan2.2-27B-A14B 持平。</p>
-      </div>
-
-      <table class="result-table">
-        <tr>
-          <th>模型</th>
-          <th>T2W Domain↑</th>
-          <th>T2W Quality↑</th>
-          <th>T2W Overall↑</th>
-          <th>I2W Domain↑</th>
-          <th>I2W Quality↑</th>
-          <th>I2W Overall↑</th>
-        </tr>
-        <tr>
-          <td class="row-head">CP2.5-2B [pre-train]</td>
-          <td>0.782</td><td>0.720</td><td>0.751</td>
-          <td>0.824</td><td>0.775</td><td>0.799</td>
-        </tr>
-        <tr>
-          <td class="row-head">CP2.5-2B [post-train]</td>
-          <td>0.804</td><td class="highlight">0.732</td><td>0.768</td>
-          <td>0.840</td><td class="highlight">0.779</td><td class="highlight">0.810</td>
-        </tr>
-        <tr>
-          <td class="row-head">CP2.5-14B [post-train]</td>
-          <td>0.803</td><td class="highlight">0.732</td><td>0.768</td>
-          <td>0.838</td><td>0.781</td><td class="highlight">0.810</td>
-        </tr>
-        <tr>
-          <td class="row-head">Wan2.2-27B-A14B</td>
-          <td class="highlight">0.810</td><td>0.728</td><td class="highlight">0.769</td>
-          <td class="highlight">0.841</td><td>0.772</td><td>0.806</td>
-        </tr>
-      </table>
-
-      <p style="font-size:12px;color:var(--text3)">CP2.5 = Cosmos-Predict2.5。Wan2.2-27B-A14B 参数量是 Cosmos-Predict2.5-14B 的 1.9 倍。</p>
-
-      <div class="fig-interactive">
-        <div class="fig-block">
-          <div class="hotspot-wrap" data-hotspot-group="fig67">
-            <img src="../assets/figures/cosmos-predict2/fig-67.png" alt="Fig 6+7: 人类偏好评估">
-            <div class="hotspot" data-id="f6" style="left:28%; top:30%"
-                 data-title="Fig 6: 2B 模型 vs Wan 系列"
-                 data-body="在多样化 Prompt 测试下，Cosmos-Predict2.5-2B（post-train）vs Wan2.2 5B：30% vs 26.2% 胜，Wan 参数量是 CP2.5 的 2.5 倍。vs Wan2.1 14B：33% vs 34.8% 基本持平。"></div>
-            <div class="hotspot" data-id="f7" style="left:28%; top:72%"
-                 data-title="Fig 7: 14B 模型 vs Wan 系列"
-                 data-body="CP2.5-14B vs Wan2.1 14B：48.6% 对 31.8%，大幅胜出。vs Wan2.2 27B-A14B（参数量的约 2×）：38.1% vs 35.9%，基本持平，但 CP2.5 参数量只有一半。"></div>
-          </div>
-          <div class="fig-cap">
-            <span class="fig-num">Fig 6+7 · p.17</span>
+</div>
+</div>
+<div class="hotspot-panel">
+<div class="hp-empty">点击图中绿点查看对比详情</div>
+</div>
+</div>
+<table class="result-table">
+<tr>
+<th>模型</th>
+<th>Blur SSIM↑</th>
+<th>Edge F1↑</th>
+<th>Depth si-RMSE↓</th>
+<th>Seg mIoU↑</th>
+<th>Overall Quality↑</th>
+</tr>
+<tr>
+<td class="row-head">Cosmos-Transfer1-7B Uniform</td>
+<td>0.82</td><td>0.26</td><td>0.70</td><td>0.74</td><td>9.24</td>
+</tr>
+<tr>
+<td class="row-head">Cosmos-Transfer2.5-2B Blur</td>
+<td class="highlight">0.90</td><td>0.26</td><td class="highlight">0.59</td><td class="highlight">0.75</td><td class="highlight">9.75</td>
+</tr>
+<tr>
+<td class="row-head">Cosmos-Transfer2.5-2B Uniform</td>
+<td>0.87</td><td>0.41</td><td>0.67</td><td class="highlight">0.76</td><td>9.31</td>
+</tr>
+</table>
+<div class="callout blue">
+<div class="callout-label">类比理解</div>
+<p>Cosmos-Transfer2.5 类比于图像领域的 ControlNet（Stable Diffusion + 骨架/边缘控制）。区别在于：① 作用于视频而非图像；② 使用 Cosmos-Predict2.5 的 Flow Matching DiT 而非 U-Net；③ 专为 Physical AI（机器人、自动驾驶）场景定制了训练数据。</p>
+</div>
+</div>
+<!-- §06 下游应用 -->
+<div class="section" id="s06">
+<div class="section-num">§ 06</div>
+<h2>下游应用：机器人策略学习 / 合成数据 / 多视角驾驶</h2>
+<div class="cn-read">
+<div class="cn-label">这一节解决什么</div>
+<p>Cosmos-Transfer2.5 的各项能力如何在真实 Physical AI 任务中落地？论文展示了三个核心应用：(1) 用合成视频增强机器人策略训练；(2) 为 VLA 模型生成多样化训练数据；(3) 多视角视频生成支持自动驾驶仿真。</p>
+</div>
+<h3>应用 1：机器人策略视觉增强</h3>
+<p>实验设置：双臂 Kinova Gen3 机器人，100 次人类遥操作苹果/碗抓放演示，训练 UNet-based Diffusion Policy。测试时引入对抗性视觉扰动（改变背景、物体外观、光照），评估策略鲁棒性。</p>
+<p>Cosmos-Transfer2.5 生成多样化视觉风格的增强视频（改变颜色、纹理、光照）→ 扩充训练集 → 成功率大幅提升，尤其在 OOD（out-of-distribution）视觉条件下。</p>
+<h3>应用 2：VLA 合成数据生成</h3>
+<p>用 Cosmos-Predict2.5 生成机器人操作的合成视频，作为 VLA 模型（如 π₀）的训练数据来源。动作条件由已有机器人数据的动作序列提供，视频生成覆盖更多场景和视觉变化，缓解 VLA 训练数据稀缺问题。</p>
+<h3>应用 3：相机可控多视角驾驶仿真</h3>
+<p>在 Cosmos-Predict2.5 上微调出多视角生成能力，以世界场景图（road boundary + 3D bounding boxes）作为控制条件，同步生成 7 路摄像头的一致性视频，用于自动驾驶策略评估和数据增强。</p>
+<div class="callout purple">
+<div class="callout-label">对 VLA 研究的意义</div>
+<p>这三个应用共同指向同一个问题的解决方案：<strong>真实机器人数据稀缺</strong>。用 Cosmos-Predict2.5 生成的合成视频可以：① 弥补稀有任务的训练数据不足；② 提供可控的 OOD 测试场景；③ 通过 Sim2Real 转换让仿真器数据也变得"可用"。这和 DreamDojo 的核心动机高度一致。</p>
+</div>
+</div>
+<!-- §07 实验结果 -->
+<div class="section" id="s07">
+<div class="section-num">§ 07</div>
+<h2>实验结果：PAI-Bench 指标 + 人类偏好评估</h2>
+<div class="cn-read">
+<div class="cn-label">这一节解决什么</div>
+<p>用 PAI-Bench（Physical AI Generation Benchmark）评估，包含两个分数：Domain Score（VQA-based，跨 7 个物理 AI 领域）和 Quality Score（8 个文字到视频/图像生成指标的平均）。综合来看，Cosmos-Predict2.5 在 I2W 任务上拿到最好成绩，在 T2W 任务上与更大的 Wan2.2-27B-A14B 持平。</p>
+</div>
+<table class="result-table">
+<tr>
+<th>模型</th>
+<th>T2W Domain↑</th>
+<th>T2W Quality↑</th>
+<th>T2W Overall↑</th>
+<th>I2W Domain↑</th>
+<th>I2W Quality↑</th>
+<th>I2W Overall↑</th>
+</tr>
+<tr>
+<td class="row-head">CP2.5-2B [pre-train]</td>
+<td>0.782</td><td>0.720</td><td>0.751</td>
+<td>0.824</td><td>0.775</td><td>0.799</td>
+</tr>
+<tr>
+<td class="row-head">CP2.5-2B [post-train]</td>
+<td>0.804</td><td class="highlight">0.732</td><td>0.768</td>
+<td>0.840</td><td class="highlight">0.779</td><td class="highlight">0.810</td>
+</tr>
+<tr>
+<td class="row-head">CP2.5-14B [post-train]</td>
+<td>0.803</td><td class="highlight">0.732</td><td>0.768</td>
+<td>0.838</td><td>0.781</td><td class="highlight">0.810</td>
+</tr>
+<tr>
+<td class="row-head">Wan2.2-27B-A14B</td>
+<td class="highlight">0.810</td><td>0.728</td><td class="highlight">0.769</td>
+<td class="highlight">0.841</td><td>0.772</td><td>0.806</td>
+</tr>
+</table>
+<p style="font-size:12px;color:var(--text3)">CP2.5 = Cosmos-Predict2.5。Wan2.2-27B-A14B 参数量是 Cosmos-Predict2.5-14B 的 1.9 倍。</p>
+<div class="fig-interactive">
+<div class="fig-block">
+<div class="hotspot-wrap" data-hotspot-group="fig67">
+<img alt="Fig 6+7: 人类偏好评估" src="../assets/figures/cosmos-predict2/fig-67.png"/>
+<div class="hotspot" data-body="在多样化 Prompt 测试下，Cosmos-Predict2.5-2B（post-train）vs Wan2.2 5B：30% vs 26.2% 胜，Wan 参数量是 CP2.5 的 2.5 倍。vs Wan2.1 14B：33% vs 34.8% 基本持平。" data-id="f6" data-title="Fig 6: 2B 模型 vs Wan 系列" style="left:28%; top:30%"></div>
+<div class="hotspot" data-body="CP2.5-14B vs Wan2.1 14B：48.6% 对 31.8%，大幅胜出。vs Wan2.2 27B-A14B（参数量的约 2×）：38.1% vs 35.9%，基本持平，但 CP2.5 参数量只有一半。" data-id="f7" data-title="Fig 7: 14B 模型 vs Wan 系列" style="left:28%; top:72%"></div>
+</div>
+<div class="fig-cap">
+<span class="fig-num">Fig 6+7 · p.17</span>
             Human evaluation: post-trained Cosmos-Predict2.5 models are preferred more often than Wan2.1 14B and on par with Wan2.2 27B-A14B despite having only half the parameter count.
             <span class="fig-cn">人类偏好评估：CP2.5-14B 在参数量只有 Wan2.2 27B 一半的情况下，胜率不输对方。</span>
-          </div>
-        </div>
-        <div class="hotspot-panel">
-          <div class="hp-empty">点击图中绿点查看对比详情</div>
-        </div>
-      </div>
-
-      <div class="quiz"
-           data-correct="a"
-           data-explain="PAI-Bench 的 I2W（Image2World）任务中，Cosmos-Predict2.5-14B 后训练版取得 0.810 综合分，和 2B 版并列最高，超过了 Wan2.2-27B-A14B 的 0.806。"
-           data-explain-wrong="I2W 任务是 Image2World（图像到视频），在这个任务上 CP2.5 是最优的。T2W（纯文字）任务上则和 Wan2.2-27B 接近但略低。">
-        <div class="q-label">🧠 理解检查</div>
-        <div class="q-text">在 PAI-Bench 哪项任务上 Cosmos-Predict2.5 取得了最好的成绩，超过了参数量更大的 Wan2.2-27B-A14B？</div>
-        <div class="q-options">
-          <button class="q-opt" data-k="a">Image2World（I2W）任务</button>
-          <button class="q-opt" data-k="b">Text2World（T2W）任务</button>
-          <button class="q-opt" data-k="c">Video2World（V2W）任务</button>
-          <button class="q-opt" data-k="d">两项任务都全面超越</button>
-        </div>
-        <div class="q-feedback"></div>
-      </div>
-    </div>
-
-    <!-- §08 与 Embodied AI 的联系 -->
-    <div class="section" id="s08">
-      <div class="section-num">§ 08</div>
-      <h2>与 Embodied AI 的联系：为什么 DreamDojo 和 MotionWAM 都选它</h2>
-
-      <div class="cn-read">
-        <div class="cn-label">这一节解决什么</div>
-        <p>作为精读笔记的最后一节，把 Cosmos-Predict2.5 放回到更大的 Embodied AI 技术地图里看。为什么这篇论文会在 DreamDojo（2026/02）和 MotionWAM 中被直接引用为基础组件？它解决了什么别的模型没解决的问题？它的局限又是什么？</p>
-      </div>
-
-      <h3>Cosmos-Predict2.5 在 Embodied AI 技术地图中的位置</h3>
-
-      <div class="module-grid">
-        <div class="module-card">
-          <div class="module-card-name">DreamDojo · 2026</div>
-          <div class="module-card-title">直接使用 CP2.5 作为视频骨架</div>
-          <div class="module-card-desc">DreamDojo 保留 CP2.5 的 DiT + WAN2.2 tokenizer，并在其上注入"潜在动作条件（Latent Action）"，加入时序一致性损失和 Self Forcing 蒸馏，使其变成可接受机器人动作的世界模型。</div>
-        </div>
-        <div class="module-card">
-          <div class="module-card-name">MotionWAM · 2026</div>
-          <div class="module-card-title">继承 CP2.5 的视频生成能力</div>
-          <div class="module-card-desc">MotionWAM 在 CP2.5 基础上加入运动先验（Motion Prior）和关节轨迹条件，专注于手腕/手指精细运动的世界模型预测，用于灵巧操作任务。</div>
-        </div>
-        <div class="module-card">
-          <div class="module-card-name">CP2.5 的核心优势</div>
-          <div class="module-card-title">高质量视频 + 开源权重</div>
-          <div class="module-card-desc">2B/14B 两种规格开源，训练 pipeline 完整，Video2World 的条件生成 API 简洁，易于接入自定义动作条件机制——这是下游工作选择它的核心原因。</div>
-        </div>
-        <div class="module-card">
-          <div class="module-card-name">局限性</div>
-          <div class="module-card-title">纯视频输出，无动作理解</div>
-          <div class="module-card-desc">CP2.5 本身不理解或输出动作，无法直接作为策略模型使用。每次生成一段视频（93 帧≈5.8秒），长视频自动回归会积累误差。不支持音频或非视觉模态。</div>
-        </div>
-      </div>
-
-      <div class="callout blue">
-        <div class="callout-label">技术脉络 · Cosmos 系列演进</div>
-        <p><strong>Cosmos-1</strong>（2025）→ EDM 扩散 + T5 编码器 + 视频生成<br>
-        <strong>Cosmos-Predict2.5</strong>（2026/02）→ Flow Matching + Cosmos-Reason1 + SFT/RL/合并后训练<br>
-        <strong>Cosmos-3</strong>（2026/06）→ 完全不同的范式：Mixture-of-Transformers，统一 Language/Image/Video/Audio/Action 五模态</p>
-        <p>Cosmos-3 不是 Cosmos-Predict2.5 的"下一版本"，而是对整个 Physical AI 世界模型架构的重新设计——从"视频生成基座"跃迁到"全模态统一世界模型"。</p>
-      </div>
-
-      <div class="callout red">
-        <div class="callout-label">局限性 · 研究者需要注意</div>
-        <p>① <strong>无长时一致性保证</strong>：自动回归生成长于 93 帧的视频时，各 chunk 之间可能出现外观漂移和物理不一致（虽然 Transfer2.5 有所缓解）。<br>
-        ② <strong>生成速度限制</strong>：蒸馏版本虽然仅需 4 步，但 5.8 秒视频生成仍需数秒，无法实时（相比之下 DreamDojo 的蒸馏 pipeline 达到 10.81 FPS）。<br>
-        ③ <strong>不懂动作语义</strong>：CP2.5 本质上是视频生成模型，对"关节角度""末端执行器位置"没有内在理解，必须由下游工作（DreamDojo、MotionWAM）额外注入动作条件。</p>
-      </div>
-    </div>
-
-    <div style="padding: 48px 40px; text-align: center; color: var(--text3); font-size: 13px; border-top: 1px solid var(--border);">
-      精读笔记 · Cosmos-Predict2.5 · NVIDIA 2026<br>
-      <a href="cosmos3.html" style="color:var(--accent);text-decoration:none;margin-top:8px;display:block;">→ 继续阅读：Cosmos 3 (Omnimodal World Models)</a>
-    </div>
-  </main>
 </div>
-
+</div>
+<div class="hotspot-panel">
+<div class="hp-empty">点击图中绿点查看对比详情</div>
+</div>
+</div>
+<div class="quiz" data-correct="a" data-explain="PAI-Bench 的 I2W（Image2World）任务中，Cosmos-Predict2.5-14B 后训练版取得 0.810 综合分，和 2B 版并列最高，超过了 Wan2.2-27B-A14B 的 0.806。" data-explain-wrong="I2W 任务是 Image2World（图像到视频），在这个任务上 CP2.5 是最优的。T2W（纯文字）任务上则和 Wan2.2-27B 接近但略低。">
+<div class="q-label">🧠 理解检查</div>
+<div class="q-text">在 PAI-Bench 哪项任务上 Cosmos-Predict2.5 取得了最好的成绩，超过了参数量更大的 Wan2.2-27B-A14B？</div>
+<div class="q-options">
+<button class="q-opt" data-k="a">Image2World（I2W）任务</button>
+<button class="q-opt" data-k="b">Text2World（T2W）任务</button>
+<button class="q-opt" data-k="c">Video2World（V2W）任务</button>
+<button class="q-opt" data-k="d">两项任务都全面超越</button>
+</div>
+<div class="q-feedback"></div>
+</div>
+</div>
+<!-- §08 与 Embodied AI 的联系 -->
+<div class="section" id="s08">
+<div class="section-num">§ 08</div>
+<h2>与 Embodied AI 的联系：为什么 DreamDojo 和 MotionWAM 都选它</h2>
+<div class="cn-read">
+<div class="cn-label">这一节解决什么</div>
+<p>作为精读笔记的最后一节，把 Cosmos-Predict2.5 放回到更大的 Embodied AI 技术地图里看。为什么这篇论文会在 DreamDojo（2026/02）和 MotionWAM 中被直接引用为基础组件？它解决了什么别的模型没解决的问题？它的局限又是什么？</p>
+</div>
+<h3>Cosmos-Predict2.5 在 Embodied AI 技术地图中的位置</h3>
+<div class="module-grid">
+<div class="module-card">
+<div class="module-card-name">DreamDojo · 2026</div>
+<div class="module-card-title">直接使用 CP2.5 作为视频骨架</div>
+<div class="module-card-desc">DreamDojo 保留 CP2.5 的 DiT + WAN2.2 tokenizer，并在其上注入"潜在动作条件（Latent Action）"，加入时序一致性损失和 Self Forcing 蒸馏，使其变成可接受机器人动作的世界模型。</div>
+</div>
+<div class="module-card">
+<div class="module-card-name">MotionWAM · 2026</div>
+<div class="module-card-title">继承 CP2.5 的视频生成能力</div>
+<div class="module-card-desc">MotionWAM 在 CP2.5 基础上加入运动先验（Motion Prior）和关节轨迹条件，专注于手腕/手指精细运动的世界模型预测，用于灵巧操作任务。</div>
+</div>
+<div class="module-card">
+<div class="module-card-name">CP2.5 的核心优势</div>
+<div class="module-card-title">高质量视频 + 开源权重</div>
+<div class="module-card-desc">2B/14B 两种规格开源，训练 pipeline 完整，Video2World 的条件生成 API 简洁，易于接入自定义动作条件机制——这是下游工作选择它的核心原因。</div>
+</div>
+<div class="module-card">
+<div class="module-card-name">局限性</div>
+<div class="module-card-title">纯视频输出，无动作理解</div>
+<div class="module-card-desc">CP2.5 本身不理解或输出动作，无法直接作为策略模型使用。每次生成一段视频（93 帧≈5.8秒），长视频自动回归会积累误差。不支持音频或非视觉模态。</div>
+</div>
+</div>
+<div class="callout blue">
+<div class="callout-label">技术脉络 · Cosmos 系列演进</div>
+<p><strong>Cosmos-1</strong>（2025）→ EDM 扩散 + T5 编码器 + 视频生成<br/>
+<strong>Cosmos-Predict2.5</strong>（2026/02）→ Flow Matching + Cosmos-Reason1 + SFT/RL/合并后训练<br/>
+<strong>Cosmos-3</strong>（2026/06）→ 完全不同的范式：Mixture-of-Transformers，统一 Language/Image/Video/Audio/Action 五模态</p>
+<p>Cosmos-3 不是 Cosmos-Predict2.5 的"下一版本"，而是对整个 Physical AI 世界模型架构的重新设计——从"视频生成基座"跃迁到"全模态统一世界模型"。</p>
+</div>
+<div class="callout red">
+<div class="callout-label">局限性 · 研究者需要注意</div>
+<p>① <strong>无长时一致性保证</strong>：自动回归生成长于 93 帧的视频时，各 chunk 之间可能出现外观漂移和物理不一致（虽然 Transfer2.5 有所缓解）。<br/>
+        ② <strong>生成速度限制</strong>：蒸馏版本虽然仅需 4 步，但 5.8 秒视频生成仍需数秒，无法实时（相比之下 DreamDojo 的蒸馏 pipeline 达到 10.81 FPS）。<br/>
+        ③ <strong>不懂动作语义</strong>：CP2.5 本质上是视频生成模型，对"关节角度""末端执行器位置"没有内在理解，必须由下游工作（DreamDojo、MotionWAM）额外注入动作条件。</p>
+</div>
+</div>
+<div style="padding: 48px 40px; text-align: center; color: var(--text3); font-size: 13px; border-top: 1px solid var(--border);">
+      精读笔记 · Cosmos-Predict2.5 · NVIDIA 2026<br/>
+<a href="cosmos3.html" style="color:var(--accent);text-decoration:none;margin-top:8px;display:block;">→ 继续阅读：Cosmos 3 (Omnimodal World Models)</a>
+</div>
+</main>
+</div>
 </body>
 </html>

@@ -1,0 +1,260 @@
+<!DOCTYPE html>
+
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>HuMI · 为什么“跟真实状态不一致”反而更稳</title>
+<link href="../assets/css/style.css" rel="stylesheet"/>
+<script src="../assets/js/theme.js"></script>
+<script defer="" src="../assets/js/interactive.js"></script>
+<style>
+    .docs-layout { grid-template-columns: 240px minmax(0, 1fr); max-width: 1280px; }
+    .focus-line { color: var(--accent); font-weight: 650; }
+    .compare-grid { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:14px; margin:18px 0; }
+    .compare-card { padding:18px; border:1px solid var(--border); border-radius:10px; background:var(--bg2); }
+    .compare-card h4 { margin:0 0 8px; color:var(--text); }
+    .compare-card p { margin:0; font-size:14px; }
+    @media(max-width:900px){
+      .docs-layout { grid-template-columns: 1fr; }
+      .docs-sidebar-left { display: none; }
+      .compare-grid { grid-template-columns: 1fr; }
+    }
+  </style>
+</head>
+<body>
+<nav class="nav">
+<a class="nav-logo" href="../index.html">Paper Notes</a>
+<div class="nav-links">
+<a href="../index.html">← 返回首页</a>
+<button aria-label="切换主题" class="theme-toggle">◐</button>
+</div>
+</nav>
+<div class="docs-layout">
+<aside class="docs-sidebar-left">
+<div class="ds-title">HuMI 精读</div>
+<a class="ds-leaf-top" href="#overview">§01 一句话看懂</a>
+<a class="ds-leaf-top" href="#robot-free">§02 什么叫 Robot-Free</a>
+<a class="ds-leaf-top" href="#pipeline">§03 从人类演示到机器人</a>
+<a class="ds-leaf-top" href="#mismatch">§04 训测不一致为何更好 ★</a>
+<a class="ds-leaf-top" href="#fig4">§05 Fig. 4 逐点拆解 ★</a>
+<a class="ds-leaf-top" href="#evidence">§06 实验与边界</a>
+</aside>
+<main class="docs-content">
+<header class="paper-header">
+<div class="paper-venue">arXiv:2602.06643v2 · 12 Feb 2026 · Tsinghua / Shanghai Qi Zhi / Spirit.AI / SJTU</div>
+<h1 class="paper-title">Humanoid Manipulation Interface: Humanoid Whole-Body Manipulation from Robot-Free Demonstrations</h1>
+<div class="paper-authors">Ruiqian Nai*, Boyuan Zheng*, Junming Zhao*, Haodong Zhu, Sicong Dai†, et al.</div>
+<div class="paper-badges">
+<span class="badge badge-green">Robot-Free Demonstration</span>
+<span class="badge badge-blue">Whole-Body Manipulation</span>
+<span class="badge badge-purple">Diffusion Policy + RL Controller</span>
+<span class="badge badge-amber">Action Chunk Interface</span>
+</div>
+</header>
+<section class="section" id="overview">
+<div class="section-num">§ 01</div>
+<h2>一句话看懂：不用真机器人采演示，但最终仍让真机器人做全身操作</h2>
+<div class="cn-read">
+<div class="cn-label">这一节解决什么</div>
+<p>这篇论文真正要省掉的是<strong>“采集演示时必须占用并操纵真机器人”</strong>。人背着五个追踪器、拿着两个带相机的夹爪，在真实场景里亲自完成任务；系统把人的手、骨盆和脚轨迹转成机器人可学的数据。难点不只是 retarget：人和机器人形态不同、低层控制一定有误差，而且高层策略每 2 秒左右换一次 action chunk。HuMI 的关键贡献，是把<strong>采集、可行性、精度、分层接口</strong>一起补齐。</p>
+</div>
+<div class="fig-interactive panel-below">
+<div class="fig-block">
+<div class="hotspot-wrap" data-hotspot-group="fig1">
+<img alt="Figure 1: HuMI overview" src="../assets/figures/humi/fig-1.png"/>
+<button class="hotspot" data-body="采集者带着便携设备直接进入办公室、走廊等环境，不需要把 Unitree G1 搬到每个现场。" data-id="teach" data-title="左上 · 人类在不同场景教学" style="left:29%; top:40%;"></button>
+<button class="hotspot" data-body="采到的不是一条可直接播放的机器人动作，而是图像、任务空间关键点与 IK 后全身运动，分别监督高层和低层。" data-id="transfer" data-title="左下 · 技能迁移到人形机器人" style="left:30%; top:72%;"></button>
+<button class="hotspot" data-body="跪地求婚等任务要求腿、腰、手共同配合，不能只给两个手的轨迹。" data-id="whole" data-title="Whole-Body" style="left:76%; top:38%;"></button>
+<button class="hotspot" data-body="抛掷要求动作块切换时保持动量连续，这正是 Fig. 4 接口设计要解决的问题。" data-id="dynamic" data-title="Dynamic" style="left:92%; top:38%;"></button>
+<button class="hotspot" data-body="机器人先走到桌边再清洁，关键点接口需要从落脚稳定平滑过渡到手部精细操作。" data-id="mobile" data-title="Mobile" style="left:92%; top:72%;"></button>
+</div>
+<div class="fig-cap"><span class="fig-num">Fig. 1 · p.1</span>HuMI 总览：左侧是无需真机器人在场的人类教学，右侧是真机器人获得的全身、动态、双手与移动操作能力。</div>
+</div>
+<div class="hotspot-panel"></div>
+</div>
+<table class="kv-table">
+<tr><td>输入</td><td>双腕相机图像；左右手、骨盆、双脚的 SE(3) 轨迹；夹爪开合。</td></tr>
+<tr><td>高层</td><td>5 Hz Diffusion Policy：从腕部图像与下肢本体状态预测未来关键点 action chunk。</td></tr>
+<tr><td>低层</td><td>50 Hz whole-body RL controller：结合 IMU、关节位置/速度，把关键点目标变成关节命令。</td></tr>
+<tr><td>结果</td><td>五类任务；数据采集吞吐约为 TWIST2 遥操作的 3 倍；未见环境与物体上达到 70% 成功率。</td></tr>
+</table>
+</section>
+<section class="section" id="robot-free">
+<div class="section-num">§ 02</div>
+<h2>Robot-Free 到底“free”了什么？</h2>
+<div class="cn-read">
+<div class="cn-label">承上 → 启下</div>
+<p>上一节说“采演示时不用机器人”，但这很容易被误解成“训练也完全不用机器人/仿真”。不是。<strong>Robot-free 修饰的是 demonstration collection</strong>：采集者不远程操控实体机器人，也不需要实体机器人在现场；后续仍要使用机器人模型做 IK、在仿真里训练低层 RL，并在真机上部署和评测。</p>
+</div>
+<div class="compare-grid">
+<div class="compare-card">
+<h4>它免掉了 ✓</h4>
+<p>采集时占用真机；搬运机器人到每个场景；遥操作时实时维持平衡；操作者手工补偿低层控制误差。</p>
+</div>
+<div class="compare-card">
+<h4>它没有免掉 ✗</h4>
+<p>机器人 URDF/运动学；在线 IK 预览里的虚拟机器人；低层 sim-to-real RL；最终真机执行与评测。</p>
+</div>
+</div>
+<div class="fig-interactive panel-below">
+<div class="fig-block">
+<div class="hotspot-wrap" data-hotspot-group="fig2">
+<img alt="Figure 2: Robot-free demonstration system" src="../assets/figures/humi/fig-2.png"/>
+<button class="hotspot" data-body="只记录两只手时，蹲、跪、弯腰都能到达同一个手位姿，系统却不知道应该采用哪种全身姿态。" data-id="under" data-title="欠约束 · Underspecified" style="left:13%; top:24%;"></button>
+<button class="hotspot" data-body="直接按身体比例缩放会破坏手和物体的空间关系；桌子和物体不会跟着机器人一起缩放。" data-id="morph" data-title="形态差距 · Morphology Gap" style="left:14%; top:62%;"></button>
+<button class="hotspot" data-body="两个带相机的传感夹爪 + 五个 HTC Vive Ultimate Tracker，追踪双手、骨盆、双脚。" data-id="hardware" data-title="便携硬件" style="left:49%; top:45%;"></button>
+<button class="hotspot" data-body="人看着虚拟 G1 实时运动，主动把动作调整到机器人可达、无明显自碰撞、仍能接触物体的区域。" data-id="preview" data-title="人在环 IK 预览" style="left:63%; top:29%;"></button>
+<button class="hotspot" data-body="腕部图像 + 任务空间关键点轨迹训练视觉操作策略。" data-id="high" data-title="高层训练数据" style="left:87%; top:24%;"></button>
+<button class="hotspot" data-body="IK 解出的全身关节运动作为 RL tracking controller 的参考轨迹。" data-id="low" data-title="低层训练数据" style="left:87%; top:69%;"></button>
+</div>
+<div class="fig-cap"><span class="fig-num">Fig. 2 · p.3</span>Robot-free 的完整数据链：便携采集并不等于“随便录人类动作”，中间必须用在线 IK 预览把演示约束进机器人可行空间。</div>
+</div>
+<div class="hotspot-panel"></div>
+</div>
+<details class="en-quote">
+<summary>展开原文 · robot-free 的严格定义</summary>
+<div class="quote-body">
+<p>“This design enables task teaching without the physical presence of a robot.”</p>
+<div class="quote-cite">— §I, p.2</div>
+</div>
+</details>
+<div class="quiz" data-correct="c" data-explain="论文中的 robot-free 指数据采集不要求实体机器人在场；虚拟机器人 IK、仿真 RL 和真机部署仍然存在。" data-explain-wrong="Robot-free 不是 robot-model-free，也不是 training-free。注意它修饰的是 demonstrations。">
+<div class="q-label">理解检查</div>
+<div class="q-text">下面哪句话最准确？</div>
+<div class="q-options">
+<button class="q-opt" data-k="a">HuMI 完全不使用机器人模型</button>
+<button class="q-opt" data-k="b">HuMI 不需要仿真或真机测试</button>
+<button class="q-opt" data-k="c">采集演示时不需要实体机器人在场</button>
+<button class="q-opt" data-k="d">人类视频无需任何运动学适配即可训练</button>
+</div>
+<div class="q-feedback"></div>
+</div>
+</section>
+<section class="section" id="pipeline">
+<div class="section-num">§ 03</div>
+<h2>两层策略：一个想“往哪走”，一个负责“真的走到”</h2>
+<div class="cn-read">
+<div class="cn-label">承上 → 启下</div>
+<p>上一节解决了人类演示怎么变得“机器人可行”，但 IK 轨迹不等于真机能精确播放。HuMI 因此拆成两层：高层只在任务空间规划关键点，低层高速闭环维持全身稳定。这个分层也制造了下一节的核心矛盾：<strong>高层计划的 pose 与低层真正执行到的 pose 不会完全一致</strong>。</p>
+</div>
+<div class="fig-interactive panel-below">
+<div class="fig-block">
+<div class="hotspot-wrap" data-hotspot-group="fig3">
+<img alt="Figure 3: hierarchical control framework" src="../assets/figures/humi/fig-3.png"/>
+<button class="hotspot" data-body="高层从两只手附近的第一视角看物体，决定任务空间中的下一段动作。" data-id="images" data-title="腕部视觉" style="left:16%; top:28%;"></button>
+<button class="hotspot" data-body="每次输出 receding-horizon action chunk，而不是只输出一个瞬时动作。" data-id="dp" data-title="5 Hz Diffusion Policy" style="left:40%; top:31%;"></button>
+<button class="hotspot" data-body="传递手、骨盆（可扩展到脚）的目标轨迹。Fig. 4 讨论的正是下一 chunk 应锚定在哪个位姿。" data-id="interface" data-title="关键点接口" style="left:61%; top:33%;"></button>
+<button class="hotspot" data-body="IMU、关节位置和速度让低层能闭环纠错；执行误差无法彻底消失。" data-id="state" data-title="真实机器人状态" style="left:55%; top:77%;"></button>
+<button class="hotspot" data-body="追踪关键点同时守住平衡与全身协调，输出关节命令。" data-id="wbc" data-title="50 Hz Whole-Body Controller" style="left:78%; top:40%;"></button>
+</div>
+<div class="fig-cap"><span class="fig-num">Fig. 3 · p.4</span>高层 5 Hz 生成 action chunk，低层 50 Hz 闭环执行。两个频率、两个训练目标之间必须有一个稳健接口。</div>
+</div>
+<div class="hotspot-panel"></div>
+</div>
+</section>
+<section class="section" id="mismatch">
+<div class="section-num">§ 04 · 核心</div>
+<h2>“训测不一致”为什么反而效果更好？</h2>
+<div class="cn-read">
+<div class="cn-label">先纠正一句表述</div>
+<p>更准确地说，这不是“作者故意让整个训练分布和测试分布不同”。部署时的确出现了训练中没有的<strong>计划—执行偏差</strong>；作者的反直觉选择是：<span class="focus-line">在 chunk 切换时，不用最新的真实执行位姿重置计划，而继续用上一段的计划目标作为参考系</span>。它牺牲了“新 chunk 起点和当前真机状态完全对齐”，换来了“高层时间轨迹连续”，再把剩余误差交给低层闭环控制器消化。</p>
+</div>
+<table class="kv-table">
+<tr><td>高层训练时</td><td>模仿人类轨迹，默认给出的关键点目标会被完美执行；它没有见过 4–6 cm 的真机跟踪滞后。</td></tr>
+<tr><td>低层训练时</td><td>追踪固定的离线 reference motion；它擅长从当前状态追赶一条连续目标轨迹。</td></tr>
+<tr><td>真机测试时</td><td>执行位姿落后于计划位姿。若下一 chunk 锚到真实位姿，相当于高层突然把目标轨迹向后平移，甚至先反向再前进。</td></tr>
+<tr><td>作者选择</td><td>锚到上一 chunk 的 scheduled target，让计划轨迹连续；低层看到的是“继续追赶”，而不是“目标突然倒车”。</td></tr>
+</table>
+<div class="callout amber">
+<div class="callout-label">为什么“更真实”不等于“更正确”</div>
+<p>控制接口不只要描述<strong>当前在哪里</strong>，还要保存<strong>原本想怎么运动</strong>。动态抛掷中，真实执行状态虽然最准确，却已经落后；用它重建下一段相对轨迹，会把“纠正误差”错误地写进高层目标，破坏速度和动量。scheduled pose 则保留了原动作的相位与意图。</p>
+</div>
+<details class="en-quote">
+<summary>展开原文 · 为什么 scheduled reference 更贴合训练</summary>
+<div class="quote-body">
+<p>“This aligns better with the training dynamics of both levels: the high-level policy acts under the assumption of perfect tracking, while the low-level RL controller is trained to track fixed offline reference motions.”</p>
+<div class="quote-cite">— §II.C, p.5</div>
+</div>
+</details>
+<div class="quiz" data-correct="b" data-explain="scheduled target 保留轨迹的连续性与动作相位，低层再利用真实状态闭环追赶；这符合高层的完美跟踪假设和低层的离线连续轨迹训练。" data-explain-wrong="actual pose 更真实，但把相对 chunk 锚到它会让下一段目标整体后移，产生突然反向。">
+<div class="q-label">理解检查</div>
+<div class="q-text">为什么不直接用最新 actual pose 作为下一 chunk 的参考？</div>
+<div class="q-options">
+<button class="q-opt" data-k="a">因为系统无法测量 actual pose</button>
+<button class="q-opt" data-k="b">因为会把跟踪滞后变成下一段轨迹的突然反向</button>
+<button class="q-opt" data-k="c">因为低层控制器完全不使用真实状态</button>
+<button class="q-opt" data-k="d">因为 scheduled pose 总是等于 actual pose</button>
+</div>
+<div class="q-feedback"></div>
+</div>
+</section>
+<section class="section" id="fig4">
+<div class="section-num">§ 05 · Fig. 4</div>
+<h2>Fig. 4 逐点拆解：红线为什么会“倒车”，绿线为什么顺</h2>
+<div class="cn-read">
+<div class="cn-label">承上 → 启下</div>
+<p>上一节给出结论，这一节把图中的四条线和 $t=2$ 切换点走一遍。读图时要把两组概念分开：<strong>scheduled / executed</strong> 是系统过去实际发生的计划与执行；<strong>rel. scheduled / rel. executed</strong> 是选择不同参考系后，下一 action chunk 被放到全局坐标里形成的两种未来目标。</p>
+</div>
+<div class="fig-interactive">
+<div class="fig-block">
+<div class="hotspot-wrap" data-hotspot-group="fig4">
+<img alt="Figure 4: action chunk reference comparison" src="../assets/figures/humi/fig-4.png"/>
+<button class="hotspot" data-body="&lt;div class='hp-body'&gt;&lt;p&gt;&lt;strong&gt;这处在图里表示什么：&lt;/strong&gt;在 t=2，上一段计划本来应走到这里。它代表动作的理想相位与连续运动意图。 它对应逐步导览中的“1. 高层先画出浅灰计划”。&lt;/p&gt;&lt;p&gt;&lt;strong&gt;输入与实际操作：&lt;/strong&gt; 当前任务提供的原始观测、指令、机器人状态或训练数据。先明确这些输入，才能判断后面的结论是否用了部署时拿不到的信息。 它预计 t=2 到达浅灰圆点。&lt;/p&gt;&lt;p&gt;&lt;strong&gt;输出、前后关系与必要性：&lt;/strong&gt; 经过本步骤处理、含义更明确的中间结果。这个结果会交给下一步“真机实际落后”继续处理。 图中下一环节是“2. 真机实际落后”。 它把未经处理的原始问题变成后续模块可以计算的输入，是整条链路的起点。&lt;/p&gt;&lt;/div&gt;" data-id="past-plan" data-title="浅灰 · scheduled pose" style="left:25.2%; top:19.8%;"></button>
+<button class="hotspot" data-body="&lt;div class='hp-body'&gt;&lt;p&gt;&lt;strong&gt;这处在图里表示什么：&lt;/strong&gt;低层存在跟踪误差，因此真机在 t=2 只走到更低的位置，落后于计划。 它对应逐步导览中的“2. 真机实际落后”。&lt;/p&gt;&lt;p&gt;&lt;strong&gt;输入与实际操作：&lt;/strong&gt; 来自上一步“高层先画出浅灰计划”的产物：经过本步骤处理、含义更明确的中间结果。本步骤还会按论文设置读取当前条件、时间步或训练信号。 低层努力追踪，但在 t=2 只到达深灰叉号；误差不是零。&lt;/p&gt;&lt;p&gt;&lt;strong&gt;输出、前后关系与必要性：&lt;/strong&gt; 经过本步骤处理、含义更明确的中间结果。这个结果会交给下一步“新 action chunk 到来”继续处理。 图中下一环节是“3. 新 action chunk 到来”。 它承担上下两步之间的接口；缺少它，前一步产生的信息无法以正确格式或正确含义传到下一步。&lt;/p&gt;&lt;/div&gt;" data-id="past-real" data-title="深灰 · executed pose" style="left:25.2%; top:49.8%;"></button>
+<button class="hotspot" data-body="&lt;div class='hp-body'&gt;&lt;p&gt;&lt;strong&gt;这处在图里表示什么：&lt;/strong&gt;高层在这里发布下一段 action chunk。参考系选择决定新轨迹怎样接到旧轨迹上。 它对应逐步导览中的“3. 新 action chunk 到来”。&lt;/p&gt;&lt;p&gt;&lt;strong&gt;输入与实际操作：&lt;/strong&gt; 来自上一步“真机实际落后”的产物：经过本步骤处理、含义更明确的中间结果。本步骤还会按论文设置读取当前条件、时间步或训练信号。 新 chunk 是相对位移序列，必须选一个参考原点放回世界坐标。&lt;/p&gt;&lt;p&gt;&lt;strong&gt;输出、前后关系与必要性：&lt;/strong&gt; 经过本步骤处理、含义更明确的中间结果。这个结果会交给下一步“朴素做法：锚到 actual”继续处理。 图中下一环节是“4. 朴素做法：锚到 actual”。 它承担上下两步之间的接口；缺少它，前一步产生的信息无法以正确格式或正确含义传到下一步。&lt;/p&gt;&lt;/div&gt;" data-id="switch" data-title="虚线 · chunk switching" style="left:25.2%; top:8.8%;"></button>
+<button class="hotspot" data-body="&lt;div class='hp-body'&gt;&lt;p&gt;&lt;strong&gt;这处在图里表示什么：&lt;/strong&gt;下一段相对轨迹锚到上一计划终点：起点连续，随后仍沿原有运动相位前进。 它对应逐步导览中的“5. HuMI：锚到 scheduled”。&lt;/p&gt;&lt;p&gt;&lt;strong&gt;输入与实际操作：&lt;/strong&gt; 来自上一步“朴素做法：锚到 actual”的产物：经过本步骤处理、含义更明确的中间结果。本步骤还会按论文设置读取当前条件、时间步或训练信号。 新 chunk 从旧计划终点自然接上，保持目标速度和动作相位连续。&lt;/p&gt;&lt;p&gt;&lt;strong&gt;输出、前后关系与必要性：&lt;/strong&gt; 经过本步骤处理、含义更明确的中间结果。这个结果会交给下一步“误差交给低层闭环”继续处理。 图中下一环节是“6. 误差交给低层闭环”。 它承担上下两步之间的接口；缺少它，前一步产生的信息无法以正确格式或正确含义传到下一步。&lt;/p&gt;&lt;/div&gt;" data-id="green" data-title="绿色 · rel. scheduled" style="left:43.0%; top:14.2%;"></button>
+<button class="hotspot" data-body="&lt;div class='hp-body'&gt;&lt;p&gt;&lt;strong&gt;这处在图里表示什么：&lt;/strong&gt;同一个相对 chunk 锚到落后的真实位姿后，目标先向下折返；对抛掷等动态任务会直接打断动量。 它对应逐步导览中的“4. 朴素做法：锚到 actual”。&lt;/p&gt;&lt;p&gt;&lt;strong&gt;输入与实际操作：&lt;/strong&gt; 来自上一步“新 action chunk 到来”的产物：经过本步骤处理、含义更明确的中间结果。本步骤还会按论文设置读取当前条件、时间步或训练信号。 原点被拉到落后位置，下一目标比浅灰计划还低，于是目标先“倒车”。&lt;/p&gt;&lt;p&gt;&lt;strong&gt;输出、前后关系与必要性：&lt;/strong&gt; 经过本步骤处理、含义更明确的中间结果。这个结果会交给下一步“HuMI：锚到 scheduled”继续处理。 图中下一环节是“5. HuMI：锚到 scheduled”。 它承担上下两步之间的接口；缺少它，前一步产生的信息无法以正确格式或正确含义传到下一步。&lt;/p&gt;&lt;/div&gt;" data-id="red" data-title="红色 · rel. executed" style="left:43.0%; top:43.5%;"></button>
+<button class="hotspot" data-body="&lt;div class='hp-body'&gt;&lt;p&gt;&lt;strong&gt;这处在图里表示什么：&lt;/strong&gt;绿色与红色表达的是同一段相对预测，区别只在参考原点。参考系一换，世界坐标中的未来轨迹就完全不同。 它对应逐步导览中的“6. 误差交给低层闭环”。&lt;/p&gt;&lt;p&gt;&lt;strong&gt;输入与实际操作：&lt;/strong&gt; 来自上一步“HuMI：锚到 scheduled”的产物：经过本步骤处理、含义更明确的中间结果。本步骤还会按论文设置读取当前条件、时间步或训练信号。 低层仍读取真实状态并追赶连续绿色目标；HuMI 没有假装误差不存在，只是不让误差污染高层轨迹。&lt;/p&gt;&lt;p&gt;&lt;strong&gt;输出、前后关系与必要性：&lt;/strong&gt; 经过本步骤处理、含义更明确的中间结果。这是图中这条链路的最终产物，随后会进入真实执行、模型更新或指标评测。 图中下一环节是“后续执行或评测”。 机器人动作会改变下一次观测；只有执行后重新读取现实，才能发现预测误差并阻止错误连续累积。&lt;/p&gt;&lt;/div&gt;" data-id="future" data-title="同一形状，不同锚点" style="left:60.0%; top:26.0%;"></button>
+</div>
+<div class="fig-cap"><span class="fig-num">Fig. 4 · p.5</span>参考系选择如何影响 action chunk 连续性。绿色以计划位姿为锚，红色以真实执行位姿为锚。</div>
+</div>
+<div class="hotspot-panel"></div>
+</div>
+<div class="step-walker" data-hotspot-group="fig4">
+<div class="sw-header">
+<div class="sw-title">跟着时间走一遍</div>
+<div class="sw-controls"><button class="sw-btn prev">◀</button><span class="sw-counter">1 / 6</span><button class="sw-btn next">▶</button></div>
+</div>
+<div class="sw-progress"><div class="sw-dot"></div><div class="sw-dot"></div><div class="sw-dot"></div><div class="sw-dot"></div><div class="sw-dot"></div><div class="sw-dot"></div></div>
+<div class="sw-body">
+<div class="sw-step active" data-hotspot="past-plan"><h4>1. 高层先画出浅灰计划</h4><p>它预计 t=2 到达浅灰圆点。</p><div class="step-beginner"><div class="sb-label">给第一次接触这个领域的读者</div><p><strong>输入是什么：</strong>当前任务提供的原始观测、指令、机器人状态或训练数据。先明确这些输入，才能判断后面的结论是否用了部署时拿不到的信息。</p><p><strong>这一步究竟做什么：</strong>本步骤执行“高层先画出浅灰计划”。具体来说，它预计 t=2 到达浅灰圆点。 这里处理的只是整条链路中的一个接口：把上一步的结果整理成下一步能够正确读取和继续计算的形式。</p><p><strong>输出到哪里：</strong>经过本步骤处理、含义更明确的中间结果。这个结果会交给下一步“真机实际落后”继续处理。</p><p><strong>为什么不能省略：</strong>它把未经处理的原始问题变成后续模块可以计算的输入，是整条链路的起点。</p></div></div>
+<div class="sw-step" data-hotspot="past-real"><h4>2. 真机实际落后</h4><p>低层努力追踪，但在 t=2 只到达深灰叉号；误差不是零。</p><div class="step-beginner"><div class="sb-label">给第一次接触这个领域的读者</div><p><strong>输入是什么：</strong>来自上一步“高层先画出浅灰计划”的产物：经过本步骤处理、含义更明确的中间结果。本步骤还会按论文设置读取当前条件、时间步或训练信号。</p><p><strong>这一步究竟做什么：</strong>本步骤执行“真机实际落后”。具体来说，低层努力追踪，但在 t=2 只到达深灰叉号；误差不是零。 这里处理的只是整条链路中的一个接口：把上一步的结果整理成下一步能够正确读取和继续计算的形式。</p><p><strong>输出到哪里：</strong>经过本步骤处理、含义更明确的中间结果。这个结果会交给下一步“新 action chunk 到来”继续处理。</p><p><strong>为什么不能省略：</strong>它承担上下两步之间的接口；缺少它，前一步产生的信息无法以正确格式或正确含义传到下一步。</p></div></div>
+<div class="sw-step" data-hotspot="switch"><h4>3. 新 action chunk 到来</h4><p>新 chunk 是相对位移序列，必须选一个参考原点放回世界坐标。</p><div class="step-beginner"><div class="sb-label">给第一次接触这个领域的读者</div><p><strong>输入是什么：</strong>来自上一步“真机实际落后”的产物：经过本步骤处理、含义更明确的中间结果。本步骤还会按论文设置读取当前条件、时间步或训练信号。</p><p><strong>这一步究竟做什么：</strong>本步骤执行“新 action chunk 到来”。具体来说，新 chunk 是相对位移序列，必须选一个参考原点放回世界坐标。 这里处理的只是整条链路中的一个接口：把上一步的结果整理成下一步能够正确读取和继续计算的形式。</p><p><strong>输出到哪里：</strong>经过本步骤处理、含义更明确的中间结果。这个结果会交给下一步“朴素做法：锚到 actual”继续处理。</p><p><strong>为什么不能省略：</strong>它承担上下两步之间的接口；缺少它，前一步产生的信息无法以正确格式或正确含义传到下一步。</p><div class="sb-terms"><strong>术语先翻译：</strong>action chunk（动作块）：模型一次生成连续多步控制，而不是每次只预测一个瞬时动作。</div></div></div>
+<div class="sw-step" data-hotspot="red"><h4>4. 朴素做法：锚到 actual</h4><p>原点被拉到落后位置，下一目标比浅灰计划还低，于是目标先“倒车”。</p><div class="step-beginner"><div class="sb-label">给第一次接触这个领域的读者</div><p><strong>输入是什么：</strong>来自上一步“新 action chunk 到来”的产物：经过本步骤处理、含义更明确的中间结果。本步骤还会按论文设置读取当前条件、时间步或训练信号。</p><p><strong>这一步究竟做什么：</strong>本步骤执行“朴素做法：锚到 actual”。具体来说，原点被拉到落后位置，下一目标比浅灰计划还低，于是目标先“倒车”。 这里处理的只是整条链路中的一个接口：把上一步的结果整理成下一步能够正确读取和继续计算的形式。</p><p><strong>输出到哪里：</strong>经过本步骤处理、含义更明确的中间结果。这个结果会交给下一步“HuMI：锚到 scheduled”继续处理。</p><p><strong>为什么不能省略：</strong>它承担上下两步之间的接口；缺少它，前一步产生的信息无法以正确格式或正确含义传到下一步。</p></div></div>
+<div class="sw-step" data-hotspot="green"><h4>5. HuMI：锚到 scheduled</h4><p>新 chunk 从旧计划终点自然接上，保持目标速度和动作相位连续。</p><div class="step-beginner"><div class="sb-label">给第一次接触这个领域的读者</div><p><strong>输入是什么：</strong>来自上一步“朴素做法：锚到 actual”的产物：经过本步骤处理、含义更明确的中间结果。本步骤还会按论文设置读取当前条件、时间步或训练信号。</p><p><strong>这一步究竟做什么：</strong>本步骤执行“HuMI：锚到 scheduled”。具体来说，新 chunk 从旧计划终点自然接上，保持目标速度和动作相位连续。 这个动作会真正改变环境，所以系统还要读取执行后的新观测，检查模型预期与现实之间的差距。</p><p><strong>输出到哪里：</strong>经过本步骤处理、含义更明确的中间结果。这个结果会交给下一步“误差交给低层闭环”继续处理。</p><p><strong>为什么不能省略：</strong>它承担上下两步之间的接口；缺少它，前一步产生的信息无法以正确格式或正确含义传到下一步。</p></div></div>
+<div class="sw-step" data-hotspot="future"><h4>6. 误差交给低层闭环</h4><p>低层仍读取真实状态并追赶连续绿色目标；HuMI 没有假装误差不存在，只是不让误差污染高层轨迹。</p><div class="step-beginner"><div class="sb-label">给第一次接触这个领域的读者</div><p><strong>输入是什么：</strong>来自上一步“HuMI：锚到 scheduled”的产物：经过本步骤处理、含义更明确的中间结果。本步骤还会按论文设置读取当前条件、时间步或训练信号。</p><p><strong>这一步究竟做什么：</strong>低层仍读取真实状态并追赶连续绿色目标；HuMI 没有假装误差不存在，只是不让误差污染高层轨迹。</p><p><strong>输出到哪里：</strong>经过本步骤处理、含义更明确的中间结果。这是图中这条链路的最终产物，随后会进入真实执行、模型更新或指标评测。</p><p><strong>为什么不能省略：</strong>机器人动作会改变下一次观测；只有执行后重新读取现实，才能发现预测误差并阻止错误连续累积。</p></div></div>
+</div>
+</div>
+</section>
+<section class="section" id="evidence">
+<div class="section-num">§ 06</div>
+<h2>实验支持什么，又没有直接证明什么？</h2>
+<div class="cn-read">
+<div class="cn-label">承上 → 小结</div>
+<p>Fig. 4 解释了机制，实验则用不同任务的消融验证各个接口部件。要注意：论文没有给 Fig. 4 两种 reference 的统一总表，而是在对应动态任务中报告失败现象；因此“训测不一致效果更好”应理解为<strong>这一接口设计在 HuMI 分层系统中更稳</strong>，不能外推成“所有机器学习任务故意制造 train-test mismatch 都会更好”。</p>
+</div>
+<table class="kv-table">
+<tr><td>完整 HuMI</td><td>跪地求婚 17/20 = 85%；双手拔剑 17/20 = 85%；抛玩具 16/20 = 80%；走到桌边清洁 15/20 = 75%。</td></tr>
+<tr><td>用 actual EE pose 作参考</td><td>抛掷中动作块切换会破坏连续性，典型失败是机器人突然向后跳并撞到后方障碍（Fig. 6b）。</td></tr>
+<tr><td>去掉人在环 IK</td><td>求婚任务由 85% 降到 1/10 = 10%，说明 robot-free 并不等于忽略 embodiment gap。</td></tr>
+<tr><td>只给 EE、不指定全身</td><td>求婚任务降到 0/10；两个手的轨迹不足以唯一决定腿和躯干如何配合。</td></tr>
+<tr><td>去掉变速增强</td><td>拔剑由 85% 降到 5/10 = 50%，平均末端误差升至 21.2 mm。</td></tr>
+<tr><td>泛化</td><td>350 条、7 个环境的瓶子拾取数据；未见环境和物体组合上成功率 70%。</td></tr>
+</table>
+<div class="callout blue">
+<div class="callout-label">最终记忆句</div>
+<p><strong>Robot-free</strong>：省掉采集时的实体机器人，不省机器人约束。<br/><strong>Fig. 4</strong>：actual pose 更真实，但 scheduled pose 更能保持动作意图连续。<br/><strong>核心分工</strong>：高层守住连续计划，低层根据真实状态负责追赶和稳定。</p>
+</div>
+<details class="en-quote">
+<summary>展开原文 · 论文对红线与绿线的解释</summary>
+<div class="quote-body">
+<p>“Resetting the reference to the lagging executed pose generates a trajectory that suffers from a sudden reversal… To enforce continuity, we instead utilize the previous target pose as the action reference.”</p>
+<div class="quote-cite">— §II.C, p.5</div>
+</div>
+</details>
+</section>
+</main>
+</div>
+</body>
+</html>

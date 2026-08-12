@@ -1,0 +1,103 @@
+TY  - RPRT
+TI  - villa-X: Enhancing Latent Action Modeling in Vision-Language-Action Models
+AU  - Chen, Xiaoyu
+AU  - Wei, Hangxing
+AU  - Zhang, Pushi
+AU  - Zhang, Chuheng
+AU  - Wang, Kaixin
+AU  - Guo, Yanjiang
+AU  - Yang, Rushuai
+AU  - Wang, Yucen
+AU  - Xiao, Xinquan
+AU  - Zhao, Li
+AU  - Chen, Jianyu
+AU  - Bian, Jiang
+PY  - 2025
+DO  - 10.48550/arXiv.2507.23682
+UR  - https://arxiv.org/abs/2507.23682
+L1  - file:///Users/siyuanluo/STUDY/paper/learn_embodied_papers/pdfs/world-model/WAM/Chen%20et%20al.%20-%202025%20-%20villa-X%20Enhancing%20Latent%20Action%20Modeling%20in%20Vision-Language-Action%20Models.pdf
+N1  - arXiv technical report; v3.
+KW  - WAM-route
+KW  - latent action
+KW  - VLA
+ER  -
+
+TY  - RPRT
+TI  - Motus: A Unified Latent Action World Model
+AU  - Bi, Hongzhe
+AU  - Tan, Hengkai
+AU  - Xie, Shenghao
+AU  - Wang, Zeyuan
+AU  - Huang, Shuhe
+AU  - Liu, Haitian
+AU  - Zhao, Ruowen
+AU  - Feng, Yao
+AU  - Xiang, Chendong
+AU  - Rong, Yinze
+AU  - Zhao, Hongyan
+AU  - Liu, Hanyu
+AU  - Su, Hang
+AU  - Zhu, Jun
+PY  - 2025
+DO  - 10.48550/arXiv.2512.13030
+UR  - https://arxiv.org/abs/2512.13030
+L1  - file:///Users/siyuanluo/STUDY/paper/learn_embodied_papers/pdfs/world-model/WAM/Bi%20et%20al.%20-%202025%20-%20Motus%20A%20Unified%20Latent%20Action%20World%20Model.pdf
+N1  - arXiv technical report; v2.
+KW  - WAM-route
+KW  - latent action
+KW  - world action model
+ER  -
+
+TY  - RPRT
+TI  - FLARE: Robot Learning with Implicit World Modeling
+AU  - Zheng, Ruijie
+AU  - Wang, Jing
+AU  - Reed, Scott
+AU  - Bjorck, Johan
+AU  - Fang, Yu
+AU  - Hu, Fengyuan
+AU  - Jang, Joel
+AU  - Kundalia, Kaushil
+AU  - Lin, Zongyu
+AU  - Magne, Loic
+AU  - Narayan, Avnish
+AU  - Tan, You Liang
+AU  - Wang, Guanzhi
+AU  - Wang, Qi
+AU  - Xiang, Jiannan
+AU  - Xu, Yinzhen
+AU  - Ye, Seonghyeon
+AU  - Kautz, Jan
+AU  - Huang, Furong
+AU  - Zhu, Yuke
+AU  - Fan, Linxi
+PY  - 2025
+DO  - 10.48550/arXiv.2505.15659
+UR  - https://arxiv.org/abs/2505.15659
+L1  - file:///Users/siyuanluo/STUDY/paper/learn_embodied_papers/pdfs/world-model/WAM/Zheng%20et%20al.%20-%202025%20-%20FLARE%20Robot%20Learning%20with%20Implicit%20World%20Modeling.pdf
+N1  - arXiv technical report; v1.
+KW  - WAM-route
+KW  - implicit world modeling
+KW  - VLA
+ER  -
+
+TY  - RPRT
+TI  - VLA-JEPA: Enhancing Vision-Language-Action Model with Latent World Model
+AU  - Sun, Jingwen
+AU  - Zhang, Wenyao
+AU  - Qi, Zekun
+AU  - Ren, Shaojie
+AU  - Liu, Zezhi
+AU  - Zhu, Hanxin
+AU  - Sun, Guangzhong
+AU  - Jin, Xin
+AU  - Chen, Zhibo
+PY  - 2026
+DO  - 10.48550/arXiv.2602.10098
+UR  - https://arxiv.org/abs/2602.10098
+L1  - file:///Users/siyuanluo/STUDY/paper/learn_embodied_papers/pdfs/world-model/WAM/Sun%20et%20al.%20-%202026%20-%20VLA-JEPA%20Enhancing%20Vision-Language-Action%20Model%20with%20Latent%20World%20Model.pdf
+N1  - arXiv technical report; v2.
+KW  - WAM-route
+KW  - JEPA
+KW  - latent world model
+ER  -

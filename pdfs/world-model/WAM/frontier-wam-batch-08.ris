@@ -1,0 +1,86 @@
+TY  - RPRT
+TI  - Flash-WAM: Modality-Aware Distillation for World Action Models
+AU  - Akbari, Arman
+AU  - Zhang, Ci
+AU  - Akbari, Arash
+AU  - Zhao, Lin
+AU  - Chen, Yixiao
+AU  - Wang, Yanzhi
+PY  - 2026
+UR  - https://arxiv.org/abs/2606.05254
+DO  - 10.48550/arXiv.2606.05254
+N1  - WAM route: efficiency/real-time. Verified arXiv submission 3 Jun 2026.
+L1  - file:///Users/siyuanluo/STUDY/paper/learn_embodied_papers/pdfs/world-model/WAM/Akbari%20et%20al.%20-%202026%20-%20Flash-WAM%20Modality-Aware%20Distillation%20for%20World%20Action%20Models.pdf
+ER  -
+
+TY  - RPRT
+TI  - Efficient-WAM: A 1B-Parameter World-Action Model with Low-Cost Future Imagination
+AU  - Li, Jiajun
+AU  - Guo, Tiecheng
+AU  - Ye, Yifan
+AU  - Zhang, Rongyu
+AU  - Chi, Xiaowei
+AU  - Zhang, Shanghang
+PY  - 2026
+UR  - https://arxiv.org/abs/2606.10040
+DO  - 10.48550/arXiv.2606.10040
+N1  - WAM route: efficiency/real-time. Verified arXiv v2, 10 Jun 2026.
+L1  - file:///Users/siyuanluo/STUDY/paper/learn_embodied_papers/pdfs/world-model/WAM/Li%20et%20al.%20-%202026%20-%20Efficient-WAM%20A%201B-Parameter%20World-Action%20Model%20with%20Low-Cost%20Future%20Imagination.pdf
+ER  -
+
+TY  - RPRT
+TI  - C³ache: Accelerating World Action Models with Cross Inference Chunk Cache
+AU  - Zhao, Weisen
+AU  - Nguyen, Lam
+AU  - Lu, Zhicong
+AU  - Shang, Yuzhang
+PY  - 2026
+UR  - https://arxiv.org/abs/2606.08962
+DO  - 10.48550/arXiv.2606.08962
+N1  - WAM route: efficiency/real-time. Verified arXiv submission 8 Jun 2026.
+L1  - file:///Users/siyuanluo/STUDY/paper/learn_embodied_papers/pdfs/world-model/WAM/Zhao%20et%20al.%20-%202026%20-%20C3ache%20Accelerating%20World%20Action%20Models%20with%20Cross%20Inference%20Chunk%20Cache.pdf
+ER  -
+
+TY  - RPRT
+TI  - HiMem-WAM: Hierarchical Memory-Gated World Action Models for Robotic Manipulation
+AU  - Sun, Xiaoquan
+AU  - Zhang, Ruijian
+AU  - Cao, Chen
+AU  - Sun, Yihan
+AU  - Chen, Jiahui
+AU  - Chen, Jiayu
+PY  - 2026
+UR  - https://arxiv.org/abs/2606.10363
+DO  - 10.48550/arXiv.2606.10363
+N1  - WAM route: long-horizon efficiency/memory. Verified arXiv submission 9 Jun 2026.
+L1  - file:///Users/siyuanluo/STUDY/paper/learn_embodied_papers/pdfs/world-model/WAM/Sun%20et%20al.%20-%202026%20-%20HiMem-WAM%20Hierarchical%20Memory-Gated%20World%20Action%20Models%20for%20Robotic%20Manipulation.pdf
+ER  -
+
+TY  - RPRT
+TI  - OmniVTA: Visuo-Tactile World Modeling for Contact-Rich Robotic Manipulation
+AU  - Zheng, Yuhang
+AU  - Gu, Songen
+AU  - Li, Weize
+AU  - Zheng, Yupeng
+AU  - Zang, Yujie
+AU  - Ding, Wenchao
+PY  - 2026
+UR  - https://arxiv.org/abs/2603.19201
+DO  - 10.48550/arXiv.2603.19201
+N1  - WAM route: multimodal/tactile. Verified arXiv v2, 23 Mar 2026.
+L1  - file:///Users/siyuanluo/STUDY/paper/learn_embodied_papers/pdfs/world-model/WAM/Zheng%20et%20al.%20-%202026%20-%20OmniVTA%20Visuo-Tactile%20World%20Modeling%20for%20Contact-Rich%20Robotic%20Manipulation.pdf
+ER  -
+
+TY  - RPRT
+TI  - FAWAM: Force-Aware World Action Models for Closed-Loop Contact-Rich Manipulation
+AU  - He, Haotian
+AU  - Yan, Zeyu
+AU  - Liu, Qipeng
+AU  - Guo, Ning
+AU  - Lian, Wenzhao
+PY  - 2026
+UR  - https://arxiv.org/abs/2606.08555
+DO  - 10.48550/arXiv.2606.08555
+N1  - WAM route: multimodal/force. Verified arXiv v2, 12 Jun 2026.
+L1  - file:///Users/siyuanluo/STUDY/paper/learn_embodied_papers/pdfs/world-model/WAM/He%20et%20al.%20-%202026%20-%20FAWAM%20Force-Aware%20World%20Action%20Models%20for%20Closed-Loop%20Contact-Rich%20Manipulation.pdf
+ER  -

@@ -370,6 +370,12 @@
           $$u_t(x|x_1) = \frac{\sigma_t'(x_1)}{\sigma_t(x_1)}(x - \mu_t(x_1)) + \mu_t'(x_1)$$
           <span class="math-label">Eq. 15 · p.5 · 通用 Gaussian 条件 VF</span>
         </div>
+        <div class="math-explain"><div class="me-title">高斯概率路径为什么有这条速度场</div><dl>
+          <dt>$x-\mu_t(x_1)$</dt><dd>样本相对当前高斯中心的偏移，表示它位于“噪声云”的哪个方向。</dd>
+          <dt>$\sigma_t'/\sigma_t$</dt><dd>标准差的相对变化率；乘上偏移后，负责让整团概率质量随时间收缩或扩张。</dd>
+          <dt>$\mu_t'(x_1)$</dt><dd>高斯中心的移动速度，负责把概率云从先验位置整体搬向目标样本 $x_1$。</dd>
+          <dt>$u_t(x\mid x_1)$</dt><dd>给定终点 $x_1$ 时的解析教师速度。CFM 用它监督网络，因此不必求难以计算的边缘速度场。</dd>
+        </dl></div>
 
         <h3 id="diffusion-path" style="margin-top:32px;">4.2 Diffusion 路径（弯曲）</h3>
 
@@ -408,6 +414,11 @@
           $$u_t(x|x_1) = \frac{x_1 - (1 - \sigma_{\min})x}{1 - (1 - \sigma_{\min})t}$$
           <span class="math-label">Eq. 21 · p.5 · OT 条件速度场</span>
         </div>
+        <div class="math-explain"><div class="me-title">OT 路径的方向为何更接近直线</div><dl>
+          <dt>$x_1-(1-\sigma_{\min})x$</dt><dd>从当前状态指向目标的校正方向；$\sigma_{\min}$ 保留终点附近的一点非零方差，避免路径完全退化。</dd>
+          <dt>$1-(1-\sigma_{\min})t$</dt><dd>当前路径的剩余尺度。随着 $t$ 接近 1，分母缩小，使速度恰好把剩余误差在终点前消除。</dd>
+          <dt>$u_t(x\mid x_1)$</dt><dd>沿条件 OT 概率路径的解析速度。与弯曲的 diffusion path 相比，它通常产生更直的输运轨迹，因此少步 ODE 求解更有优势。</dd>
+        </dl></div>
 
         <p>
           这个速度场的方向<strong>不随时间变化</strong>（只是大小变化）——

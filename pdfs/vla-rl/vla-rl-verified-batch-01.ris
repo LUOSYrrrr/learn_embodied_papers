@@ -1,0 +1,314 @@
+TY  - RPRT
+TI  - RT-2: Vision-Language-Action Models Transfer Web Knowledge to Robotic Control
+AU  - Anthony, Brohan,
+AU  - Noah, Brown,
+AU  - Justice, Carbajal,
+AU  - Yevgen, Chebotar,
+AU  - Xi, Chen,
+AU  - Krzysztof, Choromanski,
+AU  - Tianli, Ding,
+AU  - Danny, Driess,
+AU  - Avinava, Dubey,
+AU  - Chelsea, Finn,
+AU  - Pete, Florence,
+AU  - Chuyuan, Fu,
+AU  - Gonzalez, Arenas, Montse
+AU  - Keerthana, Gopalakrishnan,
+AU  - Kehang, Han,
+AU  - Karol, Hausman,
+AU  - Alexander, Herzog,
+AU  - Jasmine, Hsu,
+AU  - Brian, Ichter,
+AU  - Alex, Irpan,
+AU  - Nikhil, Joshi,
+AU  - Ryan, Julian,
+AU  - Dmitry, Kalashnikov,
+AU  - Yuheng, Kuang,
+AU  - Isabel, Leal,
+AU  - Lisa, Lee,
+AU  - Edward, Lee, Tsang-Wei
+AU  - Sergey, Levine,
+AU  - Yao, Lu,
+AU  - Henryk, Michalewski,
+AU  - Igor, Mordatch,
+AU  - Karl, Pertsch,
+AU  - Kanishka, Rao,
+AU  - Krista, Reymann,
+AU  - Michael, Ryoo,
+AU  - Grecia, Salazar,
+AU  - Pannag, Sanketi,
+AU  - Pierre, Sermanet,
+AU  - Jaspiar, Singh,
+AU  - Anikait, Singh,
+AU  - Radu, Soricut,
+AU  - Huong, Tran,
+AU  - Vincent, Vanhoucke,
+AU  - Quan, Vuong,
+AU  - Ayzaan, Wahid,
+AU  - Stefan, Welker,
+AU  - Paul, Wohlhart,
+AU  - Jialin, Wu,
+AU  - Fei, Xia,
+AU  - Ted, Xiao,
+AU  - Peng, Xu,
+AU  - Sichun, Xu,
+AU  - Tianhe, Yu,
+AU  - Brianna, Zitkovich,
+PY  - 2023
+UR  - https://arxiv.org/abs/2307.15818
+DO  - 10.48550/arXiv.2307.15818
+N1  - Verified VLA+RL route item; metadata checked against the arXiv abstract page.
+L1  - file:///Users/siyuanluo/STUDY/paper/learn_embodied_papers/pdfs/vla-rl/rt-2.pdf
+KW  - VLA+RL
+KW  - robot reinforcement learning
+ER  -
+
+TY  - RPRT
+TI  - What Can RL Bring to VLA Generalization? An Empirical Study
+AU  - Jijia, Liu,
+AU  - Feng, Gao,
+AU  - Bingwen, Wei,
+AU  - Xinlei, Chen,
+AU  - Qingmin, Liao,
+AU  - Yi, Wu,
+AU  - Chao, Yu,
+AU  - Yu, Wang,
+PY  - 2025
+UR  - https://arxiv.org/abs/2505.19789
+DO  - 10.48550/arXiv.2505.19789
+N1  - Verified VLA+RL route item; metadata checked against the arXiv abstract page.
+L1  - file:///Users/siyuanluo/STUDY/paper/learn_embodied_papers/pdfs/vla-rl/rl-vla-generalization.pdf
+KW  - VLA+RL
+KW  - robot reinforcement learning
+ER  -
+
+TY  - RPRT
+TI  - EXPO-FT: Sample-Efficient Reinforcement Learning Finetuning for Vision-Language-Action Models
+AU  - Perry, Dong,
+AU  - Kuo-Han, Hung,
+AU  - Tian, Gao,
+AU  - Dorsa, Sadigh,
+AU  - Chelsea, Finn,
+PY  - 2026
+UR  - https://arxiv.org/abs/2605.25477
+DO  - 10.48550/arXiv.2605.25477
+N1  - Verified VLA+RL route item; metadata checked against the arXiv abstract page.
+L1  - file:///Users/siyuanluo/STUDY/paper/learn_embodied_papers/pdfs/vla-rl/expo-ft.pdf
+KW  - VLA+RL
+KW  - robot reinforcement learning
+ER  -
+
+TY  - RPRT
+TI  - DyGRO-VLA: Cross-Task Scaling of Vision-Language-Action Models via Dynamic Grouped Residual Optimization
+AU  - Sixu, Lin,
+AU  - Yunpeng, Qing,
+AU  - Litao, Liu,
+AU  - Ming, Zhou,
+AU  - Ruixing, Jin,
+AU  - Xiaoyi, Fan,
+AU  - Guiliang, Liu,
+PY  - 2026
+UR  - https://arxiv.org/abs/2605.17486
+DO  - 10.48550/arXiv.2605.17486
+N1  - Verified VLA+RL route item; metadata checked against the arXiv abstract page.
+L1  - file:///Users/siyuanluo/STUDY/paper/learn_embodied_papers/pdfs/vla-rl/dygro-vla.pdf
+KW  - VLA+RL
+KW  - robot reinforcement learning
+ER  -
+
+TY  - RPRT
+TI  - BORA: Bridging Offline Reinforcement Learning and Online Residual Adaptation for Real-World Dexterous VLA Models
+AU  - Zhongxi, Chen,
+AU  - Yifan, Han,
+AU  - Yanming, Shao,
+AU  - Huanming, Liu,
+AU  - Congsheng, Xu,
+AU  - Xiaoyu, Chen,
+AU  - Yao, Mu,
+AU  - Wenzhao, Lian,
+PY  - 2026
+UR  - https://arxiv.org/abs/2605.30226
+DO  - 10.48550/arXiv.2605.30226
+N1  - Verified VLA+RL route item; metadata checked against the arXiv abstract page.
+L1  - file:///Users/siyuanluo/STUDY/paper/learn_embodied_papers/pdfs/vla-rl/bora.pdf
+KW  - VLA+RL
+KW  - robot reinforcement learning
+ER  -
+
+TY  - RPRT
+TI  - Self-Improving Vision-Language-Action Models with Data Generation via Residual RL
+AU  - Wenli, Xiao,
+AU  - Haotian, Lin,
+AU  - Andy, Peng,
+AU  - Haoru, Xue,
+AU  - Tairan, He,
+AU  - Yuqi, Xie,
+AU  - Fengyuan, Hu,
+AU  - Jimmy, Wu,
+AU  - Zhengyi, Luo,
+AU  - "Jim", Fan, Linxi
+AU  - Guanya, Shi,
+AU  - Yuke, Zhu,
+PY  - 2025
+UR  - https://arxiv.org/abs/2511.00091
+DO  - 10.48550/arXiv.2511.00091
+N1  - Verified VLA+RL route item; metadata checked against the arXiv abstract page.
+L1  - file:///Users/siyuanluo/STUDY/paper/learn_embodied_papers/pdfs/vla-rl/self-improving-vla.pdf
+KW  - VLA+RL
+KW  - robot reinforcement learning
+ER  -
+
+TY  - RPRT
+TI  - Balancing Signal and Variance: Adaptive Offline RL Post-Training for VLA Flow Models
+AU  - Hongyin, Zhang,
+AU  - Shiyuan, Zhang,
+AU  - Junxi, Jin,
+AU  - Qixin, Zeng,
+AU  - Yifan, Qiao,
+AU  - Hongchao, Lu,
+AU  - Donglin, Wang,
+PY  - 2025
+UR  - https://arxiv.org/abs/2509.04063
+DO  - 10.48550/arXiv.2509.04063
+N1  - Verified VLA+RL route item; metadata checked against the arXiv abstract page.
+L1  - file:///Users/siyuanluo/STUDY/paper/learn_embodied_papers/pdfs/vla-rl/arfm.pdf
+KW  - VLA+RL
+KW  - robot reinforcement learning
+ER  -
+
+TY  - RPRT
+TI  - CO-RFT: Efficient Fine-Tuning of Vision-Language-Action Models through Chunked Offline Reinforcement Learning
+AU  - Dongchi, Huang,
+AU  - Zhirui, Fang,
+AU  - Tianle, Zhang,
+AU  - Yihang, Li,
+AU  - Lin, Zhao,
+AU  - Chunhe, Xia,
+PY  - 2025
+UR  - https://arxiv.org/abs/2508.02219
+DO  - 10.48550/arXiv.2508.02219
+N1  - Verified VLA+RL route item; metadata checked against the arXiv abstract page.
+L1  - file:///Users/siyuanluo/STUDY/paper/learn_embodied_papers/pdfs/vla-rl/co-rft.pdf
+KW  - VLA+RL
+KW  - robot reinforcement learning
+ER  -
+
+TY  - RPRT
+TI  - RankQ: Offline-to-Online Reinforcement Learning via Self-Supervised Action Ranking
+AU  - Andrew, Choi,
+AU  - Wei, Xu,
+PY  - 2026
+UR  - https://arxiv.org/abs/2605.11151
+DO  - 10.48550/arXiv.2605.11151
+N1  - Verified VLA+RL route item; metadata checked against the arXiv abstract page.
+L1  - file:///Users/siyuanluo/STUDY/paper/learn_embodied_papers/pdfs/vla-rl/rankq.pdf
+KW  - VLA+RL
+KW  - robot reinforcement learning
+ER  -
+
+TY  - RPRT
+TI  - RISE: Self-Improving Robot Policy with Compositional World Model
+AU  - Jiazhi, Yang,
+AU  - Kunyang, Lin,
+AU  - Jinwei, Li,
+AU  - Wencong, Zhang,
+AU  - Tianwei, Lin,
+AU  - Longyan, Wu,
+AU  - Zhizhong, Su,
+AU  - Hao, Zhao,
+AU  - Ya-Qin, Zhang,
+AU  - Li, Chen,
+AU  - Ping, Luo,
+AU  - Xiangyu, Yue,
+AU  - Hongyang, Li,
+PY  - 2026
+UR  - https://arxiv.org/abs/2602.11075
+DO  - 10.48550/arXiv.2602.11075
+N1  - Verified VLA+RL route item; metadata checked against the arXiv abstract page.
+L1  - file:///Users/siyuanluo/STUDY/paper/learn_embodied_papers/pdfs/vla-rl/rise-compositional-world-model.pdf
+KW  - VLA+RL
+KW  - robot reinforcement learning
+ER  -
+
+TY  - CONF
+TI  - ReinFlow: Fine-tuning Flow Matching Policy with Online Reinforcement Learning
+AU  - Tonghe, Zhang,
+AU  - Chao, Yu,
+AU  - Sichang, Su,
+AU  - Yu, Wang,
+PY  - 2025
+T2  - Conference on Neural Information Processing Systems
+UR  - https://arxiv.org/abs/2505.22094
+DO  - 10.48550/arXiv.2505.22094
+N1  - Verified VLA+RL route item; metadata checked against the arXiv abstract page.
+L1  - file:///Users/siyuanluo/STUDY/paper/learn_embodied_papers/pdfs/vla-rl/reinflow.pdf
+KW  - VLA+RL
+KW  - robot reinforcement learning
+ER  -
+
+TY  - RPRT
+TI  - Diffusion Policy Policy Optimization
+AU  - Z., Ren, Allen
+AU  - Justin, Lidard,
+AU  - L., Ankile, Lars
+AU  - Anthony, Simeonov,
+AU  - Pulkit, Agrawal,
+AU  - Anirudha, Majumdar,
+AU  - Benjamin, Burchfiel,
+AU  - Hongkai, Dai,
+AU  - Max, Simchowitz,
+PY  - 2024
+UR  - https://arxiv.org/abs/2409.00588
+DO  - 10.48550/arXiv.2409.00588
+N1  - Verified VLA+RL route item; metadata checked against the arXiv abstract page.
+L1  - file:///Users/siyuanluo/STUDY/paper/learn_embodied_papers/pdfs/vla-rl/dppo.pdf
+KW  - VLA+RL
+KW  - robot reinforcement learning
+ER  -
+
+TY  - CONF
+TI  - Offline Reinforcement Learning with Implicit Q-Learning
+AU  - Ilya, Kostrikov,
+AU  - Ashvin, Nair,
+AU  - Sergey, Levine,
+PY  - 2022
+T2  - International Conference on Learning Representations
+UR  - https://arxiv.org/abs/2110.06169
+DO  - 10.48550/arXiv.2110.06169
+N1  - Verified VLA+RL route item; metadata checked against the arXiv abstract page.
+L1  - file:///Users/siyuanluo/STUDY/paper/learn_embodied_papers/pdfs/vla-rl/iql.pdf
+KW  - VLA+RL
+KW  - robot reinforcement learning
+ER  -
+
+TY  - CONF
+TI  - AWAC: Accelerating Online Reinforcement Learning with Offline Datasets
+AU  - Ashvin, Nair,
+AU  - Abhishek, Gupta,
+AU  - Murtaza, Dalal,
+AU  - Sergey, Levine,
+PY  - 2020
+T2  - Conference on Robot Learning
+UR  - https://arxiv.org/abs/2006.09359
+DO  - 10.48550/arXiv.2006.09359
+N1  - Verified VLA+RL route item; metadata checked against the arXiv abstract page.
+L1  - file:///Users/siyuanluo/STUDY/paper/learn_embodied_papers/pdfs/vla-rl/awac.pdf
+KW  - VLA+RL
+KW  - robot reinforcement learning
+ER  -
+
+TY  - CONF
+TI  - Precise and Dexterous Robotic Manipulation via Human-in-the-Loop Reinforcement Learning
+AU  - Jianlan, Luo,
+AU  - Charles, Xu,
+AU  - Jeffrey, Wu,
+AU  - Sergey, Levine,
+PY  - 2024
+T2  - Conference on Robot Learning
+UR  - https://arxiv.org/abs/2410.21845
+DO  - 10.48550/arXiv.2410.21845
+N1  - Verified VLA+RL route item; metadata checked against the arXiv abstract page.
+L1  - file:///Users/siyuanluo/STUDY/paper/learn_embodied_papers/pdfs/vla-rl/hil-serl.pdf
+KW  - VLA+RL
+KW  - robot reinforcement learning
+ER  -

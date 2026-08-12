@@ -1,0 +1,988 @@
+                                              Agentic Intelligence Lab | HKU
+
+
+                                        HiMem-WAM: Hierarchical Memory-Gated World
+                                           Action Models for Robotic Manipulation
+                                             Xiaoquan Sun2,3,† Ruijian Zhang3 Chen Cao1 Yihan Sun3 Jiahui Chen1,2
+                                             Zetian Xu1 Bo Chen1,2 Haijier Chen2,5 Zhen Yang1,2 Jiarun Zhu6 Yijun
+                                                Hong6 JingZhe Xu3 Jingrui Pang4 Mingqi Yuan1,2,∗ Jiayu Chen1,2,∗
+                                               1
+                                                   The University of Hong Kong 2 INFIFORCE 3 Huazhong University of Science and Technology
+                                                    4
+                                                      Tsinghua University 5 Wuhan University 6 Southern University of Science and Technology
+
+
+
+
+arXiv:2606.10363v1 [cs.RO] 9 Jun 2026
+                                                                               †                  ∗
+                                                                                   Project lead       Corresponding authors
+
+
+
+
+                                                                                             Abstract
+                                              World Action Models (WAMs) have emerged as a new powerful paradigm for embodied
+                                              intelligence, learning action-relevant visual dynamics that significantly enhance general-
+                                              ization and robustness. However, existing WAMs still struggle with task-relevant mem-
+                                              ory in long-horizon robotic manipulation. To address this, we present HiMem-WAM,
+                                              a Hierarchical Memory-Gated WAM that integrates motion-centric latent actions, high-
+                                              level skill latents, and boundary-triggered memory updates. Specifically, we develop a
+                                              hierarchical latent action framework that jointly learns low-level motion and high-level
+                                              skill latents, providing structured temporal abstraction. Meanwhile, a boundary-aware
+                                              memory gate writes compact task states at predicted skill transitions, enabling causal in-
+                                              ference without test-time generation of future video or optical flow estimation. Evaluated
+                                              on LIBERO, LIBERO-PLUS, RMBench and real-world tasks, HiMem-WAM shows that
+                                              hierarchical latents improve robustness under deployment perturbations, and the mem-
+                                              ory module substantially benefits memory-dependent long-horizon manipulation.
+                                              Correspondence: Mingqi Yuan (my017@hku.hk), Jiayu chen
+                                              (jiayuc@hku.hk)                                                                  June, 2026
+
+
+
+                                        1    Introduction
+
+                                        Recent Vision-Language-Action (VLA) models have advanced language-conditioned robotic ma-
+                                        nipulation by transferring semantic priors from large-scale vision-language pre-training to control
+                                        policies [1, 2, 3, 4, 5, 6, 7, 8, 9]. However, these models typically rely on direct end-to-end action pre-
+                                        diction, which often lack robustness to deployment shifts (e.g., changes in lighting or camera view)
+                                        and struggle to maintain relevant task history over long periods. World Action Models (WAMs)
+                                        offer a complementary approach by learning action-relevant visual dynamics through future predic-
+                                        tion, video generation, or latent dynamics modeling [10, 11, 12, 13, 14, 15, 16, 17]. While these
+                                        models provide strong dynamics priors and demonstrate superior robustness, they remain inefficient
+                                        in long-horizon manipulation tasks.
+                                        To enhance the long-horizon manipulation of WAMs, recent advancements include unified video-
+                                        action architectures and verification-based adaptive execution. For instance, MotuBrain [18] jointly
+                                        learns video generation and action prediction via a mixture of transformers, enabling autoregressive
+                                        rollout for extended execution. LingBot-VA [19] interleaves video and action tokens in a causal
+                                        sequence using KV-cache for persistent memory, excelling at complex, long-horizon tasks such as
+                                        preparing breakfast. In parallel, [20] proposes a FFDC approach that verifies whether the WAM-
+                                        imagined future remains consistent with real observations, dynamically adjusting chunk length, sig-
+
+                                        Technical Paper © 2026 Agentic Intelligence Lab
+Figure 1: HiMem-WAM framework. HiMem-WAM contains three stages: Stage I extracts low-
+level action tokens and high level skill latents from demonstrations. Stage II learns to predict latent
+action from video and language inputs. Stage III introduces a gated memory module for history
+aware action prediction. The bottom panels show real world and simulation evaluations results.
+
+
+nificantly reducing inference cost on the RoboTwin benchmark while improving success rate. How-
+ever, two important aspects remain underexplored in existing WAMs for long-horizon manipulation:
+hierarchical abstraction of low-level motions into reusable skills, and the ability to explicitly retain
+memory of task-relevant states across skill boundaries. These capabilities become essential when
+the robot must recall occluded subtask states or adapt after partial task completion. In this paper,
+we present HiMem-WAM, a hierarchical memory-gated WAM for robotic manipulation. HiMem-
+WAM augments the standard WAM pipeline with two key innovations: a hierarchical latent action
+framework that decomposes long-horizon tasks into reusable skills, and a memory-gated module
+that retains task-relevant information across skill boundaries. Our main contributions are as follows:
+• We introduce a two-level latent architecture that organizes low-level motion-centric primitives
+  into high-level skill latents. A planner predicts the current skill from observations, language,
+  proprioception, and memory. An executor then expands the predicted skill into a low-level latent
+  action chunk. A decoder finally maps the chunk to executable robot controls. This structured
+  representation bridges short-horizon execution with long-horizon task decomposition, enabling
+  reasoning at both motion and skill levels.
+• We develop a memory-gated module that writes compact task states only at predicted skill tran-
+  sitions. A read gate retrieves historical context from an external memory bank to condition the
+  planner, while a write gate uses the predicted boundary score to decide when to store a new
+  memory token. This event-driven design retains occluded subtask states and adapts after partial
+  completion without dense history aggregation. Crucially, as memory updates are triggered by
+  learned boundaries rather than future prediction, HiMem-WAM maintains fully causal inference
+  without test-time video generation or optical flow.
+• We evaluate HiMem-WAM on LIBERO [21], LIBERO-PLUS [22], RMBench [23], and real-
+  world tasks. HiMem-WAM achieves 97.7% on LIBERO, 76.0% on Zero-Shot LIBERO-PLUS,
+  and 26.3% on RMBench, while outperforming π0.5 [7] by an average of 22.5% on hard real-world
+
+
+                                                   2
+Figure 2: From WAM to HiMem-WAM. HiMem-WAM extends unified world action modeling
+with a memory expert, enabling action prediction conditioned on both current observations and task
+history.
+
+
+    tasks. These results demonstrate that HiMem-WAM improves robustness under deployment per-
+    turbations and delivers consistent gains on long-horizon, memory-dependent tasks.
+
+2     Related Work
+Vision-Language-Action models. Vision-Language-Action (VLA) models unify visual observa-
+tions, language instructions, and robot actions within a single policy interface, enabling language-
+conditioned manipulation across diverse tasks and embodiments [1, 2, 3, 4, 5, 6, 7, 8, 9]. Built on
+pretrained vision-language representations and large-scale robot demonstrations, these models have
+shown strong potential for generalist robot control. Action-chunking and diffusion-based policies
+further improve execution by predicting temporally coherent action sequences rather than single-step
+controls [24, 25].
+World Action Models. World models learn action-relevant representations by predicting future
+observations, latent dynamics, or imagined rollouts [10, 11, 12, 13]. Recent World Action Models
+connect visual prediction and action generation within a unified framework [14, 16, 19, 15, 17, 26,
+27]. Motus [15] shows that latent actions can bridge action-free videos and robot demonstrations,
+while Fast-WAM [17] studies whether future imagination is necessary at test time.
+Manipulation policies with memory. Long horizon manipulation often requires recalling infor-
+mation that is no longer visible, such as object states, completed subtasks, or task progress. RM-
+Bench [23] highlights this challenge and shows the limitation of fixed length observation histories
+for retaining task relevant information. Recent methods, including MemoryVLA [28], MemER [29],
+SAM2Act [30], and CronusVLA [27], introduce memory or multi frame reasoning for long hori-
+zon decision making. Unlike dense history aggregation or fixed memory windows, HiMem-WAM
+writes compact task states only at learned skill boundaries and uses them for memory dependent
+action prediction.
+
+3     Method
+Overview. We study long-horizon manipulation with multi-view observations. At timestep t, the
+                                                  (v)
+policy receives RGB observations ot = {It }Vv=1 , proprioception pt , a task instruction ℓ, and an
+external memory state Mt . It predicts an action chunk at:t+K−1 = (at , . . . , at+K−1 ). The central
+design of HiMem-WAM is to factor this policy through a high-level skill latent zth and a low-level
+latent-action chunk Zlt:t+K−1 = (ztl , . . . , zt+K−1
+                                                l
+                                                        ):
+                                                      Z
+                 πθ (at:t+K−1 | ot , pt , ℓ, Mt ) = pθ (at:t+K−1 | Zlt:t+K−1 , ot , pt )
+                                                                                                  (1)
+                                                · pθ (Zlt:t+K−1 | zth , ot , pt , Mt )
+                                                · pθ (zth | ot , pt , ℓ, Mt ) dZl dz h .
+The factorization separates three roles: selecting the current skill, unfolding the skill into short-
+horizon motion, and grounding that motion into embodiment-specific controls. Future visual dy-
+namics are used only as training supervision, so inference remains causal and does not require video
+generation or optical-flow estimation.
+
+
+                                                 3
+Low-level latent actions. Low-level latent actions provide a compact motion space that can be
+learned from both action-labeled robot trajectories and action-free videos. For each transition, we
+                                             (v)
+compute multi-view optical flow Φt = {Φt }Vv=1 with DPFlow [31]. A variational tokenizer en-
+codes the short-horizon context ct = (ot , ot+1 , pt , ℓ, Φt ) into
+               qϕ (ztl | ct ) = N (µt , diag(σt2 )),       ztl = µt + σt ⊙ ϵ,   ϵ ∼ N (0, I).             (2)
+The tokenizer is trained to reconstruct visual motion and, when action labels are available, weakly
+align the latent space with real controls:
+              Ll = ∥Φ̂t − Φt ∥1 + λa Iact            2             l
+                                                                                      
+                                        t ∥ât − at ∥2 + βDKL qϕ (zt | ct ) ∥ N (0, I) .        (3)
+Here Iact
+       t  indicates whether the transition has an action label, DKL denotes Kullback-Leibler (KL)
+divergence, Φ̂t is the reconstructed flow, and ât is an auxiliary action prediction. After training,
+the tokenizer is frozen and applied offline to all trajectories and videos to produce the low-level
+sequence Z l = (z1l , . . . , zTl −1 ).
+High-level skill latents. Low-level latents capture local motion, but long-horizon tasks require a
+coarser notion of progress. We therefore learn high-level latent actions, or skill latents, by dynam-
+                                                                                                   (s)
+ically chunking Z l . Let Z (0) = Z l . At hierarchy stage s, an encoder maps each token to hi ,
+                                                                (s)
+a boundary predictor marks the starts of new segments with bi , and a segment pooling module
+summarizes each variable-length segment into the next-stage token:
+                         Z (s+1) = Chunks (Es (Z (s) ); b(s) ),        Z h = Z (H) .                      (4)
+The learned boundaries define where one skill ends and the next begins. For policy supervision, the
+final skill sequence Z h = (z1h , . . . , zSh ) is unfolded back to the original control timeline, yielding a
+per-timestep skill target z̄th and a boundary label b̄t . Full boundary scoring, pooling, and unfolding
+details are given in Appendix A.4.
+Memory-gated Module. Long-horizon manipulation often depends on observations that are no
+longer visible. HiMem-WAM therefore uses a gated memory adapter that stores compact skill-level
+events. We first encode the current state as xt = Eθ (ot , pt , ℓ) and retrieve a memory context
+  cm
+   t = Attn(Wq xt , Wk Mt , Wv Mt ),               x̃t = xt + αtr Wm cm
+                                                                      t ,       αtr = σ(Gr (xt , cm
+                                                                                                  t )).   (5)
+The scalar αtr is the read gate, which controls how much retrieved memory is injected into
+the state. A Qwen3-VL-4B-Instruct planner then predicts the current skill and a boundary
+score, (ẑth , b̂t ) = πθplan (x̃t , cm
+                                      t ), and the executor predicts the low-level latent-action chunk,
+Ẑlt:t+K−1 = πθexec (x̃t , ẑth ). An action decoder maps this chunk to executable controls: ât:t+K−1 =
+Dact (Ẑlt:t+K−1 , x̃t ). Memory writing is controlled by a write gate,
+
+                                                               Uψ (Mt , γt ), αtw > η,
+                                                             
+                    αtw = σ(Gw (x̃t , ẑth , b̂t )), Mt+1 =                                           (6)
+                                                               Mt ,           otherwise.
+where γt is a candidate memory token formed from the current state, predicted skill, and pooled low-
+level latent chunk. This boundary-aware gate prevents dense memory growth and aligns memory
+updates with meaningful task transitions.
+Training Pipeline. Training proceeds in three stages.
+Stage I: Latent Action Tokenizer. We first learn the low-level tokenizer with Eq. (3).
+Stage II: Hierarchical Latent Action Pretrain. We freeze the tokenizer, discover skill latents, and
+pretrain the planner and executor without external memory. The Stage-II objective combines Mean-
+Squared Error (MSE) losses for the predicted skill and latent action chunk with binary cross-entropy
+(BCE) for boundary prediction:
+           Llatent = λh MSE(ẑth , z̄th ) + λl MSE(Ẑlt:t+K−1 , Zlt:t+K−1 ) + λb BCE(b̂t , b̄t ).         (7)
+
+Stage III: Finetuning with Memory-gated Module. We activate memory and fine-tune the full policy
+on action-labeled demonstrations:
+                       Lft = Lact + αh Lplan + αl Lexec + αb Lbd + αm Lgate .                             (8)
+
+
+                                                       4
+where Lact is either an action MSE for deterministic policies or a negative log-likelihood for stochas-
+tic policies. The gate loss is
+
+                          Lgate = BCE(αtw , b̄t ) + λr ∥αtr ∥1 + λw ∥αtw ∥1 .                       (9)
+
+BCE supervises the write gate with discovered skill-boundary labels, while the ℓ1 terms encourage
+sparse memory reading and writing.
+Inference. At test time, HiMem-WAM uses only the current RGB observations, proprioception,
+instruction, and memory bank. It reads memory, predicts a high-level latent action, expands it into a
+low-level latent-action chunk, decodes the chunk into executable actions, and writes a new memory
+token only when αtw > η. The procedure is fully causal and preserves the standard action-chunking
+interface used by robot policies.
+
+
+4     Experiments
+
+We design our experiments to evaluate whether HiMem-WAM improves robotic manipulation per-
+formance. In particular, we focus on the following questions:
+
+• Q1: How does HiMem-WAM compare with existing VLAs and WAMs on standard manipulation
+  benchmarks?
+
+• Q2: Do latent actions provide effective motion priors for robotic manipulation?
+
+• Q3: Does the gated-memory module enhance long-horizon memory in robotic manipulation?
+
+• Q4: Can HiMem-WAM be effectively deployed on real-world robotic tasks?
+
+
+4.1   Simulation Experimental Setup
+
+Benchmark Selection. We evaluate HiMem-WAM on three benchmarks: LIBERO [21], LIBERO-
+PLUS [22], and RMBench [23]. LIBERO [21] evaluates language-conditioned manipulation across
+four task suites, including spatial, object, goal, and long-horizon tasks. LIBERO-PLUS [22] eval-
+uates policy robustness under deployment-time perturbations across vision, language, initialization,
+and scene layout. RMBench [23] evaluates memory-dependent manipulation tasks that require the
+agent to retain and reuse task-relevant information across long horizons.
+Evaluation Metrics. We use Success Rate (SR) as the evaluation metric across all benchmarks. On
+LIBERO [21] and LIBERO-PLUS [22], we evaluate 50 rollouts per task. On RMBench [23], we
+evaluate 100 rollouts per task.
+Algorithmic Baselines. We evaluate HiMem-WAM against a collection of representative and com-
+petitive baselines, including DP [25], ACT [24], π0.5 [7], OpenVLA [2], X-VLA [8], MEM-0 [23],
+AtomVLA [32], WorldVLA [16], LingBot-VA [19], Fast-WAM [17] and other baselines.
+
+
+4.2   Results Analysis
+
+Key Finding 1: Latent actions improve robustness by capturing transferable motion patterns.
+As shown in Tables 2 and 3, Stage II latent action pretraining achieves gains of +1.1% on the stan-
+dard LIBERO benchmark and +3.8% on the LIBERO-PLUS benchmark (Zero-Shot), where models
+are trained only on the standard LIBERO dataset. The larger gain under deployment perturbations,
+including camera and viewpoint variations and observation noise, suggests that latent actions cap-
+ture task completion motion rather than overfitting to clean visual trajectories. This provides a stable
+motion prior for action prediction and improves robustness under diverse deployment perturbations.
+
+
+                                                   5
+Figure 3: Real-world evaluation on 10 tasks. We evaluate HiMem-WAM on 10 real-world tasks
+under both the ST and GE settings. (a)–(c) report SR across three task categories. (d) illustrates the
+evaluation variations in the GE setting. (e) illustrates the hardware platform.
+
+
+Table 1: Comparisons with other baselines on RMBench [23] benchmark.
+Tasks                             TMC    DP ACT π0.5 X-VLA HiMem-WAM (Ours)
+Observe and Pick Up               M (1) 1%    1%    9%    9%     28%
+Rearrange Blocks                  M (1) 0% 29% 13%       13%     33%
+Put Back Block                    M (1) 0%    0%   11%   18%     32%
+Swap Blocks                       M (1) 11% 2%     24%   16%     38%
+Swap T                            M (1) 2%    2%   15%    3%     27%
+Average                           M (1) 2.8% 6.8% 14.4% 11.8%   31.6%
+Battery Try                       M (n) 10% 19% 16%      26%     28%
+Blocks Ranking Try                M (n) 10% 0%      6%    1%     24%
+Cover Blocks                      M (n) 0%    0%    2%    0%     19%
+Press Button                      M (n) 0%    0%    1%    2%      8%
+Average                           M (n) 5.0% 4.8% 6.3%   7.3%   19.8%
+Total Average                       /   3.8% 5.9% 10.8% 9.8%    26.3%
+Note: We report SR (%). RMBench includes nine manipulation tasks across the M (1) and M (n) levels of Task Memory Complexity (TMC).
+Bold denotes the best performance among all methods.
+
+
+Key Finding 2: Gated memory improves task state tracking, while stronger memory planning
+is still needed. As shown in Table 1, HiMem-WAM achieves a total average SR of 26.3% on RM-
+Bench and reaches 31.6% on M (1) tasks. This shows that the memory module is effective: the read
+gate retrieves task history to form a memory-adapted state, while the write gate stores compact key
+states only when meaningful task transitions are detected. As a result, the Qwen3-VL-4B planner
+can condition action prediction on both the current observation and previously observed task states,
+which improves target tracking, phase recognition, and memory-dependent manipulation. How-
+ever, performance drops to 19.8% on M (n) tasks and remains below Mem-0 [23], indicating that
+repeated trials and multi-step state updates still require stronger memory reasoning. This gap is rea-
+sonable because Mem-0 uses a larger 8B planner and a more specialized memory planning design,
+whereas HiMem-WAM integrates gated memory into a general world action policy together with
+latent action priors.
+
+
+4.3    Real-World Experimental Setup
+
+Hardware Platform. We conduct real-world experiments on a dual-arm platform built with two
+AgileX Piper 6-DoF arms. The system is equipped with four Intel RealSense D435i RGB cameras,
+including two wrist cameras, one head camera, and one front camera, as shown in Figure 3 (e).
+
+
+                                                                6
+Table 2: Comparisons with other baselines on          Table 3: Comparisons with other baselines on LIBERO-PLUS benchmark.
+LIBERO benchmark.                                     (Zero-Shot, train on the standard LIBERO dataset only)
+
+Method         Spatial Object Goal Long Avg.          Method             Cam.    Init   Lang.    Light    BG.     Noise    Layout    Avg.
+Vision-Language-Action Models                         Vision-Language-Action Models
+OpenVLA         84.7    88.4     79.2   53.7   76.5   OpenVLA           0.8    3.5       23.0      8.1    34.8     15.2     28.5     16.3
+SpatialVLA      88.2    89.9     78.6   55.5   78.1   OpenVLA-OFT      56.4    31.9      79.5     88.7    93.3     75.8     74.2     71.4
+π0              96.8    98.8     95.8   85.2   94.2   π0               13.8     6.0      58.8     85.0    81.4     79.0     68.9     56.1
+NORA-1.5        97.3    96.4     94.5   89.6   94.5   UniVLA            1.8    46.2      69.6     69.0    81.0     21.2     31.9     45.8
+AtomVLA         96.4    99.6     97.6   94.4   97.0   RIPT-VLA         55.2    31.2      77.6     88.4    91.6     73.5     74.2     70.2
+World Action Models                                   World Action Models
+WorldVLA       87.6       96.2   83.4   60.0   81.8   WorldVLA          0.1     27.9     41.6     43.7    17.1     10.9     38.0     25.6
+Fast-WAM       98.2      100.0   97.0   95.2   97.6   HoloBrain-0      65.5     58.2     78.7     88.1    90.3     66.9     79.5     75.3
+Ours                                                  Ours
+w/o Stage II    96.0     99.6    97.1   93.8   96.6   w/o Stage II       77.2   37.9     71.7     91.1    83.6     73.2     70.7     72.2
+HiMem-WAM       98.2     99.8    98.4   94.5   97.7   HiMem-WAM          78.2   38.1     76.6     92.2    91.0     80.7     74.9     76.0
+Note: We report SR (%). Bold denotes the best performance among all methods. Cam. denotes camera perturbation; Init. denotes initial-state
+perturbation; Lang. denotes language perturbation; Light denotes lighting perturbation; BG. denotes background perturbation; Noise denotes
+observation noise; Layout denotes layout perturbation; Avg. denotes average performance.
+
+
+
+Task Settings. We evaluate real-world deployment on a suite of manipulation tasks organized into
+three difficulty categories: Easy, Medium, and Hard. Easy tasks focus on short-horizon single-arm
+manipulation, Medium tasks require basic bimanual coordination, and Hard tasks involve long-
+horizon bimanual manipulation with more complex object interactions.
+Evaluation Settings. Each task is evaluated under two settings: Standard (ST), where the scene
+configuration is clean and consistent with the training data, and Generalization (GE), where we
+introduce a range of deployment-time perturbations to evaluate robustness in more challenging en-
+vironments. We report Success Rate (SR) separately for each difficulty category and evaluation
+setting. Detailed task definitions and the full specification of the GE setting are provided in Ap-
+pendix B.
+
+Training Details. Each task consists of 400 demonstrations. The model undergoes Supervised
+Fine-Tuning (SFT) on the real-world dataset for 5 epochs. During evaluation, we conduct 20 trials
+for each task. Specifically, under the GE setting, the environmental conditions of these 20 trials are
+randomly distributed across the four perturbation types to rigorously assess robustness.
+
+4.4      Results Analysis
+
+Key Finding 3: HiMem-WAM improves generalization in real-world robotic tasks.
+As shown in Figure 3 and Table 4, HiMem-WAM per-
+                                                             Table 4: Real world evaluation under different action
+forms comparably to π0.5 [7] on Easy tasks, where both representations.
+policies already achieve high success rates, confirming
+that π0.5 remains a strong baseline for basic manipula- Category                   Joint Pos.                      EE Pose
+                                                                          w/o Stage II w/ Stage II w/o Stage II w/ Stage II
+tion. The advantage of HiMem-WAM becomes clearer
+on Medium tasks, with gains of +12.5% under ST and Medium        Easy         100.0
+                                                                               80.0
+                                                                                             100.0
+                                                                                              82.5
+                                                                                                              90.0
+                                                                                                              67.5
+                                                                                                                             100.0
+                                                                                                                              75.0
++10.0% under GE, suggesting that latent action pretrain-        Hard           15.0           35.0            10.0            30.0
+ing provides predictive motion priors that help stabilize Note: We report SR (%). All experiments in this table are conducted
+                                                                    the ST setting. Joint Pos. denotes joint-position action represen-
+real-world action prediction under object, lighting, and under
+                                                             tation, EE Pose denotes end-effector pose action representation.
+instruction variations. The advantage becomes most pro-
+nounced on Hard tasks, with gains of +25.0% under ST and +20.0% under GE. These tasks require
+long-horizon execution and persistent task-state maintenance, while SFT adaptation often struggles
+with history forgetting and fails to track the correct task progress. In contrast, the gated memory
+module helps HiMem-WAM retain historical information and task states, enabling the policy to
+continue long-horizon task execution.
+Key Finding 4: Stage II Latent Action Pretrain is effective across action representations. As
+shown in Table 4, Stage II hierarchical latent action pretraining improves real-world SR under both
+Joint Pos. and EE Pose in the ST setting, with larger gains as task difficulty increases. On hard tasks,
+SR increases from 15.0% to 35.0% for Joint Pos. and from 10.0% to 30.0% for EE Pose, suggest-
+ing that hierarchical latent actions provide useful motion priors and skill level temporal structure
+for long horizon manipulation. The larger gain for EE Pose indicates that task space commands,
+which contain less robot-specific execution detail, benefit more from learned motion priors, while
+
+
+                                                                     7
+Figure 4: Visualization of the 10 real-world tasks. The first row shows easy tasks: Stack bowls,
+Hang cup, Put fruit into a basket, Press button, the second row shows medium tasks: Stack three
+bowls, Fold towel, Place plate, Press two buttons, and the third row shows hard tasks: place two
+plates, make breakfast.
+
+
+the stronger final Joint Pos. result suggests that joint space actions still preserve low-level action
+information.
+
+5   Conclusion
+We presented HiMem-WAM, a hierarchical memory-gated WAM for long-horizon manipulation.
+HiMem-WAM combines latent action pretraining, skill latent, and memory-gated module to con-
+nect motion execution with task state retention. It learns motion priors from multi-view visual
+dynamics and uses discovered skill boundaries to control sparse memory writing, enabling causal
+action prediction from current observations and task history. Experiments in simulation and on real
+robots show that latent actions improve robustness under deployment perturbations, memory-gated
+modules support memory-dependent manipulation. These results validate the benefit of coupling
+latent motion priors with task memory for long-horizon control.
+
+6   Limitations
+Although HiMem-WAM achieves strong results in simulation and real-world manipulation, several
+limitations remain. First, the training pipeline still requires considerable computation, as it includes
+optical flow extraction, latent action learning, skill discovery, and memory policy training. Second,
+the multi-stage design introduces additional engineering complexity, and its performance depends on
+the quality of learned latent actions, skill boundaries, and memory updates. Finally, our real-world
+evaluation is currently conducted on a specific dual-arm platform with 10 manipulation tasks. While
+these experiments cover different difficulty levels and perturbations, broader validation with more
+tasks, larger data scale, and diverse robot embodiments is needed to further examine the scalability
+of the framework.
+
+
+
+
+                                                   8
+References
+ [1] B. Zitkovich, T. Yu, S. Xu, P. Xu, T. Xiao, F. Xia, J. Wu, P. Wohlhart, S. Welker, A. Wahid,
+     et al. Rt-2: Vision-language-action models transfer web knowledge to robotic control. In
+     Conference on Robot Learning, pages 2165–2183. PMLR, 2023.
+ [2] M. J. Kim, K. Pertsch, S. Karamcheti, T. Xiao, A. Balakrishna, S. Nair, R. Rafailov, E. P.
+     Foster, P. R. Sanketi, Q. Vuong, et al. Openvla: An open-source vision-language-action model.
+     In 8th Annual Conference on Robot Learning, 2024.
+ [3] Octo Model Team, D. Ghosh, H. Walke, K. Pertsch, K. Black, O. Mees, S. Dasari, J. Hejna,
+     C. Xu, J. Luo, et al. Octo: An open-source generalist robot policy. In Proceedings of Robotics:
+     Science and Systems, Delft, Netherlands, 2024.
+ [4] H. Wu, Y. Jing, C. Cheang, G. Chen, J. Xu, X. Li, M. Liu, H. Li, and T. Kong. Unleashing
+     large-scale video generative pre-training for visual robot manipulation. ICLR, 2024.
+ [5] S. Liu, L. Wu, B. Li, H. Tan, H. Chen, Z. Wang, K. Xu, H. Su, and J. Zhu. Rdt-1b: a diffusion
+     foundation model for bimanual manipulation. In The Thirteenth International Conference on
+     Learning Representations, 2024.
+ [6] K. Black, N. Brown, D. Driess, A. Esmail, M. Equi, C. Finn, N. Fusai, L. Groom, K. Hausman,
+     B. Ichter, et al. π0 : A vision-language-action flow model for general robot control. arXiv
+     preprint arXiv:2410.24164, 2024.
+ [7] K. Black, N. Brown, J. Darpinian, K. Dhabalia, D. Driess, A. Esmail, M. R. Equi, C. Finn,
+     N. Fusai, M. Y. Galliker, et al. π0.5 : a vision-language-action model with open-world general-
+     ization. arXiv preprint arXiv:2504.16054, 2025.
+ [8] J. Zheng, J. Li, Z. Wang, D. Liu, X. Kang, Y. Feng, et al. X-vla: Soft-prompted transformer as
+     scalable cross-embodiment vision-language-action model. arXiv preprint arXiv:2510.10274,
+     2025.
+ [9] W. Song, J. Chen, X. Sun, H. Lei, Y. Qin, W. Zhao, P. Ding, H. Zhao, T. Wang, P. Hou, et al.
+     Rethinking the practicality of vision-language-action model: A comprehensive benchmark and
+     an improved baseline. arXiv preprint arXiv:2602.22663, 2026.
+[10] Y. Du, S. Yang, B. Dai, H. Dai, O. Nachum, J. Tenenbaum, D. Schuurmans, and P. Abbeel.
+     Learning universal policies via text-guided video generation. In Advances in Neural Informa-
+     tion Processing Systems, volume 36, pages 9156–9172, 2023.
+[11] S. Zhou, Y. Du, J. Chen, Y. Li, D.-Y. Yeung, and C. Gan. Robodreamer: Learning composi-
+     tional world models for robot imagination. In International Conference on Machine Learning,
+     pages 61885–61896, 2024.
+[12] Y. Feng, H. Tan, X. Mao, C. Xiang, G. Liu, S. Huang, H. Su, and J. Zhu. Vidar: Embodied
+     video diffusion model for generalist manipulation. arXiv preprint arXiv:2507.12898, 2025.
+[13] Q. Lv, W. Kong, H. Li, J. Zeng, Z. Qiu, D. Qu, H. Song, Q. Chen, X. Deng, and J. Pang.
+     F1: A vision-language-action model bridging understanding and generation to actions. arXiv
+     preprint arXiv:2509.06951, 2025.
+[14] C. Zhu, R. Yu, S. Feng, B. Burchfiel, P. Shah, and A. Gupta. Unified world models: Cou-
+     pling video and action diffusion for pretraining on large robotic datasets. arXiv preprint
+     arXiv:2504.02792, 2025.
+[15] H. Bi, H. Tan, S. Xie, Z. Wang, S. Huang, H. Liu, R. Zhao, Y. Feng, C. Xiang, Y. Rong,
+     H. Zhao, H. Liu, Z. Su, L. Ma, H. Su, and J. Zhu. Motus: A unified latent action world model.
+     arXiv preprint arXiv:2512.13030, 2025.
+[16] J. Cen, C. Yu, H. Yuan, Y. Jiang, S. Huang, J. Guo, X. Li, Y. Song, H. Luo, F. Wang, et al.
+     Worldvla: Towards autoregressive action world model. arXiv preprint arXiv:2506.21539,
+     2025.
+
+
+                                                 9
+[17] T. Yuan, Z. Dong, Y. Liu, and H. Zhao. Fast-wam: Do world action models need test-time
+     future imagination? arXiv preprint arXiv:2603.16666, 2026.
+[18] M. Team, C. Xiang, F. Bao, H. Liu, H. Tan, H. Bi, J. Li, J. Liu, J. Pang, K. Jing, et al. Mo-
+     tubrain: An advanced world action model for robot control. arXiv preprint arXiv:2604.27792,
+     2026.
+[19] L. Li, Q. Zhang, Y. Luo, S. Yang, R. Wang, F. Han, M. Yu, Z. Gao, N. Xue, X. Zhu, Y. Shen,
+     and Y. Xu. Causal world modeling for robot control. arXiv preprint arXiv:2601.21998, 2026.
+[20] R. Wang, Y. Zhang, J. Lin, K. Luo, J. Wang, Z. Wang, and X. Qi. When to trust imagination:
+     Adaptive action execution for world action models. arXiv preprint arXiv:2605.06222, 2026.
+[21] B. Liu, Y. Zhu, C. Gao, Y. Feng, Q. Liu, Y. Zhu, and P. Stone. Libero: Benchmarking knowl-
+     edge transfer for lifelong robot learning. arXiv preprint arXiv:2306.03310, 2023.
+[22] S. Fei, S. Wang, J. Shi, Z. Dai, J. Cai, P. Qian, L. Ji, X. He, S. Zhang, Z. Fei, J. Fu, J. Gong,
+     and X. Qiu. Libero-plus: In-depth robustness analysis of vision-language-action models. arXiv
+     preprint arXiv:2510.13626, 2025.
+[23] T. Chen, Y. Wang, M. Li, Y. Qin, H. Shi, Z. Li, Y. Hu, Y. Zhang, K. Wang, Y. Chen, et al. Rm-
+     bench: Memory-dependent robotic manipulation benchmark with insights into policy design.
+     arXiv preprint arXiv:2603.01229, 2026.
+[24] T. Zhao et al. Learning fine-grained bimanual manipulation with low-cost hardware. arXiv
+     preprint arXiv:2304.13705, 2023.
+[25] C. Chi, Z. Xu, S. Feng, E. Cousineau, Y. Du, B. Burchfiel, R. Tedrake, and S. Song. Diffusion
+     policy: Visuomotor policy learning via action diffusion. The International Journal of Robotics
+     Research, page 02783649241273668, 2023.
+[26] Q. Li, Y. Liang, Z. Wang, L. Luo, X. Chen, M. Liao, F. Wei, Y. Deng, S. Xu, Y. Zhang, et al.
+     CogACT: A foundational vision-language-action model for synergizing cognition and action
+     in robotic manipulation. arXiv preprint arXiv:2411.19650, 2024.
+[27] H. Li, S. Yang, Y. Chen, Y. Tian, X. Yang, X. Chen, H. Wang, T. Wang, F. Zhao, D. Lin, et al.
+     Cronusvla: Towards efficient and robust manipulation via multi-frame vision-language-action
+     modeling. arXiv preprint arXiv:2506.19816, 2025.
+[28] H. Shi, B. Xie, Y. Liu, L. Sun, F. Liu, T. Wang, E. Zhou, H. Fan, X. Zhang, and G. Huang.
+     Memoryvla: Perceptual-cognitive memory in vision-language-action models for robotic ma-
+     nipulation. arXiv preprint arXiv:2508.19236, 2025.
+[29] A. Sridhar, J. Pan, S. Sharma, and C. Finn. Memer: Scaling up memory for robot control via
+     experience retrieval. arXiv preprint arXiv:2510.20328, 2025.
+[30] H. Fang, M. Grotz, W. Pumacay, Y. R. Wang, D. Fox, R. Krishna, and J. Duan. SAM2Act: In-
+     tegrating visual foundation model with a memory architecture for robotic manipulation. arXiv
+     preprint arXiv:2501.18564, 2025.
+[31] H. Morimitsu, X. Zhu, R. M. Cesar-Jr., X. Ji, and X.-C. Yin. DPFlow: Adaptive optical flow
+     estimation with a dual-pyramid framework. In The IEEE/CVF Conference on Computer Vision
+     and Pattern Recognition (CVPR), 2025.
+[32] X. Sun, Z. Xu, C. Cao, Z. Liu, Y. Sun, J. Pang, R. Zhang, Z. Yang, K. Pang, D. He, et al.
+     Atomvla: Scalable post-training for robotic manipulation via predictive latent world models.
+     arXiv preprint arXiv:2603.08519, 2026.
+
+
+
+
+                                                 10
+                                     Supplementary Material
+This supplementary material provides additional details on the implementation and evaluation of
+HiMem-WAM. Appendix A describes the main components of our framework, including latent
+action learning, skill modeling, memory construction, training stages, and inference. Appendix B
+presents the real world evaluation protocol, perturbation settings, and task definitions. Appendix C
+summarizes the baseline models used for comparison. These details complement the main paper
+and provide a clearer view of our experimental setup and implementation choices.
+
+
+A     Method Details
+
+This section provides the implementation details omitted from the main Method section. We use
+z l for low-level latent actions and z h for high-level latent actions or skill latents throughout the ap-
+pendix. The details below preserve the same three-stage training pipeline as the main paper: offline
+low-level latent-action tokenizer learning, hierarchical skill discovery and latent-policy pretraining,
+and action grounding with gated memory.
+
+A.1   Separation Between Offline Supervision and Online Inputs
+
+HiMem-WAM uses rich motion supervision during training but keeps inference causal. Table 5
+summarizes which signals are used in each stage.
+
+
+Table 5: Signals used during training and inference. Optical flow and future observations are used
+only to construct supervision for latent-action learning; they are not required by the deployed policy.
+          Signal                   Stage I        Stage II               Stage III         Inference
+          RGB observations ot         ✓               ✓                      ✓                ✓
+          Proprioception pt           ✓               ✓                      ✓                ✓
+          Instruction ℓ               ✓               ✓                      ✓                ✓
+          Optical flow Φt             ✓        supervision only              –                 –
+          Action annotations at    optional            –                     ✓                 –
+          Low-level latents Z l     output       supervision            supervision        predicted
+          High-level skills z̄th      –          supervision       auxiliary supervision   predicted
+          Boundary labels b̄t         –          supervision         gate supervision      predicted
+          External memory Mt          –            disabled                  ✓                ✓
+
+
+Stage I uses optical flow to learn a compact low-level latent-action space. Stage II uses the extracted
+Z l sequences to discover high-level skills and pretrain the planner and executor without memory.
+Stage III activates the gated external memory module and grounds the latent policy into executable
+actions. During inference, the policy receives only RGB observations, proprioception, instruction,
+and the current memory bank.
+
+A.2   Low-Level Latent-Action Tokenizer Details
+
+Optical-flow preprocessing.        For each view v, DPFlow produces a dense flow field
+                                        (v)                  (v)   (v)
+                                      Φt      = DPFlow(It , It+1 ).
+Before the flow is passed to the encoder, its horizontal and vertical components are normalized by
+the image width and height:
+                                            " (v)          (v)
+                                                                      #
+                                (v)           Φt,x (x, y) Φt,y (x, y)
+                              Φ
+                              e t (x, y) =               ,              ,                     (10)
+                                                 Wv          Hv
+
+where Wv and Hv denote the resolution of view v. This normalization keeps flow magnitudes
+comparable across views.
+
+
+                                                      11
+Multi-view fusion.         Each view is encoded independently and receives a view embedding ev :
+                             (v)         e (v)           (v)          (v)
+                           mt = Eflow (Φ   t ) + ev ,   st = Evis (It ) + ev .                   (11)
+The motion and semantic features are fused across views:
+                                      (v)                               (v)
+                    mt = Fusemot ({mt }Vv=1 ),        st = Fusesem ({st }Vv=1 ).                 (12)
+Together with proprioception and instruction features, these features form the context ct used by the
+low-level posterior in Eq. (2).
+
+Action-annotation masking. The tokenizer can use both action-labeled robot trajectories and
+action-free videos. Let Iact
+                          t    ∈ {0, 1} indicate whether at is available. The action-alignment loss
+is applied only to labeled transitions:
+                                                           T −1
+                                   1                       X                                                        2
+                       Lalign = PT −1                                Iact
+                                                                      t   Dalign (ztl , ot , pt ) − at 2 .                   (13)
+                                                act
+                                           t=1 It   t=1
+Thus, action-free videos contribute through flow reconstruction and KL regularization, while action-
+labeled robot data additionally aligns z l with executable controls.
+
+Offline latent extraction. After Stage I, the tokenizer is frozen and applied offline to all training
+trajectories and videos. For each sequence, we store
+                                          Z l = (z1l , . . . , zTl −1 ).
+These stored latents are used as pseudo-labels in Stage II and Stage III. DPFlow is not called during
+policy training after this extraction step, and it is not used during inference.
+
+A.3   High-Level Latent-Action Learning
+
+The main text summarizes high-level latent-action learning with the operator Chunks . Here we
+provide the explicit boundary scoring, pooling, and loss terms.
+
+Boundary scoring. Let Z (0) = Z l and let Ls be the length of Z (s) . At hierarchy stage s, each
+                     (s)      (s)
+token is encoded as hi = Es (zi ). We compute normalized query and key features,
+                                                 (s) (s)                                          (s) (s)
+                               (s)          Wq hi                                (s)            Wk hi
+                              q̂i     =          (s) (s)
+                                                                 ,             k̂i     =         (s) (s)
+                                                                                                               ,
+                                          ∥Wq hi ∥2                                         ∥Wk hi ∥2
+and define a dissimilarity score
+                                                 (
+                                      (s)
+                                                     1,                                         i = 1,
+                                     ri =                       (s)      (s)
+                                                                                                                            (14)
+                                                     1
+                                                     2   1 − (q̂i−1 )⊤ k̂i                  ,    i > 1.
+The boundary indicator is                                (
+                                            (s)
+                                                             1,h                           i = 1,
+                                           bi =                  (s)
+                                                                      i                                                      (15)
+                                                             I ri ≥ δs ,                   i > 1,
+        (s)
+where bi      = 1 means that token i starts a new segment.
+
+Variable-length segment pooling.                  Let the ordered boundary indices at stage s be
+                                           (s)           (s) L
+                                                         s+1                            (s)
+                                       B         = {ij }j=1  = {i | bi                          = 1},
+      (s)
+with iLs+1 +1 = Ls + 1. The j-th segment is
+                                                 (s)                 (s)                (s)
+                                Ij = {i | ij ≤ i < ij+1 }.
+We summarize each segment by attention pooling:
+                                                           (s)
+                     (s)             exp((ws )⊤ hi )                                    (s+1)
+                                                                                                        X          (s) (s)
+                    αj,i = P                                               ,           zj         =            αj,i hi .     (16)
+                                                    ⊤ (s) )
+                                       (s) exp((ws ) h
+                                    k∈Ij              k                                                  (s)
+                                                                                                      i∈Ij
+
+After H hierarchy stages, Z h = Z (H) = (z1h , . . . , zSh ), where S = LH ≪ T .
+
+
+                                                                      12
+Skill-discovery loss.      The hierarchy is trained with
+                           Lskill = Lnext + λm Lmotion + λr Lratio + λc Lcons .                         (17)
+The next-latent loss predicts the next low-level latent action:
+                                                                           T −2
+                       l                                               1 X l
+                     ẑt+1 = Pω (ztl , z̄th ),        Lnext =                   ẑ    l
+                                                                                   − zt+1   .           (18)
+                                                                     T − 2 t=1 t+1        1
+
+
+To preserve motion semantics, the frozen flow decoder reconstructs flow from the predicted latent:
+                                                                         T −2 X
+                                                                              V
+                                                                   1     X          (v),pred    (v)
+      Φ̂pred           l
+        t+1 = Dflow (ẑt+1 , ot+1 ),              Lmotion =                      Φ̂          − Φt+1 .   (19)
+                                                               V (T − 2) t=1 v=1 t+1                1
+
+The ratio loss prevents degenerate boundary patterns:
+                                                    H−1             L
+                                                                                    !2
+                                                                  s
+                                                    X        1 X     (s)
+                                     Lratio =                       b − ρs               ,              (20)
+                                                    s=0
+                                                             Ls i=1 i
+where ρs is the target boundary ratio. The consistency term encourages tokens in the same segment
+to share a coherent representation:
+                                          H−1    Ls+1
+                                              1 X X                      2
+                                                              (s)  (s+1)
+                                          X
+                             Lcons =                      Rs hi − zj       .                            (21)
+                                          s=0
+                                              Ls j=1  (s)
+                                                                         2
+                                                             i∈Ij
+
+
+A.4     Skill Boundary Unfolding and Pseudo-Label Construction
+
+Since higher hierarchy stages operate on progressively shorter sequences, we maintain an index map
+ψs from each stage-s token to its starting timestep in the original low-level sequence. At the bottom
+level,
+                                   ψ0 (i) = i,      i = 1, . . . , L0 .                           (22)
+                                                             (s) L
+If the boundary indices at stage s are B (s) = {ij }j=1
+                                                     s+1
+                                                         , the next-stage map is
+                                                       (s)
+                                 ψs+1 (j) = ψs (ij ),                   j = 1, . . . , Ls+1 .           (23)
+After H stages, the final boundary indicator at the original temporal resolution is
+                          b̄t = I t ∈ {ψH (j)}Sj=1 ,
+                                                 
+                                                          t = 1, . . . , T − 1,                         (24)
+with b̄1 = 1. The segment index and per-timestep high-level target are
+                                   t
+                                   X
+                            κt =          b̄τ ,      z̄th = zκht ,          t = 1, . . . , T − 1.       (25)
+                                   τ =1
+For action-chunk policy learning, the low-level target at timestep t is
+                                          Zlt:t+K−1 = (ztl , . . . , zt+K−1
+                                                                      l
+                                                                            ).                          (26)
+When t + K − 1 > T − 1, we use the valid suffix and mask invalid positions in the executor loss.
+
+A.5     Qwen3-VL-4B-Instruct Planner and Memory Interface
+
+The planner is instantiated with Qwen3-VL-4B-Instruct and is responsible for high-level skill pre-
+diction and memory-conditioned boundary estimation. It is not itself the memory bank.
+
+Planner input formatting. At timestep t, the planner receives the current multi-view RGB obser-
+vation ot , instruction ℓ, a projected proprioceptive summary Pp (pt ), and a projected memory context
+Pm (cm
+     t ). The planner hidden state is
+
+                                hplan
+                                 t    = QwenPlanθ (ot , ℓ, Pp (pt ), Pm (cm
+                                                                          t )).                         (27)
+Continuous heads predict the high-level latent and boundary score:
+                                  ẑth = Hz (hplan
+                                              t    ),               b̂t = σ(Hb (hplan
+                                                                                 t    )).               (28)
+
+
+                                                              13
+Memory retrieval. The external memory bank is a set of continuous skill-level tokens, Mt =
+{mi }N
+     i=1 . Given xt = Eθ (ot , pt , ℓ), the retrieved context is
+       t
+
+
+                                      cm
+                                       t = Attn(Wq xt , Wk Mt , Wv Mt ),                              (29)
+with cm
+      t = 0 if Mt is empty. The read gate forms the memory-adapted state:
+                       αtr = σ(Gr (xt , cm
+                                         t )),    x̃t = xt + αtr Wm cm
+                                                                     t .                              (30)
+
+Memory writing.         After the planner predicts ẑth and b̂t , the executor produces
+                                            Ẑlt:t+K−1 = πθexec (x̃t , ẑth ).
+The write gate and memory token are
+                                                                                                
+                   αtw = σ(Gw (x̃t , ẑth , b̂t )),        γt = Γψ x̃t , ẑth , Pool(Ẑlt:t+K−1 ) .   (31)
+The memory bank is updated by
+                                                      Uψ (Mt , γt ), αtw > η,
+                                                 
+                                     Mt+1 =                                                           (32)
+                                                      Mt ,           otherwise.
+The update operator Uψ appends γt to the bank and compresses the bank if it exceeds a fixed budget
+Nmax .
+
+A.6     Training Details for the Three Stages
+
+Stage I. Stage I trains only the low-level tokenizer. The output is a frozen tokenizer and a set of
+offline Z l pseudo-labels. The planner, executor, action decoder, and memory gates are not trained
+in this stage.
+
+Stage II. Stage II learns high-level pseudo-labels and pretrains the planner and executor without
+external memory. We set Mt = ∅, cm t = 0, and x̃t = xt . The loss is
+                                    Llatent = λh Lplan + λl Lexec + λb Lbd ,                          (33)
+where
+                                                            T −1
+                                                        1 X h               2
+                                        Lplan =                  ẑt − z̄th 2 ,                       (34)
+                                                      T − 1 t=1
+                                           TX−K                       2
+                                      1
+                           Lexec =              Ẑlt:t+K−1 − Zlt:t+K−1 ,                              (35)
+                                   K(T − K) t=1                       2
+
+and
+                                                            T −1
+                                                        1 X
+                                         Lbd =                   BCE(b̂t , b̄t ).                     (36)
+                                                      T − 1 t=1
+
+Stage III. Stage III activates memory and fine-tunes the policy on action-labeled robot demonstra-
+tions. The full objective is
+                         Lft = Lact + αh Lplan + αl Lexec + αb Lbd + αm Lgate .                       (37)
+For deterministic action prediction,
+                                                                                 2
+                                       Lact = ∥ât:t+K−1 − at:t+K−1 ∥2 .                              (38)
+For stochastic policies, it is replaced by
+                                  Lact = − log πθ (at:t+K−1 | ot , pt , ℓ, Mt ).                      (39)
+The gate loss is
+                                       T −1
+                                   1 X
+                                            BCE(αtw , b̄t ) + λr ∥αtr ∥1 + λw ∥αtw ∥1 .
+                                                                                     
+                      Lgate =                                                                         (40)
+                                 T − 1 t=1
+The write gate is supervised by the discovered boundary label b̄t , while the read gate is learned
+through downstream action and latent prediction losses with sparsity regularization.
+
+
+                                                             14
+Teacher-forced memory warmup. To stabilize Stage III, memory updates can be initialized with
+the discovered boundary label rather than the predicted write gate. During warmup,
+                                       Uψ (Mteach  , γtteach ), b̄t = 1,
+                                     
+                         Mteach
+                            t+1   =       teach
+                                               t
+                                                                                        (41)
+                                       Mt       ,               otherwise,
+where
+                           γtteach = Γψ xt , z̄th , Pool(Zlt:t+K−1 ) .
+                                                                    
+                                                                                             (42)
+After warmup, memory writing is controlled by αtw as in Eq. (32).
+
+A.7     Inference Pipeline.
+
+At inference time, HiMem-WAM does not generate future videos and does not estimate optical flow.
+At each decision step, it executes the following causal procedure:
+
+1. Receive current RGB observations ot , proprioception pt , instruction ℓ, and memory bank Mt .
+2. Compute xt = Eθ (ot , pt , ℓ) and retrieve cm
+                                               t from Mt .
+3. Form x̃t = xt + αtr Wm cmt  .
+4. Use the Qwen3-VL-4B-Instruct planner to predict ẑth and b̂t .
+5. Use the executor to generate Ẑlt:t+K−1 .
+6. Decode ât:t+K−1 = Dact (Ẑlt:t+K−1 , x̃t ).
+7. If αtw > η, write γt into the memory bank.
+
+This procedure uses only current observations and stored memory, preserving the standard causal
+interface of action-chunking robot policies.
+
+
+
+
+                                                  15
+B     Real-World Setting Details
+B.1   Generalization Setting
+
+We provide the HiMem-WAM definition of the GE setting used in our real-world evaluation. De-
+pending on the task, one or more of the following perturbations may be introduced:
+
+• Object position variation: The initial positions of target objects and receptacles are changed
+  within the workspace.
+• Unseen distractor objects: Novel objects that are not present in the training demonstrations are
+  placed near the target objects, resulting in a more cluttered scene.
+• Target layout and height variation: The spatial layout of task-relevant objects is changed, and
+  target objects or receptacles may be placed at different heights using support structures.
+• Lighting variation: The illumination conditions are changed to evaluate robustness under differ-
+  ent lighting environments.
+• Instruction variation: The original task instructions are replaced with semantically equivalent
+  paraphrases to evaluate robustness to language variation.
+
+B.2   Task Descriptions
+
+Easy tasks. Easy tasks are short-horizon single-arm manipulation tasks involving basic actions such
+as reaching, grasping, picking, and placing.
+
+• Stack bowls: Pick up the yellow bowl and place it on top of the green bowl.
+• Hang cup: Pick up the cup and hang it on the mug rack.
+• Put fruit into basket: Pick up the fruit and place it into the basket.
+• Press button: Press the target button until it is activated.
+
+Medium tasks. Medium tasks require basic bimanual coordination, while the overall task horizon
+remains moderate and the manipulation procedure is still relatively structured.
+
+• Stack three bowls: Pick up the yellow bowl and the pink bowl sequentially, and stack both of
+  them on top of the green bowl.
+• Fold towel: Grasp one side of the towel and fold it over to the other side along the instructed
+  direction.
+• Place plate: Pick up the plate and place it onto the plate rack.
+• Press two buttons: Press the two target buttons in the required order until they are activated.
+
+Hard tasks. Hard tasks involve longer-horizon bimanual manipulation and more complex object
+interactions, and typically require more precise coordination across multiple steps.
+
+• Make breakfast: Pick up one bread slice and place it on the plate, then place a ham slice on top
+  of it, and finally place another bread slice on top to complete the stack.
+• Place two plates: Pick up two plates sequentially and place both of them onto the plate rack.
+
+
+
+
+                                                16
+Figure 5: RMBench tasks rollout and DPFlow visualization.
+
+                                          17
+Figure 6: LIBERO-Plus tasks rollout visualization. seven perturbation types in the LIBERO-
+PLUS benchmark, used to evaluate robustness
+
+
+
+C    Baselines
+DP: Diffusion Policy is a diffusion-based visuomotor imitation learning method that represents robot
+actions as a conditional denoising process. It predicts action sequences conditioned on visual ob-
+servations and executes them in a receding-horizon manner, enabling expressive multi-modal action
+generation for contact-rich manipulation.
+ACT: Action Chunking Transformer is an imitation learning policy originally developed for fine-
+grained bimanual manipulation. Instead of predicting a single action at each step, ACT generates
+temporally coherent action chunks with a Transformer-based policy and applies temporal ensem-
+bling to reduce compounding errors and improve execution smoothness.
+X-VLA: X-VLA is a soft-prompted flow-matching VLA framework designed for cross-embodiment
+robot learning. It introduces learnable prompt embeddings to encode robot- and dataset-specific vari-
+ations, allowing a shared Transformer policy to adapt across heterogeneous sensors, action spaces,
+and robotic platforms with limited additional parameters.
+MEM-0: MEM-0 is a modular memory-aware manipulation policy introduced for memory-
+dependent robotic tasks. It explicitly incorporates memory components to retain task-relevant histor-
+ical observations, making it suitable for evaluating manipulation scenarios where the correct action
+depends on past states rather than only the current visual input.
+OpenVLA: OpenVLA is a 7B-parameter open-source vision-language-action model trained on
+970K real-world robot demonstrations from the Open X-Embodiment dataset. It builds on a pre-
+trained vision-language backbone with DINOv2 and SigLIP visual encoders and a Llama-2 language
+model, and predicts discretized robot actions from image observations and language instructions.
+OpenVLA-OFT: OpenVLA-OFT is an optimized fine-tuning variant of OpenVLA. It replaces the
+original token-by-token action generation with a faster and more control-oriented recipe that com-
+bines parallel decoding, action chunking, continuous action regression, and an L1 objective, sub-
+stantially improving inference speed and downstream manipulation success.
+SpatialVLA: SpatialVLA is a spatially enhanced VLA model trained on large-scale real-robot
+episodes. It augments visual-language-action modeling with Ego3D Position Encoding for explicit
+3D spatial grounding and Adaptive Action Grids for discretizing spatial robot motions, improving
+cross-robot transfer and manipulation in geometry-sensitive tasks.
+
+
+                                                 18
+π0 : π0 is a generalist vision-language-action flow model built on top of a pretrained VLM. It uses
+flow matching to generate continuous action trajectories and is trained on diverse data from multi-
+ple robotic platforms, including single-arm, dual-arm, and mobile manipulation settings, enabling
+language-conditioned dexterous control and fine-tuning to new skills.
+π0.5 : π0.5 extends π0 toward open-world generalization by co-training on heterogeneous robot and
+non-robot data. In addition to low-level action prediction, it incorporates multimodal supervision
+such as semantic predictions, object information, and high-level task cues, enabling long-horizon
+manipulation in unfamiliar real-world environments.
+NORA-1.5: NORA-1.5 builds upon the NORA VLA backbone and augments it with a flow-
+matching action expert. It further applies reward-guided post-training using world-model-based and
+action-based preference rewards, improving action reliability and task success across simulation and
+real-robot settings.
+AtomVLA: AtomVLA is a subtask-aware VLA post-training framework for long-horizon robotic
+manipulation. It decomposes high-level instructions into atomic subtasks and uses a predictive latent
+world model to evaluate candidate action chunks, enabling scalable offline policy optimization and
+reducing compounding errors during multi-step execution.
+UniVLA: UniVLA is a unified vision-language-action model that represents visual observations,
+language instructions, and robot actions as token sequences within a single autoregressive frame-
+work. By jointly modeling perception, world dynamics, and action generation, it aims to improve
+long-horizon policy learning and multimodal grounding for robotic manipulation.
+WorldVLA: WorldVLA is an autoregressive action world model that integrates VLA policy learning
+and world modeling into one framework. It jointly reasons about robot actions and future visual
+states, allowing the model to use predicted environmental dynamics as an intermediate structure for
+more temporally consistent action generation.
+FAST-WAM: FAST-WAM is a fast world-action model that studies whether explicit future imagina-
+tion is necessary at test time. It retains video-modeling objectives during training to learn stronger
+world representations, but skips future-frame generation during inference, achieving competitive
+manipulation performance with substantially lower control latency.
+RIPT-VLA: RIPT-VLA is an interactive post-training paradigm for pretrained Vision-Language-
+Action models. It fine-tunes VLA policies through online environment rollouts with sparse binary
+success rewards, using dynamic rollout sampling and leave-one-out advantage estimation to improve
+task adaptation and robustness beyond supervised imitation.
+HoloBrain-0: HoloBrain-0 is a comprehensive Vision-Language-Action framework for robotic ma-
+nipulation that explicitly incorporates robot embodiment priors, such as multi-view camera param-
+eters and kinematic descriptions. It follows a scalable pre-train then post-train paradigm and serves
+as a strong baseline for robust action generation in simulation and real-world manipulation bench-
+marks.
+
+
+
+
+                                                 19
+

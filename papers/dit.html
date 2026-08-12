@@ -335,6 +335,15 @@
       $$T = \left(\frac{I}{p}\right)^2 \text{ tokens}, \quad \text{每个 token 维度 } d$$
       <span class="math-label">Eq. 2 · Token 数量计算 · p.4</span>
     </div>
+    <div class="math-explain">
+      <div class="me-title">为什么 patch size 直接决定 DiT 算力</div>
+      <dl>
+        <dt>$I$</dt><dd>latent 特征图的边长，不是原始 RGB 分辨率；VAE 已经先把图像压缩到更小的空间网格。</dd>
+        <dt>$p$</dt><dd>在 latent 网格上切 patch 的边长。每条边产生 $I/p$ 个 patch，因此二维 token 数是平方关系。</dd>
+        <dt>$T=(I/p)^2$</dt><dd>Transformer 序列长度。标准 self-attention 的主要成本随 $T^2$ 增长，所以把 $p$ 减半会让 token 数变成四倍、注意力矩阵约变成十六倍。</dd>
+        <dt>$d$</dt><dd>每个 patch 投影后的隐藏维度；扩大 $d$ 增加单个 token 的表达能力，而减小 $p$ 增加空间细节，两者是不同的扩容旋钮。</dd>
+      </dl>
+    </div>
 
     <div class="callout amber">
       <div class="callout-label">设计空间</div>

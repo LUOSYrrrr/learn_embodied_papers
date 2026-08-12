@@ -1,0 +1,131 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>DDIM：同一训练，不同采样轨迹 · Paper Notes</title>
+  <link rel="stylesheet" href="../../assets/css/style.css">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16/dist/katex.min.css">
+  <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16/dist/katex.min.js"></script>
+  <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16/dist/contrib/auto-render.min.js" onload="renderMathInElement(document.body,{delimiters:[{left:'$$',right:'$$',display:true},{left:'$',right:'$',display:false}]})"></script>
+  <script src="../../assets/js/theme.js"></script><script src="../../assets/js/interactive.js" defer></script>
+</head>
+<body>
+  <nav class="nav"><a class="nav-logo" href="../../index.html">Paper Notes</a><div class="nav-links"><a href="ddpm.html">← DDPM</a><a href="../../pdfs/generation/Song 等 - 2020 - Denoising Diffusion Implicit Models.pdf" target="_blank">📄 PDF</a></div></nav>
+  <div class="page"><div class="docs-layout">
+    <aside class="docs-sidebar-left">
+      <div class="ds-title">DDIM · 采样加速</div>
+      <a class="ds-leaf-top" href="#tldr">§1 它改了什么</a>
+      <details open><summary>§2 同一损失的自由度</summary><a class="ds-leaf" href="#joint">2.1 边缘相同，联合不同</a><a class="ds-leaf" href="#family">2.2 $\sigma$ 控制随机性</a></details>
+      <details open><summary>§3 DDIM 更新式</summary><a class="ds-leaf" href="#update">3.1 三项拆解</a><a class="ds-leaf" href="#skip">3.2 子序列跳步</a><a class="ds-leaf" href="#eta">3.3 $\eta$ 旋钮</a></details>
+      <a class="ds-leaf-top" href="#evidence">§4 速度与一致性</a>
+      <a class="ds-leaf-top" href="#limits">§5 局限</a>
+      <a class="ds-leaf-top" href="#wam">§6 对 WAM 的意义</a>
+      <a class="ds-leaf-top" href="#takeaway">§7 一页记住</a>
+    </aside>
+
+    <main class="docs-content">
+      <div class="docs-breadcrumb"><a href="../../index.html">paper-notes</a><span class="sep">/</span><a href="../wam-roadmap.html">world model</a><span class="sep">/</span>DDIM · 2021</div>
+      <h1>Denoising Diffusion Implicit Models</h1>
+      <p style="color:var(--text3);font-family:var(--font-mono);font-size:12px;margin-top:-12px;">Jiaming Song, Chenlin Meng, Stefano Ermon · ICLR 2021 · arXiv:2010.02502</p>
+
+      <div class="cn-read"><div class="cn-label">最容易误解的一句话</div><p><strong>DDIM 通常不是重新训练一个新模型。</strong>它利用 DDPM 噪声预测器已经学会的各个边缘分布，换一条非马尔可夫、可确定、可跳步的生成轨迹。训练与采样被第一次清楚地解耦。</p></div>
+
+      <h2 id="tldr">§1 它改了什么：路线，不是目的地</h2>
+      <div class="callout"><div class="callout-label">核心结论</div><p>只要各时刻 $q(x_t|x_0)$ 保持不变，DDPM 的噪声回归目标并不关心潜变量之间采用哪一种联合分布。因此同一 $\epsilon_\theta$ 可以对应一族生成过程，其中 $\sigma_t=0$ 的确定性特例就是 DDIM。</p></div>
+      <details class="en-quote"><summary>展开原文 · Abstract</summary><div class="quote-body"><p>“Our non-Markovian processes can correspond to generative processes that are deterministic.”</p><div class="quote-cite">— Abstract, p.1</div></div></details>
+
+      <div class="module-grid">
+        <div class="module-card"><div class="module-card-name">DDPM</div><div class="module-card-title">训练 + 随机马尔可夫采样</div><div class="module-card-desc">每步依赖前一步并注入随机噪声，原版通常走满 $T$ 步。</div></div>
+        <div class="module-card"><div class="module-card-name">DDIM</div><div class="module-card-title">同一训练 + 新采样器</div><div class="module-card-desc">允许非马尔可夫联合与确定性轨迹，也能只访问时间步子集。</div></div>
+      </div>
+
+      <h2 id="joint">§2 为什么同一个训练目标允许不同生成过程</h2>
+      <div class="fig-interactive panel-below">
+        <div class="fig-block">
+          <div class="hotspot-wrap" data-hotspot-group="ddim-joints">
+            <img src="../../assets/figures/ddim/figure-1-joints.png" alt="DDPM 和 DDIM 联合分布结构">
+            <div class="hotspot" data-id="markov" style="left:26%;top:36.9%;" data-title="DDPM：马尔可夫前向链" data-body="左图的 $q(x_2|x_1)$ 只依赖紧邻状态。逆过程也按相邻时间步逐步生成。"></div>
+            <div class="hotspot" data-id="nonmarkov" style="left:73.9%;top:41.7%;" data-title="DDIM：非马尔可夫联合" data-body="右图允许 $q_\sigma(x_{t-1}|x_t,x_0)$ 显式依赖 $x_0$；但仍保持每个 $q(x_t|x_0)$ 与 DDPM 一致。"></div>
+            <div class="hotspot" data-id="same-marginal" style="left:51.9%;top:70.9%;" data-title="关键：边缘分布不变" data-body="噪声训练只抽取 $(x_0,x_t)$。只要二者的边缘关系相同，训练样本分布就相同。"></div>
+          </div>
+          <div class="fig-cap"><span class="fig-num">Fig 1 · p.2</span> 左：DDPM 马尔可夫推断链；右：DDIM 使用的非马尔可夫构造。<span class="fig-cn">联合分布可以不同，但每个时刻相对 $x_0$ 的边缘分布保持一致。</span></div>
+        </div><div class="hotspot-panel"></div>
+      </div>
+
+      <div class="step-walker" data-hotspot-group="ddim-joints">
+        <div class="sw-header"><div class="sw-title">训练—采样解耦</div><div class="sw-controls"><button class="sw-btn prev">←</button><span class="sw-counter"></span><button class="sw-btn next">→</button></div></div>
+        <div class="sw-progress"><span class="sw-dot"></span><span class="sw-dot"></span><span class="sw-dot"></span></div>
+        <div class="sw-body">
+          <div class="sw-step" data-hotspot="markov"><h4>1. DDPM 给出一个合法联合分布</h4><p>相邻加噪构成马尔可夫链，但它不是产生相同边缘分布的唯一选择。</p></div>
+          <div class="sw-step" data-hotspot="same-marginal"><h4>2. 损失只观察 $q(x_t|x_0)$</h4><p>训练随机抽 $t$，合成 $x_t$ 并预测噪声，不会检查 $x_{t-1}$ 到 $x_t$ 的完整联合路径。</p></div>
+          <div class="sw-step" data-hotspot="nonmarkov"><h4>3. 因而推理可换路径</h4><p>保持边缘不变后，可以选择随机或确定的反向更新，并跳过大量中间时间步。</p></div>
+        </div>
+      </div>
+
+      <h3 id="family">2.2 一族共享边缘分布的推断过程</h3>
+      <div class="math-block">$$q_\sigma(x_{1:T}|x_0)=q_\sigma(x_T|x_0)\prod_{t=2}^{T}q_\sigma(x_{t-1}|x_t,x_0)$$<span class="math-label">Eq. 6 · p.3 · 非马尔可夫推断族</span></div>
+      <div class="math-explain"><div class="me-title">真正的自由度</div><dl><dt>$q(x_t|x_0)$</dt><dd>继续等于 $\mathcal N(\sqrt{\alpha_t}x_0,(1-\alpha_t)I)$；训练数据对不变。</dd><dt>$q_\sigma(x_{t-1}|x_t,x_0)$</dt><dd>跨时刻的联合关系可随 $\sigma$ 改变。</dd><dt>$\sigma_t$</dt><dd>决定每一步保留多少随机性；为零时，给定 $x_t$ 与模型预测后更新是确定的。</dd></dl></div>
+
+      <h2 id="update">§3 DDIM 更新式：预测 $x_0$ + 指向 $x_t$ + 可选噪声</h2>
+      <div class="math-block">
+        $$x_{t-1}=\sqrt{\alpha_{t-1}}\underbrace{\left(\frac{x_t-\sqrt{1-\alpha_t}\,\epsilon_\theta(x_t,t)}{\sqrt{\alpha_t}}\right)}_{\text{predicted }x_0}+\underbrace{\sqrt{1-\alpha_{t-1}-\sigma_t^2}\,\epsilon_\theta(x_t,t)}_{\text{direction}}+\underbrace{\sigma_t\epsilon_t}_{\text{random noise}}$$
+        <span class="math-label">Eq. 12 · p.5</span>
+      </div>
+      <div class="math-explain"><div class="me-title">三项分别在做什么</div><dl>
+        <dt>预测 $x_0$</dt><dd>先用当前噪声估计反推出模型认为的干净样本。</dd>
+        <dt>方向项</dt><dd>把预测重新放到下一个较低噪声级别。</dd>
+        <dt>$\sigma_t\epsilon_t$</dt><dd>随机性。DDPM 对应一组非零 $\sigma_t$；DDIM 令它为零。</dd>
+      </dl></div>
+
+      <h3 id="skip">3.2 加速来自时间步子序列，不是网络变快</h3>
+      <div class="fig-block"><img src="../../assets/figures/ddim/figure-2-skip-trajectory.png" alt="DDIM 跳步轨迹"><div class="fig-cap"><span class="fig-num">Fig 2 · p.5</span> 示例只保留 $\tau=[1,3]$。<span class="fig-cn">训练可使用很多噪声级别，推理只沿子序列 $\tau$ 访问其中少数点；不需要为每个步数重新训练。</span></div></div>
+      <p>若训练总步数为 $T$，推理选择长度 $S\ll T$ 的递增子序列 $\tau$，然后按逆序执行。网络仍接收它训练时见过的噪声级别，但一次跨过更大的间隔。</p>
+
+      <h3 id="eta">3.3 $\eta$：在 DDIM 与 DDPM 间连续切换</h3>
+      <div class="math-block">$$\sigma_{\tau_i}(\eta)=\eta\sqrt{\frac{1-\alpha_{\tau_{i-1}}}{1-\alpha_{\tau_i}}}\sqrt{1-\frac{\alpha_{\tau_i}}{\alpha_{\tau_{i-1}}}}$$<span class="math-label">Eq. 16 · p.6</span></div>
+      <div class="math-explain"><div class="me-title">$\eta$ 如何控制随机性</div><dl>
+        <dt>$\tau_i,\tau_{i-1}$</dt><dd>实际采用的子采样时间表中相邻两个噪声等级；它们不必是原 DDPM 的连续整数步。</dd>
+        <dt>$\alpha_{\tau_i}$</dt><dd>该时间点保留下来的信号比例，决定从当前噪声层跨到下一层需要多大方差。</dd>
+        <dt>$\eta$</dt><dd>统一缩放每一步重新注入的噪声：$\eta=0$ 时完全确定，$\eta=1$ 时恢复与 DDPM 方差匹配的随机更新。</dd>
+        <dt>$\sigma_{\tau_i}$</dt><dd>它只改变采样轨迹的随机性，不改变训练好的噪声预测器；这就是 DDIM 能直接复用 DDPM 权重的原因。</dd>
+      </dl></div>
+      <div class="module-grid">
+        <div class="module-card"><div class="module-card-name">$\eta=0$</div><div class="module-card-title">确定性 DDIM</div><div class="module-card-desc">同一个 $x_T$ 与模型给出同一路径，利于反演、编辑与一致性。</div></div>
+        <div class="module-card"><div class="module-card-name">$\eta=1$</div><div class="module-card-title">DDPM 风格随机性</div><div class="module-card-desc">对应论文定义的 DDPM 方差选择；同一路径中注入随机噪声。</div></div>
+      </div>
+
+      <div class="quiz" data-correct="b" data-explain="DDIM 的主要价值是复用相同噪声预测器，选择新的、可跳步且可确定的采样轨迹。" data-explain-wrong="它不要求把 U-Net 换成 Transformer，也不靠降低图像分辨率。">
+        <div class="q-label">理解检查</div><div class="q-text">把一个已有 DDPM 改成 50 步 DDIM，最核心的变化是什么？</div>
+        <div class="q-options"><button class="q-opt" data-k="a">重新训练一个 50 层 U-Net</button><button class="q-opt" data-k="b">使用时间步子序列与 DDIM 更新式</button><button class="q-opt" data-k="c">把图像压缩到 VAE latent</button><button class="q-opt" data-k="d">增加一个分类器</button></div><div class="q-feedback"></div>
+      </div>
+
+      <h2 id="evidence">§4 论文证据：10–100 步已能保留主要语义</h2>
+      <div class="fig-interactive panel-below">
+        <div class="fig-block"><div class="hotspot-wrap" data-hotspot-group="ddim-consistency"><img src="../../assets/figures/ddim/figure-5-consistency.png" alt="DDIM 不同步数一致性"><div class="hotspot" data-id="few" style="left:10%;top:23.9%;" data-title="10 步" data-body="轮廓与类别已经出现，但纹理和局部结构仍粗糙；大跨度离散化误差明显。"></div><div class="hotspot" data-id="stable" style="left:54.9%;top:30.9%;" data-title="高层语义稳定" data-body="同一列使用相同初始 $x_T$。随着步数增加，类别与布局大多不变，细节逐渐改善。"></div><div class="hotspot" data-id="detail" style="left:90.9%;top:67.8%;" data-title="更多步数补细节" data-body="100 步通常比 10 步更清晰；确定性轨迹不意味着任意少步都无损。"></div></div><div class="fig-cap"><span class="fig-num">Fig 5 · p.8</span> 相同初始噪声、不同采样步数。<span class="fig-cn">DDIM 的“consistency”是同一 latent 的高层属性跨步数保持，而非数值结果完全相同。</span></div></div><div class="hotspot-panel"></div>
+      </div>
+      <div class="fig-block"><img src="../../assets/figures/ddim/figure-4-speed.png" alt="DDIM sampling time"><div class="fig-cap"><span class="fig-num">Fig 4 · p.8</span> 采样墙钟时间近似随步数线性增长。<span class="fig-cn">论文报告 10×–50× 加速；本质是减少去噪网络调用次数。</span></div></div>
+      <div class="module-grid">
+        <div class="module-card"><div class="module-card-name">CIFAR-10 · 10 steps</div><div class="module-card-title">FID 13.36</div><div class="module-card-desc">同表 DDPM 风格采样为 41.07，少步区差距最大。</div></div>
+        <div class="module-card"><div class="module-card-name">CIFAR-10 · 50 steps</div><div class="module-card-title">FID 4.67</div><div class="module-card-desc">已逼近 1000 步 DDIM 的 4.04。</div></div>
+        <div class="module-card"><div class="module-card-name">SPEED</div><div class="module-card-title">10×–50×</div><div class="module-card-desc">来自更短轨迹；不是单次网络前向更便宜。</div></div>
+        <div class="module-card"><div class="module-card-name">EXTRA</div><div class="module-card-title">反演与插值</div><div class="module-card-desc">确定性映射让 latent 操作更可控，为后续编辑方法提供基础。</div></div>
+      </div>
+
+      <h2 id="limits">§5 局限：跳得越远，数值误差越大</h2>
+      <div class="callout red"><div class="callout-label">三项代价</div><p><strong>少步并非免费：</strong>极端跳步会牺牲细节与 FID；确定性路径降低采样随机性；原始 DDIM 是较早的一阶离散化思路，后来 DPM-Solver、EDM、flow/ODE solver 等继续优化少步采样。</p></div>
+
+      <h2 id="wam">§6 对 World Action Model 的意义</h2>
+      <div class="cn-read"><div class="cn-label">闭环系统尤其在意采样器</div><p>视频世界模型和动作扩散策略往往必须在机器人控制周期内反复生成。DDIM 的思想告诉我们：训练目标、网络骨干和在线采样器可以分别设计。一个强模型若仍需数百步推理，在控制系统里可能毫无用处。</p></div>
+      <div class="module-grid">
+        <div class="module-card"><div class="module-card-name">视频预测</div><div class="module-card-title">减少未来生成延迟</div><div class="module-card-desc">更短轨迹让 imagined rollout 更接近在线可用。</div></div>
+        <div class="module-card"><div class="module-card-name">动作策略</div><div class="module-card-title">同一策略换采样预算</div><div class="module-card-desc">部署可按算力选择 10/20/50 步，不必各训一个模型。</div></div>
+        <div class="module-card"><div class="module-card-name">可控编辑</div><div class="module-card-title">确定性 latent 对齐</div><div class="module-card-desc">利于反演真实轨迹，再改变语言或动作条件。</div></div>
+        <div class="module-card"><div class="module-card-name">风险</div><div class="module-card-title">多模态未来被压缩</div><div class="module-card-desc">过强确定性可能少覆盖可行未来；闭环任务需重新评估多样性。</div></div>
+      </div>
+
+      <h2 id="takeaway">§7 一页记住</h2>
+      <div class="callout"><div class="callout-label">DDPM → DDIM</div><p><strong>没变：</strong>噪声预测训练、各时刻边缘分布。<br><strong>变了：</strong>潜变量联合、随机性、访问的时间步。<br><strong>收益：</strong>可跳步、可确定、可反演，通常快一个数量级。<br><strong>边界：</strong>少步质量仍取决于离散化与模型能力。</p></div>
+      <div class="callout blue"><div class="callout-label">下一篇</div><p><a href="classifier-free-guidance.html">Classifier-Free Guidance</a> 不再讨论“走哪条去噪路径”，而是讨论“条件应该拉多用力”：用同一个网络的条件与无条件预测，换取可调的忠实度—多样性。</p></div>
+    </main>
+  </div></div>
+</body></html>

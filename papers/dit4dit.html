@@ -1,17 +1,17 @@
 <!DOCTYPE html>
+
 <html lang="zh-CN">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>DiT4DiT · 联合建模视频动力学与动作生成</title>
-  <link rel="stylesheet" href="../assets/css/style.css">
-  <script src="../assets/js/theme.js"></script>
-  <script src="../assets/js/interactive.js" defer></script>
-  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16/dist/katex.min.css">
-  <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16/dist/katex.min.js"></script>
-  <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16/dist/contrib/auto-render.min.js"
-          onload="renderMathInElement(document.body,{delimiters:[{left:'$$',right:'$$',display:true},{left:'$',right:'$',display:false}]})"></script>
-  <style>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>DiT4DiT · 联合建模视频动力学与动作生成</title>
+<link href="../assets/css/style.css" rel="stylesheet"/>
+<script src="../assets/js/theme.js"></script>
+<script defer="" src="../assets/js/interactive.js"></script>
+<link href="https://cdn.jsdelivr.net/npm/katex@0.16/dist/katex.min.css" rel="stylesheet"/>
+<script defer="" src="https://cdn.jsdelivr.net/npm/katex@0.16/dist/katex.min.js"></script>
+<script defer="" onload="renderMathInElement(document.body,{delimiters:[{left:'$$',right:'$$',display:true},{left:'$',right:'$',display:false}]})" src="https://cdn.jsdelivr.net/npm/katex@0.16/dist/contrib/auto-render.min.js"></script>
+<style>
     .docs-layout { display: grid; grid-template-columns: 220px minmax(0, 1fr); max-width: 1400px; margin: 0 auto; }
     .sidebar { position: sticky; top: 60px; height: calc(100vh - 60px); overflow-y: auto; padding: 24px 16px; border-right: 1px solid var(--border); background: var(--bg); }
     .sidebar-title { font-family: var(--font-mono); font-size: 10px; color: var(--text3); letter-spacing: 0.08em; text-transform: uppercase; margin-bottom: 16px; padding-bottom: 8px; border-bottom: 1px solid var(--border); }
@@ -133,611 +133,552 @@
   </style>
 </head>
 <body>
-  <nav class="nav">
-    <a href="../index.html" class="nav-logo">← Embodied Notes</a>
-    <div class="nav-links">
-      <a href="motionwam.html">MotionWAM</a>
-      <a href="dit.html">DiT</a>
-      <a href="../index.html#wam">WAM 系列</a>
-    </div>
-  </nav>
-
-  <div class="docs-layout">
-    <aside class="sidebar">
-      <div class="sidebar-title">DiT4DiT 目录</div>
-      <ul class="sidebar-tree">
-        <li><a href="#intro">§01 引言</a></li>
-        <li><a href="#proxy">§02 视频生成作为 Proxy</a></li>
-        <li><a href="#architecture">§03 双 DiT 架构</a></li>
-        <li><a href="#training">§04 联合训练</a></li>
-        <li><a href="#experiments">§05 实验结果</a></li>
-        <li><a href="#relation">§06 与 MotionWAM 的关系</a></li>
-      </ul>
-    </aside>
-
-    <main class="main-content">
-      <div class="paper-header">
-        <div class="paper-venue">arXiv 2603.10448 · Mondo Robotics · HKUST(GZ) · 22 Mar 2026</div>
-        <h1 class="paper-title">DiT4DiT: Jointly Modeling Video Dynamics and Actions for Generalizable Robot Control</h1>
-        <div class="paper-authors">Teli Ma, Jia Zheng, Zifan Wang, Chunli Jiang, Andy Cui, Junwei Liang*, Shuo Yang*</div>
-        <div class="paper-authors" style="font-size:12px; color:var(--text3);">* Corresponding author · Code & Models: <a href="https://dit4dit.github.io/" style="color:var(--accent);">dit4dit.github.io</a></div>
-        <div class="paper-badges">
-          <span class="badge badge-green">Video-Action Model</span>
-          <span class="badge badge-blue">Dual DiT</span>
-          <span class="badge badge-blue">Flow Matching</span>
-          <span class="badge badge-amber">LIBERO 98.6%</span>
-          <span class="badge">WAM · 2026</span>
-        </div>
-      </div>
-
-      <!-- §1 引言 -->
-      <div class="section" id="intro">
-        <div class="section-num">§ 01</div>
-        <h2>引言：为什么 VLA 需要视频动力学？</h2>
-
-        <div class="cn-read">
-          <div class="cn-label">核心问题</div>
-          <p>
+<nav class="nav">
+<a class="nav-logo" href="../index.html">← Embodied Notes</a>
+<div class="nav-links">
+<a href="motionwam.html">MotionWAM</a>
+<a href="dit.html">DiT</a>
+<a href="../index.html#wam">WAM 系列</a>
+</div>
+</nav>
+<div class="docs-layout">
+<aside class="sidebar">
+<div class="sidebar-title">DiT4DiT 目录</div>
+<ul class="sidebar-tree">
+<li><a href="#intro">§01 引言</a></li>
+<li><a href="#proxy">§02 视频生成作为 Proxy</a></li>
+<li><a href="#architecture">§03 双 DiT 架构</a></li>
+<li><a href="#training">§04 联合训练</a></li>
+<li><a href="#experiments">§05 实验结果</a></li>
+<li><a href="#relation">§06 与 MotionWAM 的关系</a></li>
+</ul>
+</aside>
+<main class="main-content">
+<div class="paper-header">
+<div class="paper-venue">arXiv 2603.10448 · Mondo Robotics · HKUST(GZ) · 22 Mar 2026</div>
+<h1 class="paper-title">DiT4DiT: Jointly Modeling Video Dynamics and Actions for Generalizable Robot Control</h1>
+<div class="paper-authors">Teli Ma, Jia Zheng, Zifan Wang, Chunli Jiang, Andy Cui, Junwei Liang*, Shuo Yang*</div>
+<div class="paper-authors" style="font-size:12px; color:var(--text3);">* Corresponding author · Code &amp; Models: <a href="https://dit4dit.github.io/" style="color:var(--accent);">dit4dit.github.io</a></div>
+<div class="paper-badges">
+<span class="badge badge-green">Video-Action Model</span>
+<span class="badge badge-blue">Dual DiT</span>
+<span class="badge badge-blue">Flow Matching</span>
+<span class="badge badge-amber">LIBERO 98.6%</span>
+<span class="badge">WAM · 2026</span>
+</div>
+</div>
+<!-- §1 引言 -->
+<div class="section" id="intro">
+<div class="section-num">§ 01</div>
+<h2>引言：为什么 VLA 需要视频动力学？</h2>
+<div class="cn-read">
+<div class="cn-label">核心问题</div>
+<p>
             当前 VLA（Vision-Language-Action）模型几乎都继承自静态图文预训练的 backbone（如 SigLIP + LLM），
             这意味着它们对<strong>时间演化和物理接触</strong>几乎没有 intrinsic 理解——这些都只能靠少量动作示范来补偿。
             而视频生成模型（VGM）恰恰相反：它们在海量互联网视频上学会了"世界如何随时间变化"，内含丰富的
             <strong>时空先验和隐式物理动力学</strong>。DiT4DiT 的核心假设：
             <em>把视频生成作为 proxy 任务训练 VLA，是比语义对齐更有效的 scaling 信号。</em>
-          </p>
-        </div>
-
-        <div class="callout">
-          <div class="callout-label">论文一句话</div>
-          <p>
+</p>
+</div>
+<div class="callout">
+<div class="callout-label">论文一句话</div>
+<p>
             DiT4DiT 是一个<strong>端到端 Video-Action Model（VAM）</strong>，用 dual-DiT 架构耦合视频 DiT 和动作 DiT，
             在 denoising 过程中提取 intermediate hidden states 作为动作条件，并用 dual flow-matching 联合优化，
             实现视频动力学和机器人动作的统一建模。
           </p>
-        </div>
-
-        <h3>1.1 三种 proxy 任务的比较</h3>
-        <p>
+</div>
+<h3>1.1 三种 proxy 任务的比较</h3>
+<p>
           在引入 DiT4DiT 架构之前，作者首先验证了视频生成是否真的是最好的 proxy 任务。三种路线如下：
         </p>
-
-        <div class="proxy-comparison">
-          <div class="proxy-card">
-            <div class="proxy-name">PARADIGM 1</div>
-            <div class="proxy-title">Grounding（目标检测）</div>
-            <div class="proxy-desc">用辅助检测头驱动 VLM 理解物体的"什么"和"在哪"。语义精确，但不涉及运动。</div>
-            <span class="proxy-badge" style="background:rgba(255,107,107,0.15);color:var(--accent3);">弱</span>
-          </div>
-          <div class="proxy-card">
-            <div class="proxy-name">PARADIGM 2</div>
-            <div class="proxy-title">FLARE-style（特征对齐）</div>
-            <div class="proxy-desc">用 VLM latent 预测未来帧特征，试图捕获 pixel-level 物理动力学，但仍依赖静态 VLM。</div>
-            <span class="proxy-badge" style="background:rgba(245,158,11,0.15);color:var(--amber);">中</span>
-          </div>
-          <div class="proxy-card best">
-            <div class="proxy-name">PARADIGM 3 · DiT4DiT</div>
-            <div class="proxy-title">Video Generation（视频生成）</div>
-            <div class="proxy-desc">直接用视频 DiT 预测未来帧，学习连续时空动力学。收敛快 7x，样本效率高 10x。</div>
-            <span class="proxy-badge" style="background:rgba(74,222,154,0.15);color:var(--accent);">最优</span>
-          </div>
-        </div>
-
-        <div class="callout blue">
-          <div class="callout-label">实验验证结论</div>
-          <p>
+<div class="proxy-comparison">
+<div class="proxy-card">
+<div class="proxy-name">PARADIGM 1</div>
+<div class="proxy-title">Grounding（目标检测）</div>
+<div class="proxy-desc">用辅助检测头驱动 VLM 理解物体的"什么"和"在哪"。语义精确，但不涉及运动。</div>
+<span class="proxy-badge" style="background:rgba(255,107,107,0.15);color:var(--accent3);">弱</span>
+</div>
+<div class="proxy-card">
+<div class="proxy-name">PARADIGM 2</div>
+<div class="proxy-title">FLARE-style（特征对齐）</div>
+<div class="proxy-desc">用 VLM latent 预测未来帧特征，试图捕获 pixel-level 物理动力学，但仍依赖静态 VLM。</div>
+<span class="proxy-badge" style="background:rgba(245,158,11,0.15);color:var(--amber);">中</span>
+</div>
+<div class="proxy-card best">
+<div class="proxy-name">PARADIGM 3 · DiT4DiT</div>
+<div class="proxy-title">Video Generation（视频生成）</div>
+<div class="proxy-desc">直接用视频 DiT 预测未来帧，学习连续时空动力学。收敛快 7x，样本效率高 10x。</div>
+<span class="proxy-badge" style="background:rgba(74,222,154,0.15);color:var(--accent);">最优</span>
+</div>
+</div>
+<div class="callout blue">
+<div class="callout-label">实验验证结论</div>
+<p>
             在 24 个 tabletop 任务的 RoboCasa 仿真 benchmark 上，视频生成 proxy 比 Grounding 和 FLARE-style
             在所有数据量区间都表现更好，且随数据增加的 scaling 趋势更陡——论文 Fig. 1 的核心结论。
           </p>
-        </div>
-      </div>
-
-      <!-- §2 Proxy -->
-      <div class="section" id="proxy">
-        <div class="section-num">§ 02</div>
-        <h2>为什么视频生成是最好的 Proxy 任务？</h2>
-
-        <div class="cn-read">
-          <div class="cn-label">直觉理解</div>
-          <p>
+</div>
+</div>
+<!-- §2 Proxy -->
+<div class="section" id="proxy">
+<div class="section-num">§ 02</div>
+<h2>为什么视频生成是最好的 Proxy 任务？</h2>
+<div class="cn-read">
+<div class="cn-label">直觉理解</div>
+<p>
             想象你学会了"预测接下来 2 秒里一杯水被抓起来后会怎样移动"——你天然地在脑中有了
             抓握力、重力、惯性的物理模型。这正是视频生成 proxy 给模型的：
             <strong>通过强迫模型预测未来帧，让它自动学到物体运动的连续物理规律</strong>。
             这些规律正是控制机器人时最需要的先验。
           </p>
-        </div>
-
-        <h3>2.1 与静态 VLM 的本质区别</h3>
-
-        <table class="related-work-table">
-          <tr>
-            <th>先验类型</th>
-            <th>训练信号</th>
-            <th>能学到什么</th>
-            <th>机器人控制缺陷</th>
-          </tr>
-          <tr>
-            <td class="rw-name">VLM 语义先验</td>
-            <td>图像-文字对</td>
-            <td>物体识别、空间关系、语言理解</td>
-            <td class="rw-deficit">不知道"抓住后物体如何运动"</td>
-          </tr>
-          <tr>
-            <td class="rw-name">视频生成先验</td>
-            <td>视频序列（自监督）</td>
-            <td>时间演化、接触物理、因果关系</td>
-            <td>—（这正是 DiT4DiT 想利用的）</td>
-          </tr>
-        </table>
-
-        <h3>2.2 两个核心研究问题</h3>
-        <ol style="color:var(--text2); line-height:1.9; font-size:14px; padding-left:20px;">
-          <li><strong>视频生成能否作为 robot policy 的有效 proxy 任务？</strong>（即：预测未来帧真的比其他辅助任务更能帮助学习动作？）</li>
-          <li><strong>视频模型学到的时空表示，应该如何被提取并耦合到动作生成？</strong>（不是直接用 reconstructed future frames，而是…）</li>
-        </ol>
-
-        <div class="callout amber">
-          <div class="callout-label">关键洞察</div>
-          <p>
+</div>
+<h3>2.1 与静态 VLM 的本质区别</h3>
+<table class="related-work-table">
+<tr>
+<th>先验类型</th>
+<th>训练信号</th>
+<th>能学到什么</th>
+<th>机器人控制缺陷</th>
+</tr>
+<tr>
+<td class="rw-name">VLM 语义先验</td>
+<td>图像-文字对</td>
+<td>物体识别、空间关系、语言理解</td>
+<td class="rw-deficit">不知道"抓住后物体如何运动"</td>
+</tr>
+<tr>
+<td class="rw-name">视频生成先验</td>
+<td>视频序列（自监督）</td>
+<td>时间演化、接触物理、因果关系</td>
+<td>—（这正是 DiT4DiT 想利用的）</td>
+</tr>
+</table>
+<h3>2.2 两个核心研究问题</h3>
+<ol style="color:var(--text2); line-height:1.9; font-size:14px; padding-left:20px;">
+<li><strong>视频生成能否作为 robot policy 的有效 proxy 任务？</strong>（即：预测未来帧真的比其他辅助任务更能帮助学习动作？）</li>
+<li><strong>视频模型学到的时空表示，应该如何被提取并耦合到动作生成？</strong>（不是直接用 reconstructed future frames，而是…）</li>
+</ol>
+<div class="callout amber">
+<div class="callout-label">关键洞察</div>
+<p>
             以往工作（如 Cosmos Policy、mimic-video）依赖 <strong>已重建好的未来帧</strong> 作为条件，这需要等 Video DiT 完成完整 denoising，
             导致推理慢。DiT4DiT 的关键 insight：<strong>不需要等完全 denoise——直接读取 Video DiT denoising 过程中某个固定 timestep 的 hidden state</strong>，
             就已经包含足够的时空信息驱动动作生成。这是 MotionWAM 也采用的核心设计原则。
           </p>
-        </div>
-      </div>
-
-      <!-- §3 架构 -->
-      <div class="section" id="architecture">
-        <div class="section-num">§ 03</div>
-        <h2>双 DiT 架构详解</h2>
-
-        <div class="cn-read">
-          <div class="cn-label">总览</div>
-          <p>
+</div>
+</div>
+<!-- §3 架构 -->
+<div class="section" id="architecture">
+<div class="section-num">§ 03</div>
+<h2>双 DiT 架构详解</h2>
+<div class="cn-read">
+<div class="cn-label">总览</div>
+<p>
             DiT4DiT = <strong>Video DiT</strong>（Cosmos-Predict2.5-2B 初始化）+ <strong>Action DiT</strong>（GR00T-N1 动作头风格）。
             两者通过 <em>前向钩子（forward hook）</em> 在固定 flow timestep $\tau_f$ 处耦合：Video DiT 的 intermediate hidden states
             被提取为视觉条件 $\mathbf{h}_t^{\tau_f}$，传给 Action DiT 做 cross-attention。
             两个模块联合用 <strong>dual flow-matching</strong> 训练。
           </p>
-        </div>
-
-        <h3>3.1 Video DiT — 视频动力学建模</h3>
-
-        <div class="module-grid">
-          <div class="module-card">
-            <div class="module-card-name">初始化 Backbone</div>
-            <div class="module-card-title">Cosmos-Predict2.5-2B</div>
-            <div class="module-card-desc">
+</div>
+<h3>3.1 Video DiT — 视频动力学建模</h3>
+<div class="module-grid">
+<div class="module-card">
+<div class="module-card-name">初始化 Backbone</div>
+<div class="module-card-title">Cosmos-Predict2.5-2B</div>
+<div class="module-card-desc">
               因果时空 VAE + flow-matching 视频 DiT。输入当前观察帧 $\mathbf{o}_t$ 和语言指令 $l$，输出未来帧预测。
               文本编码器和 VAE 在训练中全程冻结。
             </div>
-          </div>
-          <div class="module-card">
-            <div class="module-card-name">核心机制</div>
-            <div class="module-card-title">Forward Hook 提取 Hidden State</div>
-            <div class="module-card-desc">
+</div>
+<div class="module-card">
+<div class="module-card-name">核心机制</div>
+<div class="module-card-title">Forward Hook 提取 Hidden State</div>
+<div class="module-card-desc">
               不等 Video DiT 完成完整 denoising；在固定 flow timestep $\tau_f$ 拦截特定 transformer block 的激活。
               公式：$\mathbf{h}_t^{\tau_f} = \mathcal{H}[v_\theta^{\text{video}}](\mathbf{z}_{t+1}^{\tau_f}, \tau_f \mid \mathbf{z}_t^0, l)$
             </div>
-          </div>
-        </div>
-
-        <div class="callout blue">
-          <div class="callout-label">为什么 τ_f 固定？</div>
-          <p>
+</div>
+</div>
+<div class="callout blue">
+<div class="callout-label">为什么 τ_f 固定？</div>
+<p>
             如果每次训练时 $\tau_f$ 随机变化，Action DiT 接收的 Visual Feature 就会不稳定（早期 timestep 是全局结构，晚期是细节）。
             固定 $\tau_f$ 作为"特征提取操作点"，让 Action DiT 始终接收一致的视觉信号。
             这就像从生产线上的<strong>固定位置</strong>取样品检验——不能一会儿取半成品一会儿取成品。
           </p>
-        </div>
-
-        <h3>3.2 Action DiT — 动作生成</h3>
-
-        <div class="module-grid">
-          <div class="module-card">
-            <div class="module-card-name">架构基础</div>
-            <div class="module-card-title">GR00T-N1 动作头风格（DiT-B）</div>
-            <div class="module-card-desc">
-              多个 Transformer block，每个用 <strong>AdaLN</strong> 注入 diffusion timestep 信息（来自 DiT/Peebles & Xie 2023），
+</div>
+<h3>3.2 Action DiT — 动作生成</h3>
+<div class="module-grid">
+<div class="module-card">
+<div class="module-card-name">架构基础</div>
+<div class="module-card-title">GR00T-N1 动作头风格（DiT-B）</div>
+<div class="module-card-desc">
+              多个 Transformer block，每个用 <strong>AdaLN</strong> 注入 diffusion timestep 信息（来自 DiT/Peebles &amp; Xie 2023），
               再用 <strong>cross-attention</strong> 层对齐 Video DiT 提取的 $\mathbf{h}_t^{\tau_f}$。
             </div>
-          </div>
-          <div class="module-card">
-            <div class="module-card-name">输入序列</div>
-            <div class="module-card-title">proprioception + 噪声动作 + future tokens</div>
-            <div class="module-card-desc">
+</div>
+<div class="module-card">
+<div class="module-card-name">输入序列</div>
+<div class="module-card-title">proprioception + 噪声动作 + future tokens</div>
+<div class="module-card-desc">
               本体感受状态 $s$（关节位置/EEF 位姿）+ 加噪动作轨迹 + 可学习的 "future tokens"（作为 motion planning 的压缩 query）。
               输出速度场 $\hat{v}$，积分得到预测动作 $\hat{\mathbf{a}}_t$。
             </div>
-          </div>
-        </div>
-
-        <h3>3.3 整体信息流</h3>
-
-        <div class="diagram-wrap">
-          <svg viewBox="0 0 720 220" xmlns="http://www.w3.org/2000/svg" style="width:100%; height:auto;">
-            <!-- Boxes -->
-            <!-- Input -->
-            <rect x="10" y="80" width="100" height="60" rx="8" fill="rgba(26,30,36,1)" stroke="#3a3f4a"/>
-            <text x="60" y="107" font-size="11" fill="#9a9690" text-anchor="middle">当前观察</text>
-            <text x="60" y="123" font-size="11" fill="#9a9690" text-anchor="middle">o_t + 语言 l</text>
-
-            <!-- VAE -->
-            <rect x="140" y="80" width="80" height="60" rx="8" fill="rgba(26,30,36,1)" stroke="#3a3f4a"/>
-            <text x="180" y="107" font-size="11" fill="#9a9690" text-anchor="middle">VAE</text>
-            <text x="180" y="123" font-size="11" fill="#9a9690" text-anchor="middle">Encoder</text>
-
-            <!-- Video DiT -->
-            <rect x="250" y="60" width="140" height="100" rx="8" fill="rgba(22,42,64,0.9)" stroke="#60a5fa"/>
-            <text x="320" y="92" font-size="12" fill="#60a5fa" text-anchor="middle" font-weight="600">Video DiT</text>
-            <text x="320" y="110" font-size="10" fill="#9a9690" text-anchor="middle">Cosmos-2.5-2B</text>
-            <text x="320" y="126" font-size="10" fill="#4ade9a" text-anchor="middle">固定 τ_f hook ↓</text>
-            <text x="320" y="142" font-size="10" fill="#9a9690" text-anchor="middle">h_t^τf (2048-dim)</text>
-
-            <!-- Action DiT -->
-            <rect x="430" y="60" width="140" height="100" rx="8" fill="rgba(22,42,30,0.9)" stroke="#4ade9a"/>
-            <text x="500" y="92" font-size="12" fill="#4ade9a" text-anchor="middle" font-weight="600">Action DiT</text>
-            <text x="500" y="110" font-size="10" fill="#9a9690" text-anchor="middle">DiT-B style</text>
-            <text x="500" y="126" font-size="10" fill="#9a9690" text-anchor="middle">AdaLN + cross-attn</text>
-            <text x="500" y="142" font-size="10" fill="#9a9690" text-anchor="middle">τ_a (Beta 采样)</text>
-
-            <!-- Output -->
-            <rect x="610" y="80" width="100" height="60" rx="8" fill="rgba(26,30,36,1)" stroke="#3a3f4a"/>
-            <text x="660" y="107" font-size="11" fill="#9a9690" text-anchor="middle">动作轨迹</text>
-            <text x="660" y="123" font-size="11" fill="#4ade9a" text-anchor="middle">â_t</text>
-
-            <!-- Arrows -->
-            <line x1="110" y1="110" x2="138" y2="110" stroke="#3a3f4a" stroke-width="1.5" marker-end="url(#arr)"/>
-            <line x1="220" y1="110" x2="248" y2="110" stroke="#3a3f4a" stroke-width="1.5" marker-end="url(#arr)"/>
-            <line x1="390" y1="110" x2="428" y2="110" stroke="#4ade9a" stroke-width="2" stroke-dasharray="5,3" marker-end="url(#arr-g)"/>
-            <line x1="570" y1="110" x2="608" y2="110" stroke="#3a3f4a" stroke-width="1.5" marker-end="url(#arr)"/>
-
-            <!-- State input to Action -->
-            <text x="500" y="178" font-size="10" fill="#9a9690" text-anchor="middle">状态 s + 噪声动作 + future tokens ↑</text>
-
-            <!-- Hook label -->
-            <text x="408" y="96" font-size="10" fill="#4ade9a" text-anchor="middle">hook</text>
-
-            <defs>
-              <marker id="arr" markerWidth="8" markerHeight="8" refX="6" refY="3" orient="auto">
-                <path d="M0,0 L0,6 L8,3 z" fill="#3a3f4a"/>
-              </marker>
-              <marker id="arr-g" markerWidth="8" markerHeight="8" refX="6" refY="3" orient="auto">
-                <path d="M0,0 L0,6 L8,3 z" fill="#4ade9a"/>
-              </marker>
-            </defs>
-          </svg>
-          <div class="diagram-caption">DiT4DiT 信息流：Video DiT 提取 hidden state 通过 hook 传给 Action DiT 做 cross-attention</div>
-        </div>
-
-        <div class="quiz" data-correct="b" data-explain="DiT4DiT 的核心是在 Video DiT denoising 过程中的固定 timestep τ_f 处提取 intermediate hidden state，通过 forward hook 机制，让 Action DiT 通过 cross-attention 使用这些特征。不需要完全 denoise 出未来帧。" data-explain-wrong="错误。Cosmos Policy 等旧方法需要等 Video DiT 完全 denoise 出未来帧，这正是它们慢的原因。DiT4DiT 的创新是在中间 timestep 提取特征，避免完整 denoising。">
-          <div class="q-label">理解检查</div>
-          <div class="q-text">DiT4DiT 如何将视频信息传递给动作生成？</div>
-          <div class="q-options">
-            <button class="q-opt" data-k="a">等 Video DiT 完全生成未来帧后，用未来帧作为输入</button>
-            <button class="q-opt" data-k="b">在固定 flow timestep τ_f 用 hook 拦截 Video DiT 的中间 hidden state</button>
-            <button class="q-opt" data-k="c">直接共享 Video DiT 和 Action DiT 的参数</button>
-            <button class="q-opt" data-k="d">将视频预测损失的梯度直接传给动作网络</button>
-          </div>
-          <div class="q-feedback"></div>
-        </div>
-      </div>
-
-      <!-- §4 训练 -->
-      <div class="section" id="training">
-        <div class="section-num">§ 04</div>
-        <h2>联合训练：Tri-Timestep 与 Dual Flow-Matching</h2>
-
-        <div class="cn-read">
-          <div class="cn-label">核心挑战</div>
-          <p>
+</div>
+</div>
+<h3>3.3 整体信息流</h3>
+<div class="diagram-wrap">
+<svg style="width:100%; height:auto;" viewbox="0 0 720 220" xmlns="http://www.w3.org/2000/svg">
+<!-- Boxes -->
+<!-- Input -->
+<rect fill="rgba(26,30,36,1)" height="60" rx="8" stroke="#3a3f4a" width="100" x="10" y="80"></rect>
+<text fill="#9a9690" font-size="11" text-anchor="middle" x="60" y="107">当前观察</text>
+<text fill="#9a9690" font-size="11" text-anchor="middle" x="60" y="123">o_t + 语言 l</text>
+<!-- VAE -->
+<rect fill="rgba(26,30,36,1)" height="60" rx="8" stroke="#3a3f4a" width="80" x="140" y="80"></rect>
+<text fill="#9a9690" font-size="11" text-anchor="middle" x="180" y="107">VAE</text>
+<text fill="#9a9690" font-size="11" text-anchor="middle" x="180" y="123">Encoder</text>
+<!-- Video DiT -->
+<rect fill="rgba(22,42,64,0.9)" height="100" rx="8" stroke="#60a5fa" width="140" x="250" y="60"></rect>
+<text fill="#60a5fa" font-size="12" font-weight="600" text-anchor="middle" x="320" y="92">Video DiT</text>
+<text fill="#9a9690" font-size="10" text-anchor="middle" x="320" y="110">Cosmos-2.5-2B</text>
+<text fill="#4ade9a" font-size="10" text-anchor="middle" x="320" y="126">固定 τ_f hook ↓</text>
+<text fill="#9a9690" font-size="10" text-anchor="middle" x="320" y="142">h_t^τf (2048-dim)</text>
+<!-- Action DiT -->
+<rect fill="rgba(22,42,30,0.9)" height="100" rx="8" stroke="#4ade9a" width="140" x="430" y="60"></rect>
+<text fill="#4ade9a" font-size="12" font-weight="600" text-anchor="middle" x="500" y="92">Action DiT</text>
+<text fill="#9a9690" font-size="10" text-anchor="middle" x="500" y="110">DiT-B style</text>
+<text fill="#9a9690" font-size="10" text-anchor="middle" x="500" y="126">AdaLN + cross-attn</text>
+<text fill="#9a9690" font-size="10" text-anchor="middle" x="500" y="142">τ_a (Beta 采样)</text>
+<!-- Output -->
+<rect fill="rgba(26,30,36,1)" height="60" rx="8" stroke="#3a3f4a" width="100" x="610" y="80"></rect>
+<text fill="#9a9690" font-size="11" text-anchor="middle" x="660" y="107">动作轨迹</text>
+<text fill="#4ade9a" font-size="11" text-anchor="middle" x="660" y="123">â_t</text>
+<!-- Arrows -->
+<line marker-end="url(#arr)" stroke="#3a3f4a" stroke-width="1.5" x1="110" x2="138" y1="110" y2="110"></line>
+<line marker-end="url(#arr)" stroke="#3a3f4a" stroke-width="1.5" x1="220" x2="248" y1="110" y2="110"></line>
+<line marker-end="url(#arr-g)" stroke="#4ade9a" stroke-dasharray="5,3" stroke-width="2" x1="390" x2="428" y1="110" y2="110"></line>
+<line marker-end="url(#arr)" stroke="#3a3f4a" stroke-width="1.5" x1="570" x2="608" y1="110" y2="110"></line>
+<!-- State input to Action -->
+<text fill="#9a9690" font-size="10" text-anchor="middle" x="500" y="178">状态 s + 噪声动作 + future tokens ↑</text>
+<!-- Hook label -->
+<text fill="#4ade9a" font-size="10" text-anchor="middle" x="408" y="96">hook</text>
+<defs>
+<marker id="arr" markerheight="8" markerwidth="8" orient="auto" refx="6" refy="3">
+<path d="M0,0 L0,6 L8,3 z" fill="#3a3f4a"></path>
+</marker>
+<marker id="arr-g" markerheight="8" markerwidth="8" orient="auto" refx="6" refy="3">
+<path d="M0,0 L0,6 L8,3 z" fill="#4ade9a"></path>
+</marker>
+</defs>
+</svg>
+<div class="diagram-caption">DiT4DiT 信息流：Video DiT 提取 hidden state 通过 hook 传给 Action DiT 做 cross-attention</div>
+</div>
+<div class="quiz" data-correct="b" data-explain="DiT4DiT 的核心是在 Video DiT denoising 过程中的固定 timestep τ_f 处提取 intermediate hidden state，通过 forward hook 机制，让 Action DiT 通过 cross-attention 使用这些特征。不需要完全 denoise 出未来帧。" data-explain-wrong="错误。Cosmos Policy 等旧方法需要等 Video DiT 完全 denoise 出未来帧，这正是它们慢的原因。DiT4DiT 的创新是在中间 timestep 提取特征，避免完整 denoising。">
+<div class="q-label">理解检查</div>
+<div class="q-text">DiT4DiT 如何将视频信息传递给动作生成？</div>
+<div class="q-options">
+<button class="q-opt" data-k="a">等 Video DiT 完全生成未来帧后，用未来帧作为输入</button>
+<button class="q-opt" data-k="b">在固定 flow timestep τ_f 用 hook 拦截 Video DiT 的中间 hidden state</button>
+<button class="q-opt" data-k="c">直接共享 Video DiT 和 Action DiT 的参数</button>
+<button class="q-opt" data-k="d">将视频预测损失的梯度直接传给动作网络</button>
+</div>
+<div class="q-feedback"></div>
+</div>
+</div>
+<!-- §4 训练 -->
+<div class="section" id="training">
+<div class="section-num">§ 04</div>
+<h2>联合训练：Tri-Timestep 与 Dual Flow-Matching</h2>
+<div class="cn-read">
+<div class="cn-label">核心挑战</div>
+<p>
             联合训练 Video DiT 和 Action DiT 面临一个矛盾：视频生成需要均匀采样 timestep（覆盖整个 denoising 轨迹），
             而特征提取需要固定 timestep（稳定信号），动作生成又有自己的最优采样分布（聚焦关键阶段）。
             DiT4DiT 的解法：<strong>三个独立的 timestep</strong>，各自服务各自的目的。
           </p>
-        </div>
-
-        <h3>4.1 三时间步设计（Tri-Timestep）</h3>
-
-        <table class="kv-table">
-          <tr>
-            <td>$\tau_v$（视频 DiT 训练）</td>
-            <td>从 $\mathcal{U}[0,1]$ <strong>均匀采样</strong>，让模型接触所有噪声等级，学习完整 denoising 轨迹</td>
-          </tr>
-          <tr>
-            <td>$\tau_f$（特征提取）</td>
-            <td>在 $\{0, 1/T, 2/T, \ldots, T/T\}$ 中均匀采样，但在使用时取<strong>确定性固定值</strong>，保证 Action DiT 接收稳定特征</td>
-          </tr>
-          <tr>
-            <td>$\tau_a$（动作 DiT 训练）</td>
-            <td>从 <strong>Beta 分布</strong> 采样（$\tau_a = 1 - \sigma$，$\sigma \sim \text{Beta}(\alpha, \beta)$），集中在动作变化最大的关键阶段</td>
-          </tr>
-        </table>
-
-        <div class="callout blue">
-          <div class="callout-label">Beta 采样的意义</div>
-          <p>
+</div>
+<h3>4.1 三时间步设计（Tri-Timestep）</h3>
+<table class="kv-table">
+<tr>
+<td>$\tau_v$（视频 DiT 训练）</td>
+<td>从 $\mathcal{U}[0,1]$ <strong>均匀采样</strong>，让模型接触所有噪声等级，学习完整 denoising 轨迹</td>
+</tr>
+<tr>
+<td>$\tau_f$（特征提取）</td>
+<td>在 $\{0, 1/T, 2/T, \ldots, T/T\}$ 中均匀采样，但在使用时取<strong>确定性固定值</strong>，保证 Action DiT 接收稳定特征</td>
+</tr>
+<tr>
+<td>$\tau_a$（动作 DiT 训练）</td>
+<td>从 <strong>Beta 分布</strong> 采样（$\tau_a = 1 - \sigma$，$\sigma \sim \text{Beta}(\alpha, \beta)$），集中在动作变化最大的关键阶段</td>
+</tr>
+</table>
+<div class="callout blue">
+<div class="callout-label">Beta 采样的意义</div>
+<p>
             Beta 分布的 $\tau_a$ 让动作 DiT 把训练资源集中在 flow trajectory 的关键阶段——类比"重点复习考点"。
             Beta$(1.5, 1.0, 0.999)$ 使采样密度偏向 $\tau_a$ 接近 1 的区域（接近纯噪声），
             这是动作预测需要学习的最难阶段。
           </p>
-        </div>
-
-        <h3>4.2 Dual Flow-Matching 目标函数</h3>
-
-        <div class="math-block">
+</div>
+<h3>4.2 Dual Flow-Matching 目标函数</h3>
+<div class="math-block">
           $$\mathcal{L}_t^{\text{total}} = \underbrace{\mathbb{E}_{\tau_a, \epsilon} \left[ \left\| v_\phi^{\text{action}}(\mathbf{a}_t^{\tau_a}, \tau_a \mid \mathbf{h}_t^{\tau_f}, s) - (\epsilon - \mathbf{a}_t^0) \right\|^2 \right]}_{\text{Action Flow Matching Loss}} + \lambda \underbrace{\mathbb{E}_{\tau_v, z} \left[ \left\| v_\theta^{\text{video}}(\mathbf{z}_{t+1}^{\tau_v}, \tau_v \mid \mathbf{z}_t^0, l) - (z - \mathbf{z}_{t+1}^0) \right\|^2 \right]}_{\text{Video Flow Matching Loss}}$$
           <span class="math-label">Eq. 10 · 联合 flow-matching 损失 · p.7</span>
-        </div>
-
-        <div class="math-explain">
-          <div class="me-title">各项含义</div>
-          <dl>
-            <dt>Action Flow Matching Loss</dt>
-            <dd>训练动作 DiT 预测从噪声到干净动作的速度场。条件是 Video DiT 提取的 $\mathbf{h}_t^{\tau_f}$ 和本体状态 $s$。</dd>
-            <dt>Video Flow Matching Loss</dt>
-            <dd>同时训练 Video DiT 预测未来帧。$\lambda$ 是权重系数，平衡两个损失。</dd>
-            <dt>为什么要保留 Video Loss？</dt>
-            <dd>如果只优化动作 loss，Video DiT 的特征会退化为仅对动作有用的表示，失去通用的视觉动力学先验。
+</div>
+<div class="math-explain">
+<div class="me-title">各项含义</div>
+<dl>
+<dt>Action Flow Matching Loss</dt>
+<dd>训练动作 DiT 预测从噪声到干净动作的速度场。条件是 Video DiT 提取的 $\mathbf{h}_t^{\tau_f}$ 和本体状态 $s$。</dd>
+<dt>Video Flow Matching Loss</dt>
+<dd>同时训练 Video DiT 预测未来帧。$\lambda$ 是权重系数，平衡两个损失。</dd>
+<dt>为什么要保留 Video Loss？</dt>
+<dd>如果只优化动作 loss，Video DiT 的特征会退化为仅对动作有用的表示，失去通用的视觉动力学先验。
             同时保留视频 loss 作为<strong>表示正则化器</strong>，确保 $\mathbf{h}_t^{\tau_f}$ 始终携带丰富的时空信息。</dd>
-          </dl>
-        </div>
-
-        <h3>4.3 训练流程（Algorithm 1 简化版）</h3>
-
-        <div class="step-walker">
-          <div class="sw-header">
-            <div class="sw-title">一个训练 step 里发生了什么</div>
-            <div class="sw-controls">
-              <button class="sw-btn prev">◀</button>
-              <span class="sw-counter">1 / 5</span>
-              <button class="sw-btn next">▶</button>
-            </div>
-          </div>
-          <div class="sw-progress">
-            <div class="sw-dot active"></div>
-            <div class="sw-dot"></div>
-            <div class="sw-dot"></div>
-            <div class="sw-dot"></div>
-            <div class="sw-dot"></div>
-          </div>
-          <div class="sw-body">
-            <div class="sw-step active">
-              <h4>Step 1：Video DiT Forward（视频噪声预测）</h4>
-              <p>VAE 编码当前帧和未来帧为 latent。采样 $\tau_v \sim \mathcal{U}[0,1]$ 和噪声 $z \sim \mathcal{N}(0,I)$，构造噪声 latent $\mathbf{z}_{t+1}^{\tau_v}$。Video DiT 预测速度 $\hat{v}_{\text{video}}$，计算 Video Loss。</p>
-            </div>
-            <div class="sw-step">
-              <h4>Step 2：提取 Hidden State（hook 机制）</h4>
-              <p>采样特征提取 timestep $\tau_f \sim \mathcal{U}\{0, 1/T, \ldots, 1\}$，用独立噪声构造 $\hat{z}_{t+1}$，通过 hook 算子 $\mathcal{H}$ 提取 Video DiT 在 $\tau_f$ 处的 hidden state $\mathbf{h}_t^{\tau_f}$。</p>
-            </div>
-            <div class="sw-step">
-              <h4>Step 3：Action DiT Forward（动作噪声预测）</h4>
-              <p>采样 $\sigma \sim \text{Beta}(\alpha, \beta)$，令 $\tau_a = 1 - \sigma$，构造噪声动作 $\mathbf{a}_t^{\tau_a}$。Action DiT 以 $\mathbf{h}_t^{\tau_f}$ 和本体状态 $s$ 为条件预测速度 $\hat{v}_{\text{action}}$，计算 Action Loss（加 action mask $M$）。</p>
-            </div>
-            <div class="sw-step">
-              <h4>Step 4：联合 Loss 反向传播</h4>
-              <p>$\mathcal{L}_{\text{total}} = \mathcal{L}_{\text{action}} + \lambda \cdot \mathcal{L}_{\text{video}}$。两个 loss 同时反向传播，联合更新 Video DiT 参数 $\theta$ 和 Action DiT 参数 $\phi$（VAE 和文本编码器保持冻结）。</p>
-            </div>
-            <div class="sw-step">
-              <h4>Step 5：推理时（Inference）</h4>
-              <p>Action DiT 只需<strong>单次固定 forward pass</strong>提取 $\mathbf{h}_t^{\tau_f}$（不迭代 Video DiT），再对 Action DiT 做 $N_a$ 步 ODE 积分得到动作轨迹。可选同时做 Video DiT 的 $N_v$ 步 denoising 生成未来帧预测。</p>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      <!-- §5 实验 -->
-      <div class="section" id="experiments">
-        <div class="section-num">§ 05</div>
-        <h2>实验结果：LIBERO & RoboCasa & Unitree G1</h2>
-
-        <div class="cn-read">
-          <div class="cn-label">实验设计</div>
-          <p>
+</dl>
+</div>
+<h3>4.3 训练流程（Algorithm 1 简化版）</h3>
+<div class="step-walker">
+<div class="sw-header">
+<div class="sw-title">一个训练 step 里发生了什么</div>
+<div class="sw-controls">
+<button class="sw-btn prev">◀</button>
+<span class="sw-counter">1 / 5</span>
+<button class="sw-btn next">▶</button>
+</div>
+</div>
+<div class="sw-progress">
+<div class="sw-dot active"></div>
+<div class="sw-dot"></div>
+<div class="sw-dot"></div>
+<div class="sw-dot"></div>
+<div class="sw-dot"></div>
+</div>
+<div class="sw-body">
+<div class="sw-step active">
+<h4>Step 1：Video DiT Forward（视频噪声预测）</h4>
+<p>VAE 编码当前帧和未来帧为 latent。采样 $\tau_v \sim \mathcal{U}[0,1]$ 和噪声 $z \sim \mathcal{N}(0,I)$，构造噪声 latent $\mathbf{z}_{t+1}^{\tau_v}$。Video DiT 预测速度 $\hat{v}_{\text{video}}$，计算 Video Loss。</p><div class="step-beginner"><div class="sb-label">给第一次接触这个领域的读者</div><p><strong>输入是什么：</strong>已经训练好的模型、它在不同输入或噪声时间步上的运行记录，以及需要比较的中间数值。这里先做诊断，还没有让机器人执行新动作。</p><p><strong>这一步究竟做什么：</strong>VAE 编码当前帧和未来帧为 latent。采样 $\tau_v \sim \mathcal{U}[0,1]$ 和噪声 $z \sim \mathcal{N}(0,I)$，构造噪声 latent $\mathbf{z}_{t+1}^{\tau_v}$。Video DiT 预测速度 $\hat{v}_{\text{video}}$，计算 Video Loss。</p><p><strong>输出到哪里：</strong>一组诊断数值、分类结果或评测分数；它告诉后续模块当前结果哪里好、哪里需要修正。这个结果会交给下一步“Step 2：提取 Hidden State（hook 机制）”继续处理。</p><p><strong>为什么不能省略：</strong>没有统一诊断或评分，后续模块无法知道哪里出错，也无法公平比较两个模型是否真的进步。</p><div class="sb-terms"><strong>术语先翻译：</strong>latent（隐表示）：模型内部压缩后的数字特征，人看不见，但比原始图像或动作更便于计算；DiT：用 Transformer 充当扩散/流模型的去噪或速度预测网络；encoder（编码器）：把原始输入压缩成模型内部可计算的特征。</div></div>
+</div>
+<div class="sw-step">
+<h4>Step 2：提取 Hidden State（hook 机制）</h4>
+<p>采样特征提取 timestep $\tau_f \sim \mathcal{U}\{0, 1/T, \ldots, 1\}$，用独立噪声构造 $\hat{z}_{t+1}$，通过 hook 算子 $\mathcal{H}$ 提取 Video DiT 在 $\tau_f$ 处的 hidden state $\mathbf{h}_t^{\tau_f}$。</p><div class="step-beginner"><div class="sb-label">给第一次接触这个领域的读者</div><p><strong>输入是什么：</strong>来自上一步“Step 1：Video DiT Forward（视频噪声预测）”的产物：一组诊断数值、分类结果或评测分数；它告诉后续模块当前结果哪里好、哪里需要修正。本步骤还会按论文设置读取当前条件、时间步或训练信号。</p><p><strong>这一步究竟做什么：</strong>采样特征提取 timestep $\tau_f \sim \mathcal{U}\{0, 1/T, \ldots, 1\}$，用独立噪声构造 $\hat{z}_{t+1}$，通过 hook 算子 $\mathcal{H}$ 提取 Video DiT 在 $\tau_f$ 处的 hidden state $\mathbf{h}_t^{\tau_f}$。</p><p><strong>输出到哪里：</strong>一组比原始输入更紧凑的内部特征；它不是最终动作或画面。这个结果会交给下一步“Step 3：Action DiT Forward（动作噪声预测）”继续处理。</p><p><strong>为什么不能省略：</strong>它承担上下两步之间的接口；缺少它，前一步产生的信息无法以正确格式或正确含义传到下一步。</p><div class="sb-terms"><strong>术语先翻译：</strong>DiT：用 Transformer 充当扩散/流模型的去噪或速度预测网络。</div></div>
+</div>
+<div class="sw-step">
+<h4>Step 3：Action DiT Forward（动作噪声预测）</h4>
+<p>采样 $\sigma \sim \text{Beta}(\alpha, \beta)$，令 $\tau_a = 1 - \sigma$，构造噪声动作 $\mathbf{a}_t^{\tau_a}$。Action DiT 以 $\mathbf{h}_t^{\tau_f}$ 和本体状态 $s$ 为条件预测速度 $\hat{v}_{\text{action}}$，计算 Action Loss（加 action mask $M$）。</p><div class="step-beginner"><div class="sb-label">给第一次接触这个领域的读者</div><p><strong>输入是什么：</strong>来自上一步“Step 2：提取 Hidden State（hook 机制）”的产物：一组比原始输入更紧凑的内部特征；它不是最终动作或画面。本步骤还会按论文设置读取当前条件、时间步或训练信号。</p><p><strong>这一步究竟做什么：</strong>采样 $\sigma \sim \text{Beta}(\alpha, \beta)$，令 $\tau_a = 1 - \sigma$，构造噪声动作 $\mathbf{a}_t^{\tau_a}$。Action DiT 以 $\mathbf{h}_t^{\tau_f}$ 和本体状态 $s$ 为条件预测速度 $\hat{v}_{\text{action}}$，计算 Action Loss（加 action mask $M$）。</p><p><strong>输出到哪里：</strong>一组诊断数值、分类结果或评测分数；它告诉后续模块当前结果哪里好、哪里需要修正。这个结果会交给下一步“Step 4：联合 Loss 反向传播”继续处理。</p><p><strong>为什么不能省略：</strong>没有统一诊断或评分，后续模块无法知道哪里出错，也无法公平比较两个模型是否真的进步。</p><div class="sb-terms"><strong>术语先翻译：</strong>DiT：用 Transformer 充当扩散/流模型的去噪或速度预测网络；mask（掩码）：故意隐藏一部分输入，让模型只根据可见信息预测被隐藏部分；proprioception（本体状态）：机器人自己测到的关节角、速度、夹爪开合等身体信息。</div></div>
+</div>
+<div class="sw-step">
+<h4>Step 4：联合 Loss 反向传播</h4>
+<p>$\mathcal{L}_{\text{total}} = \mathcal{L}_{\text{action}} + \lambda \cdot \mathcal{L}_{\text{video}}$。两个 loss 同时反向传播，联合更新 Video DiT 参数 $\theta$ 和 Action DiT 参数 $\phi$（VAE 和文本编码器保持冻结）。</p><div class="step-beginner"><div class="sb-label">给第一次接触这个领域的读者</div><p><strong>输入是什么：</strong>来自上一步“Step 3：Action DiT Forward（动作噪声预测）”的产物：一组诊断数值、分类结果或评测分数；它告诉后续模块当前结果哪里好、哪里需要修正。本步骤还会按论文设置读取当前条件、时间步或训练信号。</p><p><strong>这一步究竟做什么：</strong>$\mathcal{L}_{\text{total}} = \mathcal{L}_{\text{action}} + \lambda \cdot \mathcal{L}_{\text{video}}$。两个 loss 同时反向传播，联合更新 Video DiT 参数 $\theta$ 和 Action DiT 参数 $\phi$（VAE 和文本编码器保持冻结）。</p><p><strong>输出到哪里：</strong>一组比原始输入更紧凑的内部特征；它不是最终动作或画面。这个结果会交给下一步“Step 5：推理时（Inference）”继续处理。</p><p><strong>为什么不能省略：</strong>它承担上下两步之间的接口；缺少它，前一步产生的信息无法以正确格式或正确含义传到下一步。</p><div class="sb-terms"><strong>术语先翻译：</strong>DiT：用 Transformer 充当扩散/流模型的去噪或速度预测网络；encoder（编码器）：把原始输入压缩成模型内部可计算的特征；VAE：把高维图像/视频压缩到较小隐空间、并能再解码回去的生成模型。</div></div>
+</div>
+<div class="sw-step">
+<h4>Step 5：推理时（Inference）</h4>
+<p>Action DiT 只需<strong>单次固定 forward pass</strong>提取 $\mathbf{h}_t^{\tau_f}$（不迭代 Video DiT），再对 Action DiT 做 $N_a$ 步 ODE 积分得到动作轨迹。可选同时做 Video DiT 的 $N_v$ 步 denoising 生成未来帧预测。</p><div class="step-beginner"><div class="sb-label">给第一次接触这个领域的读者</div><p><strong>输入是什么：</strong>来自上一步“Step 4：联合 Loss 反向传播”的产物：一组比原始输入更紧凑的内部特征；它不是最终动作或画面。本步骤还会按论文设置读取当前条件、时间步或训练信号。</p><p><strong>这一步究竟做什么：</strong>Action DiT 只需 单次固定 forward pass 提取 $\mathbf{h}_t^{\tau_f}$（不迭代 Video DiT），再对 Action DiT 做 $N_a$ 步 ODE 积分得到动作轨迹。可选同时做 Video DiT 的 $N_v$ 步 denoising 生成未来帧预测。</p><p><strong>输出到哪里：</strong>一个或多个候选未来、动作或轨迹，以及必要的中间状态。这是图中这条链路的最终产物，随后会进入真实执行、模型更新或指标评测。</p><p><strong>为什么不能省略：</strong>它把前面得到的内部结果落实为可执行动作、可训练模型或可解释指标，完成从方法到结果的最后一步。</p><div class="sb-terms"><strong>术语先翻译：</strong>DiT：用 Transformer 充当扩散/流模型的去噪或速度预测网络；ODE（常微分方程）：描述样本如何沿连续且确定的轨迹从噪声移动到数据。</div></div>
+</div>
+</div>
+</div>
+</div>
+<!-- §5 实验 -->
+<div class="section" id="experiments">
+<div class="section-num">§ 05</div>
+<h2>实验结果：LIBERO &amp; RoboCasa &amp; Unitree G1</h2>
+<div class="cn-read">
+<div class="cn-label">实验设计</div>
+<p>
             三个实验平台：(1) LIBERO 仿真（Franka Panda，4 套件各 10 任务，500 轨迹/任务）；
             (2) RoboCasa-GR1 仿真（Fourier GR1 人形，24 个 tabletop 任务，1000 轨迹/任务）；
             (3) 真实 Unitree G1（7 任务 × 200 episodes）。
           </p>
-        </div>
-
-        <h3>5.1 LIBERO Benchmark（Franka Panda 仿真）</h3>
-
-        <div class="result-bar-wrap">
-          <div class="result-bar-item">
-            <span class="result-bar-label" style="color:var(--accent);font-weight:600;">DiT4DiT (ours)</span>
-            <div class="result-bar-bg"><div class="result-bar-fill" style="width:98.6%;background:var(--accent);"></div></div>
-            <span class="result-bar-val">98.6%</span>
-          </div>
-          <div class="result-bar-item">
-            <span class="result-bar-label">Qwen3DiT (ablation)</span>
-            <div class="result-bar-bg"><div class="result-bar-fill" style="width:98%;background:#60a5fa;"></div></div>
-            <span class="result-bar-val">98.0%</span>
-          </div>
-          <div class="result-bar-item">
-            <span class="result-bar-label">CogVLA</span>
-            <div class="result-bar-bg"><div class="result-bar-fill" style="width:97.4%;background:#a78bfa;"></div></div>
-            <span class="result-bar-val">97.4%</span>
-          </div>
-          <div class="result-bar-item">
-            <span class="result-bar-label">OpenVLA-OFT</span>
-            <div class="result-bar-bg"><div class="result-bar-fill" style="width:97.1%;background:#a78bfa;"></div></div>
-            <span class="result-bar-val">97.1%</span>
-          </div>
-          <div class="result-bar-item">
-            <span class="result-bar-label">π₀</span>
-            <div class="result-bar-bg"><div class="result-bar-fill" style="width:94.2%;background:#a78bfa;"></div></div>
-            <span class="result-bar-val">94.2%</span>
-          </div>
-          <div class="result-bar-item">
-            <span class="result-bar-label">GR00T-N1.5</span>
-            <div class="result-bar-bg"><div class="result-bar-fill" style="width:94.1%;background:#3a3f4a;"></div></div>
-            <span class="result-bar-val">94.1%</span>
-          </div>
-          <div class="result-bar-item">
-            <span class="result-bar-label">Diffusion Policy</span>
-            <div class="result-bar-bg"><div class="result-bar-fill" style="width:72.4%;background:#3a3f4a;"></div></div>
-            <span class="result-bar-val">72.4%</span>
-          </div>
-        </div>
-
-        <div class="callout">
-          <div class="callout-label">LIBERO 关键结论</div>
-          <p>
+</div>
+<h3>5.1 LIBERO Benchmark（Franka Panda 仿真）</h3>
+<div class="result-bar-wrap">
+<div class="result-bar-item">
+<span class="result-bar-label" style="color:var(--accent);font-weight:600;">DiT4DiT (ours)</span>
+<div class="result-bar-bg"><div class="result-bar-fill" style="width:98.6%;background:var(--accent);"></div></div>
+<span class="result-bar-val">98.6%</span>
+</div>
+<div class="result-bar-item">
+<span class="result-bar-label">Qwen3DiT (ablation)</span>
+<div class="result-bar-bg"><div class="result-bar-fill" style="width:98%;background:#60a5fa;"></div></div>
+<span class="result-bar-val">98.0%</span>
+</div>
+<div class="result-bar-item">
+<span class="result-bar-label">CogVLA</span>
+<div class="result-bar-bg"><div class="result-bar-fill" style="width:97.4%;background:#a78bfa;"></div></div>
+<span class="result-bar-val">97.4%</span>
+</div>
+<div class="result-bar-item">
+<span class="result-bar-label">OpenVLA-OFT</span>
+<div class="result-bar-bg"><div class="result-bar-fill" style="width:97.1%;background:#a78bfa;"></div></div>
+<span class="result-bar-val">97.1%</span>
+</div>
+<div class="result-bar-item">
+<span class="result-bar-label">π₀</span>
+<div class="result-bar-bg"><div class="result-bar-fill" style="width:94.2%;background:#a78bfa;"></div></div>
+<span class="result-bar-val">94.2%</span>
+</div>
+<div class="result-bar-item">
+<span class="result-bar-label">GR00T-N1.5</span>
+<div class="result-bar-bg"><div class="result-bar-fill" style="width:94.1%;background:#3a3f4a;"></div></div>
+<span class="result-bar-val">94.1%</span>
+</div>
+<div class="result-bar-item">
+<span class="result-bar-label">Diffusion Policy</span>
+<div class="result-bar-bg"><div class="result-bar-fill" style="width:72.4%;background:#3a3f4a;"></div></div>
+<span class="result-bar-val">72.4%</span>
+</div>
+</div>
+<div class="callout">
+<div class="callout-label">LIBERO 关键结论</div>
+<p>
             DiT4DiT 以 <strong>98.6%</strong> 刷新 LIBERO 所有方向最高成绩，尤其 LIBERO-Long（长时程任务）达 <strong>97.6%</strong>（+5.6% vs 次优），
             说明视频动力学先验对需要多步规划的任务提升最显著。
             注意 DiT4DiT 和 Qwen3DiT 都是从头训练（from scratch），没用大规模 robot 数据预训练。
           </p>
-        </div>
-
-        <h3>5.2 RoboCasa-GR1 与真实 G1</h3>
-
-        <table class="related-work-table">
-          <tr>
-            <th>模型</th>
-            <th>RoboCasa-GR1 (24 tasks)</th>
-            <th>Real G1 (7 tasks)</th>
-            <th>备注</th>
-          </tr>
-          <tr>
-            <td class="rw-name">DiT4DiT (ours)</td>
-            <td style="color:var(--accent);font-weight:600;">50.8%</td>
-            <td style="color:var(--accent);font-weight:600;">SOTA</td>
-            <td>~15% of GR00T-N1.5 pre-train data</td>
-          </tr>
-          <tr>
-            <td>GR00T-N1.5</td>
-            <td>—</td>
-            <td>Strong baseline</td>
-            <td>官方预训练权重</td>
-          </tr>
-          <tr>
-            <td>Qwen3DiT</td>
-            <td>46.6%</td>
-            <td>Weaker</td>
-            <td>静态 VLM 先验</td>
-          </tr>
-          <tr>
-            <td>π₀.₅</td>
-            <td>~38%</td>
-            <td>—</td>
-            <td>VLA 代表</td>
-          </tr>
-        </table>
-
-        <h3>5.3 样本效率 — 最关键的 Scaling 结果</h3>
-
-        <div class="callout">
-          <div class="callout-label">核心 Scaling 结论</div>
-          <p>
+</div>
+<h3>5.2 RoboCasa-GR1 与真实 G1</h3>
+<table class="related-work-table">
+<tr>
+<th>模型</th>
+<th>RoboCasa-GR1 (24 tasks)</th>
+<th>Real G1 (7 tasks)</th>
+<th>备注</th>
+</tr>
+<tr>
+<td class="rw-name">DiT4DiT (ours)</td>
+<td style="color:var(--accent);font-weight:600;">50.8%</td>
+<td style="color:var(--accent);font-weight:600;">SOTA</td>
+<td>~15% of GR00T-N1.5 pre-train data</td>
+</tr>
+<tr>
+<td>GR00T-N1.5</td>
+<td>—</td>
+<td>Strong baseline</td>
+<td>官方预训练权重</td>
+</tr>
+<tr>
+<td>Qwen3DiT</td>
+<td>46.6%</td>
+<td>Weaker</td>
+<td>静态 VLM 先验</td>
+</tr>
+<tr>
+<td>π₀.₅</td>
+<td>~38%</td>
+<td>—</td>
+<td>VLA 代表</td>
+</tr>
+</table>
+<h3>5.3 样本效率 — 最关键的 Scaling 结果</h3>
+<div class="callout">
+<div class="callout-label">核心 Scaling 结论</div>
+<p>
             如图 1（论文）所示，在 10%–100% 训练数据范围内，DiT4DiT（视频生成 proxy）的成功率曲线始终高于 Grounding 和 FLARE-style。
             在只用 20% 数据时，DiT4DiT 与 FLARE-style 差距最大（约 +15%），说明视频先验在数据稀缺时最有价值。
           </p>
-          <p>具体数字：DiT4DiT 的样本效率比 FLARE-style 高 <strong>&gt;10×</strong>，收敛速度快 <strong>up to 7×</strong>。</p>
-        </div>
-      </div>
-
-      <!-- §6 与 MotionWAM 的关系 -->
-      <div class="section" id="relation">
-        <div class="section-num">§ 06</div>
-        <h2>与 MotionWAM 的关系：先驱 vs 扩展</h2>
-
-        <div class="cn-read">
-          <div class="cn-label">一图胜千言</div>
-          <p>
+<p>具体数字：DiT4DiT 的样本效率比 FLARE-style 高 <strong>&gt;10×</strong>，收敛速度快 <strong>up to 7×</strong>。</p>
+</div>
+</div>
+<!-- §6 与 MotionWAM 的关系 -->
+<div class="section" id="relation">
+<div class="section-num">§ 06</div>
+<h2>与 MotionWAM 的关系：先驱 vs 扩展</h2>
+<div class="cn-read">
+<div class="cn-label">一图胜千言</div>
+<p>
             DiT4DiT 和 MotionWAM 都来自 Mondo Robotics + HKUST 团队，作者高度重叠。
             MotionWAM <strong>引用 DiT4DiT 为 [21]</strong>，明确继承其 dual-DiT 框架；
             MotionWAM 的 Motion DiT 明确指定跟随 "DiT-B configuration introduced in DiT4DiT"。
             但两者的目标场景和技术细节有重要区别。
           </p>
-        </div>
-
-        <table class="related-work-table">
-          <tr>
-            <th></th>
-            <th>DiT4DiT（先驱）</th>
-            <th>MotionWAM（扩展）</th>
-          </tr>
-          <tr>
-            <td><strong>目标场景</strong></td>
-            <td>桌面操作（tabletop manipulation）</td>
-            <td>人形全身 Loco-Manipulation</td>
-          </tr>
-          <tr>
-            <td><strong>动作空间</strong></td>
-            <td>arm + gripper（约 7-16 DoF）</td>
-            <td>29-DoF 全身（unified motion latent）</td>
-          </tr>
-          <tr>
-            <td><strong>Motion DiT 输出</strong></td>
-            <td>直接预测关节/EEF 动作</td>
-            <td>预测 SONIC motion latent（m_t = 连续 + 离散 token）</td>
-          </tr>
-          <tr>
-            <td><strong>Video DiT backbone</strong></td>
-            <td>Cosmos-Predict2.5-2B</td>
-            <td>同上（直接复用）</td>
-          </tr>
-          <tr>
-            <td><strong>τ_f 使用方式</strong></td>
-            <td>训练时 uniform 采样，推理时固定</td>
-            <td>全程固定在纯噪声端（τ_f ≈ 1），one-shot imagination</td>
-          </tr>
-          <tr>
-            <td><strong>数据策略</strong></td>
-            <td>仿真 + 少量真实 G1</td>
-            <td>三阶段：2136h 视频 → 跨本体 → 真实 WBT</td>
-          </tr>
-          <tr>
-            <td><strong>实时性</strong></td>
-            <td>未特别强调</td>
-            <td>4.9 Hz 闭环，7× faster than Cosmos Policy</td>
-          </tr>
-          <tr>
-            <td><strong>关键新贡献</strong></td>
-            <td>video generation 作为 proxy + tri-timestep + 联合训练</td>
-            <td>unified motion latent + egocentric 三阶段课程 + 实时人形</td>
-          </tr>
-        </table>
-
-        <div class="callout blue">
-          <div class="callout-label">类比理解</div>
-          <p>
+</div>
+<table class="related-work-table">
+<tr>
+<th></th>
+<th>DiT4DiT（先驱）</th>
+<th>MotionWAM（扩展）</th>
+</tr>
+<tr>
+<td><strong>目标场景</strong></td>
+<td>桌面操作（tabletop manipulation）</td>
+<td>人形全身 Loco-Manipulation</td>
+</tr>
+<tr>
+<td><strong>动作空间</strong></td>
+<td>arm + gripper（约 7-16 DoF）</td>
+<td>29-DoF 全身（unified motion latent）</td>
+</tr>
+<tr>
+<td><strong>Motion DiT 输出</strong></td>
+<td>直接预测关节/EEF 动作</td>
+<td>预测 SONIC motion latent（m_t = 连续 + 离散 token）</td>
+</tr>
+<tr>
+<td><strong>Video DiT backbone</strong></td>
+<td>Cosmos-Predict2.5-2B</td>
+<td>同上（直接复用）</td>
+</tr>
+<tr>
+<td><strong>τ_f 使用方式</strong></td>
+<td>训练时 uniform 采样，推理时固定</td>
+<td>全程固定在纯噪声端（τ_f ≈ 1），one-shot imagination</td>
+</tr>
+<tr>
+<td><strong>数据策略</strong></td>
+<td>仿真 + 少量真实 G1</td>
+<td>三阶段：2136h 视频 → 跨本体 → 真实 WBT</td>
+</tr>
+<tr>
+<td><strong>实时性</strong></td>
+<td>未特别强调</td>
+<td>4.9 Hz 闭环，7× faster than Cosmos Policy</td>
+</tr>
+<tr>
+<td><strong>关键新贡献</strong></td>
+<td>video generation 作为 proxy + tri-timestep + 联合训练</td>
+<td>unified motion latent + egocentric 三阶段课程 + 实时人形</td>
+</tr>
+</table>
+<div class="callout blue">
+<div class="callout-label">类比理解</div>
+<p>
             DiT4DiT ≈ "发明了双 DiT 耦合方法并在桌面机器人上验证"；
             MotionWAM ≈ "把这个框架搬到人形机器人上，并解决实时性、全身控制、数据规模三个新挑战"。
             DiT4DiT 证明了 video proxy 的有效性和 dual-DiT 架构的可行性，
             MotionWAM 把它推广到了更难、更实用的场景。
           </p>
-        </div>
-
-        <div class="callout purple">
-          <div class="callout-label">对 VLA 路线的启示</div>
-          <p>
+</div>
+<div class="callout purple">
+<div class="callout-label">对 VLA 路线的启示</div>
+<p>
             DiT4DiT 和 MotionWAM 共同指向一个结论：
             <strong>视频动力学先验是 VLA 目前最缺失的能力</strong>。纯 VLM backbone 的 VLA 在需要物理接触、
             长时程规划的任务上有系统性短板；而把 video generation 嵌入训练目标，
             即使只用 15% 的数据量，也能超越官方大规模预训练的 GR00T 系列。
             未来研究方向：<strong>VLM + Video DiT 统一预训练</strong>，同时获得语义和物理两种先验。
           </p>
-        </div>
-
-        <div class="quiz" data-correct="c" data-explain="MotionWAM 的 Motion DiT 明确跟随 DiT4DiT 的 DiT-B 配置（论文 Appendix C），并引用 DiT4DiT [21] 作为架构来源。但 MotionWAM 在此基础上扩展了动作维度（66 维全身 vs 臂+夹爪）、增加了 SONIC motion latent 设计、以及三阶段 egocentric 数据课程。" data-explain-wrong="不完全准确。DiT4DiT 和 MotionWAM 确实共享作者，但设计上有明确的继承和扩展关系，并非完全独立工作。">
-          <div class="q-label">理解检查</div>
-          <div class="q-text">MotionWAM 与 DiT4DiT 的关系最准确的描述是？</div>
-          <div class="q-options">
-            <button class="q-opt" data-k="a">完全独立的工作，架构没有关联</button>
-            <button class="q-opt" data-k="b">MotionWAM 就是 DiT4DiT 的人形版本，架构完全相同</button>
-            <button class="q-opt" data-k="c">MotionWAM 继承 DiT4DiT 的 DiT-B 配置，并扩展了全身控制、egocentric 数据课程和实时性</button>
-            <button class="q-opt" data-k="d">DiT4DiT 是 MotionWAM 的改进版，发表更晚</button>
-          </div>
-          <div class="q-feedback"></div>
-        </div>
-      </div>
-
-      <footer class="footer">
-        <span>DiT4DiT 精读笔记 · paper-notes · 代码开源: <a href="https://dit4dit.github.io/" style="color:var(--accent)">dit4dit.github.io</a></span>
-      </footer>
-    </main>
-  </div>
-
-  <script>
+</div>
+<div class="quiz" data-correct="c" data-explain="MotionWAM 的 Motion DiT 明确跟随 DiT4DiT 的 DiT-B 配置（论文 Appendix C），并引用 DiT4DiT [21] 作为架构来源。但 MotionWAM 在此基础上扩展了动作维度（66 维全身 vs 臂+夹爪）、增加了 SONIC motion latent 设计、以及三阶段 egocentric 数据课程。" data-explain-wrong="不完全准确。DiT4DiT 和 MotionWAM 确实共享作者，但设计上有明确的继承和扩展关系，并非完全独立工作。">
+<div class="q-label">理解检查</div>
+<div class="q-text">MotionWAM 与 DiT4DiT 的关系最准确的描述是？</div>
+<div class="q-options">
+<button class="q-opt" data-k="a">完全独立的工作，架构没有关联</button>
+<button class="q-opt" data-k="b">MotionWAM 就是 DiT4DiT 的人形版本，架构完全相同</button>
+<button class="q-opt" data-k="c">MotionWAM 继承 DiT4DiT 的 DiT-B 配置，并扩展了全身控制、egocentric 数据课程和实时性</button>
+<button class="q-opt" data-k="d">DiT4DiT 是 MotionWAM 的改进版，发表更晚</button>
+</div>
+<div class="q-feedback"></div>
+</div>
+</div>
+<footer class="footer">
+<span>DiT4DiT 精读笔记 · paper-notes · 代码开源: <a href="https://dit4dit.github.io/" style="color:var(--accent)">dit4dit.github.io</a></span>
+</footer>
+</main>
+</div>
+<script>
     document.querySelectorAll('.step-walker').forEach(sw => {
       const steps = sw.querySelectorAll('.sw-step');
       const dots = sw.querySelectorAll('.sw-dot');

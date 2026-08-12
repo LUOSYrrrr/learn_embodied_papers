@@ -1,0 +1,985 @@
+                                                                       Video Prediction Policy:
+                                                   A Generalist Robot Policy with Predictive Visual Representations
+
+
+                                            Yucheng Hu * 1 2 Yanjiang Guo * 1 3 Pengchao Wang 4 Xiaoyu Chen 1 3 Yen-Jen Wang 5 Jianke Zhang 1 3
+                                                                     Koushil Sreenath 5 Chaochao Lu 2 Jianyu Chen 1 3 4
+
+
+                                                                Abstract                                       Visual Representations: Contrastive Learning, Image Reconstruction
+
+
+
+
+arXiv:2412.14803v2 [cs.CV] 4 May 2025
+                                             Visual representations play a crucial role in de-
+                                                                                                                                              Vision Encoder
+                                             veloping generalist robotic policies. Previous vi-
+                                             sion encoders, typically pre-trained with single-
+                                             image reconstruction or two-image contrastive                     Predictive Visual Representations: Video Generation Pretraining
+                                             learning, tend to capture static information, often                                          Video Diffusion Model
+                                                                                                                                                                                   Shape:
+                                             neglecting the dynamic aspects vital for embodied                                                                                    (T, H, W)
+                                             tasks. Recently, video diffusion models (VDMs)                                                   …           …
+                                                                                                                                      Block       Block       Block   Block
+                                             demonstrate the ability to predict future frames
+                                                                                                                                                                      …
+                                             and showcase a strong understanding of physi-
+                                                                                                                  Instruction
+                                             cal world. We hypothesize that VDMs inherently
+                                             produce visual representations that encompass                      Vision Encoder        Current Representation                  Future Representations
+                                             both current static information and predicted fu-
+                                             ture dynamics, thereby providing valuable guid-                Figure 1. Visual representations inside video prediction models ex-
+                                             ance for robot action learning. Based on this hy-              plicitly express both current and future frames, providing valuable
+                                             pothesis, we propose the Video Prediction Policy               future information for embodied agent. Previous vision encoders
+                                             (VPP), which learns implicit inverse dynamics                  did not have explicit future representations.
+                                             model conditioned on predicted future represen-
+                                             tations inside VDMs. To predict more precise                   et al., 2023; Team et al., 2024; Wu et al., 2023a; Guo et al.,
+                                             future, we fine-tune pre-trained video foundation              2025). A crucial component in these generalist policies
+                                             model on robot datasets along with internet hu-                is the vision encoder, which captures visual information
+                                             man manipulation data. In experiments, VPP                     from pixel observations. Many studies have focused on op-
+                                             achieves a 18.6% relative improvement on the                   timizing vision representations for embodied agents, often
+                                             Calvin ABC-D generalization benchmark com-                     leveraging internet video datasets (Ebert et al., 2021; Grau-
+                                             pared to the previous state-of-the-art, and demon-             man et al., 2022) and self-supervised techniques such as
+                                             strates a 31.6% increase in success rates for com-             single-image reconstruction (Majumdar et al., 2023; Karam-
+                                             plex real-world dexterous manipulation tasks. For              cheti et al., 2023; Gupta et al., 2024), two-image contrastive
+                                             your convenience, videos can be found at https:                learning, and image-text contrastive learning (Nair et al.,
+                                             //video-prediction-policy.github.io.                           2022; Ma et al., 2022). Although these visual pre-training
+                                                                                                            methods have demonstrated success for embodied tasks,
+                                                                                                            they may not fully exploit the dynamic information encoded
+                                                                                                            in sequential video datasets, as they typically operate on
+                                        1. Introduction
+                                                                                                            only one or two sampled images.
+                                        Building generalist robot policies capable of solving a vari-
+                                                                                                            Recently, powerful video diffusion models (VDMs) (Ho
+                                        ety of tasks is a rapidly advancing area of research (Brohan
+                                                                                                            et al., 2022; Blattmann et al., 2023a; Hong et al., 2022; Yang
+                                          *
+                                            Equal contribution 1 IIIS, Tsinghua University 2 Shanghai       et al., 2024; Brooks et al., 2024) have achieved impressive
+                                        AI Lab 3 Shanghai Qi Zhi Institute 4 RobotEra 5 University          results in video generation tasks. Instead of performing pre-
+                                        of California, Berkeley. Correspondence to: Jianyu Chen             training operation on single image or pairs of images, VDMs
+                                        <jianyuchen@tsinghua.edu.cn>.                                       directly model entire video sequences. Text-guided video
+                                        Proceedings of the 42 nd International Conference on Machine        prediction models (TVPs) (Gu et al., 2023; Chen et al., 2023)
+                                        Learning, Vancouver, Canada. PMLR 267, 2025. Copyright 2025         can even predict future frames based on current observations
+                                        by the author(s).                                                   and instructions, demonstrating a good understanding of the
+
+                                                                                                        1
+                                                    Video Prediction Policy
+
+physical dynamics.                                                   2. Related Works
+Inspired by the strong prediction capabilities of TVP mod-           Visual Representation Learning for Robotics. Self-
+els, we hypothesize that they inherently contain valuable            supervised learning (SSL) techniques, such as con-
+physical dynamics knowledge and can produce more effec-              trastive (Chen et al., 2021; 2020), distillation-based
+tive visual representations for embodied agent. We take a            (Baevski et al., 2022; Caron et al., 2020), and reconstruc-
+deeper look at the visual representation inside TVP models.          tive (He et al., 2022; Bao et al., 2021), have achieved signif-
+These representations are typically structured as a tensor           icant advancements in visual representation learning. Prior
+with dimensions (T, H, W ), explicitly representing 1 cur-           research has shown that these SSL techniques enable vision
+rent step and (T −1) predicted future steps (Blattmann et al.,       encoders to produce effective representations for embod-
+2023a), where H and W correspond to the height and width             ied AI tasks (Yadav et al., 2023b;a; Parisi et al., 2022; Ra-
+of the image representation. In contrast, previous vision            dosavovic et al., 2023; Chen et al., 2024a), capturing both
+encoders do not explicitly capture future representations, as        high-level semantic and low-level spatial information. No-
+shown in Figure 1. Based on this distinction, we refer to            tably, methods like R3M (Nair et al., 2022), vip (Ma et al.,
+these latent variables within the video diffusion model as           2022), VC-1 (Majumdar et al., 2023), and Voltron (Karam-
+“predictive visual representations”.                                 cheti et al., 2023) have specifically focused on embodied
+Our key insight is that the downstream policy can implicitly         tasks by innovating pre-training approaches on human ma-
+learn the inverse dynamics model by tracking the robot’s             nipulation video datasets (Goyal et al., 2017; Grauman et al.,
+movements within the predictive representation. As long              2022). However, regardless of the training objective, the
+as the video model accurately predicts future scenarios for          learned vision encoders primarily focus on extracting perti-
+diverse tasks, the policy can generate appropriate actions           nent information from current observations without explic-
+by tracking robot arm’s position implicitly. In this way, we         itly predicting future states. In contrast, our Video Predic-
+can transfer the generalization capabilities of the video pre-       tion Policy leverages predictive representations within video
+diction model to robotic policy. We only need few demon-             prediction models to explicitly encapsulate both current and
+strations to align the robot’s action space with the visual          predicted future frames.
+space.                                                               Future Prediction for Embodied Control Tasks. Exist-
+Building on this insight, we introduce the Video Prediction          ing research also explores the use of future prediction to
+Policy (VPP), which employs a two-stage learning process:            enhance policy learning (Bharadhwaj et al., 2024; Chen
+First, we fine-tune a general-purpose video diffusion model          et al., 2024b; Ye et al., 2024; Guo et al., 2024). For ex-
+into a text-guided video prediction (TVP) model using in-            ample, SuSIE (Black et al., 2023) conditions its control
+ternet human and robot manipulation data (Goyal et al.,              policy on a predicted future keyframe generated by Instruct-
+2017; O’Neill et al., 2023). This step aims to develop a             Pix2Pix (Brooks et al., 2023), while UniPi (Du et al., 2024)
+controllable video generation model that improves predic-            learns the inverse dynamics between two generated frames.
+tion capabilities in the manipulation domain. In the second          These methods rely on a single future prediction step to
+stage, we learn a inverse dynamics model conditioned on the          determine actions, which may not accurately capture the
+predictive representations from the TVP model. Since we              complexities of physical dynamics. Additionally, they de-
+direct use the internal representation and avoid the need for        noise the final future image which is time-cosuming and
+multiple denoising steps as in previous work (Black et al.,          lead to low control frequency. GR-1 (Wu et al., 2023a)
+2023; Du et al., 2024), VPP can operate at high frequency in         generates subsequent frames and actions autoregressively.
+a closed-loop manner. We also visualize the representations          However, it only generates one image per forward pass, and
+within the VDM and confirm that they effectively capture             its prediction quality lags behind that of diffusion-based
+key information about future evolution.                              methods. Furthermore, GR-1 does not leverage pre-trained
+                                                                     video foundation models. In contrast, VPP leverages rep-
+In experiments, VPP consistently outperform other baseline           resentation fine-tuned from video foundation model, and
+algorithms across two simulated (Mees et al., 2022; Yu               predict a sequence of future frames to more effectively in-
+et al., 2020) and two real-world settings, demonstrating the         form policy learning.
+effectiveness of our approach. Notably, the VPP achieves
+a 41.5% improvement in the Calvin ABC→D benchmark                    Visual Representation inside Diffusion Models. Diffusion
+(Mees et al., 2022) compared to the previous SOTA method             models have achieved remarkable success in the image and
+(Wu et al., 2023a). In real-world experiments, VPP shows             video generation tasks (Rombach et al., 2022; Blattmann
+a 31.6% improvement in success rate over the strongest               et al., 2023a). Although diffusion models are trained as de-
+baseline on high-dimensional dexterous hand manipulation             noisers, researches have shown that image diffusion models
+tasks.                                                               can also function effectively as vision encoders, generating
+                                                                     meaningful visual representations that is linear-separable
+
+
+                                                                 2
+                                                       Video Prediction Policy
+
+for discrimination tasks (Xiang et al., 2023) and invaluable             from internet data; subsequently, we design networks to
+for semantic segmentation (Luo et al., 2024). Gupta et al.               aggregate predictive visual representations inside the TVP
+(2024) also point out that representation inside image diffu-            model and output final robot actions.
+sion are versatile for embodied tasks. However, the capabil-
+ities of representations within video diffusion models have              4.1. Text-guided Video Prediction (TVP) Model for
+not been extensively explored. Our findings suggest that                      Robot Manipulation.
+representation within VDMs have a unique predictive prop-
+erty, making them especially useful for sequential embodied              Recent advancements have focused on training general
+control tasks.                                                           video generation models using extensive online video
+                                                                         datasets, which encode abundant prior knowledge about the
+                                                                         physical world’s dynamics. However, we notice that these
+3. Preliminaries                                                         models are not fully controllable and fail to yield optimal
+Video Diffusion Models. The core idea of diffusion models                results in specialized domains such as robot manipulation.
+is to continuously add Gaussian noise to make video se-                  To address this, we fine-tune the general video generation
+quences a Gaussian and leverage the denoising process for                model into a specialized “Manipulation TVP Model” to
+generating videos. Let x0 represent a real video sample, the             enhance prediction accuracy.
+forward process aims to add Gaussian noise and result in a               We chose the open-sourced Stable Video Diffusion (SVD)
+                                               √
+set of noisy data, i.e., q(xt |xt−1 ) = N (xt ; αt xt−1 , (1 −           model (Blattmann et al., 2023a) with 1.5 billion parameters
+αt )I) , where xt and αt indicate the noisy
+                                          Qt data and noise              as our foundation. we observe that the open-sourced SVD
+amplitude at the timestep t. Let ᾱt = i=1 αi , the above                model conditions only on initial-frame images s0 . We aug-
+process can be simplified as:                                            ment the model to incorporate CLIP (Radford et al., 2021)
+                       √          √                                      language feature lemb using cross-attention layers. Further-
+                xt = ᾱt x0 + 1 − ᾱt ϵt .                  (1)
+                                                                         more, we adjust the output video resolution to 16×256×256
+The reverse process starts from the most noisy sample xT                 to improve training and inference efficiency. Despite these
+can be described in a variational approximation of the prob-             modifications, we preserve the other components of the
+abilities q(xt−1 |xt ), as follows:                                      original pre-trained SVD framework to retain its core ca-
+                              √                                          pabilities. We denote this modified version as Vθ . In this
+  p(xt−1 |xt ) = N (xt−1 ; ᾱt−1 µθ (xt , t), (1 − ᾱt−1 )I).            setup, the initial observation s0 is concatenated channel-
+                                                            (2)          wise with each predicted frame as a condition. Then model
+                             √                  √                        Vθ is trained with diffusion objective, reconstructing the full
+where µθ (xt , t) = (xt − 1 − ᾱt ϵθ (xt , t))/ ᾱt is a learn-          video √sequence x√0 = s0:T in dataset D from noised samples
+able neural network to estimate xt−1 . Further, in text-                 xt = ᾱt x0 + 1 − ᾱt ϵ:
+guided video generation, the denoising process learns the
+noise
+√      estimator ϵθ (xt , c) to approximate the score function                    LD = Ex0 ∼D,ϵ,t ∥Vθ (xt , lemb , s0 ) − x0 ∥2     (3)
+  1 − ᾱt ∇xt log pψ (xt |c), controlling the video generation
+based on the initial frame and language prompt.                          The video prediction objective offers a unified interface that
+Diffusion Policy. The diffusion model has also proven effec-             directly generates future visual sequences, enabling the TVP
+tive in action learning, known as diffusion policy (Chi et al.,          model to harness physical knowledge from diverse datasets.
+2023). The diffusion policy aims to denoise the action se-               These include internet human manipulation datasets DH ,
+quence ai = (b  ai , a
+                     bi+1 , ..., b
+                                 ai+m ) based on observations si         internet robot manipulation data DR , and also self-collected
+and instruction. Chi et al. (Chi et al., 2023) point out that dif-       datasets DC . Given the varying quality and scale of these
+fusion policy is capable of expressing complex multimodal                datasets, we introduce specific coefficients λ to appropri-
+action distributions and stabilizing training. Recent work               ately balance the influence of different dataset types:
+(Reuss et al., 2024) further enhances the diffusion policy
+                                                                                  Lvideo = λH LDH + λR LDR + λC LDC                 (4)
+by incorporating the advanced diffusion transformer (DiT)
+block (Peebles & Xie, 2023), a technique we also adopt in                Then we froze the fine-tuned manipulation TVP models in
+the Video Prediction Policy to improve performance.                      downstream action learning.
+
+4. Video Prediction Policy                                               4.2. Action Learning Conditioned on Predictive Visual
+                                                                              Representation
+In this section, we describe the two-stage learning process of
+the Video Prediction Policy, shown in Figure 2. Initially, we            TVP Model as Vision Encoder. After training the TVP
+train the Text-guided Video Prediction (TVP) model across                model specifically for manipulation tasks, it can accurately
+diverse manipulation datasets to harness physical knowledge              predict future sequences based on image observations and
+
+                                                                     3
+                                                         Video Prediction Policy
+
+                                                                                                                  Video Former + DiT Diffusion Policy
+      “Place orange
+      to blue plate.”   ❆ CLIP
+                                                                                                                  WQ
+                                                                                                                                                             Action
+                                                                                                                                                            Denoise
+                                                                                                                  WK
+
+                                                                                                                  WV             …
+                                 …     …           …    …
+
+
+
+                                                                    Learnable tokens
+                                                                                                                                                DiT Block
+                                                                                                 Spatial-    Temporal-
+                                                                                                                           FFN                   … ×𝐌
+                                                                                                  attn         attn
+                                     Interpolate
+                                      & Stack                                                                                                   DiT Block
+                                                   ⊕     ⊕
+                                                                                                                              ×𝐍
+                                                                                                                                                              Time
+                                                                                                                                                              Noise
+                                                                                                   …
+                            Tokenized and Time Position Embedding                          t=0              t=T          Text Embedding
+
+        Stage 1: Predictive Visual Representations Learning                                                        Stage 2: Action Learning
+
+Figure 2. In the first stage, VPP fine-tunes a general-purpose video foundation model into a manipulation-focused Text-guided Video
+Prediction (TVP) model using robot and internet manipulation datasets. In the second stage, we use video-former to aggregate the
+representations from the TVP model during the first forward pass, followed by the diffusion policy head. This approach enables VPP to
+learn an implicit inverse dynamics model from the predicted future while maintaining a high control frequency.
+
+                                                                                               P
+instructions. However, denoising an entire video sequence                              RT ×(      m Cm )×Wp ×Hp                  is given by:
+is highly time-consuming and may lead to open-loop con-
+trol issues, as discussed in (Du et al., 2024). Moreover,                                         Fp = concate((L′0 , L′1 , . . . , L′m ), dim = 1)
+videos in their original pixel format often contain exces-
+sive, irrelevant information that can interfere with effective                         For a robot with multiple camera views, such as a third-view
+decision-making.                                                                       and a wristed camera, we predict the future for each view
+                                                                                       independently, denoted as Fpstatic , Fpwrist .
+To address these concerns, we employ the video diffusion
+model primarily as a “vision encoder” rather than a “de-                               Video Former. These predictive representations within the
+noiser” by performing only a single forward step. Our in-                              video diffusion model are still high-dimensional, as they
+sight is that the first forward step, while not yielding a clear                       express a sequence of image features. To efficiently aggre-
+video, still provides a rough trajectory of future states and                          gate representations across spatial, temporal, and multi-view
+valuable guidance. This insight is verified in our experiment                          dimensions, we design a Video Former to consolidate this
+section and shown in Fig 4. Specifically, we concatenate the                           information into a fixed number of tokens. The Video For-
+current image s0 with the final noised latent q(xt′ |x0 ) (typi-                       mer initializes learnable tokens Q[0:T,0:L] with fixed length
+cally white noise) and input this combination into the TVP                             T × L, performing spatial-temporal attention (Blattmann
+model. We then directly leverage the latent features. Previ-                           et al., 2023b) on each corresponding frame, followed by
+ous work (Xiang et al., 2023) highlights that up-sampling                              feed-forward layers. Formally, this branch can be expressed
+layers in diffusion models yield more effective representa-                            as follows where i is the index of frame:
+tions. The feature at the mth up-sampling layer, with width                              Q′ = {Spat-Attn(Q[i], (Fpstatic [i], Fpwrist [i]))}Ti=0
+Wm and height Hm , is expressed as:                                                                                                                                   (5)
+                                                                                                              Q′′ = FFN(Temp-Attn(Q′ )).
+   Lm = Vθ (xt′ , lemb , s0 )(m) , Lm ∈ RT ×Cm ×Wm ×Hm
+                                                                                       Action Generation. After the Video-Former aggregates
+To effectively aggregate features from the up-sampling lay-
+                                                                                       the Predictive feature into learnable tokens Q′′ , a diffusion
+ers and eliminate the need for manual layer selection, we
+                                                                                       policy is employed as the action head to generate the action
+propose an automatic method for aggregating features across
+                                                                                       sequence a0 ∈ A based on Q′′ . We integrate the aggre-
+different layers. First, we linearly interpolate each layer’s
+                                                                                       gated presentation Q′′ into diffusion transformer blocks
+feature map to the same height and width Wp × Hp :
+                                                                                       using cross-attention layers. The diffusion policy aims
+    L′m = Interpolation(Lm ), L′m ∈ RT ×Cm ×Wp ×Hp                                     to reconstruct
+                                                                                             p           poriginal actions a0 from noised action
+                                                                                                       the
+                                                                                       ak = β̄k a0 + 1 − β̄k ϵ, where ϵ represents white noise,
+We then stack the features along the channel dimen-                                    and β̄k is the noisy coefficient at step k. This step can be
+sion. The final predictive visual representation Fp ∈                                  interpreted as learning a denoiser Dψ to approximate the
+
+                                                                    4
+                                                           Video Prediction Policy
+
+                                                                                             ith Task Success Rate
+       Category                 Method                Annotated Data
+                                                                             1         2         3      4       5             Avg. Len ↑
+                                  RT-1                  100%ABC            0.533     0.222     0.094 0.038 0.013                 0.90
+   Direct Action
+                             Diffusion Policy           100%ABC            0.402     0.123     0.026 0.008 0.00                  0.56
+  Learning Method
+                             Robo-Flamingo              100%ABC            0.824     0.619     0.466 0.331 0.235                 2.47
+                                  Uni-Pi                100%ABC            0.560     0.160     0.080 0.080 0.040                 0.92
+                                  MDT                   100%ABC            0.631     0.429     0.247 0.151 0.091                 1.55
+  Future Prediction
+                                  Susie                 100%ABC            0.870     0.690     0.490 0.380 0.260                 2.69
+  Related Method
+                                  GR-1                  100%ABC            0.854     0.712     0.596 0.497 0.401                 3.06
+                                 Vidman                 100%ABC            0.915     0.764     0.682 0.592 0.467                 3.42
+     3D Method                RoboUniview               100%ABC            0.942     0.842     0.734 0.622 0.507                 3.65
+       Ours                    VPP (ours)               100%ABC            0.965     0.909     0.866 0.820 0.769                 4.33
+         Data                    GR-1                    10%ABC            0.672     0.371       0.198   0.108     0.069         1.41
+      Efficiency               VPP (ours)                10%ABC            0.878     0.746       0.632   0.540     0.453         3.25
+
+Table 1. Zero-shot long-horizon evaluation on the Calvin ABC→D benchmark where agent is asked to complete five chained tasks
+sequentially based on instructions. VPP demonstrates a significant improvement in the average task completion length (Avg. Len).
+    Env A        Env B                  Easy Tasks
+
+                                                                Task Level            Easy          Middle         Hard       Average ↑
+                                                                (Numbers)           (28 tasks)     (11 tasks)    (11 tasks)   (50 tasks)
+                                       Middle Tasks
+                                                                   RT-1               0.605          0.042         0.015        0.346
+    Env C     Unseen Env D                                    Diffusion Policy        0.442          0.062         0.095        0.279
+                                                                   Susie              0.560          0.196         0.255        0.410
+                                        Hard Tasks
+                                                                   GR-1               0.725          0.327         0.451        0.574
+                                                                VPP (ours)            0.818          0.493         0.526        0.682
+                                                            Table 2. Multi-task success rate on Metaworld. We use a single language-
+  Figure 3. CALVIN and Metaworld benchmarks.                conditioned policy to solve all 50 tasks.
+
+noise ϵ and minimize the following loss function:                          setting, where the agent is trained in the ABC environment
+                                                                           and evaluated in the unseen D environment, as illustrated in
+    Ldiff (ψ; A) = Ea0 ,ϵ,k ∥Dψ (ak , lemb , Q′′ ) − a0 ∥2       (6)       Figure 3. We use settings same as GR1 (Wu et al., 2023a)
+                                                                           which only use the language-annotated ABC datasets for
+5. Experiments                                                             training.
+                                                                           MetaWorld Benchmark. Metaworld (Yu et al., 2020) fea-
+In this section, we conduct extensive experiments on both
+                                                                           tures a Sawyer robot performing various manipulation tasks
+simulated and real-world robotic tasks to evaluate the per-
+                                                                           and is widely used to evaluate the precision and dexterity
+formance of the video prediction policy (VPP). We aim to
+                                                                           of robotic policies. As shown on the right of Figure 3, it
+answer the following questions:
+                                                                           includes 50 tasks with a rich array of operating objects at
+  1. Can VPP achieve a higher success rate in manipulation                 different levels of difficulty (Radosavovic et al., 2023). We
+     tasks with predictive visual representations?                         use official Oracle policy to collect 50 trajectories for each
+  2. How do the video pre-training and internet manipula-                  task as our training dataset.
+     tion datasets enhance the performance of VPP?
+                                                                           VPP Training Details. As outlined in Sec. 4, we use a two-
+  3. How does predictive representation compare to previ-                  stage training process. In the first stage, we fine-tune a video
+     ous visual representations?                                           foundation model into a manipulation-focused TVP model.
+  4. Which layer of the video diffusion model provides the                 The videos used in this stage include 193,690 human manip-
+     most effective predictive visual representations?                     ulation trajectories (Goyal et al., 2017) and 179,074 robotic
+5.1. Simulation Setups and Baselines                                       manipulation trajectories (O’Neill et al., 2023), along with
+                                                                           downstream task videos, such as the official Calvin ABC
+CALVIN Benchmark. CALVIN (Mees et al., 2022) is a                          videos, the MetaWorld videos, and real-world videos. Given
+widely used benchmark designed to assess the instruction-                  the varying scales and quality of these datasets, we ap-
+following capability of robotic policies in long-horizon ma-               ply different sampling ratios, following the approach in
+nipulation tasks. We focus on the challenging ABC→D
+
+                                                                       5
+                                                   Video Prediction Policy
+
+Octo (Team et al., 2024). Detailed dataset scales and sam-             • Vidman (Wen et al., 2024). Pre-trained on the Open
+pling ratios can be found in Appendix B. Fine-tuning the                 X-Embodiment dataset (OXE) video datasets and use
+video model takes 2-3 days on eight NVIDIA A100 GPUs.                    a layer-wise self-attention adapter to transform video
+In the second stage, we train a generalist policy with Calvin            representation into policy model. However, Vidman
+or Metaworld dataset, which requires approximately 6-12                  did not finetune video model on down-stream tasks
+hours on four NVIDIA A100 GPUs.                                          which lead to sub-optimal performance.
+Policy Roll-out Details. Previous works choose to denoise           Quantitative Results. The comparisons on the Calvin
+high-precision videos, a process that is time-consuming and         benchmark are shown in Table 1. Results for Robo-
+results in low-frequency (Black et al., 2023), or even open-        Flamingo, Susie, GR-1, and 3D Diffuser Actors are recorded
+loop control (Du et al., 2024). In contrast, our approach           from their original papers. The MDT result is run on official
+uses the TVP model as an encoder rather than a denoiser,            implementation. The RT-1 result is sourced from (Li et al.,
+ensuring that each observation is processed through the TVP         2023) and the Uni-Pi result from (Black et al., 2023). We
+model only once, which takes less than 160 ms. Then down-           also ran the Diffusion Policy based on the official open-
+stream policy generate action conditioned on the predictive         source codebase with CLIP language conditions. Our pro-
+representation. This modification allows us to achieve a            posed Video Prediction Policy significantly improved the
+significantly higher frequency of 7-10 Hz with consumer-            previous state-of-the-art result from an average task com-
+level NVIDIA RTX 4090 GPU. Additionally, we implement               pletion length of 3.35 to 4.33. Even with only 10% of the
+action chunking (Chi et al., 2023) with 10 steps to further         annotated Calvin ABC data used for training, our method
+improve the control frequency.                                      still achieved a length of 3.25, which exceeds the results
+                                                                    of related methods using full data. Furthermore, the Video
+Comparisons. Generalist robot policy has been widely                Prediction Policy also achieved the best performance in the
+explored in previous studies. In our experiments, we opted          MetaWorld benchmark with 50 tasks, outperforming the
+to compare against a representative subset of prior methods         strongest GR-1 baseline by 10.8% in average success rate.
+that have either achieved state-of-the-art performance or
+share a similar approach with our methods.                          Visualizations of Predictive Representations. Since we
+                                                                    use the video prediction model as a vision encoder and
+   • RT-1 (Brohan et al., 2022). A direct action learning
+                                                                    perform a single forward pass to obtain predictive represen-
+     robot policy that integrates semantic information us-
+                                                                    tations, we are curious about the quality of these represen-
+     ing Efficient-Net with FiLM-conditioning, followed by
+                                                                    tations. In Figure 4 , we visualize the ground truth future,
+     token learners for action learning.
+                                                                    single-step predictions, and 30-step denoised predictions.
+   • Diffusion Policy (Chi et al., 2023). A direct action           We can observe that single-step representation already con-
+     learning policy with novel action diffusers.                   veys valuable information, such as the movement of objects
+   • Robo-Flamingo (Li et al., 2023). A direct action learn-        and the robot arm, which effectively supports downstream
+     ing policy that leverages a pre-trained LLM, incorpo-          action learning.
+     rating visual information into each layer in a flamingo
+     style (Alayrac et al., 2022).                                  5.2. Ablation Study
+   • Uni-Pi (Du et al., 2024). Begins by learning a video
+                                                                    VPP achieves significant improvements in simulated ex-
+     prediction model to generate future sequences and then
+                                                                    periments. In this section, we conduct ablation studies to
+     learns an inverse kinematics model between two frames
+                                                                    identify the effectiveness of different components of VPP.
+     to determine actions.
+                                                                    All ablation study are performed on Calvin ABC-D bench-
+   • MDT (Reuss et al., 2024). Learns a diffusion trans-            mark and evaluated with average task completion length.
+     former policy along with an auxiliary mae loss to re-
+     construct one masked future frame.                             Effectiveness of Predictive Visual Representations. To
+   • Susie (Black et al., 2023). Uses a fine-tuned Instruct-        verify the effectiveness of representation inside VDM, we
+     Pix2Pix (Brooks et al., 2023) model to generate a goal         replace the VDM vision encoder with several other pre-
+     image and learns a downstream diffusion policy condi-          trained vision encoders designed for embodied tasks, while
+     tioned on the goal image.                                      keeping all other components and settings unchanged.
+   • GR-1 (Wu et al., 2023a). Learns video and action se-             1. Stable-VAE (Blattmann et al., 2023a), pre-trained with
+     quences jointly using an auto-regressive transformer.               a VAE image reconstruction loss. Since the VAE
+     During policy execution, GR-1 outputs one future                    encoder-decoder already performs well in reconstruct-
+     frame followed by one action.                                       ing images from video datasets, we did not perform
+   • Robo-Uniview (Liu et al., 2024). Learns a 3d-aware                  further fine-tuning. The input 256×256 images are en-
+     visual encoder with 3d occupation loss to assist policy             coded into 32×32 features with VAE, which are then
+     learning.                                                           resampled into 256 tokens via resampler (Jaegle et al.,
+
+                                                                6
+                                                           Video Prediction Policy
+
+                     “Place the grasped object in the drawer.”                                   “Place the orange to blue plate.”
+
+
+
+
+                        Input               Ground Truth           30 Steps Denoise Prediction      1 Step Direct Prediction
+
+Figure 4. Visualization of one-step forward visual representations. We can observe that one-step representation already provide valuable
+information on physical evolution, although the textures and details are not precise.
+
+    Encoder          Pre-training Type            Avg. Length ↑            pre-trained video generation models and Internet manipu-
+   VDM (ours)        Video Generation                  4.33                lation datasets. We conducted experiments to verify the
+   Stable-VAE       VAE Reconstruction                 2.58                effectiveness of these two components. As shown in Table
+      VC-1          MAE Reconstruction                 1.23                4, removing the co-trained Internet manipulation data re-
+                    MAE Reconstruction+                                    sulted in a performance decrease from 4.33 to 3.97. Further
+     Voltron                                            1.54               removing the pre-trained SVD model and training the video
+                    Language Generation
+                                                                           prediction model from scratch on the Calvin dataset led
+Table 3. Ablation study on different visual representations.               to a substantial performance drop. Notably, removing the
+                                                                           video pretraining on Calvin alone also caused a significant
+     Ablation Type              Avg. Length ↑          Latency ↓           decline.
+          VPP                        4.33               ∼140ms
+  VPP w/o Internet data              3.97               ∼140ms             Effectiveness of Video Former. The Video Former module
+  VPP w/o Calvin video               3.31               ∼140ms             plays a pivotal role in extracting predictive representations
+  VPP w/o Internet data                                                    from the TVP model. To evaluate its effectiveness, we
+                                       1.63             ∼140ms             conduct an ablation study by removing the Video Former
+      w/o SVD Pretrain
+  VPP w/o Video Former                 3.86             ∼450ms             and directly connecting the TVP features to the diffusion
+                                                                           policy. The results, presented in Table 5, are obtained by
+  VPP w/o Feature Agg.                 3.60             ∼140ms
+                                                                           evaluating the complete VPP model on a single NVIDIA
+Table 4. Ablation study on video pre-training and architecture.            RTX 4090 GPU. The VPP score decreases from 4.33 to
+                                                                           3.86, while the inference time nearly triples. These findings
+     2021) before passing to the diffusion policy, consistent              indicate that the absence of the Video Former leads to a
+     with VPP.                                                             substantial degradation in both accuracy and computational
+                                                                           efficiency compared to the full model.
+  2. VC-1 (Majumdar et al., 2023), pre-trained with a
+     masked autoencoder loss. The authors note that fine-                  Effectiveness of Feature Aggregation Module. Many pre-
+     tuning vc-1 encoder with MAE loss on downstream                       vious works (Black et al., 2023; Wu et al., 2023a) directly
+     task datasets can significantly improve performance.                  use the final predicted image to learn policies. However, the
+     For a fair comparison, we first fine-tuned the model on               image from the final layer often contains many irrelevant
+     the same video datasets used in VPP. The vc-1 features                details that are not beneficial for the task. In contrast, we
+     are resampled into 256 tokens with resampler and pass                 adopt a feature aggregation mechanism to leverage multiple
+     to policy head.                                                       layers of features within the up-sampling layers. We replace
+                                                                           aggregated features with final layer features while keeping
+  3. Voltron (Karamcheti et al., 2023), pre-trained with both
+                                                                           the other layers unchanged. This process lead to a decrease
+     MAE future reconstruction and language generation
+                                                                           in the average task completion length on the Calvin bench-
+     tasks. We also fine-tuned the model on our video
+                                                                           mark, from 4.33 to 3.60. More ablations on different layers
+     datasets and resampled the features into 256 tokens.
+                                                                           can be found at Appendix C.2.
+The results, presented in Table 3, indicate that replacing our
+predictive visual representations leads to a clear decline in              5.3. Real World Experiments
+performance.
+                                                                           We further verified the Video Prediction Policy on two real-
+Effectiveness of Video Pre-training and Internet Manip-                    world hardware platforms.
+ulation Datasets. A significant advantage of the VPP is
+its ability to leverage the physical knowledge encoded in                  Franka Panda Robot Arm. On the Franka Panda platform,
+
+                                                                       7
+                                                                             Video Prediction Policy
+
+
+
+
+                             Wristed
+                             Camera
+                                            “Pick up the      “Open the drawer.”         “Pick up the         “Take the banana     “Press the button.”     “Take a spoonful     “Pour the black liquid
+                                            blue block.”                                  red block.”          from my hand.”                                 of soup.”           into blue bowl.”
+
+
+
+            Franka Panda
+         with over 30+ tasks
+
+         Third-view Camera
+                                       “Place red ball to empty “Place the mouse        “Pick up the           “Place the cup      “Relocate banana      “Grasp hammer to hit         “Grasp the
+         & Wristed Camera
+                                          position of board.”   on the mouse pad.”      smaller soccer.”        on the mat.”       near the panda.”           Red nail.”            Electrical drill.”
+
+
+
+
+          Dexterous Hand                 “Put the green toy    “Close the drawer.”     “Stack red block     “Put the green towel                         “Use tool to suck up     “Drop liquid into
+                                                                                                                                     “Grasp potato
+        with over 100+ tasks              into the drawer.”                          on the green block.”      in the basket.”       into the pot.”         black liquid.”          orange cup.”
+
+                                                     Seen Tasks                                             Unseen Tasks                                    Challenging Tool-use Tasks
+
+Figure 5. Two real-world hardware platforms and visualizations of sampled tasks. We consider a task as “unseen task” if the operated
+object or the background scene do not appear in training datasets.
+
+
+
+
+   “Relocate the tennis ball to the blue plate. ”                        “Pouring coca cola into the cup. ”                             “Take a spoonful of liquid using spoon.”
+Figure 6. Predictions and executions on unseen tasks. Video prediction model generate reasonable futures (red). Real execution
+trajectories (green) is also closely aligned to the video predicted future (red).
+
+we collected 2,000 trajectories for over 30 tasks in 6 cat-                                                 Franka Panda                DP            Susie          GR-1            VPP(ours)
+egories: picking, placing, pressing, routing, opening, and                                                    Seen Tasks                0.42          0.56           0.52              0.85
+closing. We divided the tasks into seen and unseen cate-                                                     Unseen Tasks               0.25          0.46           0.38              0.73
+gories. A task is considered unseen if the operated object is
+new or the background scene is new.                                                                        Dexterous Hand                 DP             Susie         GR-1            VPP(ours)
+                                                                                                             Seen Tasks                   0.28           0.45          0.32              0.75
+Xarm with 12-degree Xhand Dexterous Hand. On the                                                            Unseen Tasks                  0.11           0.28          0.15              0.60
+dexterous hand platform, we collected 4,000 trajectories
+                                                                                                            Tool-use Tasks                0.05           0.23          0.15              0.68
+over 100+ tasks in 13 categories, including picking, placing,
+cup-upright, relocating, stacking, passing, pressing, unplug-                                        Table 5. Success rates on real-world tasks. Due to space limit, we
+ging, opening, closing, pouring, suction, and knocking. We                                           only show the average success rate on each category. Detailed
+also define a task as unseen if the operated object is new                                           success rate can be found at Appendix A
+or the background scene is new. Additionally, we included
+four challenging tool-use tasks, including the use of a spoon,                                          methods on real-world hardware, we select the strongest
+hammer, electrical drill, and pipette for chemistry tasks.                                              baseline models—GR-1, Susie, and the widely-used diffu-
+More task details can be found in Appendix A.                                                           sion policy—as our baselines. For evaluation, we perform
+                                                                                                        200+ rollouts for Panda arm manipulation tasks and 500+
+Training and Rollout Details. We employ the same text-                                                  rollouts for dexterous hand manipulation tasks. The compar-
+guided video prediction (TVP) model as in our simulated                                                 isons are in the Table 5, which indicate VPP outperforms all
+experiments, trained on both internet datasets and collected                                            the baselines with a clear margin in both seen tasks, unseen
+real-world data. Then a generalist robot policy is learned                                              tasks and tool-use tasks.
+to solve all tasks in the domain conditioned on instructions.
+The hardware platform and visualizations of some selected                                               Generalization Analysis. we take three unseen tasks as
+tasks are shown in Figure 5.                                                                            case studies: picking up a tennis ball, pouring Coca-Cola,
+                                                                                                        and using a spoon. Notably, none of these objects—tennis
+Quantitative Results. Due to the complexity of deploying                                                ball, Coca-Cola, or spoon—appear in our collected dataset.
+
+                                                                                                8
+                                                   Video Prediction Policy
+
+As illustrated in Figure 6, the video prediction model fore-          Letts, A., et al. Stable video diffusion: Scaling latent
+cast reasonable future states even on unseen tasks. More-             video diffusion models to large datasets. arXiv preprint
+over, we observe that the actual execution trajectory closely         arXiv:2311.15127, 2023a.
+aligns with the predicted future state. We interpret the gen-
+eralization mechanism of the VPP model in two key aspects:          Blattmann, A., Rombach, R., Ling, H., Dockhorn, T., Kim,
+First, video models can make correct visual predictions even          S. W., Fidler, S., and Kreis, K. Align your latents: High-
+on unseen tasks due to internet-scale pre-training; Second,           resolution video synthesis with latent diffusion models. In
+the low-level policy learns a robust inverse dynamics model           Proceedings of the IEEE/CVF Conference on Computer
+that only needs to implicitly track the movement of the               Vision and Pattern Recognition, pp. 22563–22575, 2023b.
+robot in the predicted future, without the need to focus on         Brohan, A., Brown, N., Carbajal, J., Chebotar, Y., Dabis, J.,
+new objects or backgrounds. In this way, the VPP model                Finn, C., Gopalakrishnan, K., Hausman, K., Herzog, A.,
+successfully generalizes to a wide range of unseen tasks.             Hsu, J., et al. Rt-1: Robotics transformer for real-world
+                                                                      control at scale. arXiv preprint arXiv:2212.06817, 2022.
+6. Conclusion
+                                                                    Brohan, A., Brown, N., Carbajal, J., Chebotar, Y., Chen,
+We introduce Video Prediction Policy (VPP), a novel ap-               X., Choromanski, K., Ding, T., Driess, D., Dubey, A.,
+proach for learning a generalist robot policy. VPP learns an          Finn, C., et al. Rt-2: Vision-language-action models
+implicit inverse dynamics model conditioned on predictive             transfer web knowledge to robotic control. arXiv preprint
+representations inside VDMs and yields consistent improve-            arXiv:2307.15818, 2023.
+ments across both simulated and real-world tasks. As video
+generation models are more and more powerful these days,            Brooks, T., Holynski, A., and Efros, A. A. Instructpix2pix:
+we aim to fully unlock the power of video model in building           Learning to follow image editing instructions. In Proceed-
+physical intelligence and highlight the potential of video            ings of the IEEE/CVF Conference on Computer Vision
+generation models in embodied tasks.                                  and Pattern Recognition, pp. 18392–18402, 2023.
+                                                                    Brooks, T., Peebles, B., Holmes, C., DePue, W.,
+References                                                            Guo, Y., Jing, L., Schnurr, D., Taylor, J., Luhman,
+Alayrac, J.-B., Donahue, J., Luc, P., Miech, A., Barr, I.,            T., Luhman, E., Ng, C., Wang, R., and Ramesh,
+  Hasson, Y., Lenc, K., Mensch, A., Millican, K., Reynolds,           A. Video generation models as world simulators.
+  M., et al. Flamingo: a visual language model for few-               2024. URL https://openai.com/research/
+  shot learning. Advances in neural information processing            video-generation-models-as-world-simulators.
+  systems, 35:23716–23736, 2022.                                    Caron, M., Misra, I., Mairal, J., Goyal, P., Bojanowski, P.,
+Baevski, A., Hsu, W.-N., Xu, Q., Babu, A., Gu, J., and Auli,          and Joulin, A. Unsupervised learning of visual features
+  M. Data2vec: A general framework for self-supervised                by contrasting cluster assignments. Advances in neural
+  learning in speech, vision and language. In Interna-                information processing systems, 33:9912–9924, 2020.
+  tional Conference on Machine Learning, pp. 1298–1312.             Chen, B., Xu, Z., Kirmani, S., Ichter, B., Sadigh, D., Guibas,
+  PMLR, 2022.                                                         L., and Xia, F. Spatialvlm: Endowing vision-language
+                                                                      models with spatial reasoning capabilities. In Proceed-
+Bao, H., Dong, L., Piao, S., and Wei, F. Beit: Bert
+                                                                      ings of the IEEE/CVF Conference on Computer Vision
+  pre-training of image transformers. arXiv preprint
+                                                                      and Pattern Recognition, pp. 14455–14465, 2024a.
+  arXiv:2106.08254, 2021.
+                                                                    Chen, T., Kornblith, S., Norouzi, M., and Hinton, G. A
+Bharadhwaj, H., Dwibedi, D., Gupta, A., Tulsiani, S., Do-             simple framework for contrastive learning of visual rep-
+  ersch, C., Xiao, T., Shah, D., Xia, F., Sadigh, D., and             resentations. In International conference on machine
+  Kirmani, S. Gen2act: Human video generation in novel                learning, pp. 1597–1607. PMLR, 2020.
+  scenarios enables generalizable robot manipulation. arXiv
+  preprint arXiv:2409.16283, 2024.                                  Chen, W., Ji, Y., Wu, J., Wu, H., Xie, P., Li, J., Xia, X.,
+                                                                      Xiao, X., and Lin, L. Control-a-video: Controllable text-
+Black, K., Nakamoto, M., Atreya, P., Walke, H., Finn, C.,             to-video generation with diffusion models. arXiv preprint
+  Kumar, A., and Levine, S. Zero-shot robotic manipulation            arXiv:2305.13840, 2023.
+  with pretrained image-editing diffusion models. arXiv
+  preprint arXiv:2310.10639, 2023.                                  Chen, X., Xie, S., and He, K. An empirical study of training
+                                                                      self-supervised vision transformers. In Proceedings of the
+Blattmann, A., Dockhorn, T., Kulal, S., Mendelevitch, D.,             IEEE/CVF international conference on computer vision,
+  Kilian, M., Lorenz, D., Levi, Y., English, Z., Voleti, V.,          pp. 9640–9649, 2021.
+
+                                                                9
+                                                    Video Prediction Policy
+
+Chen, X., Guo, J., He, T., Zhang, C., Zhang, P., Yang, D. C.,         Ho, J., Salimans, T., Gritsenko, A., Chan, W., Norouzi, M.,
+  Zhao, L., and Bian, J. Igor: Image-goal representations               and Fleet, D. J. Video diffusion models. Advances in
+  are the atomic control units for foundation models in                Neural Information Processing Systems, 35:8633–8646,
+  embodied ai. arXiv preprint arXiv:2411.00785, 2024b.                  2022.
+Chi, C., Feng, S., Du, Y., Xu, Z., Cousineau, E., Burch-              Hong, W., Ding, M., Zheng, W., Liu, X., and Tang, J.
+  fiel, B., and Song, S. Diffusion policy: Visuomotor                   Cogvideo: Large-scale pretraining for text-to-video gener-
+  policy learning via action diffusion. arXiv preprint                  ation via transformers. arXiv preprint arXiv:2205.15868,
+  arXiv:2303.04137, 2023.                                               2022.
+Du, Y., Yang, S., Dai, B., Dai, H., Nachum, O., Tenenbaum,            Jaegle, A., Gimeno, F., Brock, A., Vinyals, O., Zisserman,
+  J., Schuurmans, D., and Abbeel, P. Learning universal                 A., and Carreira, J. Perceiver: General perception with it-
+  policies via text-guided video generation. Advances in                erative attention. In International conference on machine
+  Neural Information Processing Systems, 36, 2024.                      learning, pp. 4651–4664. PMLR, 2021.
+Ebert, F., Yang, Y., Schmeckpeper, K., Bucher, B., Geor-
+  gakis, G., Daniilidis, K., Finn, C., and Levine, S. Bridge          Karamcheti, S., Nair, S., Chen, A. S., Kollar, T., Finn, C.,
+  data: Boosting generalization of robotic skills with cross-           Sadigh, D., and Liang, P. Language-driven representation
+  domain datasets. arXiv preprint arXiv:2109.13396, 2021.               learning for robotics. arXiv preprint arXiv:2302.12766,
+                                                                        2023.
+Goyal, R., Ebrahimi Kahou, S., Michalski, V., Materzynska,
+  J., Westphal, S., Kim, H., Haenel, V., Fruend, I., Yianilos,        Li, X., Liu, M., Zhang, H., Yu, C., Xu, J., Wu, H., Cheang,
+  P., Mueller-Freitag, M., et al. The” something something”             C., Jing, Y., Zhang, W., Liu, H., et al. Vision-language
+  video database for learning and evaluating visual com-                foundation models as effective robot imitators. arXiv
+  mon sense. In Proceedings of the IEEE international                   preprint arXiv:2311.01378, 2023.
+  conference on computer vision, pp. 5842–5850, 2017.
+                                                                      Liu, F., Yan, F., Zheng, L., Feng, C., Huang, Y., and Ma, L.
+Grauman, K., Westbury, A., Byrne, E., Chavis, Z., Furnari,              Robouniview: Visual-language model with unified view
+  A., Girdhar, R., Hamburger, J., Jiang, H., Liu, M., Liu,              representation for robotic manipulation. arXiv preprint
+  X., et al. Ego4d: Around the world in 3,000 hours of                  arXiv:2406.18977, 2024.
+  egocentric video. In Proceedings of the IEEE/CVF Con-
+  ference on Computer Vision and Pattern Recognition, pp.             Luo, G., Dunlap, L., Park, D. H., Holynski, A., and Darrell,
+  18995–19012, 2022.                                                    T. Diffusion hyperfeatures: Searching through time and
+                                                                        space for semantic correspondence. Advances in Neural
+Gu, X., Wen, C., Ye, W., Song, J., and Gao, Y. Seer: Lan-               Information Processing Systems, 36, 2024.
+  guage instructed video prediction with latent diffusion
+  models. arXiv preprint arXiv:2303.14897, 2023.                      Luo, Z., Chen, D., Zhang, Y., Huang, Y., Wang, L., Shen, Y.,
+                                                                        Zhao, D., Zhou, J., and Tan, T. Videofusion: Decomposed
+Guo, Y., Hu, Y., Zhang, J., Wang, Y.-J., Chen, X., Lu,                  diffusion models for high-quality video generation. arXiv
+  C., and Chen, J. Prediction with action: Visual policy                preprint arXiv:2303.08320, 2023.
+  learning via joint denoising process. In The Thirty-eighth
+ Annual Conference on Neural Information Processing                   Ma, Y. J., Sodhani, S., Jayaraman, D., Bastani, O., Kumar,
+ Systems, 2024.                                                        V., and Zhang, A. Vip: Towards universal visual reward
+Guo, Y., Zhang, J., Chen, X., Ji, X., Wang, Y.-J., Hu,                 and representation via value-implicit pre-training. arXiv
+ Y., and Chen, J. Improving vision-language-action                     preprint arXiv:2210.00030, 2022.
+  model with online reinforcement learning. arXiv preprint
+                                                                      Majumdar, A., Yadav, K., Arnaud, S., Ma, J., Chen, C.,
+  arXiv:2501.16664, 2025.
+                                                                       Silwal, S., Jain, A., Berges, V.-P., Wu, T., Vakil, J., et al.
+Gupta, G., Yadav, K., Gal, Y., Batra, D., Kira, Z., Lu, C.,            Where are we in the search for an artificial visual cortex
+  and Rudner, T. G. Pre-trained text-to-image diffusion                for embodied intelligence? Advances in Neural Informa-
+  models are versatile representation learners for control.            tion Processing Systems, 36:655–677, 2023.
+  arXiv preprint arXiv:2405.05852, 2024.
+                                                                      Mees, O., Hermann, L., Rosete-Beas, E., and Burgard, W.
+He, K., Chen, X., Xie, S., Li, Y., Dollár, P., and Girshick,          Calvin: A benchmark for language-conditioned policy
+  R. Masked autoencoders are scalable vision learners. In              learning for long-horizon robot manipulation tasks. IEEE
+  Proceedings of the IEEE/CVF conference on computer                   Robotics and Automation Letters (RA-L), 7(3):7327–7334,
+  vision and pattern recognition, pp. 16000–16009, 2022.               2022.
+
+                                                                 10
+                                                    Video Prediction Policy
+
+Nair, S., Rajeswaran, A., Kumar, V., Finn, C., and Gupta,             Wu, H., Jing, Y., Cheang, C., Chen, G., Xu, J., Li, X.,
+  A. R3m: A universal visual representation for robot                  Liu, M., Li, H., and Kong, T. Unleashing large-scale
+  manipulation. arXiv preprint arXiv:2203.12601, 2022.                 video generative pre-training for visual robot manipula-
+                                                                       tion. arXiv preprint arXiv:2312.13139, 2023a.
+O’Neill, A., Rehman, A., Gupta, A., Maddukuri, A.,
+  Gupta, A., Padalkar, A., Lee, A., Pooley, A., Gupta,                Wu, J. Z., Ge, Y., Wang, X., Lei, S. W., Gu, Y., Shi, Y.,
+  A., Mandlekar, A., et al. Open x-embodiment: Robotic                 Hsu, W., Shan, Y., Qie, X., and Shou, M. Z. Tune-a-
+  learning datasets and rt-x models. arXiv preprint                    video: One-shot tuning of image diffusion models for
+  arXiv:2310.08864, 2023.                                              text-to-video generation. In Proceedings of the IEEE/CVF
+                                                                       International Conference on Computer Vision, pp. 7623–
+Parisi, S., Rajeswaran, A., Purushwalkam, S., and Gupta, A.            7633, 2023b.
+  The unsurprising effectiveness of pre-trained vision mod-
+  els for control. In international conference on machine             Xiang, W., Yang, H., Huang, D., and Wang, Y. Denois-
+  learning, pp. 17359–17371. PMLR, 2022.                                ing diffusion autoencoders are unified self-supervised
+                                                                        learners. In Proceedings of the IEEE/CVF International
+Peebles, W. and Xie, S. Scalable diffusion models with                  Conference on Computer Vision, pp. 15802–15812, 2023.
+  transformers. In Proceedings of the IEEE/CVF Interna-
+  tional Conference on Computer Vision, pp. 4195–4205,                Yadav, K., Majumdar, A., Ramrakhya, R., Yokoyama, N.,
+  2023.                                                                 Baevski, A., Kira, Z., Maksymets, O., and Batra, D. Ovrl-
+                                                                        v2: A simple state-of-art baseline for imagenav and ob-
+Radford, A., Kim, J. W., Hallacy, C., Ramesh, A., Goh, G.,              jectnav. arXiv preprint arXiv:2303.07798, 2023a.
+  Agarwal, S., Sastry, G., Askell, A., Mishkin, P., Clark, J.,
+  et al. Learning transferable visual models from natural             Yadav, K., Ramrakhya, R., Majumdar, A., Berges, V.-P.,
+  language supervision. In International conference on                  Kuhar, S., Batra, D., Baevski, A., and Maksymets, O.
+  machine learning, pp. 8748–8763. PMLR, 2021.                          Offline visual representation learning for embodied nav-
+                                                                        igation. In Workshop on Reincarnating Reinforcement
+Radosavovic, I., Xiao, T., James, S., Abbeel, P., Malik, J.,            Learning at ICLR 2023, 2023b.
+  and Darrell, T. Real-world robot learning with masked
+  visual pre-training. In Conference on Robot Learning, pp.           Yang, Z., Teng, J., Zheng, W., Ding, M., Huang, S., Xu,
+  416–426. PMLR, 2023.                                                  J., Yang, Y., Hong, W., Zhang, X., Feng, G., et al.
+                                                                        Cogvideox: Text-to-video diffusion models with an ex-
+Reuss, M., Ömer Erdinç Yağmurlu, Wenzel, F., and Li-                 pert transformer. arXiv preprint arXiv:2408.06072, 2024.
+  outikov, R. Multimodal diffusion transformer: Learning
+                                                                      Ye, S., Jang, J., Jeon, B., Joo, S., Yang, J., Peng, B.,
+  versatile behavior from multimodal goals, 2024. URL
+                                                                        Mandlekar, A., Tan, R., Chao, Y.-W., Lin, B. Y., et al.
+  https://arxiv.org/abs/2407.05996.
+                                                                        Latent action pretraining from videos. arXiv preprint
+Rombach, R., Blattmann, A., Lorenz, D., Esser, P., and                  arXiv:2410.11758, 2024.
+  Ommer, B. High-resolution image synthesis with latent
+                                                                      Yu, T., Quillen, D., He, Z., Julian, R., Hausman, K., Finn,
+  diffusion models. In Proceedings of the IEEE/CVF con-
+                                                                        C., and Levine, S. Meta-world: A benchmark and evalua-
+  ference on computer vision and pattern recognition, pp.
+                                                                        tion for multi-task and meta reinforcement learning. In
+ 10684–10695, 2022.
+                                                                        Conference on robot learning, pp. 1094–1100. PMLR,
+Team, O. M., Ghosh, D., Walke, H., Pertsch, K., Black,                  2020.
+  K., Mees, O., Dasari, S., Hejna, J., Kreiman, T., Xu, C.,
+  et al. Octo: An open-source generalist robot policy. arXiv
+  preprint arXiv:2405.12213, 2024.
+
+Unterthiner, T., Van Steenkiste, S., Kurach, K., Marinier, R.,
+  Michalski, M., and Gelly, S. Towards accurate generative
+  models of video: A new metric & challenges. arXiv
+  preprint arXiv:1812.01717, 2018.
+
+Wen, Y., Lin, J., Zhu, Y., Han, J., Xu, H., Zhao, S., and
+ Liang, X. Vidman: Exploiting implicit dynamics from
+ video diffusion model for effective robot manipulation.
+ Advances in Neural Information Processing Systems, 37:
+ 41051–41075, 2024.
+
+                                                                 11
+                                                     Video Prediction Policy
+
+For your convenience, videos can be found at https://video-prediction-policy.github.io
+Code can be found at supplementary materiel.
+
+A. Real-world experiments
+A.1. Panda Maniplation
+On the Franka Panda platform, we gathered demonstrations by teleoperating the Panda robotic arm using a space mouse.
+we collected 2k trajectories for over 30+ tasks of 6 categories including picking, placing, pressing, routing, opening, and
+closing. Detailed success rates for each task in seen and unseen settings are shown in Table 6.
+
+                                                        Diffusion
+                                       Seen Tasks                     Susie    GR-1     VPP
+                                                         Policy
+                                         Pick             0.36         0.56     0.52    0.90
+                                         Place            0.40         0.42     0.38    0.86
+                                         Press            0.65        0.90     0.80    0.85
+                                         Route            0.40        0.55     0.50    0.75
+                                        Drawer            0.45        0.60     0.60    0.85
+                                        Average          0.425        0.563    0.519   0.856
+                                                        Diffusion
+                                     Unseen Tasks                     Susie    GR-1     VPP
+                                                         Policy
+                                         Pick             0.24         0.40     0.32    0.80
+                                         Place            0.12         0.44     0.32    0.72
+                                         Press            0.50        0.60     0.60    0.80
+                                         Route            0.20        0.50     0.50    0.70
+                                        Drawer            0.40        0.50     0.40    0.60
+                                        Average          0.250        0.463    0.388   0.737
+
+Table 6. Specific success rate at category level. In seen tasks, We evaluate pick and place tasks 50 times and other tasks 20 times
+respectively. In unseen tasks, we evaluate pick and place tasks 25 times and other tasks 10 times respectively
+
+
+
+
+                                                  Figure 7. Data collection setups.
+
+A.2. Dexterous Manipulation
+To collect data for dexterous manipulation, we employ Vision-Pro to capture the finger joint movements of the human
+hand, which are then retargeted to our 12-degree-of-freedom dexterous hand. This setup enables a human operator to
+directly control the dexterous hand during various manipulation tasks. We collected 2.5k trajectories over 100+ tasks of 10
+categories, including picking, placing, cup-upright, relocating, stacking, passing, pressing, unplugging, opening, and closing.
+A low-level PD controller is used to smooth the trajectories generated by VPP.
+The detailed success rates for each task category in both seen and unseen settings are shown in Table 7.
+
+                                                                 1
+                                                       Video Prediction Policy
+
+                                                          Diffusion
+                                        Seen Tasks                      Susie     GR-1      VPP
+                                                           Policy
+                                           Pick             0.38         0.61      0.48      0.83
+                                        Pick&Place          0.35         0.55      0.40      0.79
+                                        Cup-upright         0.00        0.00      0.00      0.64
+                                         Relocate           0.28        0.44      0.16      0.80
+                                           Stack            0.00         0.08      0.00      0.64
+                                           Pass            0.040        0.00       0.00      0.48
+                                           Press            0.68        0.96      0.64      0.96
+                                          Unplug            0.00         0.00      0.00      0.52
+                                          Drawer            0.40        0.64      0.48      0.72
+                                          Average          0.287        0.450     0.319     0.749
+                                                          Diffusion
+                                       Unseen Tasks                     Susie     GR-1      VPP
+                                                           Policy
+                                           Pick             0.12         0.42      0.26      0.75
+                                        Pick&Place          0.08         0.32      0.20      0.68
+                                        Cup-upright         0.00        0.00      0.00      0.40
+                                         Relocate           0.12        0.32      0.12      0.76
+                                           Stack            0.00         0.00      0.00      0.56
+                                           Pass             0.00        0.00       0.00      0.32
+                                           Press            0.44        0.76      0.40      0.88
+                                          Unplug            0.00         0.00      0.00      0.20
+                                          Drawer            0.28        0.44      0.24      0.56
+                                          Average          0.110        0.328     0.159     0.605
+                                                          Diffusion
+                                      Tool-use Tasks                    Susie     GR-1      VPP
+                                                           Policy
+                                           Spoon             0.0         0.4       0.3      0.9
+                                          Hammer             0.2         0.2       0.1      0.6
+                                            Drill            0.0         0.1       0.2      0.8
+                                          Pipette            0.0          0.0       0.0      0.4
+                                          Average           0.05         0.23      0.15     0.68
+
+Table 7. Specific success rate at category level. In seen tasks, We evaluate pick and place tasks 100 times and other tasks 25 times
+respectively. In unseen tasks, we evaluate pick and place tasks 50 times and other tasks 20 times respectively. We evaluate each tool-use
+task for 10 times.
+
+
+
+
+B. Video Prediction Model
+B.1. Datasets Sample Ratios
+Given the varying quality and scale of these datasets, we have introduced different sample ratios to appropriately balance the
+influence of different datasets, similar to (Team et al., 2024). Detailed information is shown in Table 8.
+
+B.2. Quantitative result on Prediction Quality
+Our TVP models successfully predict future frames on validation datasets across diverse manipulation tasks, with some
+prediction results visualized in Appendix B.3. Additionally, we evaluate the quantitative FVD metric (Unterthiner et al.,
+2018) on the bridge datasets (Ebert et al., 2021), following the evaluation settings in Seer (Gu et al., 2023). The results are
+shown in Table 9. Surprisingly, our model easily outperforms the previous TVP model. We attribute this improvement to
+our use of the pre-trained video foundation model SVD (Blattmann et al., 2023a), which the earlier TVP model did not
+leverage, giving us a significant advantage.
+
+                                                                   2
+                                                        Video Prediction Policy
+
+                        Dataset Type              Name                  Trajectory Numbers        Smaple Ratio
+                        Internet                  Something-
+                                                                                     191,642                0.30
+                        Human Maniplation         something-v2
+                                                  RT-1                                87,212                0.15
+                                                  Bridge                              23,377                0.15
+                        Internet                  BC-Z                                43,264                0.08
+                        Robot                     Taco-Play                            3,603                0.01
+                        Datasets                  Jaco-Play                            1,085                0.01
+                                                  Calvin-ABC                          18,033                0.10
+                                                  Metaworld                            2,500                0.05
+                        Self-Collected            Panda Arm                            2,000                0.05
+                        Datasets                  Dexterous Hand                       2,476                0.10
+                        Total                     -                                  375,192                1.00
+
+Table 8. We outline the dataset scales and sample ratios used for training our manipulation text-guided video prediction model. Following
+(Gu et al., 2023), we exclude 5,558 bridge trajectories and 2,048 something-something-v2 trajectories during training, reserving them for
+validation. For all other datasets, 3% of the trajectories are excluded and used as validation datasets.
+
+                                     Bridge     VideoFusion       Tune-A-Video        Seer     VPP
+                                     FVD↓          501.2             515.7            246.3    41.4
+
+Table 9. Quantitative evaluation of prediction quality on bridge datasets. The results of VideoFusion (Luo et al., 2023), Tune-A-Video (Wu
+et al., 2023b), Seer (Gu et al., 2023) are copied from (Gu et al., 2023).
+
+B.3. More Visualization of Complete Prediction Results
+We present additional visualizations of prediction results from our fine-tuned manipulation TVP model. Predictions on
+human manipulation datasets are displayed in Figure 8, and those on robotic manipulation datasets are illustrated in Figure
+10. All trajectories are sampled from the validation datasets and are predicted using the same manipulation TVP model.
+Each sample was denoised in 30 steps using classifier-free guidance set at 7.5, as described in (Gu et al., 2023). Our TVP
+model predicts a horizon of 16, and we visualize 8 frames at a skip step of 2 due to space constraints.
+
+B.4. More Visualizations of Predictive Representations
+We visualize the intermediate predictive representations through one-step direct predictions. Additional visualizations can
+be found in Figure 9. As discussed in the experimental section, while the textures and details in the one-step forward videos
+are not precise, they still offer valuable insights into physical evolution. The movements of objects and robot arm itself
+already can be reflected in the visualized representations.
+
+C. More Details for Experiments
+C.1. Structure details
+We provide the VPP architecture and hyperparameter setting details in four evaluate environments, as shown in Table 13.
+The transformer block in TVP follows the setting in (Blattmann et al., 2023a), and the rest of the hyperparameter in Diffusion
+Transformer follows the work (Reuss et al., 2024).
+
+C.2. More ablation
+In this section, we present additional ablation experiments conducted under the ABC→D setting of CALVIN (Mees et al.,
+2022).
+Ablation 1 on the video former entails the removal of the Temporal-attn module from the Video Former while maintaining
+all other configurations same as VPP. The results, displayed in Table 12, demonstrate that the Temporal-attn module could
+enhance the temporal comprehension capabilities of the Video Former.
+Ablation 2 on the number of denoising steps introduces a 2-step denoising process in the TVP to derive the predictive
+
+                                                                    3
+                                                     Video Prediction Policy
+
+visual representation. The outcomes are summarized in Table 12, revealing that the 2-step process did not yield superior
+performance. We hypothesize this is because a single denoising step suffices to generate an effective representation for
+trajectory prediction in our configuration. Additionally, the 2-step denoising process nearly doubles the inference time and
+reduces the control frequency by half. Due to these factors, we opted for a one-step direct encoder in our main experiments.
+Single-view Ablation evaluate the Calvin ABC→D task using only a single observation viewpoint (static view) and find that
+the success rate for Task 5 reaches 3.58. This even surpasses the success rate achieved by the state-of-the-art 3D Diffuser
+Actor, which utilizes two viewpoints along with depth images.
+Ablations on using different layers of features The average task completion length are listed in Table 10.
+Ablations on using different diffusion time-step The average task completion length are listed in Table 11.
+
+                            Calvin abc-d     Layer-3      Layer-6      Layer-9     Layer-12     VPP
+                            Avg. Len         3.72         3.88         4.29        4.05         4.33
+                                       Table 10. Ablations on different layers of features.
+
+
+
+                              Calvin abc-d     Time-step 10         Time-step 20    Time-step 30
+                              Avg. Len         4.21                 4.33            4.25
+                                 Table 11. Ablations on the Use of different diffusion time-step.
+
+
+
+                                                            Tasks completed in a row
+                            Method
+                                               1         2       3      4        5   Avg. Len ↑
+                         VPP(Ours)           0.965     0.909 0.866 0.820 0.769          4.33
+                       VPP(Single-view)      0.909     0.815 0.713 0.620 0.518          3.58
+                         Ablation.1          0.949     0.900 0.839 0.780 0.714          4.18
+                         Ablation.2          0.951     0.904 0.840 0.777 0.718          4.19
+                                                Table 12. More ablation studies.
+
+
+C.3. Baseline Implementations
+The baseline methods, including RT-1 (Brohan et al., 2022), GR-1 (Wu et al., 2023a), and Diffusion Policy (Chi et al., 2023),
+are implemented based on their official repositories. For comparison with Susie (Black et al., 2023) in both the Metaworld
+and real-world manipulation scenarios, we adopt InstructPix2Pix (Brooks et al., 2023) as the future frame predictor and use
+an image-goal Diffusion Policy (Chi et al., 2023) to generate the state sequence.
+
+
+
+
+                                                                4
+                                             Video Prediction Policy
+
+
+
+
+Type                      Name                 Calvin           Metaworld       Franka Panda    Xhand
+                          Video lens           16               8               16              16
+Prediction
+                          Action shape         10 ∗ 7           4∗4             10 ∗ 7          10 ∗ 18
+                          Language shape       20 ∗ 512         20 ∗ 512        20 ∗ 512        20 ∗ 512
+TVP
+                          Image shape          256 ∗ 256        256 ∗ 256       256 ∗ 256       256 ∗ 256
+                          Token shape          16 ∗ 14 ∗ 384    8 ∗ 28 ∗ 384    14 ∗ 16 ∗ 384   14 ∗ 16 ∗ 384
+                          Input dim            1280             1280            1280            1280
+Video Former              Latent dim           512              512             512             512
+                          Num heads            8                8               8               8
+                          num Layers           6                6               6               6
+                          Latent dim           384              384             384             384
+                          Condition shape      225 ∗ 384        225 ∗ 384       225 ∗ 384       225 ∗ 384
+                          Num heads            8                8               8               8
+Diffusion Transformer
+                          Encoder Layers       4                4               4               4
+                          Decoder Layers       4                4               4               4
+                          Sampling Steps       10               10              10              10
+                          TVP batchsize        4                4               4               4
+                          Policy batchsize     76               64              128             128
+Hyperparameter
+                          Epoch nums           12               30              30              40
+                          Learning rate        1 ∗ 10−4         5 ∗ 10−5        1 ∗ 10−4        1 ∗ 10−4
+
+                        Table 13. Hyper-parameters in the Video Prediction Policy (VPP).
+
+
+
+
+                                                       5
+                                                      Video Prediction Policy
+
+
+
+
+Figure 8. Visualization of video prediction results on Internet human manipulation validation datasets with 30 steps de-noising.
+The green frames indicate the ground truth while the red frames indicate the predicted futures. Zoom in for better comparisons.
+
+
+
+
+Figure 9. Visualization of Predictive representations. Green frames represent the ground truth, red frames correspond to the predicted
+future states, and blue frames illustrate the visualized predictive representations. Zoom in for better comparisons.
+
+                                                                  6
+                                                        Video Prediction Policy
+
+
+
+
+Figure 10. Visualization of video prediction results on robotic datasets with 30 steps de-noising. The green frames indicate the ground
+truth while the red frames indicate the predicted futures. (a)-(j) are sourced from internet robotic while (k)-(p) are from self-collected
+datasets. Zoom in for better comparisons.
+                                                                    7
+

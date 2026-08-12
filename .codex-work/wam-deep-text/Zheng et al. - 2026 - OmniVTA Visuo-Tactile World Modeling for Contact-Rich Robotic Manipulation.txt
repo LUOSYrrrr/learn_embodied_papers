@@ -1,0 +1,1386 @@
+                                                                                                                                                                                                            1
+
+
+
+
+                                                  OmniVTA: Visuo-Tactile World Modeling for Contact-Rich
+                                                                                              Robotic Manipulation
+                                               Yuhang Zheng1,2∗ , Songen Gu3∗ , Weize Li1 , Yupeng Zheng1,4† , Yujie Zang1 , Shuai Tian4 , Xiang Li1,5 ,
+                                                   Ce Hao6 , Chen Gao2,7 , Si Liu7 , Haoran Li4 , Yilun Chen1 , Shuicheng Yan2† , Wenchao Ding1†
+                                                        1
+                                                          TARS Robotics, 2 National University of Singapore, 3 Fudan University, 4 CASIA,
+                                                               5
+                                                                 Tsinghua University, 6 Zhongguancun Academy, 7 Beihang University
+                                                                           † Corresponding Author, * Equal Contribution
+
+
+                                                                                                     Visuo-Tactile World Model                                                          Inference on Real
+                                                                       𝑻−𝟏          𝑻                                            𝑻+𝟏         𝑻+𝟐          𝑻+𝟑        ···                      Robot
+                                                                                                                                                                                                    Time
+
+
+
+
+arXiv:2603.19201v2 [cs.RO] 23 Mar 2026
+                                                                                                                  World
+                                                                              ×         ×                        Modeling              ×           ×            ×           ×
+                                                                       Historical   Current
+                                                                         Obs.        Obs.
+
+
+
+
+                                                                                                                                                       Observation         Generation
+
+                                                                                                                                                      Image &       Generated
+                                                                                                                                                   Current Tactile Tactile Latent
+                                                                                                            Learnable Weight Adjustment
+
+                                                                                                            Slow Policy         Action Chunk 𝑨𝒄
+                                                                                                                                                            Executed
+                                                                                                                                                            Trajectory
+                                                                                                        Reflexive Controller   Refined Action 𝒂r
+
+
+                                                                                                           Slow-Fast Visuo-Tactile Manipulation Policy
+
+
+                                         Fig. 1: Overview of the proposed visuo-tactile manipulation system. (Left) We introduce OmniViTac, a large-scale visuo-
+                                         tactile-action aligned dataset for contact-rich manipulation. (Center) We propose OmniVTA, a world model-based visuo-tactile-
+                                         action framework that predicts future contact states. It seamlessly unifies tactile representation learning, predictive multimodal
+                                         modeling, adaptive fusion, and reflexive tactile control. (Right) Extensive real-world experiments demonstrate that OmniVTA
+                                         outperforms prior methods, exhibiting strong robustness and generalization.
+
+
+                                            Abstract—Contact-rich manipulation tasks, such as wiping              Models, Contact-Rich Manipulation
+                                         and assembly, require accurate perception of contact forces,
+                                         friction changes, and state transitions that cannot be reliably
+                                         inferred from vision alone. Despite growing interest in visuo-
+                                                                                                                                         I. I NTRODUCTION
+                                         tactile manipulation, progress is constrained by two persistent             Contact-rich manipulation tasks, such as wiping and assem-
+                                         limitations: existing datasets are small in scale and narrow in          bly, are ubiquitous in daily human activities. Their successful
+                                         task coverage, and current methods treat tactile signals as passive      execution requires not only precise geometric alignment, but
+                                         observations rather than using them to model contact dynamics
+                                         or enable closed-loop control explicitly. In this paper, we present      also accurate perception and fine-grained control of contact
+                                         OmniViTac, a large-scale visuo-tactile-action dataset comprising         forces, frictional changes, and subtle transitions in contact
+                                         21,000+ trajectories across 86 tasks and 100+ objects, orga-             state [1], [2], [3]. Since such information is difficult to infer
+                                         nized into six physics-grounded interaction patterns. Building           reliably from vision alone, recent studies [4], [5], [6] have
+                                         on this dataset, we propose OmniVTA, a world-model-based                 incorporated tactile sensing into imitation learning frameworks
+                                         visuo-tactile manipulation framework that integrates four tightly
+                                         coupled modules: a self-supervised tactile encoder, a two-stream         to improve visuomotor policies for contact-rich manipulation.
+                                         visuo-tactile world model for predicting short-horizon contact              However, despite the growing adoption of tactile sensing in
+                                         evolution, a contact-aware fusion policy for action generation,          contact-rich manipulation, the broader visuo-tactile manipula-
+                                         and a 60Hz reflexive controller that corrects deviations between         tion community still faces substantial limitations in both data
+                                         predicted and observed tactile signals in a closed loop. Real-           and methodology. (1) On the data side, existing public visuo-
+                                         robot experiments across all six interaction categories show
+                                         that OmniVTA outperforms existing methods and generalizes                tactile manipulation datasets [4], [7], [8] remain limited in both
+                                         well to unseen objects and geometric configurations, confirming          the scale of fully aligned vision-tactile-action demonstrations
+                                         the value of combining predictive contact modeling with high-            and the diversity of contact-rich tasks. In particular, the amount
+                                         frequency tactile feedback for contact-rich manipulation. All            of synchronized visual and high-frequency tactile data is still
+                                         data, models, and code will be made publicly available on the            insufficient for learning generalizable visuo-tactile representa-
+                                         project website at https://mrsecant.github.io/OmniVTA.
+                                                                                                                  tions and modeling contact dynamics. In addition, the covered
+                                           Index Terms—Visuo-Tactile Manipulation, Visuo-Tactile World            scenarios, tasks, and interaction patterns are narrow, making it
+                                                                                                                                      2
+
+
+
+difficult to capture the broad spectrum of contact mechanisms       Second, the Visuo-Tactile World Model adopts a two-stream
+required in real-world manipulation. (2) On the methodology         conditional generative architecture to model the temporal evo-
+side, existing visuo-tactile manipulation approaches remain         lution of visual observations and tactile signals, thereby form-
+limited in both representation and control. In most prior           ing short-horizon feedforward predictions of contact dynamics.
+works [9], [10], tactile signals are incorporated merely as aux-    Third, the Adaptive Visuo-Tactile Fusion Policy leverages
+iliary observations to the policy network, primarily for contact-   a Latent Tactile Differential (LTD) Encoder to capture the
+state recognition or compensating for visual occlusion, rather      relationship between current tactile observations and predicted
+than being used to model the evolution of contact dynamics          future tactile features, and adaptively fuses visual and tactile
+explicitly. At the control level, these methods typically rely      information through a contact-aware gating mechanism for ac-
+on action chunking to generate short action sequences that are      tion generation. Finally, the Reflexive Latent Tactile Controller
+then executed in an open-loop manner. Such a design makes it        uses predicted and observed tactile features to produce fine-
+difficult to react promptly to rapid contact changes, including     grained corrective actions at 60,Hz, enabling rapid closed-loop
+slippage, misalignment, and external disturbances, which are        correction during manipulation.
+pervasive in contact-rich manipulation.                                Extensive real-robot experiments across six tactile interac-
+   In contrast, humans perform such tasks with remarkable           tion pattern categories validate the effectiveness of OmniVTA
+dexterity and robustness. Neuroscience studies [11], [12], [13],    from three perspectives. First, OmniVTA achieves state-of-the-
+[14] suggest that this ability relies on tightly coupled multi-     art performance on diverse contact-rich manipulation tasks,
+modal perception, predictive internal models, and rapid tactile     with strong advantages in object diversity, geometric general-
+feedback control. This combination of predictive modeling and       ization, and disturbance robustness. The full framework further
+reflexive correction is still largely missing from current visuo-   outperforms its open-loop variant, highlighting the importance
+tactile policies.                                                   of high-frequency tactile feedback for stable contact control.
+   In this paper, we address these limitations from both the        Second, mechanistic analyses show that the policy adaptively
+data and methodology perspectives. Concretely, we introduce         reweights vision and touch according to the predicted contact
+OmniViTac, a large-scale visuo-tactile-action aligned dataset.      state, and that accurate tactile prediction is crucial for reliable
+Building on this dataset, we further propose OmniVTA, a             action generation. Third, OmniVTA maintains stable perfor-
+world-model-based visuo-tactile manipulation framework.             mance under unseen geometric configurations and unseen
+   Specifically, OmniViTac is a large-scale visuo-tactile-action    tools, suggesting that it learns transferable contact-relevant
+aligned dataset for contact-rich manipulation, comprising           structure and dynamics rather than memorizing task-specific
+21, 879 trajectories spanning 86 tasks and 100+ manipulated         trajectories. Together, these results demonstrate the benefit of
+objects in diverse real-world scenarios. To capture the broad       predictive visuo-tactile world modeling combined with rapid
+spectrum of contact-rich behaviors encountered in manipula-         tactile-feedback-based correction.
+tion, we organize the dataset into six physics-grounded visuo-         The main contributions of this paper are three-fold: (1) We
+tactile interaction patterns: wiping, peeling, cutting, grasping,   present OmniViTac, a large-scale visuo-tactile-action aligned
+assembly, and in-hand adjustment. To ensure data fidelity,          dataset for contact-rich manipulation spanning six tactile in-
+OmniViTac is collected using a unified cross-embodiment             teraction pattern categories, and reveal two key properties of
+platform and processed through a rigorous pipeline that pre-        tactile signals: spatial locality and contact-driven dynamics.
+serves native sensor frequencies, performs precise temporal         (2) We propose OmniVTA, a world-model-based visuo-tactile
+synchronization across vision, touch, and action streams, and       manipulation framework that integrates tactile representation
+incorporates automated trimming together with human-in-the-         learning, predictive visuo-tactile world modeling, contact-
+loop verification. Beyond scale and data quality, our analysis      aware fusion, and high-frequency closed-loop tactile control.
+further shows that OmniViTac captures structured, pattern-          (3) Extensive real-world experiments show that OmniVTA out-
+specific contact dynamics and reveals two key properties of         performs state-of-the-art baselines across diverse contact-rich
+tactile signals in manipulation, namely spatial locality and        manipulation tasks, with strong robustness to perturbations and
+contact-driven dynamics. These properties make OmniViTac            effective generalization to novel configurations and objects.
+a strong benchmark for learning visuo-tactile representations,
+predictive contact models, and robust manipulation policies.                             II. R ELATED W ORKS
+   Inspired by human sensorimotor control in contact-rich
+manipulation, an effective robotic system should possess two        A. Tactile Sensing and Tactile Representation Learning
+key capabilities [12]: (1) forming feedforward anticipations of        Robotic fine-grained interaction relies on advances in both
+contact evolution through predictive modeling, and (2) exploit-     tactile hardware and representation learning. Existing tactile
+ing tactile feedback for high-frequency closed-loop correction.     sensors span multiple physical principles, including capacitive
+   To this end, we propose OmniVTA, a world-model-based             arrays [15], [16], piezoresistive sensors [17], [18], and mag-
+visuo-tactile manipulation framework composed of four tightly       netic sensors [19]. Among them, visuo-tactile sensors such
+coupled modules. First, TactileVAE learns compact, low-             as GelSight [20] and DIGIT [21] have attracted particular
+dimensional tactile representations through spatio-temporal         attention because they provide high-resolution and robust
+encoding and reconstructs continuous tactile deformation            measurements. By tracking gel deformation with a camera,
+fields with an implicit neural decoder, providing structured        they reconstruct fine contact geometry and, with marker dots,
+tactile features for downstream prediction and policy learning.     estimate force and torque.
+                                                                                                                                       3
+
+
+
+
+Fig. 2: Overview of OmniViTac dataset. Left: The Cross-Embodiment Data Collection Platform features UNFactory 7-
+DoF xArm and the TacUMI manipulation interface, both supporting identical end-effectors and diverse tactile sensors (Xense,
+GelSight Mini, Tac3D, Daimon). Middle: The dataset covers 6 visuo-tactile manipulation patterns, instantiated across 5 semantic
+scenarios. Top-Right: A scale comparison demonstrates that OmniViTac (21,879 trajectories) significantly exceeds existing
+visuo-tactile manipulation datasets in tactile-rich data volume. Bottom-Right: The High-quality Data Pipeline ensures reliability
+through timestamp alignment, visualization, and human-in-the-loop verification.
+
+
+   With such signals available, the focus has shifted from task-     work extends this idea to end-to-end manipulation models,
+specific features to transferable tactile representations. A major   including vision-action models such as 3D-ViTac [9] and
+line of work learns from paired vision-tactile data through          RDP [5], as well as vision-language-action models such as
+self-supervision or contrastive learning. Sparsh [22] adopts a       VLA-Touch [4], Tactile-VLA [34], and TA-VLA [35]. How-
+masked autoencoder, Anytouch [23] uses contrastive learning,         ever, effectively fusing tactile and visual signals for high-
+and UniT [24] introduces a VQGAN-like architecture [25] for          frequency closed-loop control remains difficult. Existing meth-
+compact latent modeling. More recently, tactile sensing has          ods often suffer from weak tactile integration or temporal
+been integrated into MLLMs to align tactile, visual, and tex-        mismatch. Our framework addresses this problem through
+tual representations. Representative examples include Binding        deeper visuo-tactile fusion, using local tactile feedback to
+touch to everything [26], Octopi [27], and VTV-LLM [28].             refine global control for robust contact-rich manipulation.
+Octopi-1.5 [7] further adds retrieval augmentation to improve
+predictions for unseen object-tactile pairs. Our study builds
+                                                                     C. Visuo-tactile Manipulation Datasets and Systems
+on this trend by examining unified visuo-tactile representation
+learning across four visuo-tactile sensors: GelSight Mini [20],         Early visuo-tactile datasets [26], [36], [27], [23], [28],
+Tac3D [29], Xense [30], and Daimon [31].                             [7] mainly collected static paired observations by pressing
+                                                                     handheld tactile sensors against objects, surfaces, or textures.
+                                                                     Although useful for multimodal representation learning, they
+B. Visuo-Tactile Robotic Manipulation Policies                       do not provide action trajectories for manipulation. More re-
+   Findings from human motor control highlight the impor-            cent datasets [37], [38], [39], [4], [40], [41], [42] mount tactile
+tance of tactile feedback for stable manipulation. Prior studies     sensors on robotic grippers and record manipulation through
+show that cutaneous feedback is essential for maintaining grip       UMI [43], teleoperation, or kinesthetic teaching. These sys-
+stability [14] and that the brain uses a unified internal model      tems capture synchronized vision, touch, and proprioception,
+to predict tactile feedback for both limbs and tools [13], [12].     enabling visuo-tactile policy learning for contact-rich tasks.
+These results suggest that tactile sensing is fundamental to         Nevertheless, current datasets remain limited in scale, sensor
+contact-rich manipulation, where it complements vision under         and platform diversity, and temporal alignment between high-
+occlusion and provides direct force-related feedback.                frequency tactile streams and visual observations.
+   Inspired by these insights, robotic manipulation policies            Our work addresses these limitations with a multi-platform
+increasingly incorporate non-visual inputs. Early visuo-tactile      visuo-tactile manipulation dataset that offers diverse tasks and
+systems such as See-to-Touch [32] and RoboPack [33] showed           fully aligned vision, touch, and action sequences, supporting
+that local tactile observations can resolve ambiguities and          large-scale world-model training for unified visuo-tactile pol-
+support fine-grained control when vision is unreliable. Recent       icy learning.
+                                                                                                                                    4
+
+
+
+
+        Assembly                                   Cutting                                  Adjustment
+
+
+
+
+       Peeling                                     Grasping                                Wiping
+
+
+
+
+Fig. 3: Example visualization of the 6 visuo-tactile manipulation patterns in OmniViTac. The dataset captures diverse,
+contact-rich behaviors across various scenarios, including Assembly, Cutting, Adjustment, Peeling, Grasping, and Wiping. Each
+panel illustrates the global third-person workspace view overlaid with the end-effector’s trajectory, alongside synchronized, high-
+frequency tactile maps (bottom) that continuously record the complex tool-object contact dynamics during task execution.
+
+
+                 III. T HE O MNI V I TAC DATASET                    A. Hardware Setup and Data Collection System
+                                                                       1) System Overview: To efficiently collect large-scale
+   To support data-driven visuo-tactile learning for contact-rich   visuo-tactile manipulation data, we develop a unified multi-
+manipulation, we introduce OmniViTac, a large-scale visuo-          modal data acquisition system that can be operated by a single
+tactile-action dataset that addresses two key limitations of        human operator. The system records synchronized multimodal
+existing datasets: insufficient scale of fully aligned demon-       observations during manipulation, including RGB-D visual ob-
+strations and limited coverage of contact-rich tasks.               servations, tactile signals from fingertip sensors, manipulation
+   OmniViTac contains 21, 879 synchronized trajectories span-       trajectories, and continuous gripper aperture states.
+ning 86 tasks and 100+ objects in diverse real-world envi-             All sensory streams are recorded asynchronously at their
+ronments, with RGB-D observations, high-frequency tactile           native frequencies. A post-processing synchronization pipeline
+sensing, and action streams recorded in a temporally aligned        then aligns different modalities using timestamps to ensure
+manner. Compared with prior visuo-tactile-action datasets in        consistent temporal correspondence across all observations.
+Tab. I, OmniViTac substantially expands both task coverage             2) Dual-Embodiment Data Collection: To balance robot-
+and data scale, while also increasing sensor and collection         aligned demonstrations and data collection scalability, our
+diversity. Beyond scale alone, OmniViTac is organized around        dataset is collected using two complementary hardware em-
+six physics-grounded visuo-tactile interaction patterns, en-        bodiments: a 7-DoF robotic manipulator (xArm-7) and a
+abling the dataset to capture a broad spectrum of contact           TacUMI handheld data collection device. The robotic platform
+dynamics rather than a narrow set of task-specific behaviors.       captures demonstrations that closely match the kinematic
+These properties make OmniViTac a comprehensive bench-              and dynamic distributions of robot execution, while TacUMI
+mark for learning generalizable visuo-tactile representations,      enables flexible and efficient human manipulation for large-
+predictive contact models, and manipulation policies.               scale data collection.
+   In the following, we describe OmniViTac in terms of its          Robot Demonstrations (7DoF Robot Arm). We employ
+system design, task organization, and dataset scale. Sec. III-A     a UFACTORY xArm-7 manipulator to collect robot-aligned
+presents the hardware setup and synchronized data collection        demonstrations. Two control modes are used:
+pipeline, which enables temporally aligned acquisition of              • Kinesthetic Teaching. The operator directly guides the
+RGB-D observations, tactile signals, and actions under diverse            robot under gravity compensation mode, allowing precise
+embodiments and sensing configurations. Sec. III-B introduces             control of contact interactions. This mode is particularly
+the task taxonomy and representative visuo-tactile interaction            suitable for tasks requiring fine force perception, such as
+patterns, revealing the contact-rich structure underlying the             wiping surfaces or inserting connectors.
+dataset. Sec. III-C summarizes the dataset statistics and com-         • GELLO Teleoperation. For tasks involving larger spatial
+parisons with prior work, highlighting the scale, diversity, and          motions and less reliance on direct force perception, we
+breadth of OmniViTac.                                                     adopt the GELLO teleoperation system [44]. This mas-
+                                                                                                                                                                            5
+
+
+
+TABLE I: Comparison of OmniViTac with existing vision-tactile-action datasets. Note: * indicates that the statistics count
+only the visuo-tactile trajectories in the corresponding dataset. “–” denotes not applicable.
+                                                                                                   Tactile
+Dataset                    #Task   #Traj.   #Object        Vision                                                                      Action            Collection
+                                                                                       Sensors                Force Dim.   Frequency
+ObjectFolder2.0 [45]         3       –       1,000       Rendered                       GelSight                  3            –         ✗                Simulated
+AnyTouch [23]                1       –        124            –            GelSight Mini/DIGIT/DuraGel/Tac3D       3           30         ✗                Handheld
+VTV150k [28]                 –       –        100            –                GelSight Mini/DIGIT/Tac3D           –            –         ✗                Handheld
+Octopi-1.5 [7]               3       –          –         GoPro                  GelSight Mini/TAC-02             –        50∼1000       ✓                   TMI
+See, Hear, and Feel [37]     2       60         4        RealSense                      GelSight                  –           30         ✓                  Teleop
+RH20T* [38]                 55      917         –        RealSense                       uSkin                    –          200         ✓                  Teleop
+FreeTacMan [39]             50     10,000      50         Fisheye                     FreeTacMan                  –           30         ✓                Fingertips
+VLA-Touch [4]                3       –          –        RealSense                   GelSight Mini                –           10         ✓           Kinesthetic Teaching
+OmniVTLA [40]                2      240        56        RealSense               GelSight/Paxini Gen 2            –           30         ✗                Handheld
+exUMI [41]                   9     1,665        8         GoPro                         9DTact                    6            –         ✓                UMI-style
+MLA [42]                     6     1,200       14        RealSense                  Tashan TS-E-A                 6            –         ✗               Gello-teleop
+Hoi! [46]                    6     ∼3,000     381      Zed Mini/Aria                     DIGIT                    6         30∼60        ✓               Gello-teleop
+AgiBot World* [8]            7     5,337        –            –                           Xense                    3            –         ✓                  Teleop
+OmniViTac (Ours)            86     21,879    126      RealSense/Fisheye   Xense/Gelsight Mini/DM-Tac/Tac3D        3         30∼60        ✓      UMI-style/Kinesthetic Teaching
+
+
+     ter–follower interface enables efficient collection of pick-                             measurements with resolution 320 × 240 at 60 Hz.
+     and-place style demonstrations while preserving realistic                              • Tac3D-A1: provides dense 3D displacement sensing with
+     robot motion trajectories.                                                               spatial resolution 20 × 20 at 30 Hz.
+Human Demonstrations (TacUMI). To improve data collec-                                      • GelSight Mini: records RGB tactile images with resolu-
+tion efficiency and flexibility, we develop TacUMI, a handheld                                tion 320 × 240 and 3D displacement fields with spatial
+visuo-tactile data collection device inspired by FastUMI [47].                                resolution 9 × 7, both captured at 25 Hz.
+TacUMI enables natural manipulation motions while recording                                 These sensors provide multiple tactile signal modalities for
+multimodal sensory observations that are consistent with the                             the same manipulation tasks. The Xense sensor is used for the
+robotic platform. Following FastUMI, we use a RealSense                                  majority of data collection due to its robustness in large-scale
+T265 tracking camera, which outputs 6-DoF poses at 200 Hz                                manipulation datasets. Consequently, demonstrations collected
+to estimate trajectories. After each trajectory is collected, an                         with Xense are primarily used for analysis and real-robot
+automatic verification step checks for tracking drift, and tra-                          evaluation, while the additional tactile sensors are included to
+jectories with position errors larger than 8 mm are discarded.                           support research on tactile representation learning and cross-
+Isomorphic End-Effector. To minimize embodiment-induced                                  sensor generalization.
+domain gaps, both the robotic arm and TacUMI employ
+                                                                                         Proprioceptive Signals. The system also records proprio-
+identical parallel-jaw grippers. This shared end-effector design
+                                                                                         ceptive states, including robot joint states (only for xArm
+ensures consistent grasp geometry and contact mechanics
+                                                                                         demonstrations), end-effector poses, and continuous gripper
+across both data collection embodiments. Each gripper records
+                                                                                         aperture values. During data collection, the average tactile
+continuous motor states, which are normalized to a [0, 1]
+                                                                                         displacement is visualized in real time to provide operators
+range to represent the gripper width. The fingertip structure is
+                                                                                         with an intuitive estimate of contact forces.
+modular and supports interchangeable tactile sensor modules.
+   3) Sensor Suite: To capture the diverse perceptual cues                                  4) Data Collection and Processing Pipeline: We describe
+required in contact-rich manipulation, we combine RGB-D                                  how visuo-tactile-action trajectories are recorded and how the
+sensing with multiple tactile sensors that provide complemen-                            raw data are collected, validated, and processed.
+tary observations of object geometry, surface interaction, and                           Data Acquisition. To enable single-operator data collection,
+contact dynamics.                                                                        we design a foot-pedal control interface for managing the en-
+Visual Observation. We record both wrist-view and third-                                 tire recording process. The interface provides three functions:
+person-view RGB-D observations. Wrist-view images are cap-                               starting the system, recording trajectories, and stopping it. Dur-
+tured using an Intel RealSense D435 camera, while third-                                 ing recording, all sensors continuously publish timestamped
+person observations are captured using either a D435 or an                               observations, which are subscribed and stored by the host
+L515 camera. All cameras record RGB-D streams at 30 Hz.                                  computer. To prevent sensor drift from extended operation,
+The D435 provides images at 640 × 480 resolution, while the                              the system automatically restarts after every 25 trajectories.
+L515 provides 1280 × 720 resolution. TacUMI additionally                                 Data Validation. We perform both online and offline quality
+integrates a wide-angle RGB camera to capture broader envi-                              checks. During collection, every 50 trajectories the system
+ronmental context.                                                                       randomly selects three trajectories and visualizes synchronized
+Tactile Sensing. Tactile sensors are mounted on the gripper                              sensor streams, including camera observations, tactile signals,
+fingertips to capture detailed contact information during ma-                            trajectory curves, and gripper width signals. After data collec-
+nipulation. Our platform supports four types of tactile sensors                          tion, all trajectories can be inspected offline using visualization
+with different sensing principles and resolutions:                                       tools, and abnormal samples are removed.
+   • Xense (Quark N1): records RGB tactile images with a                                 Data Processing. Before policy training, we preprocess all
+     resolution of 700 × 400 at 30 Hz and 3D displacement                                trajectories to improve data quality and temporal consistency.
+     fields with a spatial resolution of 35 × 20 at 60 Hz.                               This pipeline removes redundant static frames at the beginning
+   • Daimon (Tac-WL): records grayscale tactile images at                                and end of each trajectory, aligns RGB-D, tactile, and action
+     640 × 480 resolution at 30 Hz and 3D displacement                                   streams through timestamp synchronization (with temporal er-
+                                                                                                                                  6
+
+
+
+
+Fig. 4: Comprehensive statistical analysis of the OmniViTac. (a) Pattern-level contact area distribution, highlighting the
+distinct dichotomy between precision-dominant tasks (concentrated in the 0-10% range) and surface-dominant tasks (peaking
+at 70-90%). (b) Force intensity distribution, showcasing the wide spectrum of force magnitudes required across different
+manipulation modes. (c) Hierarchical distribution illustrating the rich diversity of 86 instantiated tasks. (d) Effective contact
+ratio with variance across patterns, demonstrating the temporal dependency on tactile feedback (e.g., Adjustment exhibits
+the highest continuous engagement). (e) Total trajectory counts per category, demonstrating the massive scale and balanced
+composition of the benchmark. (f) t-SNE projection of the high-dimensional tactile signals, revealing physically intuitive and
+semantically separable latent clusters that strictly align with the underlying contact mechanics of each interaction pattern.
+
+
+ror below 10 ms), and segments trajectories into training-ready    into six representative visuo-tactile patterns. This taxonomy is
+clips according to downstream policy learning requirements.        defined by the dominant tactile features and contact mechanics
+                                                                   underlying successful execution:
+B. Task Taxonomy and Tactile Pattern Analysis                         • Assembly: Involves precise coordination of contact ge-
+   1) Environmental Diversity: To facilitate robust general-            ometry and multi-directional forces to perceive tight
+ization of visuo-tactile policies to real-world environments,           tolerances and detect successful mating of intricate parts.
+OmniViTac is deliberately designed with high environmental            • Cutting: Predominantly relies on the progressive magni-
+diversity. As illustrated in the inner ring of Fig. 2 and the           tude of normal forces to penetrate objects, using sudden
+examples in Fig. 3, the dataset encompasses over 70 distinct            force drops to judge the completion of the severing action.
+manipulation tasks, systematically distributed across five se-        • Adjustment: Characterized by torsional and shear forces,
+mantic scenarios: Kitchen, Fruit Shop, Industrial Workspace,            which are crucial for sensing slip and reorienting in-hand
+Chemistry Laboratory, and Office. Diverse scene selection en-           objects until the desired stable pose is achieved.
+sures broad coverage of visual distractors, varying illumination      • Peeling: Involves a dynamic and continuous coupling of
+conditions, and a wide range of object properties, including            both shear and normal forces to maintain constant tool-
+rigid, deformable, transparent, and articulated types, thereby          surface contact while stripping object exteriors.
+posing fundamental challenges to the robustness of policies.          • Wiping: Another canonical contact-rich task demand-
+   2) Task Taxonomy: To move beyond task classification                 ing the simultaneous regulation of normal pressure (to
+based purely on visual kinematics, we introduce a physics-              maintain surface adherence) and planar shear force (to
+grounded taxonomy that categorizes the collected behaviors              overcome friction during sweeping motions).
+                                                                                                                                    7
+
+
+
+  •   Grasping: A highly versatile category encompassing a           intuitive distinction in how tactile sensors are spatially and
+      broad spectrum of force profiles. It utilizes precise normal   dynamically engaged across different manipulation patterns.
+      force control to safely handle fragile items, leverages          • Precision-oriented tasks (e.g., Assembly, Grasping, Ad-
+      contact feedback to verify secure holds on visually chal-          justment): These manipulations are predominantly asso-
+      lenging (e.g., transparent) objects, and exploits combined         ciated with the lowest deciles in both contact area (with
+      normal-shear dynamics to optimize the manipulation of              66% of occurrences in the 0 − 10% range) and force
+      complex articulated mechanisms.                                    intensity. This distribution reflects the underlying nature
+   3) Tactile Pattern Analysis: To quantitatively validate the           of these tasks, which rely on delicate, localized fingertip
+proposed task taxonomy and analyze the underlying data dis-              contacts and sensitive low-magnitude force feedback to
+tribution, we embed the high-dimensional tactile signals from            adjust object poses or prevent damage precisely.
+all six pattern categories into a two-dimensional latent space         • Power-oriented or surface-oriented tasks (e.g., Cutting,
+using t-SNE, as shown in Fig. 4(f). The embedding reveals                Peeling, Wiping): In contrast, these tasks exhibit extensive
+a highly structured and physically interpretable distribution.           sensory activation. Their contact area distributions peak
+Notably, tasks dominated by continuous, high-frequency shear             prominently in the 70%−90% range, indicating full-patch
+and dynamic normal forces, such as Wiping and Peeling, form              engagement of the sensor surface to maintain frictional
+overlapping or closely adjacent clusters, reflecting their shared        contact. Moreover, Cutting shows a marked shift toward
+underlying contact mechanics. In contrast, tasks governed                higher force intensities (peaking in the 40% − 50% range
+primarily by static normal pressure and localized geometric              of sensor capacity), which is necessary for penetrating
+contacts, such as Assembly, yield distinct and well-separated            materials and overcoming physical resistance.
+manifolds. The Grasping category occupies a broad and ex-               Together, these multi-dimensional statistics demonstrate that
+pansive region in the feature space, consistent with its inher-      OmniViTac is not merely a collection of random contacts, but
+ent intra-class diversity spanning delicate handling of fragile      a highly structured and physically grounded benchmark, well-
+objects to manipulation of complex articulated mechanisms.           suited to support advanced research in visuo-tactile perception
+This clear semantic separability within the tactile latent space     and contact-rich policy learning.
+underscores that OmniViTac captures rich, pattern-specific
+contact dynamics rather than redundant or noisy signals.
+                                                                                         IV. M ETHODOLOGY
+C. Dataset Statistics and Scale                                      A. System Overview
+   1) Overview Statistics: To rigorously benchmark the scale,           To achieve stable and robust contact-rich manipulation, we
+diversity, and fidelity of OmniViTac, we provide a compre-           introduce OmniVTA, a hierarchical slow-fast manipulation
+hensive statistical analysis of all collected trajectories, with     policy built upon a visuo-tactile world model, as illustrated
+an emphasis on task distributions and their associated spatio-       in Fig. 5. OmniVTA explicitly decomposes manipulation into
+temporal tactile properties. As illustrated in Fig. 4(e), the        slow planning and fast reflexive control. The Slow Policy
+dataset captures a broad range of visuo-tactile patterns com-        integrates the Visuo-Tactile World Model (VTWM) and the
+monly encountered in daily manipulation tasks. The “grasp-           Adaptive Visuo-Tactile Fusion Policy (AFP) to perform long-
+ing” category constitutes the largest subset, comprising 9,200       horizon action chunk planning from low-frequency visual ob-
+trajectories. Other manipulation categories also account for         servations, high-frequency tactile signals, and proprioceptive
+a significant portion of the dataset, each comprising ap-            states. To improve efficiency, the world model predicts future
+proximately 3,000 or 1,000 trajectories, with all categories         tactile signals without generating visual observations during
+remaining within the same order of magnitude. This balanced          inference, enabling higher-frequency rollout while preserving
+composition ensures sufficient data density for both general-        contact-relevant dynamics. The Fast Policy is implemented
+purpose pre-training and task-specific fine-tuning.                  as a Reflexive Latent Tactile Controller (RLTC), inspired by
+   2) Tactile Active Ratio: A key metric for evaluating              the reflexive control paradigm [48], [49], which outputs fine-
+contact-rich datasets is the Effective Contact Ratio, defined as     grained corrective actions at 60 Hz based on both predicted
+the proportion of a trajectory during which the tactile sensors      and observed tactile signals. This controller refines the action
+register meaningful tactile interaction. As shown in Fig. 4(d),      sequences generated by the slow policy by combining the
+Adjustment exhibits the highest active ratio (0.67) with rel-        planned actions with the controller outputs through a weighted
+atively low variance, primarily because in-hand reorientation        summation, where the controller contribution is scaled by
+demands continuous contact with the tool or object to monitor        a predefined coefficient before execution on the robot. This
+slip and state changes. Similarly, tasks such as Wiping (0.49)       slow-fast decomposition enables both long-horizon planning
+and Peeling (0.41) require prolonged frictional interaction.         and high-frequency reflexive control, which are critical for
+In contrast, Cutting yields the lowest active ratio (0.27) and       contact-rich manipulation.
+exhibits high variance, as these patterns typically involve an          In the following, we detail the components of OmniVTA.
+extended phase of visual alignment and pre-contact approach          Sec. IV-B introduces the TactileVAE for tactile feature extrac-
+before the brief, high-force severing event.                         tion. Sec. IV-C presents the Visuo-Tactile World Model, which
+   3) Pattern-level Contact Area and Force Intensity: The            captures contact dynamics via joint visual-tactile prediction.
+heatmaps in Fig. 4(a) and (b) reveal a clear and physically          Sec. IV-D describes the adaptive fusion policy with a gated
+                                                                                                                                                                      8
+
+
+
+
+                                                                          System Overview
+         Image (15Hz)
+                                                      Slow Policy (4Hz)                                                    Fast Policy (60Hz)
+
+                                                                                                                     𝐳𝒕𝟏       RLTC         𝒂𝟏𝒓   𝒂𝟏𝒄      𝒂𝟏
+
+        Tactile (60Hz)
+                                    Visuo-Tactile                  Adaptive Visuo-
+                                    World Model                  Tactile Fusion Policy
+                                                                                                                     𝐳𝒕𝟐       RLTC         𝒂𝟐𝒓   𝒂𝟐𝒄      𝒂𝟐
+
+
+
+                              𝐳𝒗𝟏 𝐳𝒗𝟐   𝐳𝒗𝑲 𝐳𝒕𝟏 𝐳𝒕𝟐    𝐳𝒕𝑲          𝒂𝟏𝒄   𝒂𝟐𝒄   𝒂𝑲
+                                                                                 𝒄                                   𝐳𝒕𝑲       RLTC         𝒂𝑲
+                                                                                                                                             𝒓    𝒂𝒄𝑲     𝒂𝑲
+     Proprioception (60Hz)
+                               Generated     Generated              Action Chunk 𝑨𝒄                                                                     Execution
+                                                                                                  Tactile Feedback
+                             Image Feature Tactile Feature                                                                                               (60Hz)
+                                                                                                        (60Hz)
+
+
+
+Fig. 5: System Overview. OmniVTA is a hierarchical slow–fast policy for contact-rich manipulation. The slow policy contains
+a visuo-tactile world model and an adaptive fusion policy to generate long-horizon action chunks from multi-modal inputs.
+The fast policy outputs high-frequency refinements at 60 Hz using tactile feedback. Final actions are a weighted summation
+of slow-planned and fast-refined outputs, enabling both long-horizon planning and reactive control for robust manipulation.
+
+
+mechanism [50] for integrating visual and tactile features.                              2) Decoder: Instead of reconstructing pixels as in con-
+Sec. IV-E details the Reflexive Latent Tactile Controller.                            ventional VAEs, we employ an implicit neural representation
+                                                                                      (INR) [51] decoder to model a continuous tactile deformation
+                                                                                      field conditioned on spatial coordinates. Implicit represen-
+B. TactileVAE                                                                         tations are well-suited for modeling continuous signals and
+   TactileVAE aims to rapidly extract low-dimensional, contin-                        have been widely used in computer vision tasks such as
+uous, and task-agnostic tactile representations for downstream                        geometric reconstruction [52], [53] and dense prediction [54],
+prediction and policy learning. For optical tactile sensors,                          [55]. Since marker displacement arises from the continuous
+instead of using high-resolution tactile images, we adopt                             deformation of the elastomer surface under contact, we model
+3D marker displacement as tactile input. This representation                          the deformation field as a continuous function:
+captures contact-induced surface deformation while maintain-
+ing significantly lower resolution, enabling efficient feature                                           d(x) = Dθ (γ(x), Φ(zt , x)) ,                              (1)
+extraction and higher-frequency inference. The structure of                           where x ∈ R2 denotes the spatial coordinate, zt is the latent
+the TactileVAE is shown in Fig. 6, which contains a spatial-                          feature map, γ(·) represents positional encoding, Φ(zt , x)
+temporal encoder and an implicit deformation decoder.                                 retrieves local features from zt via spatial interpolation, and
+   1) Encoder: We construct a spatio-temporal encoder to                              Dθ is an MLP decoder that predicts the 3D deformation
+extract compact tactile token representations. Since the mark-                        d(x) ∈ R3 . During training, we uniformly sample query points
+ers on the tactile surface are uniformly distributed, a single-                       in the latent feature map and extract their local features, which,
+frame tactile observation can be represented as a tensor of                           together with the corresponding positional encodings, are fed
+size H × W × 3 where H and W denote the number of                                     into the decoder to predict the corresponding 3D deformation
+markers along the y- and x-axes, respectively, and the channel                        vector. This yields a continuous reconstruction of the tactile
+dimension corresponds to the marker displacement along the                            surface deformation field.
+x, y, and z directions.                                                                  3) Training Loss: For supervision, the ground-truth defor-
+   As tactile sensing typically operates at a higher frequency                        mation d̂(x) at each query point x is obtained by interpolating
+than vision, we perform joint temporal and spatial compression                        the original 3D deformation. The TactileVAE is trained with
+to reduce the number of tactile tokens and align them with                            a reconstruction loss and a KL regularization term [56]:
+visual tokens in time. To this end, we adopt a 3D convolution-
+based variational autoencoder (VAE) and pretrain it on a large                                   LTacVAE = ∥d(x) − d̂(x)∥22 + λKL LKL .                             (2)
+corpus of real tactile data to learn low-dimensional, task-
+agnostic latent features.                                                             C. Visuo-Tactile World Model
+   As illustrated in Fig. 6, the encoder consists of a projection-                       In this section, we present the Visuo-Tactile World Model,
+in layer (causal 3D convolution), M downsampling modules,                             which adopts a two-stream conditional generative framework
+and a projection-out layer (causal 3D convolution). The input                         and explicitly models the temporal evolution of visual observa-
+is encoded into a latent feature map of size Hs × W       s × C,                      tions and tactile signals, thereby learning a dynamic prior for
+where s = 2M is the spatial downsampling factor and C is the                          multimodal interactions. Overall, it consists of three key mod-
+latent dimension. We adopt causal 3D convolutions along the                           ules. The two-stream world model separately characterizes the
+temporal axis so that the latent representation at time t depends                     dynamic generation process of the visual and tactile modalities
+only on current and past observations, ensuring consistency                           while performing coordinated prediction under a shared condi-
+between training and real-time deployment.                                            tion. The multimodal observation conditioner jointly encodes
+                                                                                                                                                                                                                                                                                               9
+
+
+
+                                                                TactileVAE with Implicit Deformation Decoder                                                                                                                   shared linear projection space to produce a fixed-dimensional
+                                                                                                                                                                                       Reconstructed                           conditioning vector. This vector is injected as a shared prior
+                                                                                                                                                                                     Deformation Field 𝐝መ
+                                                                                                             MLP
+                                                                                   Sampled
+Temporal Deformation 𝐝
+                                                                                 Query Points 𝐱                        Positional
+                                                                                                                                                                                                                               into both the tactile and visual world models, aligning the
+                                                                                                                       Features
+                                                                                                                                                                                                                               two branches and improving cross-modal consistency during
+                                                                  VAE                                                                              Implicit
+                                                                                                                                                                                                                               dynamic prediction.
+                                                                Encoder                                                                            Decoder
+                                                 𝒕𝒊
+                                                                                               𝐳𝒕
+                                                                                                                                                                                                                          𝒕𝒊      3) Dynamic-aware Weighted Loss: To supervise high-
+                                                                                                                                                                                                                      𝒕𝒊+𝒏
+                                             𝒕𝒊+𝒏
+                                                                                                                                                                                                                               frequency dynamic changes in tactile signals more effectively,
+                                                                                                                                                                                                                               we introduce a Dynamic-Aware Weighted Loss. Specifically,
+ CausalConv3D   ST-Res Block   Down Sample       ST-Res Block     CausalConv3D                                                      CausalConv3D       ST-Res Block   ST-Res Block   Up Sample        FC-Res Block
+                                                                                                                                                                                                                      Linear   the loss constructs a dynamic weight map based on local
+                                                                                                                                                                                                                               temporal differences of the tactile sequence to capture time-
+                                             ×𝑴                                       Linear interpolation         Local Features
+                                                                                                                                                                                                 ×𝑴                            varying activity at different spatial locations:
+Fig. 6: Overview of TactileVAE. The model encodes 3D
+                                                                                                                                                                                                                                                                                
+                                                                                                                                                                                                                                        wdyni = resize clip[0,1] (∥Xi+1 − Xi ∥2 ) ,       (4)
+marker displacements into spatio-temporal features, and recon-
+structs the deformation via an implicit decoder that represents                                                                                                                                                                where Xk denotes the tactile frame at the k-th timestep, and
+the deformation as a continuous field.                                                                                                                                                                                         resize(·) resizes the weight map from the raw tactile resolution
+                                                                                                                                                                                                                               to the latent resolution. The dynamic-aware loss is defined as
+                                                                                                                                                                                                                               the weighted simple diffusion loss:
+vision, tactile, and actions, providing consistent conditioning
+for the generation process. The dynamic-aware weighted loss                                                                                                                                                                                     "K
+                                                                                                                                                                                                                                                  X
+                                                                                                                                                                                                                                                                                               #
+                                                                                                                                                                                                                                                       i                                     2
+further emphasizes regions with high-frequency tactile varia-                                                                                                                                                                   Ldyn = Ezo ,ϵ,t       wdyn ⊙ (1 − mi ) ⊙ ∥ϵi − ϵθ (zo , t)i ∥2 .
+tions and salient contact responses, improving the modeling                                                                                                                                                                                      i=2
+of fine-grained tactile dynamics.                                                                                                                                                                                                                                                        (5)
+   1) Two-stream World Model: To model the evolution of                                                                                                                                                                        In addition, an amplitude weight map is constructed from
+visual observations and tactile states during policy execution,                                                                                                                                                                the response magnitude of the tactile signal to represent the
+we build a two-stream visuo-tactile world model, as shown in                                                                                                                                                                   distribution of local contact intensity:
+Fig. 7 (a). Both branches employ a spatial-temporal diffusion                                                                                                                                                                                                                 
+transformer [57], which stacks transformer blocks along tem-                                                                                                                                                                                 wampi = resize clip[0,1] (∥Xi ∥2 ) .        (6)
+poral and spatial axes. Specifically, the model takes the past
+c frames as conditioning and iteratively denoises to generate                                                                                                                                                                  The amplitude loss is defined as
+multiple future frames, yielding a probabilistic model of future                                                                                                                                                                               "K                                       #
+dynamics. The diffusion objective is defined as
+                                                                                                                                                                                                                                                X
+                                                                                                                                                                                                                                                     i                         i
+                                                                                                                                                                                                                                                                                     2
+                                                                                                                                                                                                                               Lamp = Ezo ,ϵ,t     wamp ⊙ (1 − mi ) ⊙ ϵi − ϵθ zo , t 2 ,
+                                                                                    "K                                                                                                                #                                          i=2
+                                                                                     X                                        2
+                                                                                                                                                                                                                                                                                             (7)
+ Ldiffusion = Ezo ,ϵ,t                                                                        (1 − mi ) ⊙ ∥ϵi − ϵθ (zo , t)i ∥2                                                                                      , (3)        The two weight maps are then aligned to the spatial reso-
+                                                                                       i=1                                                                                                                                     lution of the tactile latent representation and jointly used to
+                                                                                                                                                                                                                               modulate the reconstruction loss during training. This weight-
+               
+where zo = z1o , . . . , zK
+                          o  denotes a sequence of observation
+latents (including tactile latent zt and visual latent zv ), and                                                                                                                                                               ing strategy explicitly highlights regions with rapid dynamics
+ϵθ (zo , t) predicts the noise for the entire sequence. Each                                                                                                                                                                   and strong contact responses during optimization, thereby
+zio corresponds to the encoded observation at timestep i.                                                                                                                                                                      improving the modeling of high-frequency tactile patterns,
+The mask m provides temporal conditioning, encouraging the                                                                                                                                                                     local contact changes, and fine-grained temporal structure.
+model to leverage historical observations for predicting future                                                                                                                                                                Finally, the overall objective is a weighted sum of the diffusion
+states. At the modality encoding layer, the visual branch uses                                                                                                                                                                 loss and the dynamic-aware weighted loss:
+an SD-VAE [58] to extract image latents, while the tactile
+branch employs the TactileVAE pretrained in the previous                                                                                                                                                                                 LV T W M = Ldiffusion + λ1 Ldyn + λ2 Lamp ,        (8)
+stage to compress tactile signals. After obtaining the latent
+                                                                                                                                                                                                                               where λ1 and λ2 are the loss weights for the dynamic and
+representations of vision and touch, the two modalities are
+                                                                                                                                                                                                                               amplitude terms, respectively.
+fed into their corresponding spatial-temporal diffusion models,
+enabling parallel modeling and joint generation.
+   2) Multi-modal Observation Conditioner: To model joint
+                                                                                                                                                                                                                               D. Adaptive Visuo-Tactile Fusion Policy
+visual-tactile dynamics effectively, we design a multi-modal
+conditional encoder for visual-tactile-action interactions. This                                                                                                                                                                 We propose the Adaptive Visuo-Tactile Fusion Policy, which
+module first performs feature extraction and temporal aggrega-                                                                                                                                                                 adaptively balances visual and tactile information based on the
+tion separately for visual observations, tactile embeddings, and                                                                                                                                                               predicted contact state for stable action planning. The policy
+action sequences, where each action is represented as the 2D                                                                                                                                                                   comprises three components: a Latent Tactile Differential
+image-plane projection of the 3D end-effector position. We ob-                                                                                                                                                                 (LTD) Encoder for tactile representation, an Adaptive Visuo-
+serve that this representation improves robustness to variations                                                                                                                                                               Tactile Fusion module for modality weighting, and a Visuo-
+in manipulation locations. The modalities are then fused in a                                                                                                                                                                  Tactile Diffusion Policy for action generation.
+                                                                                                                                                                                                                                                                          10
+
+
+
+
+                                          (a) Visuo-Tactile World Model                                                                                                   (b) Adaptive Visuo-Tactile Fusion Policy
+
+       Noise Input                                  Spatial-Temporal DiT                                ×𝑵   Latent Output        Latent Tactile Differential Encoder                                                       Visuo-Tactile Diffusion Policy
+
+
+
+
+                                                                                                                                 SpatialConv2D                            TempoConv1D
+                                                                                                                                                                                                                                                                   𝑾𝒕
+
+
+                                                                                                                                                 Max Pooling                                       Max Pooling
+                                                                                                                                                                                                                                 MLP             MLP
+                                                                                                                                                                                                                  𝒑
+                                                                                                                                                                                                                 𝒇𝒕
+                                    Spatial Self-                     Temporal Self-                                                                            …
+                                                          FFN                                     FFN
+                                     Attention
+                                                                                                                                                                                                                                                                   𝑾𝒗
+                                                                        Attention                                                                                                                                       Linear     Contact Probability
+                                                                                                                                                                    𝒇𝒄𝒕                                                    ෩𝒕                            Noise Action
+                                                                                                                                                                                                                           𝒇
+
+                                                                                                                                 Current Tactile Latent
+                                                                                                                                                                                                                            𝑾𝒕
+                                                                                                                    Decode
+
+
+
+                                                                                                                                                                                        ResNet18
+                                                                                                                                                                                                   𝒇𝒗
+                                 ResNet18                       MLP
+                                                                                                                                                                                                                         c 𝒇𝒄
+                                                                                           TactileVAE                                                                                                                                           1D U-Net
+         Noise Latent                                                                                                                                                                                             𝑾𝒗
+                                                                                                                                                                                                                             Condition
+             ＋                                                                                                Generated                           Images
+      RGB & Tactile Latent
+                                                                                                             RGB & Tactile
+
+
+
+                                  Images            Historical Trajectory              Dual-finger Tactile                                                     Proprioception 𝒔                                        Estimated Noise
+
+
+Fig. 7: Overview of the Slow Policy. (a): The proposed Visuo-Tactile World Model takes noisy tactile and visual latent
+sequences as input and jointly generates both modalities via a two-stream spatio-temporal diffusion transformer. (b): The
+Adaptive Visuo-Tactile Fusion Policy employs a Latent Tactile Differential Encoder to effectively encode the observed and
+predicted tactile and a gating mechanism to adaptively balance tactile and visual information for robust action planning.
+    1) Latent Tactile Differential (LTD) Encoder: Tactile sig-                                                               by a sigmoid activation. Contact labels are automatically
+nals exhibit strong spatial locality and remain largely inactive                                                             generated by thresholding the tactile deformation magnitude:
+before contact, becoming informative only when physical                                                                      values exceeding a predefined threshold are labeled as contact,
+interaction occurs. Previous approaches typically concatenate                                                                while others are treated as non-contact. The module is trained
+historical tactile observations with visual features as pol-                                                                 using BCE loss Lbce .
+icy inputs, which cannot explicitly capture potential contact                                                                   Based on the predicted interaction state, we further construct
+dynamics and their consequences, limiting performance in                                                                     a gating network consisting of two fully connected layers. The
+contact-rich manipulation.                                                                                                   network takes the concatenation of the contact logit and tactile
+    Inspired by the human feedforward prediction mechanism,                                                                  feature ft as input and outputs normalized modality weights
+we introduce a Latent Tactile Differential (LTD) Encoder                                                                     Wt and Wv , which modulate the tactile and visual features,
+that captures potential contact states and interaction dynamics                                                              respectively. Wt and Wv are per-channel weights normalized
+by modeling the difference between predicted future tactile                                                                  such that Wt +Wv = 1. Since the tactile representation already
+features and the current tactile observation. Specifically, the                                                              encodes future tactile dynamics through the world model,
+current tactile feature map is spatially aggregated using 2D                                                                 the gating network does not require visual inputs, reducing
+convolution and max pooling to obtain a global representation                                                                model complexity and improving computational efficiency.
+ftc . Predicted multi-frame tactile features are first aggregated                                                            Before fusion, the tactile feature ft is projected to the same
+spatially for each frame and then temporally using 1D convo-                                                                 dimensionality as the visual feature using a linear layer,
+lution and max pooling to produce ftp . The final tactile repre-                                                             producing the projected tactile feature f˜t . The fused visuo-
+sentation is constructed through channel-wise concatenation of                                                               tactile representation is therefore computed as
+the current feature, the predicted feature, and their difference:
+                                                                                                                                                                                                
+                                                                                                                                                                  fvt = concat Wv ⊙ fv , Wt ⊙ f˜t ,                                                                     (10)
+                             ft = concat(ftc , ftp , ftp − ftc ),                                                  (9)
+where ftc is extracted from the tactile observation, while ftp                                                               where fv denotes the visual feature extracted by a ResNet-18
+denotes the tactile latent predicted by the visuo-tactile world                                                              encoder. Notably, we use only the current and historical visual
+model. The differential term highlights discrepancies between                                                                observations without incorporating future visual prediction,
+predicted and current tactile signals, providing informative                                                                 since the current image already provides sufficient global
+cues for potential contact events and interaction dynamics.                                                                  context for action planning, while the predicted tactile features
+   2) Adaptive Visuo-Tactile Fusion: To effectively integrate                                                                capture potential contact dynamics, making visual prediction
+visual and tactile information, we design a gating-based                                                                     unnecessary and reducing model complexity.
+adaptive fusion module that modulates modality contributions                                                                    3) Visuo-Tactile Diffusion Policy: We model the visuo-
+according to the interaction state.                                                                                          tactile manipulation policy as a conditional denoising diffusion
+   Inspired by FoAR [59], we first construct a contact proba-                                                                model [60] conditioned on the fused visuo-tactile represen-
+bility prediction module to estimate the likelihood of physical                                                              tation fvt and robot proprioception s. The policy gener-
+contact occurring within a future time window. The predicted                                                                 ates a short-horizon action chunk by progressively denoising
+contact probability serves as a modulation signal for modality                                                               Gaussian noise. Specifically, the diffusion model predicts a
+fusion. This module takes the tactile representation ft as input                                                             sequence of coarse actions Ac = (a1c , a2c , . . . , aH
+                                                                                                                                                                                   c ), where Ac
+and predicts the contact probability using an MLP followed                                                                   denotes an action chunk consisting of H coarse actions.
+                                                                                                                                                                   11
+
+
+
+   Starting from Gaussian noise Ac,T , the denoising network                                        Reflexive Latent Tactile Controller
+ϵθ iteratively refines the action chunk through T steps to obtain
+the clean action sequence Ac,0 :
+                                                                                                                Transform to
+                                                                                                                                 MLP
+    Ac,t−1 = αt Ac,t − γk ϵθ (Ac,t , t, fc ) + σt N (0, I),            (11)                                    TCP coordinate
+                                                                                          Delta State
+
+   where N (0, I) denotes Gaussian noise and αt , γt , and
+                                                                                                              Tactile                          MLP
+σt are scheduler-dependent coefficients. This reverse diffu-
+                                                                                                               VAE                                    Refined
+sion update resembles Stochastic Langevin Dynamics [61],                                repeat × 𝑴
+
+
+                                                                                                                                 LTD Encoder
+                                                                                                                                                     Action 𝒂𝒓
+                                                                                       Tactile Feedback
+where the noise predictor implicitly parameterizes the score
+function. During training, the model is conditioned on fc =
+
+                                                                                                                   Up Sampling
+concat(fvt , s) and optimized using the DDPM objective
+                                                                                        Predicted Tactile
+                       h                                        2i                         Feature
+ Lact = Et, Ac,0 ,ϵt       ϵt − ϵθ ᾱt Ac,0 + β̄t ϵt , t, fc     2
+                                                                      . (12)
+                                                                               Fig. 8: Overview of the Reflexive Latent Tactile Controller
+   To incorporate the conditional information, we adopt a                      (RLTC). It takes single-frame tactile feedback, predicted tac-
+CNN-based diffusion architecture where the conditioning fea-                   tile latents, and robot/gripper delta states as input to produce
+ture fc is injected through FiLM modulation [62].                              high-frequency (60 Hz) refined single-step corrective actions.
+   4) Training Loss: The Adaptive Visuo-Tactile Fusion Pol-
+icy is jointly optimized with an action loss Lact and a contact
+prediction loss Lbce . The overall objective is defined as:                    human-collected trajectories. Tactile observations that fall out-
+                                                                               side this distribution (i.e., exhibiting excessively large or small
+                       LAF P = Lact + λct Lbce .                       (13)    contact forces) are identified as abnormal states.
+                                                                                  We then extract recovery segments where the system transi-
+                                                                               tions from abnormal tactile states back to the valid distribution,
+E. Reflexive Latent Tactile Controller
+                                                                               representing corrective behaviors demonstrated by human op-
+   Since the action chunk generated by the Visuo-Tactile                       erators. For each time step in these segments, we construct
+Diffusion Policy is executed in an open-loop manner, we                        training pairs consisting of the current tactile observation,
+introduce a Reflexive Latent Tactile Controller to provide high-               the predicted tactile feature, and the corresponding corrective
+frequency tactile feedback and enable closed-loop control.                     action âr . The controller is trained to predict the corrective
+   1) Model Design: The RLTC takes a single-frame tactile                      action ar using a mean squared error (MSE) loss:
+feedback, predicted tactile feature and robot states to output
+high-frequency refined action. Specifically, as the TactileVAE                                              LRLT C = ∥ar − âr ∥22 ,                             (14)
+compresses tactile observations along the temporal dimen-
+sion by a factor of M , the single-frame tactile feedback                      which encourages the controller to learn high-frequency
+is temporally repeated M times to form a short sequence                        tactile-driven corrections that stabilize contact interactions.
+compatible with the encoder, and then encoded into latent
+tactile features using the TactileVAE. Similarly, as the tactile                                V. E XPERIMENTAL E VALUATION
+predictions from the world model are generated at a lower
+temporal resolution due to latent compression, we upsample                        Our experiments are organized into three parts. First, we
+the predicted tactile latent sequence using nearest-neighbor                   describe the experimental setup and implementation details.
+interpolation to match the frequency of the observed tactile                   Second, we evaluate the overall performance of OmniVTA
+feedback, enabling one-to-one temporal alignment between                       on manipulation tasks involving diverse tactile interaction
+predicted and observed tactile features. The LTD Encoder is                    patterns. Then, we conduct comprehensive ablation studies
+then applied to jointly encode the current tactile feature and                 to analyze the contribution of each module in the proposed
+the corresponding predicted future tactile feature at each time                policy. Specifically, we investigate the following questions:
+step, producing a tactile representation. Meanwhile, the robot’s               (1) whether the TactileVAE can effectively encode tactile
+historical delta actions over the past h steps are transformed                 signals; (2) whether the proposed visuo-tactile world model
+into the TCP coordinate frame and concatenated with the                        can predict future tactile signals more accurately than alter-
+corresponding delta gripper states to form a trajectory feature.               native tactile prediction approaches; (3) whether incorporating
+Finally, the tactile representation and trajectory feature are                 predicted future tactile signals improves policy performance
+concatenated and fed into a three-layer MLP to output a single-                and whether the proposed usage of predicted tactile informa-
+step refined action ar .                                                       tion in OmniVTA is effective; and (4) whether the Reflexive
+   2) Training Loss: To train the Reflexive Latent Tactile                     Latent Tactile Controller can generate reasonable fine-grained
+Controller, we learn corrective actions under abnormal contact                 corrective actions and how much it improves policy execution.
+conditions. For each task category, we first estimate a valid                  We further analyze the contribution of each design component
+tactile distribution with its mean and standard deviation from                 through detailed ablation studies.
+                                                                                                                                      12
+
+
+
+TABLE II: Objects used for training and manipulation across different robotic tasks. Each object is associated with 150
+manipulation trajectories in the dataset for training world models and manipulation policies.
+
+     Task           Object Used for Training                                        Object Used for Manipulation
+     Wipe           vases in 4 different colors and shapes, plate, and whiteboard   vases in 4 different colors and shapes
+     Peel           cucumber, Chinese yam, radish, carrot, and white daikon         cucumber, Chinese yam, radish
+     Cut            cucumber, Chinese yam, carrot, pepper, and banana               cucumber, Chinese yam, pepper, banana
+     Assembly       3 colors of USB stick and 3 types of charging adapters          red USB stick and silver USB stick
+     Grasp          blueberry, strawberry, grape, cherry, and cherry tomato         blueberry, strawberry, grape, and cherry tomato
+     Adjustment     test tube, pencil, cuboid, cylinder, and triangular prism       cuboid, cylinder
+
+
+A. Experimental Setup                                                    2) Hardware Setup: The experimental platform consists
+                                                                      of a UFactory xArm7 robotic arm equipped with a parallel
+   1) Training Details: Our OmniVTA framework is trained in           two-finger gripper and two fingertip tactile sensors. An Intel
+four stages: training the TactileVAE, training the Visuo-Tactile      RealSense D435 camera mounted on the robot wrist provides
+World Model, training the Adaptive Visuo-Tactile Fusion               RGB observations at 15 Hz, while the tactile sensors capture
+Policy, and training the Reflexive Latent Tactile Controller.         tactile signals at 60 Hz. For the TactileVAE validation experi-
+Training of TactileVAE. For training the TactileVAE, we               ments, three types of tactile sensors are used: GelSight Mini,
+use tactile data from 20% of the manipulation trajectories,           Tac3D, and Xense. The resolutions of their reconstructed 3D
+together with additional tactile interaction data collected from      displacement fields are 7×9, 20×20, and 35×20, respectively.
+interactions between 10 extra objects and the tactile sensors.        In the real-world manipulation experiments, we use only the
+The resulting dataset contains approximately 1.2M tactile             Xense sensors.
+samples. Both TactileVAE and the VAE baselines are trained               3) Baselines: We select representative baseline methods to
+for 50 epochs using 8 NVIDIA A100 GPUs. The loss weights              evaluate the effectiveness of the proposed TactileVAE, Visuo-
+are set to λKL = 1e − 6.                                              Tactile World Model, and the overall OmniVTA framework.
+Training of Visuo-Tactile World Model. We first construct             TactileVAE baselines. We compare the proposed TactileVAE
+a dataset to train the Visuo-Tactile World Model, comprising          with two representative tactile encoding methods: PCA-based
+six categories of tactile interaction patterns. For each category,    features and a point cloud-based autoencoder [63].
+5–6 objects are selected, and 150 manipulation trajectories per       Tactile prediction baselines. We compare our Visuo-Tactile
+object are collected using TacUMI and the xArm7. The data             World Model against three representative paradigms for multi-
+are split into training and test sets with a 90%/10% ratio. A         modal generative modeling.
+detailed breakdown of the dataset is provided in Table II.               • Unified multimodal generation: UVA [64] models video
+   For training the Visuo-Tactile World Model, we use AdamW                 frames and actions as a unified token sequence and
+with a learning rate of 1 × 10−4 and weight decay 0. The per-               jointly generates them using a single generative model.
+GPU batch size is 5, and the total number of training steps                 We extend this formulation by injecting tactile tokens.
+is 100,000. The gradient norm threshold is set to 0.1, with              • Joint trajectory diffusion: ForceMimic [65] and
+gradient clipping enabled after 20,000 steps. The loss weights              KineDex [66] concatenate interaction forces with actions
+are set to λdyn = 1.0 and λamp = 1.0.                                       and learn diffusion-based policies conditioned on visual
+Training of Adaptive Visuo-Tactile Fusion Policy. We used                   observations. In our implementation, we replace force
+the same training set to train the Adaptive Visuo-Tactile Fusion            inputs with tactile feature embeddings extracted using a
+Policy. For each interaction category, the data are combined                lightweight MLP autoencoder.
+to train a unified visuo-tactile generation and manipulation             • Conditional modality prediction: exUMI [41] gener-
+model (OmniVTA), as well as other policy baselines. The                     ates future tactile signals using a latent diffusion model
+Adaptive Visuo-Tactile Fusion Policy is trained for 250k steps.             (LDM) conditioned on visual observation and action.
+Other manipulation baselines are trained for 350k steps to                  Since our method assumes only historical observations
+compensate for the absence of additional perception modules.                are available at inference, future action inputs are re-
+The loss weights are set to λct = 0.2.                                      placed with historical action sequences.
+Parameter settings. Following prior work, we adopt relative           Contact-rich policy baselines. We compare against several
+actions as the action representation. During training, visual         state-of-the-art imitation learning policies:
+observations are sampled at 15 Hz, tactile signals at 60 Hz,             • DP [60]: Diffusion Policy using wrist-view RGB obser-
+and robot proprioception at 60 Hz. The policy outputs action                vations and open-loop action chunk execution.
+chunks at 15 FPS. For observations, both OmniVTA and all                 • DP+tactile: Diffusion Policy augmented with tactile fea-
+baselines use the current and previous visual frames (2 frames              tures encoded by PCA.
+in total), the corresponding 8 tactile frames within the same            • KineDex [66]: a diffusion policy that jointly predicts
+temporal window, and 2 proprioceptive observations as policy                actions and forces from visual observations.
+inputs. Each action chunk predicts the next 6 actions, which             • ForceMimic [65]: a diffusion policy conditioned on 3D
+are interpolated to 60 Hz during execution.                                 observations that jointly predicts actions and forces.
+                                                                                                                                       13
+
+
+
+  • RDP [5]: a reactive diffusion policy with a slow diffusion         is considered successful only if the object is fully inserted
+    planner and a fast tactile-based reactive controller.              or grasped without damage. For adjustment tasks, success is
+  • OmniVTA (ours): our method with a visuo-tactile world              defined as achieving a pose change that exceeds a predefined
+    model and a dual-system manipulation policy consisting             angular threshold (60°).
+    of a diffusion planner and a reflexive tactile controller.         Results. The overall real-robot manipulation results are visu-
+  • OmniVTA w/o RLTC: our method without the reflexive                 alized in Fig. 10, and the corresponding overall success rates
+    controller, executing diffusion-planned action chunks in           are reported in Table III. In the object diversity evaluation,
+    a open-loop manner.                                                OmniVTA achieves the best performance across all six tasks,
+                                                                       demonstrating the effectiveness of the proposed framework.
+                                                                       Adding the closed-loop controller further improves perfor-
+                                                                       mance compared with the open-loop variant (OmniVTA w/o
+                                                                       RLTC), highlighting the importance of feedback control in
+                                                                       contact-rich manipulation.
+                                                                          We also observe that, for contact-rich tasks involving strong
+                                                                       physical interactions (e.g., wiping, peeling, cutting), the per-
+                                                                       formance gain from the reactive policy in RDP (compared with
+                                                                       DP+tactile) is smaller than the improvement brought by our
+                                                                       reflexive controller. This is because our controller leverages
+                                                                       predicted tactile signals as targets to regulate the robot’s
+                                                                       motion, enabling reliable contact while preventing excessive
+                                                                       contact forces. During the contact phase, the average tangential
+                                    Unseen Knife                       deformation measured by our tactile sensors is 0.35 with a
+                                                                       maximum of 0.72. In contrast, the reactive policy in RDP often
+      Fig. 9: Objects used in the manipulation tasks.                  produces overly strong contacts that damage the sensors, with
+                                                                       an average deformation of 0.56 and a maximum of 1.1. In the
+                                                                       unseen-height evaluation, the performance of RDP drops mod-
+B. Overall Performance
+                                                                       erately, while other baselines degrade significantly. In contrast,
+   We evaluate the real-world manipulation performance of              OmniVTA without the closed-loop controller already surpasses
+OmniVTA from three perspectives: object diversity, general-            RDP, indicating stronger robustness to geometric variations. In
+ization, and perturbation robustness.                                  the tool generalization experiment, replacing the knife with a
+Object diversity. For each category, we evaluate the policy on         smaller, unseen tool has little impact on our performance in the
+2–4 different objects, as summarized in Table II and Fig. 9.           cut task. This suggests that the policy relies on tactile feedback
+Before each trial, the object is placed at a random position           rather than memorizing demonstration trajectories. Finally, in
+and fixed during manipulation. For each object, we perform             the perturbation experiments, OmniVTA consistently achieves
+10 trials and report the average success rate.                         the highest success rates. Moreover, the closed-loop controller
+Generalization. We evaluate two types of generalization.               significantly improves performance compared with the open-
+   (1) Position generalization. For the wipe, peel, assembly,          loop variant, demonstrating its ability to quickly recover stable
+and adjustment tasks, objects are placed at two additional             contact during perturbations.
+unseen heights during evaluation. For each object and each
+height, we conduct 5 trials and report the average success rate.       C. Component Analysis
+   (2) Tool generalization. For the cut task, we replace the              1) TactileVAE: We evaluate TactileVAE from two aspects:
+training knife with a previously unseen knife (shown in Fig. 9).       reconstruction accuracy and latent representation quality.
+Each object is tested 10 times using the new tool.                     Reconstruction evaluation. We compare TactileVAE with
+Perturbation robustness. For the wipe, peel, cut, and as-              baseline methods across six categories of tactile interaction
+sembly tasks, we introduce controlled perturbations during             patterns. Reconstruction performance is evaluated using the L2
+execution to disrupt the current contact state. Specifically,          distance and cosine similarity, which measure the magnitude
+the target object is suddenly displaced upward or downward             and directional consistency of the reconstructed 3D deforma-
+along the vertical direction during the interaction phase. This        tion, respectively. The L2 metric is computed over the entire
+perturbation breaks the existing contact state and requires            deformation field, while cosine similarity is computed over
+the policy to re-establish stable contact. For each task, one          non-zero deformation regions only. As shown in Table IV,
+representative object is selected and evaluated over 10 trials.        the proposed TactileVAE consistently achieves the best perfor-
+Evaluation metric. The primary evaluation metric is task suc-          mance across all six categories, demonstrating its effectiveness
+cess rate. A trial is considered successful if the task objective is   in modeling tactile deformation.
+completed and no damage occurs to the tactile sensors during           Latent representation analysis. To further evaluate the
+execution. For wiping, peeling, and cutting tasks, we measure          learned tactile representations, we conduct experiments on
+task completion using the ratio of the successfully processed          three unseen objects under three types of force patterns (press,
+length (e.g., the proportion of removed peel, erased marks,            twist, and slide) using three tactile sensors, two of which are
+or completed cuts). For assembly and grasping tasks, a trial           unseen during training, as shown in Fig. 11(a) and (b). We
+                                                                                                                                                            14
+
+
+
+
+        Wipe
+
+
+
+
+         Peel
+
+
+
+
+         Cut
+
+
+
+
+       Assembly
+
+
+
+
+        Grasp
+
+
+
+
+      Adjustment
+
+          Fig. 10: Real-robot manipulation results. We visualize the manipulation process across six task categories.
+
+TABLE III: Performance comparison of OmniVTA and baseline methods across six tasks under three evaluation settings: object
+diversity (O), generalization (G), and perturbation robustness (P). Results are reported in terms of success rate.
+
+Task                               Wipe                            Peel                     Cut                   Assembly           Grasp Adjustment
+Method / Eval. setting       O        G         P           O       G        P        O      G       P        O      G        P       O           O     G
+
+DP                          0.12     0.05       0          0.06     0        0       0.28   0.10     0     0.10      0       0.05    0.20      0         0
+DP+tactile                  0.36     0.28       0          0.32    0.20     0.08     0.33   0.15    0.13   0.30     0.10     0.10    0.48     0.25     0.15
+KineDex                     0.40     0.25       0          0.24    0.13     0.05     0.38   0.30    0.20   0.30     0.15     0.15    0.65     0.30     0.20
+ForceMimic                  0.33     0.20       0          0.27    0.18      0       0.50   0.25    0.05   0.35     0.15     0.10    0.60     0.10       0
+RDP                         0.50     0.38     0.42         0.48    0.36     0.45     0.65   0.50    0.43   0.60     0.50     0.35    0.88     0.50     0.50
+OmniVTA w/o RLTC            0.66     0.40     0.25         0.40    0.30     0.20     0.50   0.50    0.20   0.40     0.35     0.20    0.70     0.40     0.30
+OmniVTA                     0.80     0.58     0.60         0.55    0.48     0.63     0.85   0.83    0.60   0.60     0.50     0.40    0.90     0.65     0.65
+TABLE IV: Performance comparison of different methods across robotic tasks using L2 and cosine similarity metrics. Lower
+L2 (↓) and higher cos (↑) indicate better performance.
+
+Method                    Wipe                      Peel                     Cut               Assembly               Grasp                 Adjustment
+                   L2 ↓      cos ↑          L2 ↓           cos ↑     L2 ↓          cos ↑    L2 ↓      cos ↑       L2 ↓       cos ↑        L2 ↓        cos ↑
+PCA                0.091     0.810          0.085          0.430     0.109         0.400    0.071     0.720       0.036      0.600        0.069       0.560
+PointNet-AE        0.059     0.910          0.067          0.850     0.062         0.840    0.058     0.900       0.028      0.750        0.047       0.760
+Ours               0.038     0.930          0.033          0.880     0.031         0.940    0.022     0.910       0.011      0.720        0.017       0.850
+
+
+
+record the tactile signals and extract their features using several                 All models are trained using only 5% of the tactile dataset.
+variants of TactileVAE, including:
+                                                                                       For visualization, the spatio-temporal tactile features are
+  • w/o implicit decoder: decodes the latent feature map                            aggregated via max pooling to obtain sequence-level embed-
+    without query-based sampling and query points input.                            dings, which are then visualized using t-SNE. As shown in
+  • w/ position embedding: incorporates positional encoding                         Fig. 11(c), the learned representations exhibit clear clustering
+    during decoding.                                                                across different force patterns, even under cross-sensor set-
+  • w/o spatial feature map: represents the latent as a single                      tings. In contrast, marker-based encoding and variants without
+    token and decodes it with an implicit decoder.                                  positional information fail to produce well-separated clusters,
+  • w/ implicit decoder: decodes the latent feature map via                         highlighting the importance of implicit neural representations
+    an implicit decoder.                                                            for learning discriminative tactile features.
+                                                                                                                                                           15
+
+
+
+TABLE V: Ablation study on the design of TactileVAE. We                                     Ablation study. We further analyze the contribution of several
+evaluate reconstruction performance using the L2 metric.                                    key components in the proposed model.
+  Method                              GelSight-Mini Tac3D-A1 Xense-QN1                         (1) Joint visual–tactile generation. Table VII shows that
+                                                                                            jointly generating future visual features together with tactile
+  w/o implicit decoder                   0.126                 0.098         0.038          features improves tactile prediction accuracy. This indicates
+  w/ position embed.                     0.102                 0.085         0.035          that visual prediction provides complementary global dynamic
+  w/o spatial feature map                0.107                 0.084         0.071          cues that help the model better capture interaction dynamics.
+  w/ implicit decoder                    0.047                 0.058         0.034             (2) Action representation. We compare three types of action
+                                                                                            conditioning in the world model: projected 2D actions, 3D ab-
+                                                                                            solute actions, and 3D relative actions. As shown in Table VII,
+   Finally, we compare two forms of tactile feature repre-                                  the 2D action representation achieves the best generalization
+sentations: local feature maps (patch-based features) and a                                 performance on unseen object positions, followed by relative
+global token obtained via max pooling. As shown in Fig. 11(c)                               actions. This result suggests that the action condition primarily
+and Table V, local feature maps achieve better reconstruction                               conveys motion intent and that 2D actions align more naturally
+accuracy and yield more informative tactile embeddings than                                 with visual observations.
+the global token representation.                                                               (3) Dynamic weighting. The results in Table VII show
+                                                                                            that the proposed dynamic weighting strategy improves tactile
+                                          w/ Implicit Field       w/o Spatial Feature Map   prediction performance. This weighting mechanism explicitly
+                                                                                            emphasizes regions with rapid dynamics and strong contact
+                                                                                            responses during optimization, enabling the model to better
+                                                                                            capture high-frequency tactile patterns, local contact varia-
+                                                                                            tions, and fine-grained temporal structures.
+                                                                                            Perturbation robustness. Finally, we evaluate the robustness
+ (a) Sensor and Objects for Testing                                                         of the Visuo-Tactile World Model in the wipe-vase task.
+                                          w/o Implicit Field       w/ Position Embedding
+                                                                                            After contact occurs, the visual and tactile observations are
+                                                                                            replaced with non-contact observations corresponding to the
+                                                                                            object being moved downward. As shown in Fig. 13, the
+                                                                                            model exhibits a certain level of recovery capability under
+                                                                                            observation perturbations.
+  twist       slide        press
+                                                                                               3) Adaptive Visuo-Tactile Fusion Policy: In this section, we
+     (b) Three Types of Force
+                                                   (c) T-SNE of Tactile Latent              analyze the key components of the proposed Adaptive Visuo-
+                                                                                            Tactile Fusion Policy through a series of experiments and
+Fig. 11: Ablation study of TactileVAE.(a) shows the sensors
+                                                                                            address the following questions: (1) Does predicted future tac-
+and objects for testing. (b) represents the three types of force
+                                                                                            tile information improve action planning? (2) Is the proposed
+loaded on the sensors. (c) visualizes the t-SNE of the tactile
+                                                                                            Latent Tactile Differential (LTD) Encoder more effective than
+latent feature maps extracted by different models.
+                                                                                            simple feature concatenation? (3) Is the gating mechanism
+   2) Visuo-Tactile World Model: In this section, we evaluate                               necessary for adaptive visuo-tactile fusion, and do modality
+the proposed Visuo-Tactile World Model in terms of prediction                               weights correlate with contact states? (4) Does the Visuo-
+accuracy, module effectiveness, and robustness to observation                               Tactile Diffusion Policy depend on the accuracy of tactile
+perturbations. We measure tactile prediction accuracy using                                 prediction? (5) Do generated visual features further improve
+the L2 distance and cosine similarity between the predicted                                 policy performance? (6) What role does the Reflexive Latent
+and ground-truth tactile signals, following the evaluation pro-                             Tactile Controller play during execution?
+tocol of TactileVAE. To better illustrate prediction perfor-                                Effect of predicted tactile signals. We first investigate
+mance over different horizons, we report both the L2 distance                               whether predicted tactile information improves action plan-
+and cosine similarity at the 2nd, 4th, and 6th prediction latent                            ning. As shown in Table VIII, we compare two tactile rep-
+frames, corresponding to the 8th, 16th, and 24th decoded                                    resentations: (1) using only the current tactile observation,
+tactile frames, respectively, as well as the metrics averaged                               and (2) concatenating the current tactile observation with
+over all 24 predicted frames.                                                               predicted tactile features at future horizons of 2, 4, and 6
+Prediction accuracy. We first compare our method with four                                  steps. To eliminate the influence of feature dimensionality,
+baselines from three representative paradigms: unified mul-                                 the concatenated tactile features are projected to the same
+timodal generation, joint trajectory diffusion, and conditional                             dimension as the current tactile representation through a linear
+tactile prediction. As shown in Table VI and Fig. 12, our model                             layer, ensuring consistent policy input size across settings. In
+consistently outperforms all baselines in both short-term and                               this experiment, the gating mechanism is retained while the
+long-term tactile prediction. These results demonstrate that our                            controller is disabled. Results show that incorporating pre-
+method effectively models the cross-modal dynamics between                                  dicted tactile information consistently improves policy success
+vision and tactile signals, enabling accurate and consistent                                rates, and longer prediction horizons (6 steps) outperform
+generation across both modalities.                                                          shorter ones (4 steps and 2 steps). This indicates that future
+                                                                                                                                            16
+
+
+
+
+         Wipe
+
+
+
+
+          Peel
+
+
+
+
+          Cut
+
+
+
+
+       Adjustment
+
+
+
+
+       Assembly
+
+
+
+
+         Grasp
+
+
+
+
+Fig. 12: Visuo-tactile generation visualization across six task categories. Red arrows indicate predicted tangential
+deformation, while blue arrows denote ground truth. Normal deformation in the grasp task is visualized using heatmaps.
+
+TABLE VI: Prediction performance. We report the L2 distance and cosine similarity at the 2nd, 4th, and 6th latent
+prediction steps (denoted as L21 , L22 , L23 and C1 , C2 , C3 ), corresponding to the 8th, 16th, and 24th decoded tactile frames,
+respectively. We also report the average performance over all 24 predicted frames (L2avg , Cavg ). Top: Wipe/Peel/Cut. Bottom:
+Adjustment/Assembly/Grasp. “–” denotes not applicable.
+                              Wipe                                         Peel                                        Cut
+Method     L21 L22 L23 L2avg C1 C2 C3 Cavg L21 L22 L23 L2avg C1 C2 C3 Cavg L21 L22 L23 L2avg C1 C2 C3 Cavg
+UVA        0.084 0.091 0.088 0.088 0.68 0.65 0.64 0.66 0.090 0.097 0.102 0.097 0.62 0.60 0.60 0.61 0.075 0.076 0.078 0.077 0.72 0.71 0.71 0.71
+exUMI      0.097 0.098 0.103 0.101 0.59 0.58 0.58 0.58 0.093 0.099 0.102 0.097 0.63 0.62 0.62 0.62 0.083 0.086 0.088 0.086 0.73 0.72 0.71 0.72
+Kinedex    0.081 0.084 0.085 0.082 0.82 0.80 0.81 0.81 0.064 0.066 0.068 0.066 0.77 0.79 0.80 0.79 0.091 0.100 0.104 0.096 0.74 0.73 0.72 0.73
+Forcemimic 0.089 0.091 0.094 0.091 0.70 0.68 0.68 0.68 0.077 0.077 0.078 0.077 0.76 0.76 0.73 0.76 0.089 0.091 0.091 0.090 0.71 0.71 0.72 0.71
+Ours       0.052 0.062 0.072 0.059 0.93 0.92 0.91 0.93 0.033 0.037 0.041 0.036 0.88 0.88 0.87 0.87 0.048 0.052 0.057 0.050 0.89 0.89 0.88 0.88
+                            Adjustment                                  Assembly                                      Grasp
+Method     L21 L22 L23 L2avg C1 C2 C3 Cavg L21 L22 L23 L2avg C1 C2 C3 Cavg L21 L22 L23 L2avg C1 C2 C3 Cavg
+UVA        0.080 0.085 0.084 0.083 0.73 0.68 0.67 0.69 0.072 0.074 0.078 0.074 0.74 0.69 0.68 0.68 0.079 0.080 0.085 0.080 0.67 0.64 0.64 0.65
+exUMI      0.080 0.087 0.083 0.083 0.64 0.60 0.60 0.61 0.096 0.096 0.103 0.096 0.59 0.53 0.52 0.53 0.076 0.081 0.085 0.081 0.66 0.65 0.63 0.65
+Kinedex    0.052 0.053 0.055 0.053 0.70 0.70 0.69 0.70 0.045 0.048 0.052 0.047 0.80 0.77 0.75 0.78 0.017 0.017 0.017 0.017 0.60 0.60 0.58 0.59
+Forcemimic 0.082 0.081 0.082 0.082 0.66 0.65 0.65 0.65 0.071 0.071 0.071 0.071 0.69 0.68 0.67 0.68   –     –     –     –    –    –    –    –
+Ours       0.022 0.025 0.028 0.025 0.85 0.84 0.84 0.85 0.028 0.032 0.036 0.030 0.90 0.89 0.88 0.89 0.010 0.010 0.010 0.010 0.70 0.67 0.67 0.68
+
+
+
+tactile prediction provides richer contact dynamics that benefit        ship between current and predicted tactile, producing a more
+action planning.                                                        informative tactile representation for policy learning.
+Comparison of tactile representations. We further compare               Necessity of the gating fusion mechanism. Next, we evaluate
+different tactile representation strategies: (1) direct concate-        the effectiveness of the gating mechanism for visuo-tactile
+nation of current and predicted tactile features, and (2) the           fusion by comparing two input configurations: (1) direct con-
+proposed LTD Encoder applied to both signals. For fair com-             catenation of visual features and LTD-encoded tactile features,
+parison, the resulting tactile features are projected to the same       and (2) adaptive fusion using the proposed gating mechanism.
+dimensionality before being fed into the policy network. As             As shown in Table VIII, the gating mechanism improves the
+shown in Table VIII, the LTD-based representation achieves              average task success rate by approximately 7% compared
+higher success rates across multiple tasks. This suggests that          to direct concatenation. We further visualize the predicted
+the LTD Encoder effectively captures the dynamic relation-              contact probability and the modality weights in Fig. 14. The
+                                                                                                                                                                          17
+
+
+
+            Observation                           Perturbation                          Current Tactile                                       Tactile Perturbation
+
+
+
+
+                                                                             Recovery
+
+
+
+
+Fig. 13: Perturbation and recovery. The first row shows a contact break due to downward perturbation, with tactile signals
+transitioning to a no-contact state. The second row shows recovery to the contact state within one generation chunk. In tactile
+visualization, red arrows denote tactile prediction while blue arrows denote ground truth.
+
+
+                                                                 5
+                                          3            4
+                                                                                                                  2       3                              6
+                                                                                                                                  4
+                              2                                          6                                1
+                   1
+                                                                                                                                          5
+
+
+
+
+     ①         ②          ③                   ④            ⑤         ⑥             ①                ②                 ③               ④         ⑤            ⑥
+
+
+
+
+                                  3
+                                      4                    6
+                          2
+                                                   5                                                                          2       3              4
+               1                                                                                              1
+                                                                                                                                                                  5   6
+
+
+
+
+     ①         ②          ③                   ④            ⑤     ⑥                  ①                ②                ③               ④          ⑤            ⑥
+
+
+
+
+Fig. 14: GGating Fusion Mechanism. We visualize the temporal evolution of the predicted contact probability (purple),
+together with the corresponding visual (blue) and tactile (red) weights over the course of task execution.
+
+results show a strong correlation between modality weights                        decreases, the policy gradually loses its ability to correctly
+and contact states: when no contact occurs, the tactile weight                    infer contact states and adjust modality weights, leading to
+remains close to zero, while it increases significantly as the                    degraded action planning performance. This proves that accu-
+predicted contact probability rises, indicating that action plan-                 rate tactile prediction plays a critical role in our policy.
+ning increasingly relies on tactile information during contact.
+                                                                                  Effect of generated visual features. We also investigate
+Effect of tactile prediction. To evaluate how policy per-                         whether incorporating generated visual features improves pol-
+formance depends on tactile prediction quality, we introduce                      icy performance. Experimental results show that adding gen-
+controlled prediction errors by using world model checkpoints                     erated visual features to the policy input does not yield signif-
+with varying tactile prediction accuracies, corresponding to                      icant performance gains, as shown in Table VIII. Moreover,
+80%, 60%, 40%, and 20% of the performance of the best-                            introducing a visual generation branch significantly reduces
+performing model. As shown in Fig. 16, as prediction accuracy                     inference frequency, as shown in Table IX. Therefore, the final
+                                                                                                                                                                                                                                  18
+
+
+
+
+                                                                                                            Recovery
+
+
+
+
+                                                                                                                    Recovery
+
+
+
+
+                                                                                                                                                                                                  Successful
+                                                                                                                                                                                                    Insert
+
+Fig. 15: Perturbation experiments. We break contact by abruptly lowering the object and demonstrate how the policy rapidly
+restores contact via the RLTC.
+
+TABLE VII: Performance evaluation under different test cases,             TABLE IX: Inference time of each component on RTX 4090D.
+action spaces, and dynamic weight settings. Lower L2 and
+higher cosines indicate better performance.                                                 Slow Policy                  Slow Policy w/ Visual Gen.                                                    Fast Policy
+
+                                                                                                230 ms                                     480 ms                                                        3.5 ms
+ Settings     Action       Dyn. Weight Joint Gen. L2 ↓ Cos ↑
+            3D absolute          ✓            ✓       0.075      0.72                                                                                                                80
+ Unseen                                                                                   Image Observation                 Tactile Prediction
+            3D relative          ✓            ✓       0.056      0.88
+ Position                                                                                              Incomplete
+                2D               ✓            ✓       0.042      0.91                                                                                                                60
+
+
+
+
+                                                                                                                                                                  Success Rate (%)
+                                                                                                         wiping
+
+
+                  2D             ×            ×       0.041      0.90                                                                                                                40
+  Seen
+                  2D             ×            ✓       0.038      0.92                        Dynamic Modality Weights for Visuo-Tactile Fusion
+ Position
+
+                                                                                                                                                 Contact Probability
+                                                                                                                                                                                     20
+                  2D             ✓            ✓       0.035      0.93
+                                                                        Modality Weight                                                                                              0
+                                                                                                                                                                                          100     80       60       40      20
+TABLE VIII: Ablation study on Adaptive Visuo-Tactile Fusion                                                                                                                               Performance of Tactile Prediction (%)
+                                                                                                               Timesteps
+Policy and the components’ impact on task success rate.
+                                                                          Fig. 16: Effect of tactile prediction accuracy. Left: At 60%
+                  Component                       Success Rate            prediction performance, the model fails to estimate future
+                                                                          contact probability, resulting in improper modality weighting.
+  Tactile Pred.            Gating    Visual
+                   LTD                        Wipe    Peel    Avg.        Right: Lower prediction performance leads to a significant
+    Length                 Mech.     Gen.
+                                                                          drop in success rate.
+       0               ×     ×         ×      0.12    0.06    0.09
+       2               ×     ×         ×      0.40    0.26    0.33        rapidly responds to environmental perturbations. When per-
+       4               ×     ×         ×      0.45    0.30    0.38        turbations disrupt the current contact state, the high-frequency
+       6               ×     ×         ×      0.50    0.30    0.40        controller adjusts robot actions to re-establish stable contact.
+                                                                          In tasks requiring strong interaction forces, the controller
+       6               ✓     ×         ×      0.57    0.36    0.47        also adaptively modulates the action magnitude to prevent
+       6               ✓     ✓         ×      0.66    0.40    0.53        excessive contact forces.
+       6               ✓     ✓         ✓      0.70    0.38    0.54
+
+                                                                                                                             VI. C ONCLUSION
+policy design relies only on current visual observations rather              In this work, we address two persistent bottlenecks in visuo-
+than on the generation.                                                   tactile manipulation: the scarcity of large-scale, task-diverse
+Effectiveness of the Reflexive Latent Tactile Controller.                 training data and the lack of methods that model contact dy-
+Finally, we evaluate the contribution of the Reflexive La-                namics explicitly while supporting closed-loop tactile control.
+tent Tactile Controller. The controller enables high-frequency            On the data side, OmniViTac comprises 21,000+ temporally
+closed-loop control, allowing the robot to execute actions more           aligned trajectories spanning 86 contact-rich tasks organized
+stably and improving overall task success rates. In perturbation          into six physics-grounded interaction patterns. Systematic
+experiments, shown in Table III and Fig. 15, the controller               analysis of the dataset identifies two structural properties of
+                                                                                                                                                                19
+
+
+
+tactile signals in manipulation, spatial locality, and contact-                     [18] S. Sundaram, P. Kellnhofer, Y. Li, J.-Y. Zhu, A. Torralba, W. Matusik,
+driven dynamics, which guided the architectural design of                                Learning the signatures of the human grasp using a scalable tactile glove,
+                                                                                         Nature 569 (7758) (2019) 698–702.
+OmniVTA. On the methodology side, OmniVTA integrates                                [19] Y. Yan, Z. Hu, Z. Yang, W. Yuan, C. Song, J. Pan, Y. Shen, Soft magnetic
+self-supervised implicit tactile representation learning, short-                         skin for super-resolution tactile sensing with force self-decoupling,
+horizon visuo-tactile world modeling, contact-aware multi-                               Science Robotics 6 (51) (2021) eabc8801.
+                                                                                    [20] W. Yuan, S. Dong, E. A. GelSight, High-resolution robot tactile
+modal fusion, and high-frequency reflexive control within                                sensors for estimating geometry and force., 2017, 17, 2762, DOI:
+a unified framework. Real-robot experiments across all six                               https://doi. org/10.3390/s17122762. PMID: https://www. ncbi. nlm. nih.
+interaction categories demonstrate that OmniVTA consistently                             gov/pubmed/29186053.
+                                                                                    [21] M. Lambeta, P.-W. Chou, S. Tian, B. Yang, B. Maloon, V. R. Most,
+outperforms existing baselines, with clear advantages in gen-                            D. Stroud, R. Santos, A. Byagowi, G. Kammerer, et al., Digit: A
+eralization to unseen objects and geometric configurations and                           novel design for a low-cost compact high-resolution tactile sensor with
+robustness to external disturbances.                                                     application to in-hand manipulation, IEEE Robotics and Automation
+                                                                                         Letters 5 (3) (2020) 3838–3845.
+                                                                                    [22] C. Higuera, A. Sharma, C. K. Bodduluri, T. Fan, P. Lancaster, M. Kalakr-
+                                                                                         ishnan, M. Kaess, B. Boots, M. Lambeta, T. Wu, et al., Sparsh: Self-
+                     VII. ACKNOWLEDGMENTS                                                supervised touch representations for vision-based tactile sensing, arXiv
+                                                                                         preprint arXiv:2410.24090 (2024).
+   We want to thank Xiangyu Chen, Yating Feng, Zhijie Yan,                          [23] R. Feng, J. Hu, W. Xia, T. Gao, A. Shen, Y. Sun, B. Fang, D. Hu,
+Xiang Xiao, Jingxiang Guo, and Yuxing Qin for their efforts                              Anytouch: Learning unified static-dynamic representation across multi-
+in building the OmniViTac dataset.                                                       ple visuo-tactile sensors, arXiv preprint arXiv:2502.12191 (2025).
+                                                                                    [24] Z. Xu, R. Uppuluri, X. Zhang, C. Fitch, P. G. Crandall, W. Shou,
+                                                                                         D. Wang, Y. She, Unit: Data efficient tactile representation with gen-
+                                                                                         eralization to unseen objects, IEEE Robotics and Automation Letters
+                               R EFERENCES                                               (2025).
+                                                                                    [25] P. Esser, R. Rombach, B. Ommer, Taming transformers for high-
+ [1] Z. Zhao, Y. Li, W. Li, Z. Qi, L. Ruan, Y. Zhu, K. Althoefer, Tac-man:
+                                                                                         resolution image synthesis, in: Proceedings of the IEEE/CVF conference
+     Tactile-informed prior-free manipulation of articulated objects, IEEE
+                                                                                         on computer vision and pattern recognition, 2021, pp. 12873–12883.
+     Transactions on Robotics 41 (2024) 538–557.
+                                                                                    [26] F. Yang, C. Feng, Z. Chen, H. Park, D. Wang, Y. Dou, Z. Zeng, X. Chen,
+ [2] L. Cui, Z. Zhao, S. Xie, W. Zhang, Z. Han, Y. Zhu, Vi-tacman:                       R. Gangopadhyay, A. Owens, et al., Binding touch to everything:
+     Articulated object manipulation via vision and touch, arXiv preprint                Learning unified multimodal tactile representations, in: Proceedings of
+     arXiv:2510.06339 (2025).                                                            the IEEE/CVF Conference on Computer Vision and Pattern Recognition,
+ [3] Z. Zhao, Z. Qi, Y. Li, L. Cui, Z. Han, L. Ruan, Y. Zhu, Tacman-                     2024, pp. 26340–26353.
+     turbo: Proactive tactile control for robust and efficient articulated object   [27] S. Yu, K. Lin, A. Xiao, J. Duan, H. Soh, Octopi: Object property reason-
+     manipulation, arXiv preprint arXiv:2508.02204 (2025).                               ing with large tactile-language models, arXiv preprint arXiv:2405.02794
+ [4] J. Bi, K. Y. Ma, C. Hao, M. Z. Shou, H. Soh, Vla-touch: Enhancing                   (2024).
+     vision-language-action models with dual-level tactile feedback, arXiv          [28] Y. Xie, M. Li, S. Li, X. Li, G. Chen, F. Ma, F. R. Yu, W. Ding,
+     preprint arXiv:2507.17294 (2025).                                                   Universal visuo-tactile video understanding for embodied interaction,
+ [5] H. Xue, J. Ren, W. Chen, G. Zhang, Y. Fang, G. Gu, H. Xu, C. Lu,                    arXiv preprint arXiv:2505.22566 (2025).
+     Reactive diffusion policy: Slow-fast visual-tactile policy learning for        [29] L. Zhang, Y. Wang, Y. Jiang, Tac3d: A novel vision-based tactile sensor
+     contact-rich manipulation, arXiv preprint arXiv:2503.02881 (2025).                  for measuring forces distribution and estimating friction coefficient
+ [6] H. Chen, J. Xu, H. Chen, K. Hong, B. Huang, C. Liu, J. Mao, Y. Li,                  distribution, arXiv preprint arXiv:2202.06211 (2022).
+     Y. Du, K. Driggs-Campbell, Multi-modal manipulation via multi-modal            [30] https://www.xenserobotics.com/product/367/detail/9 (2025).
+     policy consensus, arXiv preprint arXiv:2509.23468 (2025).                      [31] https://www.dmrobot.com/en/product/p1/dm-tac-w.html (2025).
+ [7] S. Yu, K. Lin, H. Soh, Demonstrating the octopi-1.5 visual-tactile-            [32] I. Guzey, Y. Dai, B. Evans, S. Chintala, L. Pinto, See to touch: Learning
+     language model, arXiv preprint arXiv:2507.09985 (2025).                             tactile dexterity through visual incentives, in: 2024 IEEE International
+ [8] Q. Bu, J. Cai, L. Chen, X. Cui, Y. Ding, S. Feng, S. Gao, X. He, X. Hu,             Conference on Robotics and Automation (ICRA), IEEE, 2024, pp.
+     X. Huang, et al., Agibot world colosseo: A large-scale manipulation                 13825–13832.
+     platform for scalable and intelligent embodied systems, arXiv preprint         [33] B. Ai, S. Tian, H. Shi, Y. Wang, C. Tan, Y. Li, J. Wu, Robopack:
+     arXiv:2503.06669 (2025).                                                            Learning tactile-informed dynamics models for dense packing, arXiv
+ [9] B. Huang, Y. Wang, X. Yang, Y. Luo, Y. Li, 3d-vitac: Learning                       preprint arXiv:2407.01418 (2024).
+     fine-grained manipulation with visuo-tactile sensing, arXiv preprint           [34] J. Huang, S. Wang, F. Lin, Y. Hu, C. Wen, Y. Gao, Tactile-vla:
+     arXiv:2410.24091 (2024).                                                            unlocking vision-language-action model’s physical knowledge for tactile
+[10] T. Wu, J. Li, J. Zhang, M. Wu, H. Dong, Canonical representation                    generalization, arXiv preprint arXiv:2507.09160 (2025).
+     and force-based pretraining of 3d tactile for dexterous visuo-tactile          [35] Z. Zhang, H. Xu, Z. Yang, C. Yue, Z. Lin, H.-a. Gao, Z. Wang, H. Zhao,
+     policy learning, in: 2025 IEEE International Conference on Robotics                 Ta-vla: Elucidating the design space of torque-aware vision-language-
+     and Automation (ICRA), IEEE, 2025, pp. 6786–6792.                                   action models, arXiv preprint arXiv:2509.07962 (2025).
+[11] J. Monzée, Y. Lamarre, A. M. Smith, The effects of digital anesthesia on      [36] L. Fu, G. Datta, H. Huang, W. C.-H. Panitch, J. Drake, J. Ortiz,
+     force control using a precision grip, Journal of neurophysiology 89 (2)             M. Mukadam, M. Lambeta, R. Calandra, K. Goldberg, A touch, vi-
+     (2003) 672–683.                                                                     sion, and language dataset for multimodal alignment, arXiv preprint
+[12] D. M. Wolpert, J. R. Flanagan, Motor prediction, Current biology 11 (18)            arXiv:2402.13232 (2024).
+     (2001) R729–R732.                                                              [37] H. Li, Y. Zhang, J. Zhu, S. Wang, M. A. Lee, H. Xu, E. Adelson, L. Fei-
+[13] K. Kilteni, H. H. Ehrsson, Sensorimotor predictions and tool use: Hand-             Fei, R. Gao, J. Wu, See, hear, and feel: Smart sensory fusion for robotic
+     held tools attenuate self-touch, Cognition 165 (2017) 1–9.                          manipulation, arXiv preprint arXiv:2212.03858 (2022).
+[14] A.-S. Augurelle, A. M. Smith, T. Lejeune, J.-L. Thonnard, Importance of        [38] H.-S. Fang, H. Fang, Z. Tang, J. Liu, C. Wang, J. Wang, H. Zhu, C. Lu,
+     cutaneous feedback in maintaining a secure grip during manipulation of              Rh20t: A comprehensive robotic dataset for learning diverse skills in
+     hand-held objects, Journal of neurophysiology 89 (2) (2003) 665–671.                one-shot, arXiv preprint arXiv:2307.00595 (2023).
+[15] B. Xu, L. Zhong, G. Zhang, X. Liang, D. Virtue, R. Madan, T. Bhat-             [39] L. Wu, C. Yu, J. Ren, L. Chen, Y. Jiang, R. Huang, G. Gu, H. Li,
+     tacharjee, Cushsense: Soft, stretchable, and comfortable tactile-sensing            Freetacman: Robot-free visuo-tactile data collection system for contact-
+     skin for physical human-robot interaction, in: IEEE International Confer-           rich manipulation, arXiv preprint arXiv:2506.01941 (2025).
+     ence on Robotics and Automation (ICRA), IEEE, 2024, pp. 5694–5701.             [40] Z. Cheng, Y. Zhang, W. Zhang, H. Li, K. Wang, L. Song, H. Zhang,
+[16] D. Xu, A. Tairych, I. A. Anderson, Stretch not flex: programmable                   Omnivtla: Vision-tactile-language-action model with semantic-aligned
+     rubber keyboard, Smart Materials and Structures 25 (1) (2016) 015012.               tactile sensing, arXiv preprint arXiv:2508.08706 (2025).
+[17] S. Stassi, V. Cauda, G. Canavese, C. F. Pirri, Flexible tactile sensing        [41] Y. Xu, L. Wei, P. An, Q. Zhang, Y.-L. Li, exumi: Extensible robot
+     based on piezoresistive composites: A review, Sensors 14 (3) (2014)                 teaching system with action-aware task-agnostic tactile representation,
+     5296–5332.                                                                          arXiv preprint arXiv:2509.14688 (2025).
+                                                                                                                                                           20
+
+
+
+[42] Z. Liu, J. Liu, J. Xu, N. Han, C. Gu, H. Chen, K. Zhou, R. Zhang,                  based visuotactile sensors, IEEE Transactions on Robotics 40 (2024)
+     K. C. Hsieh, K. Wu, et al., Mla: A multisensory language-action model              1509–1526.
+     for multimodal understanding and forecasting in robotic manipulation,         [64] S. Li, Y. Gao, D. Sadigh, S. Song, Unified video action model, arXiv
+     arXiv preprint arXiv:2509.26642 (2025).                                            preprint arXiv:2503.00200 (2025).
+[43] C. Chi, Z. Xu, C. Pan, E. Cousineau, B. Burchfiel, S. Feng, R. Tedrake,       [65] W. Liu, J. Wang, Y. Wang, W. Wang, C. Lu, Forcemimic: Force-centric
+     S. Song, Universal manipulation interface: In-the-wild robot teaching              imitation learning with force-motion capture system for contact-rich
+     without in-the-wild robots, arXiv preprint arXiv:2402.10329 (2024).                manipulation, in: 2025 IEEE International Conference on Robotics and
+[44] P. Wu, Y. Shentu, Z. Yi, X. Lin, P. Abbeel, Gello: A general, low-cost,            Automation (ICRA), IEEE, 2025, pp. 1105–1112.
+     and intuitive teleoperation framework for robot manipulators, in: 2024        [66] D. Zhang, C. Yuan, C. Wen, H. Zhang, J. Zhao, Y. Gao, Kinedex:
+     IEEE/RSJ International Conference on Intelligent Robots and Systems                Learning tactile-informed visuomotor policies via kinesthetic teaching
+     (IROS), IEEE, 2024, pp. 12156–12163.                                               for dexterous manipulation, arXiv preprint arXiv:2505.01974 (2025).
+[45] R. Gao, Z. Si, Y.-Y. Chang, S. Clarke, J. Bohg, L. Fei-Fei, W. Yuan,
+     J. Wu, Objectfolder 2.0: A multisensory object dataset for sim2real
+     transfer, in: Proceedings of the IEEE/CVF conference on computer
+     vision and pattern recognition, 2022, pp. 10598–10608.
+[46] T. Engelbracht, R. Zurbrügg, M. Wohlrapp, M. Büchner, A. Val-
+     ada, M. Pollefeys, H. Blum, Z. Bauer, Hoi!-a multimodal dataset
+     for force-grounded, cross-view articulated manipulation, arXiv preprint
+     arXiv:2512.04884 (2025).
+[47] Z. Zhaxizhuoma, K. Liu, C. Guan, Z. Jia, Z. Wu, X. Liu, T. Wang,
+     S. Liang, P. Chen, P. Zhang, et al., Fastumi: A scalable and hardware-
+     independent universal manipulation interface with dataset, in: Confer-
+     ence on Robot Learning, PMLR, 2025, pp. 3069–3093.
+[48] Z. Xu, K. Sima, J. Deng, Z. Zhuang, C. Wang, C. Hao, J. S. Dong,
+     Aprebot: Active perception system for reflexive evasion robot, arXiv
+     preprint arXiv:2509.24733 (2025).
+[49] Z. Xu, C. Hao, C. Wang, K. Sima, F. Shi, J. S. Dong, Rebot: Reflexive
+     evasion robot for instantaneous dynamic obstacle avoidance, IEEE
+     Robotics and Automation Letters 11 (2) (2025) 1746–1753.
+[50] B. Cao, Y. Sun, P. Zhu, Q. Hu, Multi-modal gated mixture of local-
+     to-global experts for dynamic image fusion, in: Proceedings of the
+     IEEE/CVF international conference on computer vision, 2023, pp.
+     23555–23564.
+[51] V. Sitzmann, J. Martel, A. Bergman, D. Lindell, G. Wetzstein, Implicit
+     neural representations with periodic activation functions, Advances in
+     neural information processing systems 33 (2020) 7462–7473.
+[52] C. Zhong, Y. Zheng, Y. Zheng, H. Zhao, L. Yi, X. Mu, L. Wang, P. Li,
+     G. Zhou, C. Yang, et al., 3d implicit transporter for temporally consistent
+     keypoint discovery, in: Proceedings of the IEEE/CVF international
+     conference on computer vision, 2023, pp. 3869–3880.
+[53] J. J. Park, P. Florence, J. Straub, R. Newcombe, S. Lovegrove, Deepsdf:
+     Learning continuous signed distance functions for shape representation,
+     in: Proceedings of the IEEE/CVF conference on computer vision and
+     pattern recognition, 2019, pp. 165–174.
+[54] X. Chen, Y. Zheng, Y. Zheng, Q. Zhou, H. Zhao, G. Zhou, Y.-Q.
+     Zhang, Dpf: Learning dense prediction fields with weak supervision,
+     in: Proceedings of the IEEE/CVF Conference on Computer Vision and
+     Pattern Recognition, 2023, pp. 15347–15357.
+[55] H. Yu, H. Lin, J. Wang, J. Li, Y. Wang, X. Zhang, Y. Wang, X. Zhou,
+     R. Hu, S. Peng, Infinidepth: Arbitrary-resolution and fine-grained depth
+     estimation with neural implicit fields, arXiv preprint arXiv:2601.03252
+     (2026).
+[56] D. P. Kingma, M. Welling, Auto-encoding variational bayes, arXiv
+     preprint arXiv:1312.6114 (2013).
+[57] W. Peebles, S. Xie, Scalable diffusion models with transformers, in:
+     Proceedings of the IEEE/CVF international conference on computer
+     vision, 2023, pp. 4195–4205.
+[58] R. Rombach, A. Blattmann, D. Lorenz, P. Esser, B. Ommer, High-
+     resolution image synthesis with latent diffusion models, in: Proceedings
+     of the IEEE/CVF conference on computer vision and pattern recognition,
+     2022, pp. 10684–10695.
+[59] Z. He, H. Fang, J. Chen, H.-S. Fang, C. Lu, Foar: Force-aware
+     reactive policy for contact-rich robotic manipulation, IEEE Robotics and
+     Automation Letters (2025).
+[60] C. Chi, Z. Xu, S. Feng, E. Cousineau, Y. Du, B. Burchfiel, R. Tedrake,
+     S. Song, Diffusion policy: Visuomotor policy learning via action diffu-
+     sion, The International Journal of Robotics Research 44 (10-11) (2025)
+     1684–1704.
+[61] M. Welling, Y. W. Teh, Bayesian learning via stochastic gradient
+     langevin dynamics, in: Proceedings of the 28th international conference
+     on machine learning (ICML-11), 2011, pp. 681–688.
+[62] E. Perez, F. Strub, H. De Vries, V. Dumoulin, A. Courville, Film: Visual
+     reasoning with a general conditioning layer, in: Proceedings of the AAAI
+     conference on artificial intelligence, Vol. 32, 2018.
+[63] W. Chen, J. Xu, F. Xiang, X. Yuan, H. Su, R. Chen, General-purpose
+     sim2real protocol for learning contact-rich manipulation with marker-
+

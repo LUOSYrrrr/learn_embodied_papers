@@ -1,0 +1,80 @@
+TY  - CPAPER
+TI  - Learning Universal Policies via Text-Guided Video Generation
+AU  - Du, Yilun
+AU  - Yang, Mengjiao
+AU  - Dai, Bo
+AU  - Dai, Hanjun
+AU  - Nachum, Ofir
+AU  - Tenenbaum, Joshua B.
+AU  - Schuurmans, Dale
+AU  - Abbeel, Pieter
+PY  - 2023
+T2  - Advances in Neural Information Processing Systems (NeurIPS)
+DO  - 10.48550/arXiv.2302.00111
+UR  - https://arxiv.org/abs/2302.00111
+L1  - file:///Users/siyuanluo/STUDY/paper/learn_embodied_papers/pdfs/world-model/WAM/Du%20et%20al.%20-%202023%20-%20Learning%20Universal%20Policies%20via%20Text-Guided%20Video%20Generation.pdf
+N1  - NeurIPS 2023; commonly referred to as UniPi.
+KW  - WAM-route
+KW  - cascaded WAM
+KW  - video planning
+ER  -
+
+TY  - CPAPER
+TI  - Learning to Act from Actionless Videos through Dense Correspondences
+AU  - Ko, Po-Chen
+AU  - Mao, Jiayuan
+AU  - Du, Yilun
+AU  - Sun, Shao-Hua
+AU  - Tenenbaum, Joshua B.
+PY  - 2024
+T2  - International Conference on Learning Representations (ICLR)
+DO  - 10.48550/arXiv.2310.08576
+UR  - https://arxiv.org/abs/2310.08576
+L1  - file:///Users/siyuanluo/STUDY/paper/learn_embodied_papers/pdfs/world-model/WAM/Ko%20et%20al.%20-%202024%20-%20Learning%20to%20Act%20from%20Actionless%20Videos%20through%20Dense%20Correspondences.pdf
+N1  - ICLR 2024; AVDC.
+KW  - WAM-route
+KW  - cascaded WAM
+KW  - dense correspondence
+ER  -
+
+TY  - RPRT
+TI  - Vidar: Embodied Video Diffusion Model for Generalist Manipulation
+AU  - Feng, Yao
+AU  - Tan, Hengkai
+AU  - Mao, Xinyi
+AU  - Xiang, Chendong
+AU  - Liu, Guodong
+AU  - Huang, Shuhe
+AU  - Su, Hang
+AU  - Zhu, Jun
+PY  - 2025
+DO  - 10.48550/arXiv.2507.12898
+UR  - https://arxiv.org/abs/2507.12898
+L1  - file:///Users/siyuanluo/STUDY/paper/learn_embodied_papers/pdfs/world-model/WAM/Feng%20et%20al.%20-%202025%20-%20Vidar%20Embodied%20Video%20Diffusion%20Model%20for%20Generalist%20Manipulation.pdf
+N1  - arXiv technical report; v4.
+KW  - WAM-route
+KW  - cascaded WAM
+KW  - video diffusion
+ER  -
+
+TY  - CPAPER
+TI  - Video Prediction Policy: A Generalist Robot Policy with Predictive Visual Representations
+AU  - Hu, Yucheng
+AU  - Guo, Yanjiang
+AU  - Wang, Pengchao
+AU  - Chen, Xiaoyu
+AU  - Wang, Yen-Jen
+AU  - Zhang, Jianke
+AU  - Sreenath, Koushil
+AU  - Lu, Chaochao
+AU  - Chen, Jianyu
+PY  - 2025
+T2  - International Conference on Machine Learning (ICML)
+DO  - 10.48550/arXiv.2412.14803
+UR  - https://arxiv.org/abs/2412.14803
+L1  - file:///Users/siyuanluo/STUDY/paper/learn_embodied_papers/pdfs/world-model/WAM/Hu%20et%20al.%20-%202025%20-%20Video%20Prediction%20Policy%20A%20Generalist%20Robot%20Policy%20with%20Predictive%20Visual%20Representations.pdf
+N1  - ICML 2025 Spotlight; VPP.
+KW  - WAM-route
+KW  - cascaded WAM
+KW  - latent video planning
+ER  -

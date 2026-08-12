@@ -1,0 +1,465 @@
+<!DOCTYPE html>
+
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Flash-WAM · 为什么视频与动作不能共用一种蒸馏函数</title>
+<link href="../assets/css/style.css" rel="stylesheet"/>
+<script src="../assets/js/theme.js"></script>
+<script defer="" src="../assets/js/interactive.js"></script>
+<link href="https://cdn.jsdelivr.net/npm/katex@0.16/dist/katex.min.css" rel="stylesheet"/>
+<script defer="" src="https://cdn.jsdelivr.net/npm/katex@0.16/dist/katex.min.js"></script>
+<script defer="" onload="renderMathInElement(document.body,{delimiters:[{left:'$$',right:'$$',display:true},{left:'$',right:'$',display:false}]})" src="https://cdn.jsdelivr.net/npm/katex@0.16/dist/contrib/auto-render.min.js"></script>
+<style>
+    .docs-layout { display:grid; grid-template-columns:240px minmax(0,1fr); max-width:1400px; margin:0 auto; }
+    .sidebar { position:sticky; top:60px; height:calc(100vh - 60px); overflow-y:auto; padding:24px 16px; border-right:1px solid var(--border); background:var(--bg); }
+    .sidebar-title { font-family:var(--font-mono); font-size:10px; color:var(--text3); letter-spacing:.08em; text-transform:uppercase; margin-bottom:16px; padding-bottom:8px; border-bottom:1px solid var(--border); }
+    .sidebar-tree { list-style:none; margin:0; padding:0; }
+    .sidebar-tree li { margin:4px 0; }
+    .sidebar-tree a { display:block; padding:6px 10px; font-size:13px; color:var(--text2); text-decoration:none; border-radius:6px; }
+    .sidebar-tree a:hover,.sidebar-tree a.active { background:rgba(74,222,154,.1); color:var(--accent); }
+    .main-content { min-width:0; }
+    .paper-header { padding:40px 40px 28px; max-width:1200px; margin:0 auto; }
+    .paper-venue { font-family:var(--font-mono); font-size:11px; color:var(--text3); letter-spacing:.06em; margin-bottom:10px; }
+    .paper-title { font-family:var(--font-serif); font-size:30px; font-weight:700; color:var(--text); line-height:1.35; margin:0 0 14px; }
+    .paper-authors { font-size:14px; color:var(--text2); line-height:1.7; }
+    .paper-badges { display:flex; gap:8px; flex-wrap:wrap; margin-top:16px; }
+    .badge { font-family:var(--font-mono); font-size:10px; padding:4px 10px; border-radius:6px; background:var(--bg3); color:var(--text2); border:1px solid var(--border); }
+    .badge.green { color:var(--accent); border-color:rgba(74,222,154,.35); background:rgba(74,222,154,.1); }
+    .badge.blue { color:var(--blue); border-color:rgba(96,165,250,.35); background:rgba(96,165,250,.1); }
+    .badge.amber { color:var(--amber); border-color:rgba(245,158,11,.35); background:rgba(245,158,11,.1); }
+    .section { padding:34px 40px; max-width:1200px; margin:0 auto; border-top:1px solid var(--border); }
+    .section-num { font-family:var(--font-mono); font-size:11px; color:var(--accent); letter-spacing:.08em; margin-bottom:6px; }
+    .section h2 { font-family:var(--font-serif); font-size:23px; font-weight:600; margin:0 0 20px; color:var(--text); }
+    .section h3 { font-size:17px; font-weight:600; margin:30px 0 12px; color:var(--text); }
+    .section p,.section li { font-size:15px; line-height:1.85; color:var(--text2); }
+    .section p { margin:0 0 16px; }
+    .section ul,.section ol { margin:10px 0 18px; padding-left:24px; }
+    .cn-read { background:var(--bg2); border-left:3px solid var(--accent); padding:18px 22px; margin:20px 0; border-radius:0 8px 8px 0; }
+    .cn-label { font-family:var(--font-mono); font-size:10px; color:var(--accent); letter-spacing:.06em; text-transform:uppercase; margin-bottom:8px; }
+    .cn-read p { margin:0; font-size:14.5px; line-height:1.8; color:var(--text); }
+    .callout { background:var(--bg2); border:1px solid var(--border); border-radius:10px; padding:18px 22px; margin:20px 0; }
+    .callout-label { font-family:var(--font-mono); font-size:10px; letter-spacing:.06em; text-transform:uppercase; margin-bottom:8px; color:var(--text3); }
+    .callout p { margin:0; font-size:14px; line-height:1.8; }
+    .callout.blue { border-color:var(--blue); background:rgba(96,165,250,.08); }
+    .callout.blue .callout-label { color:var(--blue); }
+    .callout.amber { border-color:var(--amber); background:rgba(245,158,11,.08); }
+    .callout.amber .callout-label { color:var(--amber); }
+    .callout.red { border-color:var(--accent3); background:rgba(255,107,107,.08); }
+    .callout.red .callout-label { color:var(--accent3); }
+    .module-grid { display:grid; grid-template-columns:repeat(2,1fr); gap:14px; margin:20px 0; }
+    .module-card { background:var(--bg2); border:1px solid var(--border); border-radius:10px; padding:18px; }
+    .module-card-name { font-family:var(--font-mono); font-size:10px; color:var(--text3); letter-spacing:.06em; margin-bottom:6px; }
+    .module-card-title { font-size:15px; font-weight:600; color:var(--text); margin-bottom:8px; }
+    .module-card-desc { font-size:13px; color:var(--text2); line-height:1.65; }
+    .math-block { margin:20px 0 0; max-width:100%; overflow:hidden; }
+    .math-block .katex-display { max-width:100%; overflow-x:auto; overflow-y:hidden; padding:2px 0 6px; }
+    .math-explain { background:var(--bg2); border-left:3px solid var(--blue); padding:16px 20px; margin:0 0 20px; border-radius:0 8px 8px 0; }
+    .math-explain dl { margin:0; }
+    .math-explain dt { font-family:var(--font-mono); font-size:12px; color:var(--accent); margin:10px 0 4px; }
+    .math-explain dd { margin:0 0 8px; font-size:13px; color:var(--text2); line-height:1.65; }
+    .en-quote { background:var(--bg2); border:1px solid var(--border); border-radius:8px; margin:16px 0; overflow:hidden; }
+    .en-quote summary { padding:12px 16px; font-size:13px; color:var(--text3); cursor:pointer; }
+    .quote-body { padding:16px; border-top:1px solid var(--border); }
+    .quote-body p { font-size:13.5px; color:var(--text); font-style:italic; margin:0 0 10px; }
+    .quote-cite { font-family:var(--font-mono); font-size:11px; color:var(--text3); }
+    .fig-block { background:var(--bg2); border-radius:10px; overflow:hidden; border:1px solid var(--border); margin:24px 0; }
+    .fig-block img { width:100%; height:auto; display:block; }
+    .fig-cap { padding:14px 18px; font-size:13px; color:var(--text2); border-top:1px solid var(--border); line-height:1.65; }
+    .fig-num { font-family:var(--font-mono); font-size:10px; color:var(--accent); margin-right:8px; }
+    .fig-cn { display:block; margin-top:6px; color:var(--text3); font-size:12px; }
+    .fig-interactive.panel-below { margin:24px 0; }
+    .hotspot-wrap { position:relative; }
+    .hotspot { position:absolute; width:20px; height:20px; background:rgba(74,222,154,.55); border:2px solid var(--accent); border-radius:50%; cursor:pointer; transform:translate(-50%,-50%); }
+    .hotspot:hover,.hotspot.active { background:var(--accent); transform:translate(-50%,-50%) scale(1.3); }
+    .hotspot-panel { background:var(--bg2); border:1px solid var(--border); border-radius:10px; padding:16px; margin-top:14px; }
+    .hp-title { font-size:14px; font-weight:600; color:var(--accent); margin-bottom:8px; }
+    .hp-body { font-size:13px; color:var(--text2); line-height:1.7; }
+    .step-walker { background:var(--bg2); border:1px solid var(--border); border-radius:10px; padding:20px; margin:24px 0; }
+    .sw-header { display:flex; justify-content:space-between; align-items:center; margin-bottom:16px; }
+    .sw-title { font-size:14px; font-weight:600; color:var(--text); }
+    .sw-controls { display:flex; gap:10px; align-items:center; }
+    .sw-btn { background:var(--bg3); border:1px solid var(--border); color:var(--text); padding:6px 12px; border-radius:6px; cursor:pointer; }
+    .sw-counter { font-family:var(--font-mono); font-size:12px; color:var(--text3); }
+    .sw-progress { display:flex; gap:6px; margin-bottom:16px; }
+    .sw-dot { flex:1; height:3px; background:var(--border); border-radius:2px; }
+    .sw-dot.active { background:var(--accent); }
+    .sw-step { display:none; }
+    .sw-step.active { display:block; }
+    .sw-step h4 { font-size:14px; margin:0 0 8px; color:var(--text); }
+    .sw-step p { font-size:13px; color:var(--text2); margin:0; line-height:1.7; }
+    .kv-table { width:100%; max-width:100%; border-collapse:collapse; margin:18px 0; font-size:13px; }
+    .kv-table th,.kv-table td { padding:10px 12px; border:1px solid var(--border); text-align:left; vertical-align:top; }
+    .kv-table th { background:var(--bg3); color:var(--text2); font-family:var(--font-mono); font-size:11px; }
+    .kv-table td { color:var(--text2); line-height:1.55; }
+    .kv-table td strong { color:var(--text); }
+    .kv-table tr.highlight td { background:rgba(74,222,154,.07); color:var(--text); }
+    .quiz { background:var(--bg2); border:1px solid var(--border); border-radius:10px; padding:20px; margin:24px 0; }
+    .q-label { font-family:var(--font-mono); font-size:10px; color:var(--amber); letter-spacing:.06em; text-transform:uppercase; margin-bottom:10px; }
+    .q-text { font-size:15px; color:var(--text); margin-bottom:16px; font-weight:500; }
+    .q-options { display:flex; flex-direction:column; gap:8px; }
+    .q-opt { text-align:left; background:var(--bg3); border:1px solid var(--border); color:var(--text); padding:12px 16px; border-radius:8px; cursor:pointer; font-size:14px; }
+    .q-opt.correct { background:rgba(74,222,154,.15); border-color:var(--accent); }
+    .q-opt.wrong { background:rgba(255,107,107,.15); border-color:var(--accent3); }
+    .q-feedback { margin-top:14px; padding:12px; border-radius:8px; font-size:13px; display:none; line-height:1.7; }
+    .q-feedback.show { display:block; }
+    @media(max-width:900px){ .docs-layout{grid-template-columns:1fr}.sidebar{display:none}.paper-header,.section{padding-left:20px;padding-right:20px;overflow:hidden}.module-grid{grid-template-columns:1fr}.paper-title{font-size:25px}.kv-table{display:block;overflow-x:auto;white-space:nowrap}.math-block .katex{font-size:.92em} }
+  </style>
+</head>
+<body>
+<nav class="nav">
+<a class="nav-logo" href="../index.html">Paper Notes</a>
+<div class="nav-links">
+<a href="wam-roadmap.html#frontier">← WAM 路线</a>
+<a href="https://arxiv.org/abs/2606.05254">arXiv</a>
+<a href="../pdfs/world-model/WAM/Akbari%20et%20al.%20-%202026%20-%20Flash-WAM%20Modality-Aware%20Distillation%20for%20World%20Action%20Models.pdf">📄 PDF</a>
+</div>
+</nav>
+<div class="docs-layout">
+<aside class="sidebar">
+<div class="sidebar-title">Flash-WAM · 精读目录</div>
+<ul class="sidebar-tree">
+<li><a href="#overview">§1 问题与结论</a></li>
+<li><a href="#prelim">§2 Flow Matching 地基</a></li>
+<li><a href="#failure">§3 朴素蒸馏为何失败</a></li>
+<li><a href="#method">§4 模态感知方法</a></li>
+<li><a href="#training">§5 训练与部署</a></li>
+<li><a href="#experiments">§6 三层实验</a></li>
+<li><a href="#ablation">§7 消融与反事实</a></li>
+<li><a href="#critique">§8 比较、边界与复现</a></li>
+</ul>
+</aside>
+<main class="main-content">
+<header class="paper-header">
+<div class="paper-venue">ARXIV:2606.05254 · 2026 TECHNICAL REPORT · ZOTERO G4G39CPX · PDF RLXLSJGU</div>
+<h1 class="paper-title">Flash-WAM：为什么视频与动作不能共用一种蒸馏函数</h1>
+<div class="paper-authors">Arman Akbari, Ci Zhang, Arash Akbari, Lin Zhao, Yixiao Chen, Weiwei Chen, Xuan Zhang, Geng Yuan, Yanzhi Wang</div>
+<div class="paper-badges">
+<span class="badge green">World-Action Model</span>
+<span class="badge blue">Consistency Distillation</span>
+<span class="badge amber">1 video step + 1 action step</span>
+<span class="badge">LingBot-VA teacher</span>
+</div>
+<div class="cn-read">
+<div class="cn-label">一句话，但不是口号</div>
+<p>Flash-WAM 的核心不是简单“把 75 次去噪压成 2 次”，而是先证明：视频流与动作流因为使用不同的 SNR-shift schedule，抵达蒸馏损失时处在不同噪声区间；标准 LCM 的梯度系数在动作常见的低噪声区间按 $\sigma^2$ 消失，因此必须给动作换成按 $\sigma$ 线性缩放的 consistency function，同时保留视频侧在高噪声区间更稳定的 variance-preserving 参数化。</p>
+</div>
+</header>
+<section class="section" id="overview">
+<div class="section-num">SECTION 01</div>
+<h2>问题先立住：WAM 很强，但一个动作块要等 8.1 秒</h2>
+<div class="cn-read"><div class="cn-label">阅读导航</div><p>先不要急着看蒸馏公式。必须先弄清 Flash-WAM 加速的对象是什么、为什么“直接减少采样步数”不成立，以及论文所谓实时到底采用什么口径。下一节再补齐 Flow Matching 和 consistency distillation 的必要地基。</p></div>
+<h3>1.1 WAM 的推理不是一次前向，而是两段串行 ODE 积分</h3>
+<p>LingBot-VA 先用视频流生成未来视觉 latent，再在这个未来上用动作流生成 action chunk。论文使用的教师在 RoboTwin 上需要 $N^v=25$ 次视频网络评估和 $N^a=50$ 次动作网络评估：视频约 3550 ms，动作约 4550 ms，合计 8100 ms。两段不是可随意并行的独立头，因为动作分布以生成的视频为条件。</p>
+<div class="math-block">$$x^v\sim p_\theta(x^v\mid C),\qquad x^a\sim p_\theta(x^a\mid x^v,C),\qquad \mathrm{NFE}=N^v+N^a$$<span class="math-label">WAM 的两阶段自回归分解 · Eq. 5–6</span></div>
+<div class="math-explain"><dl>
+<dt>$C$</dt><dd>过去的观测、过去动作与语言指令组成的上下文；不是只给一张当前图。</dd>
+<dt>$x^v$</dt><dd>未来视频 latent。它先回答“接下来世界可能怎样变化”。</dd>
+<dt>$x^a$</dt><dd>与该未来一致的动作序列。它回答“什么动作会导致这个未来”。</dd>
+<dt>$N^v+N^a$</dt><dd>每个 chunk 的串行 Transformer 前向次数。减少 NFE 是加速来源，但只删步会让数值积分偏离训练好的流场。</dd>
+</dl></div>
+<h3>1.2 论文把 500 ms 定义为实时预算</h3>
+<p>作者在单张 NVIDIA L40S、单 chunk 口径下测量延迟，并采用 500 ms，即 2 Hz chunk-level rate 作为实时门槛。Flash-WAM 的 1v/1a 配置达到 348 ms；因此“实时”指动作块每秒约更新两次，不等同于低层关节控制回路的几百 Hz。</p>
+<div class="fig-block">
+<img alt="Flash-WAM 延迟与 RoboTwin 成功率折线图" src="../assets/figures/flash-wam/fig-1.png"/>
+<div class="fig-cap"><span class="fig-num">FIGURE 1 · PDF p.3</span> 左侧把 25v/50a 教师的 8.1 s 拆成视频与动作开销；右侧展示速度—成功率 Pareto，而不是只展示最快点。<span class="fig-cn">关键读法：1v/1a 的 348 ms 跨过实时线，但成功率从教师 91.25% 降到 81.41%；1v/2a 则用 19× 加速换取更小的性能损失。</span></div>
+</div>
+<div class="module-grid">
+<div class="module-card"><div class="module-card-name">TEACHER</div><div class="module-card-title">25v / 50a</div><div class="module-card-desc">RoboTwin 平均成功率 91.25%，延迟 8.1 s；质量高但无法闭环实时部署。</div></div>
+<div class="module-card"><div class="module-card-name">BALANCED</div><div class="module-card-title">1v / 2a</div><div class="module-card-desc">平均成功率 85.54%，约 19× 加速；保留第二个动作修正步。</div></div>
+<div class="module-card"><div class="module-card-name">FASTEST</div><div class="module-card-title">1v / 1a</div><div class="module-card-desc">平均成功率 81.41%，348 ms，约 23.3×；首次跨过论文采用的 500 ms 线。</div></div>
+<div class="module-card"><div class="module-card-name">WRONG SHORTCUT</div><div class="module-card-title">只把 NFE 改成 1</div><div class="module-card-desc">未经过蒸馏的教师流场不是为粗粒度 Euler 步训练的；真机平均成功率会跌到 23.3%。</div></div>
+</div>
+<h3>1.3 Introduction 的逻辑链：为什么不是再做一个 VLA，也不是只做工程缓存</h3>
+<p><strong>第一层动机是表示：</strong>直接 VLA 从当前视觉和语言映射动作，跨任务能力强，但其视觉表征大多来自静态图文预训练，并不显式刻画“动作之后世界会怎样变化”。WAM 从大规模视频生成骨干继承时空先验，先预测未来视觉，再反推动作，因此作者把它视为更有希望的通用机器人基座。Flash-WAM 不试图重新证明 WAM 一定优于 VLA；它接受这个表示路线，然后解决其最明显的部署代价。</p>
+<p><strong>第二层动机是系统：</strong>现有 WAM 已使用 KV cache、noisy-history augmentation、预测与执行异步流水线来降低 wall-clock latency，但这些方法没有消除底层的 25 次视频去噪与 50 次动作去噪。缓存解决“别重复算过去”，Flash-WAM 解决“当前 chunk 为什么仍要沿 ODE 走几十个小步”，两者正交而非互斥。</p>
+<p><strong>第三层动机是算法缺口：</strong>图像/视频扩散已有大量 step distillation，最自然的想法是直接搬到 WAM。可 progressive distillation 要多阶段反复减半，难以扩展到大基座；DMD2 一类 distribution matching 需要辅助 score network 与对抗式训练，和视频/动作不对称 schedule 的联合训练不自然；consistency distillation 最干净，却在直接迁移时把 RoboTwin 成功率从 91% 降到约 24%。于是论文真正的问题不是“能否蒸馏”，而是“为什么单模态蒸馏理论在联合视频—动作上失效”。</p>
+<h3>1.4 Related Work 不是论文名单：四条竞争路线各自在删除什么</h3>
+<table class="kv-table">
+<thead><tr><th>相关路线</th><th>代表工作</th><th>已经解决什么</th><th>Flash-WAM 认为仍缺什么</th></tr></thead>
+<tbody>
+<tr><td>统一 World-Action Model</td><td>LingBot-VA、Motus、DreamZero</td><td>用共享骨干、Mixture-of-Transformers 或架构级优化耦合视频与动作生成</td><td>两条生成流仍受迭代去噪支配；不同架构还不能共享一套现成加速结论</td></tr>
+<tr><td>不在测试时显式生成视频</td><td>GigaWorld-Policy、Fast-WAM</td><td>把未来动态变成因果 reasoning signal，或把 video DiT 改作单次动作编码器</td><td>速度快，但删掉了显式未来视频；Flash-WAM 选择保留原 WAM 的可视未来与两阶段结构</td></tr>
+<tr><td>Trajectory-following distillation</td><td>Progressive Distillation、Consistency Models、LCM</td><td>让学生沿 teacher ODE 轨迹或从任一点预测同一端点，通常不需额外判别器</td><td>原方法假设单模态、单噪声分布；没有处理视频与动作 schedule 不对称</td></tr>
+<tr><td>Distribution-matching distillation</td><td>DMD、DMD2</td><td>不逐点追随轨迹，而让少步学生的输出分布匹配 teacher</td><td>需要辅助 score/adversarial 组件；动作流还要额外 flow-matching regularizer 才稳定</td></tr>
+</tbody>
+</table>
+<div class="callout blue"><div class="callout-label">论文存在的必要性</div><p>如果目标只是更快，Fast-WAM 的“取消测试时视频生成”更激进；如果目标只是保留画质，视频蒸馏已有成熟方法。Flash-WAM 值得单独做，是因为它要同时满足三个约束：保留显式未来、保留联合动作生成、又把两种不同噪声 regime 的多步采样一起压缩。这个交集此前没有被单模态蒸馏覆盖。</p></div>
+<details class="en-quote"><summary>展开原文 · 论文声称的系统结果</summary><div class="quote-body"><p>“This reduces per-chunk latency from 8.1 seconds to 348 ms on NVIDIA L40S, a 23× speedup that enables real-time inference.”</p><div class="quote-cite">— Abstract, PDF p.1</div></div></details>
+<div class="quiz" data-correct="c" data-explain="WAM 的动作流条件于先生成的未来视频，两段各自进行多步积分，因此单 chunk 的主要开销是 Nv+Na 次串行前向。" data-explain-wrong="参数量和图像分辨率会影响单步成本，但论文要消除的直接瓶颈是两段多步串行采样。"><div class="q-label">理解检查 · 系统瓶颈</div><div class="q-text">Flash-WAM 为什么优先压缩 NFE？</div><div class="q-options"><button class="q-opt" data-k="a">因为动作标签太少</button><button class="q-opt" data-k="b">因为语言编码器最大</button><button class="q-opt" data-k="c">因为视频与动作两段迭代采样需要大量串行前向</button><button class="q-opt" data-k="d">因为 3D 渲染速度太慢</button></div><div class="q-feedback"></div></div>
+</section>
+<section class="section" id="prelim">
+<div class="section-num">SECTION 02</div>
+<h2>地基：Flow Matching 学速度场，Consistency 学“从轨迹任一点直达终点”</h2>
+<div class="cn-read"><div class="cn-label">承上启下</div><p>上一节说明了为什么要减少积分步数。本节解释被压缩的多步生成究竟在算什么。理解两个对象就够了：Flow Matching 的速度场 $v_\theta$，以及把 ODE 轨迹任一点映到同一干净端点的 consistency function $f$。</p></div>
+<h3>2.1 Flow Matching：从数据到噪声之间画一条直线路径</h3>
+<div class="math-block">$$x_\sigma=(1-\sigma)x_0+\sigma\epsilon,\quad \epsilon\sim\mathcal N(0,I),\qquad \mathcal L_{FM}=\mathbb E\left\|v_\theta(x_\sigma,\sigma)-(\epsilon-x_0)\right\|_2^2$$<span class="math-label">直线插值与速度回归 · Eq. 1</span></div>
+<div class="math-explain"><dl>
+<dt>$x_0$ 与 $\epsilon$</dt><dd>$x_0$ 是干净视频 latent 或动作序列，$\epsilon$ 是同形状高斯噪声。</dd>
+<dt>$\sigma\in[0,1]$</dt><dd>$\sigma=0$ 是数据端，$\sigma=1$ 是纯噪声端；推理时从 1 数值积分回 0。</dd>
+<dt>$\epsilon-x_0$</dt><dd>因为路径是直线，它对 $\sigma$ 的导数是常数。网络被训练来预测当前位置应沿哪个方向移动。</dd>
+<dt>$\hat x_0=x_\sigma-\sigma v_\theta$</dt><dd>若速度预测准确，从当前点沿直线走回长度 $\sigma$ 就能估计干净端点。这也预告了动作侧的线性 consistency 形式。</dd>
+</dl></div>
+<h3>2.2 SNR shift：同样均匀采样 $\tilde\sigma$，可以把训练质量推向高噪声端</h3>
+<div class="math-block">$$\sigma=\frac{s\tilde\sigma}{1+(s-1)\tilde\sigma},\qquad \tilde\sigma\sim\mathcal U[0,1],\quad s\ge 1$$<span class="math-label">SNR-shifted noise sampler · Eq. 2</span></div>
+<div class="math-explain"><dl>
+<dt>$\tilde\sigma$</dt><dd>原始均匀变量；它本身没有偏向低噪声或高噪声。</dd>
+<dt>$s$</dt><dd>shift 越大，映射后的 $\sigma$ 越集中在 1 附近。附录给出的实现是视频 $s_v=5.0$、动作 $s_a=1.0$。</dd>
+<dt>为什么视频用更大 shift</dt><dd>高维视频 latent 有强空间冗余，对单步强噪声更耐受；训练更多落在高噪声区，有助于学习从粗结构恢复画面。</dd>
+<dt>为什么动作不照搬</dt><dd>动作维度低、数值精度直接决定接触与轨迹。$s_a=1$ 让大量训练样本保留在低 $\sigma$ 区间。</dd>
+</dl></div>
+<h3>2.3 Consistency Distillation：学生和 EMA 目标要对同一 ODE 轨迹给出相同终点</h3>
+<div class="math-block">$$f(x_\sigma,\sigma)=a(\sigma)x_\sigma+b(\sigma)v_\theta(x_\sigma,\sigma),\quad a(0)=1,\ b(0)=0$$<span class="math-label">一般 consistency function · Eq. 3</span></div>
+<div class="math-explain"><dl>
+<dt>$a(\sigma)$</dt><dd>保留当前 noisy sample 的 skip 系数。</dd>
+<dt>$b(\sigma)$</dt><dd>把网络预测的速度写入输出的系数；它也直接缩放损失传给 $v_\theta$ 的梯度。</dd>
+<dt>边界条件</dt><dd>在 $\sigma=0$ 时必须有 $f(x_0,0)=x_0$。因此 $a(0)=1$、$b(0)=0$ 不是可随意调的超参数。</dd>
+<dt>“一致”是什么意思</dt><dd>同一条 teacher ODE 轨迹上的 $x_{\sigma_s}$ 与 $\tilde x_{\sigma_e}$ 虽然噪声不同，经 $f$ 后应指向同一干净端点。</dd>
+</dl></div>
+<div class="math-block">$$\tilde x_{\sigma_e}=x_{\sigma_s}+\hat v_{cfg}(\sigma_e-\sigma_s),\qquad \mathcal L_{CD}=d\!\left(f_{\theta_S}(x_{\sigma_s},\sigma_s),f_{\theta'_S}(\tilde x_{\sigma_e},\sigma_e)\right)$$<span class="math-label">Teacher Euler step 与一致性损失 · Eq. 4</span></div>
+<div class="math-explain"><dl>
+<dt>$\sigma_s$ 与 $\sigma_e$</dt><dd>起始噪声和 teacher 向数据端推进后的噪声，满足 $\sigma_e&lt;\sigma_s$。</dd>
+<dt>$\hat v_{cfg}$</dt><dd>冻结 teacher 的 classifier-free guided 速度；它提供局部 ODE 方向，而不是直接作为硬标签输出整条轨迹。</dd>
+<dt>$\theta_S$ 与 $\theta'_S$</dt><dd>在线学生与其 EMA 目标。目标分支 stop-gradient，EMA 降低自蒸馏目标的抖动。</dd>
+<dt>$d(\cdot,\cdot)$</dt><dd>距离度量。损失要求两个噪声点的终点预测一致，使学生最终可以跨越原来的许多小步。</dd>
+</dl></div>
+<div class="quiz" data-correct="b" data-explain="Consistency function 的目标是让同一 probability-flow ODE 轨迹上的不同噪声点映射到相同干净端点，因此可以用少步甚至一步替代细粒度积分。" data-explain-wrong="它不是重新定义语言条件，也不是直接把动作做离散分类。"><div class="q-label">理解检查 · 蒸馏目标</div><div class="q-text">Consistency distillation 真正要求“一致”的是什么？</div><div class="q-options"><button class="q-opt" data-k="a">视频 token 与动作 token 数量一致</button><button class="q-opt" data-k="b">同一 ODE 轨迹不同噪声点的干净端点预测一致</button><button class="q-opt" data-k="c">teacher 与 student 参数完全一致</button><button class="q-opt" data-k="d">所有任务使用同一 action chunk</button></div><div class="q-feedback"></div></div>
+</section>
+<section class="section" id="failure">
+<div class="section-num">SECTION 03</div>
+<h2>核心诊断：标准 LCM 在动作最常训练的地方几乎不给梯度</h2>
+<div class="cn-read"><div class="cn-label">从基础到矛盾</div><p>一般 consistency function 看起来已经能同时用于两种模态，问题出在 $b(\sigma)$。它不只是输出系数，也是梯度闸门。视频和动作的 $\sigma$ 边际分布不同，同一个闸门会在视频区间打开、在动作区间关闭。</p></div>
+<h3>3.1 先区分“条件不同”与“训练噪声分布不同”</h3>
+<p>论文并不是说视频和动作因为语义不同就一定要两个损失头；它给出了更具体的结构性条件：$s_v&gt;s_a$。视频样本集中在较高 $\sigma$，动作样本横跨整个区间并在低 $\sigma$ 有显著质量。统一使用 LCM 时，两个流看到的是同一个函数，却在完全不同的位置调用它。</p>
+<div class="math-block">$$s_v&gt;s_a,\qquad b_{LCM}(\sigma)=-\frac{\sigma^2\sigma_d}{\sqrt{\sigma^2+\sigma_d^2}},\qquad |b_{LCM}(\sigma)|=\frac{\sigma^2}{\sigma_d}+O(\sigma^4)$$<span class="math-label">不对称 schedule 与 LCM 的低噪声展开 · Eq. 7</span></div>
+<div class="math-explain"><dl>
+<dt>$s_v&gt;s_a$</dt><dd>实验实现为 $5.0&gt;1.0$。视频蒸馏样本大多落在高噪声区，动作则频繁落在低噪声区。</dd>
+<dt>$b_{LCM}(0)=0$</dt><dd>满足 consistency 的边界条件，但这只保证终点正确，不保证终点附近有足够训练信号。</dd>
+<dt>$b'_{LCM}(0)=0$</dt><dd>一阶项也消失，所以最先出现的是 $\sigma^2$。当 $\sigma$ 从 0.2 变到 0.1，梯度尺度大致再缩小四倍，不是两倍。</dd>
+<dt>36× 差距</dt><dd>论文在 $\sigma=0.1$ 观察到 LCM 梯度尺度约比视频所在高噪声区小 36 倍。即使速度预测很差，动作头也可能收不到足够纠正信号。</dd>
+</dl></div>
+<h3>3.2 命题 1：边界条件允许的最好低噪声缩放只能是线性</h3>
+<div class="math-block">$$b(\sigma)=b'(0)\sigma+O(\sigma^2)\quad\Longrightarrow\quad |b(\sigma)|=O(\sigma),\qquad \text{attained iff } b'(0)\ne0$$<span class="math-label">Optimal gradient scaling near σ=0 · Proposition 1</span></div>
+<div class="math-explain"><dl>
+<dt>为什么上界是线性</dt><dd>边界条件强制 $b(0)=0$。对可微函数在 0 点做 Taylor 展开，第一项只能从 $b'(0)\sigma$ 开始，不可能保留常数梯度。</dd>
+<dt>何时退化成二次</dt><dd>如果再令 $b'(0)=0$，线性项也被抹掉，只剩 $O(\sigma^2)$ 或更高阶。标准 LCM 正好处于这个次优情形。</dd>
+<dt>为什么调 $\sigma_d$ 救不了</dt><dd>任意 $\sigma_d$ 下，LCM 家族都满足 $|b_{LCM}(\sigma)|\le\sigma$，且在零点仍是二次消失；改变数据尺度只能改常数，不能改变阶数。</dd>
+<dt>命题的真正用途</dt><dd>它把“动作蒸馏不稳定”从经验超参问题变成函数族选择问题：要在低噪声区学习，必须离开 $b'(0)=0$ 的 LCM 形式。</dd>
+</dl></div>
+<div class="fig-interactive panel-below">
+<div class="fig-block">
+<div class="hotspot-wrap" data-hotspot-group="flash-method">
+<img alt="Flash-WAM 模态感知一致性蒸馏总览" src="../assets/figures/flash-wam/fig-2.png"/>
+<div class="hotspot" data-body="&lt;div class='hp-body'&gt;&lt;p&gt;&lt;strong&gt;图中位置与输入：&lt;/strong&gt;图中两条边际分布来自视频与动作各自的 log-SNR shift；视频使用更高 shift，动作接近均匀覆盖噪声区间。&lt;/p&gt;&lt;p&gt;&lt;strong&gt;这里真正发生什么：&lt;/strong&gt;视频高维且纹理复杂，训练样本更多集中在高噪声重建；动作维度低，却必须在低噪声区精确修正连续控制坐标。&lt;/p&gt;&lt;p&gt;&lt;strong&gt;它与相邻模块的关系：&lt;/strong&gt;这个统计揭示不能给两种模态套同一 consistency 参数化：相同损失会让低噪声动作梯度不足，从而引出下一处‘梯度消失’诊断。&lt;/p&gt;&lt;/div&gt;" data-id="snr" data-title="不同 SNR 边际" style="left:13%;top:35%"></div>
+<div class="hotspot" data-body="&lt;div class='hp-body'&gt;&lt;p&gt;&lt;strong&gt;图中位置与输入：&lt;/strong&gt;曲线关注标准 latent consistency 映射中的系数 $|b(\sigma)|$；当 $\sigma	o0$，它按二次速度趋近零。&lt;/p&gt;&lt;p&gt;&lt;strong&gt;这里真正发生什么：&lt;/strong&gt;反向传播到动作预测器的梯度会被该系数缩小，而动作恰恰需要在接近干净样本时继续微调毫米级坐标。&lt;/p&gt;&lt;p&gt;&lt;strong&gt;它与相邻模块的关系：&lt;/strong&gt;视频在高噪声区受影响较小，动作却会失去精修能力；因此 Flash-WAM 保留共享骨干，却为动作换成低噪声仍有梯度的线性映射。&lt;/p&gt;&lt;/div&gt;" data-id="vanish" data-title="动作梯度消失" style="left:16%;top:72%"></div>
+<div class="hotspot" data-body="&lt;div class='hp-body'&gt;&lt;p&gt;&lt;strong&gt;图中位置与输入：&lt;/strong&gt;冻结 teacher 接收起点噪声 $\sigma_s$ 的样本、条件与 CFG 强度，并沿概率流 ODE 做一个 Euler 步到 $\sigma_e$。&lt;/p&gt;&lt;p&gt;&lt;strong&gt;这里真正发生什么：&lt;/strong&gt;teacher 的速度场构造同一生成轨迹上的目标点；student 不需要重新探索正确方向，只需学习把较远的两个噪声位置直接对齐。&lt;/p&gt;&lt;p&gt;&lt;strong&gt;它与相邻模块的关系：&lt;/strong&gt;冻结 teacher 保证蒸馏目标不会与 student 同时漂移。它连接原始多步 WAM 和后续一步 consistency 模型，是提速但尽量保真关键。&lt;/p&gt;&lt;/div&gt;" data-id="teacher" data-title="冻结 Teacher Euler step" style="left:45%;top:36%"></div>
+<div class="hotspot" data-body="&lt;div class='hp-body'&gt;&lt;p&gt;&lt;strong&gt;图中位置与输入：&lt;/strong&gt;视频 token 与动作 token 仍通过同一个 Transformer 交换上下文，差异只放在输出参数化和损失头。&lt;/p&gt;&lt;p&gt;&lt;strong&gt;这里真正发生什么：&lt;/strong&gt;视频使用适合 VP 噪声日程的非线性 consistency 形式；动作使用低噪声梯度不消失的线性形式。&lt;/p&gt;&lt;p&gt;&lt;strong&gt;它与相邻模块的关系：&lt;/strong&gt;这不是训练两个互不沟通的模型：共享骨干保存想象—动作耦合，模态专属 head 只修正两者统计尺度和精度需求不同的问题。&lt;/p&gt;&lt;/div&gt;" data-id="heads" data-title="模态专属函数" style="left:58%;top:72%"></div>
+<div class="hotspot" data-body="&lt;div class='hp-body'&gt;&lt;p&gt;&lt;strong&gt;图中位置与输入：&lt;/strong&gt;蒸馏后，视频阶段和动作阶段各只需一次 student 网络评估，不再执行原模型的长去噪链。&lt;/p&gt;&lt;p&gt;&lt;strong&gt;这里真正发生什么：&lt;/strong&gt;系统仍先产生未来视频/latent，再让动作模块条件于该未来输出控制，因此没有为了速度删除 WAM 的因果顺序。&lt;/p&gt;&lt;p&gt;&lt;strong&gt;它与相邻模块的关系：&lt;/strong&gt;一步生成把推理延迟压入闭环预算；但它继承 teacher 的能力上限，并可能牺牲多样性，所以要同时检查速度、动作成功率和生成一致性。&lt;/p&gt;&lt;/div&gt;" data-id="deploy" data-title="一步部署" style="left:86%;top:48%"></div>
+</div>
+<div class="fig-cap"><span class="fig-num">FIGURE 2 · PDF p.5</span> 左边是失败诊断，中间是训练，右边是部署。点击图中圆点或使用下方 Step Walker 阅读。<span class="fig-cn">最容易误读之处：Flash-WAM 没有把视频和动作拆成两套 Transformer；它只替换每个流如何把共享速度预测写入 consistency target。</span></div>
+</div>
+<div class="hotspot-panel"></div>
+</div>
+<div class="step-walker" data-hotspot-group="flash-method">
+<div class="sw-header"><div class="sw-title">从失败诊断到一步部署</div><div class="sw-controls"><button class="sw-btn prev">←</button><span class="sw-counter"></span><button class="sw-btn next">→</button></div></div>
+<div class="sw-progress"><span class="sw-dot"></span><span class="sw-dot"></span><span class="sw-dot"></span><span class="sw-dot"></span><span class="sw-dot"></span></div>
+<div class="sw-body">
+<div class="sw-step" data-hotspot="snr"><h4>1. 先统计两种模态实际抵达损失的噪声区间</h4><p>不是从“视频复杂、动作简单”的直觉出发，而是从 $s_v=5,s_a=1$ 导出的边际 $\sigma$ 分布出发。</p><div class="step-beginner"><div class="sb-label">给第一次接触这个领域的读者</div><p><strong>输入是什么：</strong>已经训练好的模型、它在不同输入或噪声时间步上的运行记录，以及需要比较的中间数值。这里先做诊断，还没有让机器人执行新动作。</p><p><strong>这一步究竟做什么：</strong>不是从“视频复杂、动作简单”的直觉出发，而是从 $s_v=5,s_a=1$ 导出的边际 $\sigma$ 分布出发。</p><p><strong>输出到哪里：</strong>一组诊断数值、分类结果或评测分数；它告诉后续模块当前结果哪里好、哪里需要修正。这个结果会交给下一步“检查 consistency function 的梯度系数”继续处理。</p><p><strong>为什么不能省略：</strong>没有统一诊断或评分，后续模块无法知道哪里出错，也无法公平比较两个模型是否真的进步。</p></div></div>
+<div class="sw-step" data-hotspot="vanish"><h4>2. 检查 consistency function 的梯度系数</h4><p>因为 $\partial f/\partial\theta$ 含有 $b(\sigma)$，标准 LCM 在低 $\sigma$ 区给动作的学习信号二次衰减。</p><div class="step-beginner"><div class="sb-label">给第一次接触这个领域的读者</div><p><strong>输入是什么：</strong>来自上一步“先统计两种模态实际抵达损失的噪声区间”的产物：一组诊断数值、分类结果或评测分数；它告诉后续模块当前结果哪里好、哪里需要修正。本步骤还会按论文设置读取当前条件、时间步或训练信号。</p><p><strong>这一步究竟做什么：</strong>因为 $\partial f/\partial\theta$ 含有 $b(\sigma)$，标准 LCM 在低 $\sigma$ 区给动作的学习信号二次衰减。</p><p><strong>输出到哪里：</strong>一组诊断数值、分类结果或评测分数；它告诉后续模块当前结果哪里好、哪里需要修正。这个结果会交给下一步“Teacher 仍提供局部 ODE 轨迹”继续处理。</p><p><strong>为什么不能省略：</strong>没有统一诊断或评分，后续模块无法知道哪里出错，也无法公平比较两个模型是否真的进步。</p></div></div>
+<div class="sw-step" data-hotspot="teacher"><h4>3. Teacher 仍提供局部 ODE 轨迹</h4><p>Flash-WAM 没有重新训练世界模型；它从已训练 LingBot-VA 的 guided Euler step 构造蒸馏配对。</p><div class="step-beginner"><div class="sb-label">给第一次接触这个领域的读者</div><p><strong>输入是什么：</strong>来自上一步“检查 consistency function 的梯度系数”的产物：一组诊断数值、分类结果或评测分数；它告诉后续模块当前结果哪里好、哪里需要修正。本步骤还会按论文设置读取当前条件、时间步或训练信号。</p><p><strong>这一步究竟做什么：</strong>Flash-WAM 没有重新训练世界模型；它从已训练 LingBot-VA 的 guided Euler step 构造蒸馏配对。</p><p><strong>输出到哪里：</strong>一个或多个候选未来、动作或轨迹，以及必要的中间状态。这个结果会交给下一步“同一共享骨干，两个 consistency 映射”继续处理。</p><p><strong>为什么不能省略：</strong>它承担上下两步之间的接口；缺少它，前一步产生的信息无法以正确格式或正确含义传到下一步。</p><div class="sb-terms"><strong>术语先翻译：</strong>WAM（世界—动作模型）：既预测动作，也显式或隐式预测动作会把未来世界变成什么样；world model（世界模型）：在模型内部模拟‘做了动作以后会发生什么’；ODE（常微分方程）：描述样本如何沿连续且确定的轨迹从噪声移动到数据。</div></div></div>
+<div class="sw-step" data-hotspot="heads"><h4>4. 同一共享骨干，两个 consistency 映射</h4><p>视频选择高噪声稳定的 Karras/LCM 形式，动作选择达到线性梯度上界的 $x_\sigma-\sigma v_\theta$。</p><div class="step-beginner"><div class="sb-label">给第一次接触这个领域的读者</div><p><strong>输入是什么：</strong>来自上一步“Teacher 仍提供局部 ODE 轨迹”的产物：一个或多个候选未来、动作或轨迹，以及必要的中间状态。本步骤还会按论文设置读取当前条件、时间步或训练信号。</p><p><strong>这一步究竟做什么：</strong>视频选择高噪声稳定的 Karras/LCM 形式，动作选择达到线性梯度上界的 $x_\sigma-\sigma v_\theta$。</p><p><strong>输出到哪里：</strong>参数得到更新的模型，或能供下一轮训练使用的新监督信号。这个结果会交给下一步“部署仍保持 WAM 因果顺序”继续处理。</p><p><strong>为什么不能省略：</strong>它承担上下两步之间的接口；缺少它，前一步产生的信息无法以正确格式或正确含义传到下一步。</p></div></div>
+<div class="sw-step" data-hotspot="deploy"><h4>5. 部署仍保持 WAM 因果顺序</h4><p>一次生成未来视频，再一次生成动作；“一步”是每个模态一步，不是同时无条件吐出两者。</p><div class="step-beginner"><div class="sb-label">给第一次接触这个领域的读者</div><p><strong>输入是什么：</strong>来自上一步“同一共享骨干，两个 consistency 映射”的产物：参数得到更新的模型，或能供下一轮训练使用的新监督信号。本步骤还会按论文设置读取当前条件、时间步或训练信号。</p><p><strong>这一步究竟做什么：</strong>本步骤执行“部署仍保持 WAM 因果顺序”。具体来说，一次生成未来视频，再一次生成动作；“一步”是每个模态一步，不是同时无条件吐出两者。 模型从相同起点产生候选未来，后续模块再检查这些未来是否符合条件、物理规律或动作需要。</p><p><strong>输出到哪里：</strong>可发送给机器人控制器的动作，以及执行后重新观测到的真实状态。这是图中这条链路的最终产物，随后会进入真实执行、模型更新或指标评测。</p><p><strong>为什么不能省略：</strong>机器人动作会改变下一次观测；只有执行后重新读取现实，才能发现预测误差并阻止错误连续累积。</p><div class="sb-terms"><strong>术语先翻译：</strong>WAM（世界—动作模型）：既预测动作，也显式或隐式预测动作会把未来世界变成什么样。</div></div></div>
+</div>
+</div>
+<details class="en-quote"><summary>展开原文 · 结构性失败而非调参低效</summary><div class="quote-body"><p>“The quadratic vanishing is not specific to LCM but reflects where in the consistency-function family LCM sits.”</p><div class="quote-cite">— Section 4.1, PDF p.6</div></div></details>
+<div class="quiz" data-correct="d" data-explain="动作使用较小 SNR shift，大量样本位于低 σ；而标准 LCM 的 b(σ) 在零点一阶导也为零，使梯度按 σ² 消失。" data-explain-wrong="问题并非动作 token 更少本身，也不是视频使用 CFG 就必然导致。"><div class="q-label">理解检查 · 失败机制</div><div class="q-text">为什么统一 LCM 对动作流特别危险？</div><div class="q-options"><button class="q-opt" data-k="a">动作没有语言条件</button><button class="q-opt" data-k="b">动作序列无法加高斯噪声</button><button class="q-opt" data-k="c">动作使用更多视频帧</button><button class="q-opt" data-k="d">动作训练覆盖低噪声区，而 LCM 梯度在那里二次消失</button></div><div class="q-feedback"></div></div>
+</section>
+<section class="section" id="method">
+<div class="section-num">SECTION 04</div>
+<h2>Flash-WAM 方法：动作要线性梯度，视频要高噪声稳定</h2>
+<div class="cn-read"><div class="cn-label">解决上一节的矛盾</div><p>命题 1 只告诉我们动作侧应选 $b'(0)\ne0$，还没说明视频也该使用同一种线性形式。Flash-WAM 的选择原则是“匹配模态所在的噪声区”：动作追求低噪声可学习性，视频追求高噪声方差稳定和输出有界。</p></div>
+<h3>4.1 动作侧：直接使用干净端点估计，达到线性缩放上界</h3>
+<div class="math-block">$$a_a(\sigma)=1,\quad b_a(\sigma)=-\sigma,\qquad f^a(x^a_\sigma,\sigma)=x^a_\sigma-\sigma v_\theta^a(x^a_\sigma,\sigma)$$<span class="math-label">Action consistency function · Eq. 8–9</span></div>
+<div class="math-explain"><dl>
+<dt>$a_a(\sigma)=1$</dt><dd>noisy action 的 skip 路径不随噪声衰减，避免另一个随 $\sigma$ 变化的系数遮蔽速度信号。</dd>
+<dt>$b_a(\sigma)=-\sigma$</dt><dd>$b'_a(0)=-1\ne0$，因此 $|b_a|=\sigma$，正好达到命题 1 允许的线性上界。</dd>
+<dt>$f^a=\hat x^a_0$</dt><dd>它等价于 Flow Matching 的 clean estimate。动作目标低维且有界，不需要视频侧那套额外方差归一化。</dd>
+<dt>没有新超参数</dt><dd>线性形式由边界与低噪声梯度要求直接选出；不像尝试改变 $\sigma_d$ 那样只调常数而不改变消失阶数。</dd>
+</dl></div>
+<h3>4.2 视频侧：保留 Karras/LCM 参数化，不追求低噪声线性梯度</h3>
+<div class="math-block">$$f^v(x^v_\sigma,\sigma)=c_{skip}(\sigma)x^v_\sigma+c_{out}(\sigma)\hat x^v_0,\quad c_{skip}=\frac{\sigma_d^2}{\sigma^2+\sigma_d^2},\quad c_{out}=\frac{\sigma\sigma_d}{\sqrt{\sigma^2+\sigma_d^2}}$$<span class="math-label">Video consistency function · Eq. 10</span></div>
+<div class="math-explain"><dl>
+<dt>$c_{skip}$</dt><dd>低噪声时接近 1，保证边界；高噪声时衰减，避免 noisy video 直接主导输出。</dd>
+<dt>$c_{out}$</dt><dd>高噪声时趋近 $\sigma_d$，把网络输出幅度限制在数据尺度附近。</dd>
+<dt>方差保持</dt><dd>组合后的 $\mathrm{Var}[f^v]$ 约维持在 $\sigma_d^2$，使高维视频 latent 在整个高噪声区间的数值范围稳定。</dd>
+<dt>为什么不用动作的线性式</dt><dd>$x_\sigma-\sigma v_\theta$ 在高 $\sigma$ 时会把速度预测误差乘上大系数，训练初期可能漂离视频数据流形；这对高维画面比对有界动作更危险。</dd>
+</dl></div>
+<h3>4.3 联合损失：模态感知发生在 loss head，不增加单步网络成本</h3>
+<div class="math-block">$$\mathcal L_v=d\!\left(f^v_{\theta_S}(x^v_{\sigma_s},\sigma_s),f^v_{\theta'_S}(\tilde x^v_{\sigma_e},\sigma_e)\right),\quad \mathcal L_a=d\!\left(f^a_{\theta_S}(x^a_{\sigma_s},\sigma_s),f^a_{\theta'_S}(\tilde x^a_{\sigma_e},\sigma_e)\right),\quad \mathcal L=\mathcal L_v+\lambda_a\mathcal L_a$$<span class="math-label">Per-stream consistency losses and joint objective · Eq. 11–12</span></div>
+<div class="math-explain"><dl>
+<dt>$\mathcal L_v$</dt><dd>视频在线学生与视频 EMA target 的一致性距离，使用视频专属 $f^v$。</dd>
+<dt>$\mathcal L_a$</dt><dd>动作在线学生与动作 EMA target 的一致性距离，使用动作专属 $f^a$。</dd>
+<dt>$\lambda_a$</dt><dd>动作损失权重，平衡高维视频 token 与低维动作 token 对共享骨干的梯度贡献。</dd>
+<dt>一次 forward 的含义</dt><dd>视频和动作 token 仍按预训练方式拼接并经共享 Transformer 与 flex attention；一对 teacher/student forward 同时产出两流，只在计算 target 时分开参数化。</dd>
+</dl></div>
+<div class="callout blue"><div class="callout-label">论文贡献应该怎样准确表述</div><p>线性 clean-estimate 和 Karras 参数化本身都不是新函数。新意在于：论文从联合 WAM 的模态不对称 schedule 出发，分析可实现梯度缩放，并给出“低噪声动作选线性、高噪声视频选 variance-preserving”的配对原则，再用联合蒸馏验证。把贡献写成“提出新的 consistency model”会夸大。</p></div>
+<div class="quiz" data-correct="a" data-explain="动作侧需要 b'(0)≠0 来避免低噪声梯度二次消失；视频侧更重视高噪声方差保持与有界输出。" data-explain-wrong="两侧并非因为网络结构或优化器不同，而是训练质量集中在不同噪声区。"><div class="q-label">理解检查 · 函数配对</div><div class="q-text">Flash-WAM 为什么不把动作的线性 consistency function 同样用于视频？</div><div class="q-options"><button class="q-opt" data-k="a">视频在高噪声区更需要方差保持与有界输出</button><button class="q-opt" data-k="b">视频不能预测速度</button><button class="q-opt" data-k="c">视频没有 EMA target</button><button class="q-opt" data-k="d">视频流完全不做蒸馏</button></div><div class="q-feedback"></div></div>
+</section>
+<section class="section" id="training">
+<div class="section-num">SECTION 05</div>
+<h2>训练与部署：哪些东西变了，哪些刻意没有变</h2>
+<div class="cn-read"><div class="cn-label">从公式落到实现</div><p>方法公式解决函数选择，但复现仍取决于 teacher、噪声采样、CFG、EMA 和联合序列如何接起来。本节把训练循环与部署循环分开，避免把“蒸馏训练的一次 forward”和“部署的一步生成”混为一谈。</p></div>
+<h3>5.1 一次训练迭代的可执行顺序</h3>
+<ol>
+<li><strong>取联合样本：</strong>从机器人轨迹构造上下文 $C$、未来视频 latent $x_0^v$ 和动作块 $x_0^a$。</li>
+<li><strong>分别采噪声：</strong>视频按 $s_v=5.0$，动作按 $s_a=1.0$ 变换噪声级；两条流不共享同一个边际 $\sigma$ 分布。</li>
+<li><strong>构造 teacher 邻点：</strong>冻结 LingBot-VA teacher。视频 teacher Euler step 使用从区间采样的 CFG 权重；动作使用 unguided prediction。</li>
+<li><strong>共享骨干前向：</strong>视频与动作 token 拼成与预训练相同的联合序列，经同一个 Transformer/flex-attention 骨干。</li>
+<li><strong>分流计算终点：</strong>视频输出套入 $f^v$，动作输出套入 $f^a$；分别对 EMA target 求距离。</li>
+<li><strong>联合更新：</strong>用 $\mathcal L_v+\lambda_a\mathcal L_a$ 更新在线学生，再更新 EMA 参数 $\theta'_S$。</li>
+</ol>
+<h3>5.2 这不是架构压缩：每一步的 DiT 成本没有降低</h3>
+<p>Flash-WAM 保留 LingBot-VA 的共享骨干、视频/动作 token 化方式和两阶段因果顺序。它减少的是串行调用次数，不是每次调用的参数量、attention 复杂度或 VAE 编解码成本。因此论文报告的 23.3× 小于理论 NFE 比例 $(25+50)/(1+1)=37.5×$ 是合理的：固定开销、不同阶段单步成本与系统调度都不会随 NFE 等比例消失。</p>
+<table class="kv-table">
+<thead><tr><th>组件</th><th>Teacher</th><th>Flash-WAM</th><th>是否改变</th></tr></thead>
+<tbody>
+<tr><td>共享 Transformer</td><td>LingBot-VA shared backbone</td><td>同一架构初始化的学生</td><td>否</td></tr>
+<tr><td>视频 schedule</td><td>高 SNR shift</td><td>$s_v=5.0$</td><td>边际原则保留</td></tr>
+<tr><td>动作 schedule</td><td>较低 shift</td><td>$s_a=1.0$</td><td>边际原则保留</td></tr>
+<tr><td>Consistency head</td><td>无</td><td>视频 VP、动作 linear</td><td><strong>核心改变</strong></td></tr>
+<tr><td>推理 NFE</td><td>RoboTwin 25v/50a</td><td>1v/2a 或 1v/1a</td><td><strong>核心收益</strong></td></tr>
+</tbody>
+</table>
+<h3>5.3 部署时仍然是“想象未来 → 反推动作”</h3>
+<p>一步视频学生从噪声生成未来 latent；随后一步或两步动作学生条件于该未来生成 action chunk。执行 chunk 后接收新观测，再开始下一个闭环。论文的 Figure 4 还测试了更苛刻的 open-loop autoregressive rollout，即没有中间真实观测纠偏地连续生成后续视频块，用来观察视觉误差如何累积。</p>
+<div class="callout amber"><div class="callout-label">实现检查</div><p>若复现只在预先缓存的视频 latent 上测 348 ms，而部署系统还需在线视觉编码、VAE 解码、动作反归一化与机器人通信，就不能直接宣称端到端 348 ms。论文明确口径是 per-chunk 模型延迟；工程部署应额外报告 sensor-to-action 延迟。</p></div>
+<div class="quiz" data-correct="c" data-explain="Flash-WAM 保留共享骨干与每步计算，只通过蒸馏减少串行网络评估次数，并在两种损失头中使用不同 consistency 参数化。" data-explain-wrong="它没有把视频和动作拆成两套小网络，也没有删除未来视频阶段。"><div class="q-label">理解检查 · 改动边界</div><div class="q-text">Flash-WAM 的主要工程改动发生在哪里？</div><div class="q-options"><button class="q-opt" data-k="a">把 Transformer 换成 CNN</button><button class="q-opt" data-k="b">删除视频生成，只做动作回归</button><button class="q-opt" data-k="c">减少 NFE，并在两条流的 consistency loss 中使用不同参数化</button><button class="q-opt" data-k="d">把动作变成离散 token 分类</button></div><div class="q-feedback"></div></div>
+</section>
+<section class="section" id="experiments">
+<div class="section-num">SECTION 06</div>
+<h2>实验不是一个数字：仿真验证广度，真机验证闭环，延迟验证部署</h2>
+<div class="cn-read"><div class="cn-label">证据链</div><p>前面已经解释为什么方法应该有效。本节不只罗列 SOTA 数字，而是问每个实验排除了什么替代解释。RoboTwin 检查 50 个任务与分布偏移，LIBERO 检查常见 VLA 套件迁移，Unitree G1 检查少步误差是否真的会伤害物理接触。</p></div>
+<h3>6.1 评测设置：三个层级不能互相替代</h3>
+<table class="kv-table">
+<thead><tr><th>层级</th><th>数据与协议</th><th>主要回答的问题</th></tr></thead>
+<tbody>
+<tr><td>RoboTwin 2.0</td><td>50 个双臂任务；Clean 固定初始化，Randomized 改物体位姿、光照与布局</td><td>蒸馏是否保留跨任务能力，以及对视觉分布偏移是否鲁棒</td></tr>
+<tr><td>LIBERO</td><td>Spatial / Object / Goal / Long-horizon；每 suite 500 demos；每 suite 微调 4000 steps，约 4×H100、24 h</td><td>方法是否只对 LingBot 自有基准有效，还是能在标准 VLA 套件保留性能</td></tr>
+<tr><td>Unitree G1</td><td>Dex1-1 gripper，3 个任务；每任务 50 条遥操作演示，每方法每任务 10 次 rollout</td><td>少步视频/动作误差是否会转化为真实抓取、干扰物区分和长程操作失败</td></tr>
+<tr><td>Latency</td><td>单 NVIDIA L40S，per-chunk；500 ms 为论文实时门槛</td><td>成功率保持是否伴随真实系统速度收益</td></tr>
+</tbody>
+</table>
+<h3>6.2 RoboTwin：模态感知蒸馏在相同步数下显著优于通用蒸馏</h3>
+<table class="kv-table">
+<thead><tr><th>方法</th><th>$N^v/N^a$</th><th>Clean</th><th>Randomized</th><th>平均</th><th>速度</th></tr></thead>
+<tbody>
+<tr><td>LingBot-VA teacher</td><td>25 / 50</td><td>91.64</td><td>90.86</td><td>91.25</td><td>1.0×</td></tr>
+<tr><td>DMD2</td><td>1 / 2</td><td>85.08</td><td>72.36</td><td>78.74</td><td rowspan="4">19.0×</td></tr>
+<tr><td>Video-only LCM</td><td>1 / 2</td><td>80.66</td><td>76.92</td><td>78.79</td></tr>
+<tr><td>Naive Joint LCM</td><td>1 / 2</td><td>25.88</td><td>22.07</td><td>23.97</td></tr>
+<tr class="highlight"><td><strong>Flash-WAM</strong></td><td><strong>1 / 2</strong></td><td><strong>88.42</strong></td><td><strong>82.66</strong></td><td><strong>85.54</strong></td></tr>
+<tr><td>Video-only LCM</td><td>1 / 1</td><td>77.90</td><td>69.46</td><td>73.68</td><td rowspan="3">23.3×</td></tr>
+<tr><td>Naive Joint LCM</td><td>1 / 1</td><td>39.68</td><td>32.96</td><td>36.32</td></tr>
+<tr class="highlight"><td><strong>Flash-WAM</strong></td><td><strong>1 / 1</strong></td><td><strong>82.56</strong></td><td><strong>80.26</strong></td><td><strong>81.41</strong></td></tr>
+</tbody>
+</table>
+<p><strong>正确归因：</strong>1v/2a 下，Flash-WAM 比 Video-only LCM 高约 6.75 个平均点，比 Naive Joint LCM 高 61.57 点。前者说明“干脆不蒸馏动作”不是最优；后者直接支持统一 consistency function 会伤害动作训练。Randomized 上 Flash-WAM 相比 DMD2 多 10.30 点，显示收益不只来自 Clean 场景的视频外观拟合。</p>
+<h3>6.3 LIBERO：损失主要集中在 Object suite，而长程并未崩塌</h3>
+<table class="kv-table">
+<thead><tr><th>方法</th><th>$N^v/N^a$</th><th>Spatial</th><th>Object</th><th>Goal</th><th>Long</th><th>平均</th></tr></thead>
+<tbody>
+<tr><td>LingBot-VA teacher</td><td>20 / 50</td><td>98.5</td><td>99.8</td><td>98.0</td><td>98.3</td><td>98.6</td></tr>
+<tr><td>Video-only LCM</td><td>1 / 2</td><td>95.1</td><td>92.0</td><td>96.0</td><td>97.8</td><td>95.2</td></tr>
+<tr class="highlight"><td><strong>Flash-WAM</strong></td><td><strong>1 / 2</strong></td><td><strong>97.0</strong></td><td><strong>92.8</strong></td><td><strong>96.4</strong></td><td><strong>98.0</strong></td><td><strong>95.7</strong></td></tr>
+<tr><td>Video-only LCM</td><td>1 / 1</td><td>95.0</td><td>91.5</td><td>95.0</td><td>95.4</td><td>94.2</td></tr>
+<tr class="highlight"><td><strong>Flash-WAM</strong></td><td><strong>1 / 1</strong></td><td><strong>96.0</strong></td><td><strong>92.6</strong></td><td><strong>96.0</strong></td><td><strong>95.8</strong></td><td><strong>95.1</strong></td></tr>
+</tbody>
+</table>
+<p>1v/2a 从 6767 ms 降到 404 ms，13.7×；平均成功率从 98.6 降到 95.7。Object suite 的差距最大，提示单步生成对精细物体身份与几何关系仍更敏感。Long-horizon 的 98.0 接近教师 98.3，但不能据此推断任意长度都稳定，因为 LIBERO 长程任务长度有限，且每个 suite 单独微调。</p>
+<h3>6.4 Unitree G1：蒸馏价值在真机上比仿真更明显</h3>
+<div class="fig-block"><img alt="Flash-WAM 在 Unitree G1 上的三个真实任务" src="../assets/figures/flash-wam/fig-3.png"/><div class="fig-cap"><span class="fig-num">FIGURE 3 · PDF p.8</span> 三个真机任务：开锅盖并放入土豆、在黄色干扰瓶旁抓红瓶、把粉色物体放到十字标记。<span class="fig-cn">这些任务分别强调双手时序、物体身份与空间目标，不是同一种 pick-and-place 的重复计数。</span></div></div>
+<table class="kv-table">
+<thead><tr><th>方法</th><th>$N^v/N^a$</th><th>T1</th><th>T2</th><th>T3</th><th>平均</th></tr></thead>
+<tbody>
+<tr><td>LingBot-VA</td><td>3 / 10</td><td>50%</td><td>70%</td><td>80%</td><td>66.7%</td></tr>
+<tr><td>Reduced NFE</td><td>1 / 2</td><td>30%</td><td>30%</td><td>60%</td><td>40.0%</td></tr>
+<tr><td>Video-only LCM</td><td>1 / 2</td><td>30%</td><td>50%</td><td>50%</td><td>43.3%</td></tr>
+<tr class="highlight"><td><strong>Flash-WAM</strong></td><td><strong>1 / 2</strong></td><td><strong>50%</strong></td><td><strong>60%</strong></td><td><strong>70%</strong></td><td><strong>60.0%</strong></td></tr>
+<tr><td>Reduced NFE</td><td>1 / 1</td><td>10%</td><td>30%</td><td>30%</td><td>23.3%</td></tr>
+<tr><td>Video-only LCM</td><td>1 / 1</td><td>20%</td><td>40%</td><td>40%</td><td>33.3%</td></tr>
+<tr class="highlight"><td><strong>Flash-WAM</strong></td><td><strong>1 / 1</strong></td><td><strong>40%</strong></td><td><strong>50%</strong></td><td><strong>60%</strong></td><td><strong>50.0%</strong></td></tr>
+</tbody>
+</table>
+<p>最有信息量的是 T1 的 1v/1a：只减步为 10%，Flash-WAM 为 40%。这说明 coarse integration 不是单纯让视频变模糊，而会破坏需要双手阶段配合的动作精度。不过每个单元只有 10 次 rollout，10 个百分点就是一次成功，置信区间很宽；60% 不能被解读成精确稳定的总体成功率。</p>
+<details class="en-quote"><summary>展开原文 · 作者对 Figure 4 的解释边界</summary><div class="quote-body"><p>“We emphasize that this figure illustrates video-prediction quality only; action precision is captured quantitatively in the success-rate tables.”</p><div class="quote-cite">— Section 5.2, PDF p.9</div></div></details>
+<div class="quiz" data-correct="d" data-explain="同硬件延迟证明部署收益，仿真多任务证明广度，真机成功率证明生成误差确实影响物理闭环；三者共同构成论文证据链。" data-explain-wrong="单独的漂亮视频、FLOPs 或一个平均成功率都不能同时支持实时与控制质量。"><div class="q-label">理解检查 · 实验归因</div><div class="q-text">哪组结果最完整地支持“Flash-WAM 让 WAM 实时且仍能控制”这一主张？</div><div class="q-options"><button class="q-opt" data-k="a">只看 Figure 4 的视频</button><button class="q-opt" data-k="b">只看 L40S 的 348 ms</button><button class="q-opt" data-k="c">只看 RoboTwin 平均成功率</button><button class="q-opt" data-k="d">同硬件延迟 + 仿真多任务 + 真机闭环成功率</button></div><div class="q-feedback"></div></div>
+</section>
+<section class="section" id="ablation">
+<div class="section-num">SECTION 07</div>
+<h2>消融要按反事实读：不是“蒸馏有用”，而是哪一条替代解释被排除</h2>
+<div class="cn-read"><div class="cn-label">从主结果回到因果机制</div><p>主表证明 Flash-WAM 更好，但不能单独证明原因是模态感知参数化。消融把四个反事实摆在相同 NFE 下：统一蒸馏、只蒸馏视频、视频蒸馏加动作正则，以及真正的两流匹配。</p></div>
+<h3>7.1 反事实 A：Naive Joint LCM 排除“同一种蒸馏也够用”</h3>
+<p>1v/2a 时，Naive Joint LCM 的 Clean 平均只有 25.88%，且 Horizon 2 的 Clean/Randomized 降到 4.00/3.13，Horizon 3 为 0/0。短任务偶尔成功、序列任务完全崩溃，正符合低噪声动作精修缺少梯度后误差随阶段累积的预测。</p>
+<h3>7.2 反事实 B：Video-only LCM 排除“动作根本不需要蒸馏”</h3>
+<p>Video-only LCM 通过保留动作教师，避免统一 LCM 的动作崩塌，但 1v/2a 平均仍比 Flash-WAM 低约 7 点。它说明视频单步化会改变动作所条件的未来 latent；即便动作头本身保持原形式，也需要让动作生成适应蒸馏后的联合分布。</p>
+<h3>7.3 反事实 C：加 MSE 正则排除“随便锚住动作就行”</h3>
+<table class="kv-table">
+<thead><tr><th>方法</th><th>NFE</th><th>H1 Clean/Rand</th><th>H2 Clean/Rand</th><th>H3 Clean/Rand</th><th>Avg Clean/Rand</th></tr></thead>
+<tbody>
+<tr><td>Video-only LCM</td><td>1v/2a</td><td>87.10 / 82.73</td><td>73.13 / 68.19</td><td>62.50 / 68.25</td><td>80.66 / 76.92</td></tr>
+<tr><td>Video-only + reg.</td><td>1v/2a</td><td>91.53 / 88.50</td><td>83.00 / 74.69</td><td>68.00 / 62.75</td><td>86.92 / 82.02</td></tr>
+<tr><td>Naive Joint LCM</td><td>1v/2a</td><td>41.00 / 35.13</td><td>4.00 / 3.13</td><td>0.00 / 0.00</td><td>25.88 / 20.08</td></tr>
+<tr class="highlight"><td><strong>Flash-WAM</strong></td><td><strong>1v/2a</strong></td><td><strong>92.30 / 88.47</strong></td><td><strong>84.88 / 76.63</strong></td><td><strong>73.50 / 63.25</strong></td><td><strong>88.42 / 82.66</strong></td></tr>
+<tr><td>Video-only + reg.</td><td>1v/1a</td><td>66.87 / 61.07</td><td>39.19 / 35.56</td><td>10.25 / 4.75</td><td>53.48 / 48.40</td></tr>
+<tr class="highlight"><td><strong>Flash-WAM</strong></td><td><strong>1v/1a</strong></td><td><strong>87.30 / 86.93</strong></td><td><strong>78.44 / 72.63</strong></td><td><strong>63.50 / 60.75</strong></td><td><strong>82.56 / 80.26</strong></td></tr>
+</tbody>
+</table>
+<p>动作 MSE 正则在 1v/2a 能帮忙，但在更紧的 1v/1a 下反而比 plain Video-only LCM 的 Clean 平均低 24.42 点。原因是回归教师局部输出只能锚定某些位置，无法替代一个在整个低噪声区都有正确梯度尺度的 consistency mapping。这个反事实是论文机制最强的证据之一。</p>
+<h3>7.4 开环视频只验证“视觉身份保持”，不替代动作消融</h3>
+<div class="fig-block"><img alt="LingBot-VA、DMD2、Naive LCM 与 Flash-WAM 的开环视频预测比较" src="../assets/figures/flash-wam/fig-4-table-4.png"/><div class="fig-cap"><span class="fig-num">FIGURE 4 · PDF p.10</span> 在 pick_diverse_bottles 的开环自回归预测中，Naive Joint LCM 丢失棕色瓶，DMD2 出现瓶子模糊，Flash-WAM 更好地保持场景结构与物体身份。<span class="fig-cn">这张图支持视频生成质量，但不能证明动作连续值更准；动作精度必须回到成功率和 horizon 消融。</span></div></div>
+<div class="callout red"><div class="callout-label">仍缺失的关键消融</div><p>论文没有给出“交换两种参数化”的完整 2×2：视频用 linear、动作用 VP 会怎样？也没有系统扫描 $s_v,s_a$ 来验证最优函数确实随边际噪声迁移。当前证据强力支持给动作 linear，但对“视频 VP 是唯一最佳选择”的因果力度稍弱。</p></div>
+<div class="quiz" data-correct="b" data-explain="MSE 正则在较宽动作预算时有帮助，却在 1v/1a 大幅退化；这说明锚定教师输出不能替代低噪声区具有正确梯度阶数的动作 consistency function。" data-explain-wrong="这组消融不是在比较更多数据或更大模型，NFE 与骨干保持对齐。"><div class="q-label">理解检查 · 消融</div><div class="q-text">Video-only LCM + action regularizer 在 1v/1a 下崩得更厉害，最直接说明什么？</div><div class="q-options"><button class="q-opt" data-k="a">动作不应该参与联合训练</button><button class="q-opt" data-k="b">辅助回归约束不能替代正确的动作 consistency 参数化</button><button class="q-opt" data-k="c">RoboTwin 不适合评估动作</button><button class="q-opt" data-k="d">视频必须使用更多分辨率</button></div><div class="q-feedback"></div></div>
+</section>
+<section class="section" id="critique">
+<div class="section-num">SECTION 08</div>
+<h2>放回路线：Flash-WAM 解决采样链，不解决每一步模型本身的重量</h2>
+<div class="cn-read"><div class="cn-label">最终判断</div><p>Flash-WAM 是“蒸馏式 WAM 加速”的强基线：问题定义清楚、失败机制有数学解释、仿真—真机—延迟证据闭合。但它的结论边界也很明确：目前只在 LingBot-VA shared backbone 上实例化，不能自动推广到所有联合架构，更没有把世界模型变成轻量网络。</p></div>
+<h3>8.1 与相邻效率路线的区别</h3>
+<table class="kv-table">
+<thead><tr><th>路线</th><th>主要减少什么</th><th>保留什么</th><th>典型风险</th></tr></thead>
+<tbody>
+<tr class="highlight"><td><strong>Flash-WAM</strong></td><td>视频与动作的去噪步数</td><td>显式未来视频、动作生成、共享骨干</td><td>teacher 偏差被蒸馏；单步容量仍受大模型限制</td></tr>
+<tr><td>Fast-WAM</td><td>测试时显式未来想象的必要性</td><td>训练期世界建模先验</td><td>若任务依赖显式未来，policy-only 路径可能失去可解释中间状态</td></tr>
+<tr><td>Efficient-WAM / cache</td><td>重复层或 token 的计算</td><td>多步采样过程</td><td>环境变化导致缓存陈旧，理论 FLOPs 不等于端到端延迟</td></tr>
+<tr><td>DMD2</td><td>通过分布匹配压缩生成步数</td><td>视频分布层面对齐</td><td>联合动作流需要额外稳定器，Randomized 场景退化明显</td></tr>
+</tbody>
+</table>
+<h3>8.2 论文成立的前提与尚未回答的问题</h3>
+<ul>
+<li><strong>架构外推：</strong>Motus、DreamZero 等采用不同联合方式或自带推理优化，论文明确把它们排除在分析范围外。</li>
+<li><strong>teacher 上限：</strong>蒸馏只能逼近 teacher 的 ODE 轨迹，无法修复 teacher 对新物体、错误未来或安全约束的系统偏差。</li>
+<li><strong>长程误差：</strong>RoboTwin horizon 3 与 LIBERO Long 提供初步证据，但没有分钟级持续闭环或长时间状态漂移评估。</li>
+<li><strong>真机统计量：</strong>每任务每方法 10 次 rollout 很昂贵但样本仍小；应报告多随机种子或置信区间。</li>
+<li><strong>完整延迟：</strong>论文测 per-chunk 单 L40S 模型延迟，机器人端 sensor preprocessing、通信和低层控制未拆分。</li>
+<li><strong>训练成本：</strong>减少部署 NFE 不等于廉价训练；LIBERO 每 suite 微调约需 4×H100、24 小时，蒸馏还需要 teacher forward。</li>
+</ul>
+<h3>8.3 最小复现清单</h3>
+<ol>
+<li>先复现 LingBot-VA teacher 的 Clean/Randomized 成功率与 25v/50a 延迟，不要从学生开始。</li>
+<li>记录视频与动作各自采到的 $\sigma$ 直方图，确认 $s_v=5.0,s_a=1.0$ 确实产生论文描述的边际差异。</li>
+<li>画出 $|b_{LCM}(\sigma)|$ 与 $|b_a(\sigma)|=\sigma$，并分模态记录梯度范数；只看总 loss 会掩盖动作梯度饥饿。</li>
+<li>按 Naive Joint LCM → Video-only → Video-only+reg → Flash-WAM 顺序跑最小消融，固定骨干、数据、NFE 和 CFG。</li>
+<li>先比较 1v/2a，再压到 1v/1a；后者能暴露正则方案在极紧动作预算下的失效。</li>
+<li>延迟同时报告模型 per-chunk 与 sensor-to-action，注明 GPU、精度、batch size、VAE 是否计入。</li>
+<li>真机报告每个任务原始成功次数而不只报平均百分比，并记录失败属于感知、未来预测、动作精度还是执行器。</li>
+</ol>
+<h3>8.4 我对这篇论文的结论</h3>
+<div class="callout blue"><div class="callout-label">可信的结论</div><p>在 LingBot-VA 这种“高 shift 视频 + 低 shift 动作”的两阶段 Flow-Matching WAM 中，统一使用标准 LCM 会让动作低噪声训练信号二次消失；按模态选择 consistency function 能在相同一步/两步预算下显著恢复仿真与真机成功率，并把 per-chunk 延迟压到论文定义的实时区间。</p></div>
+<div class="callout amber"><div class="callout-label">不能越界的结论</div><p>不能据此声称所有 WAM 都应采用同一组 $f^v/f^a$，也不能把 348 ms 当作完整机器人控制延迟。真正可迁移的是选择原则：先测每个模态的噪声边际与梯度尺度，再选匹配该 regime 的 consistency 参数化。</p></div>
+<div class="quiz" data-correct="c" data-explain="论文最可迁移的贡献是根据实际噪声边际和梯度缩放选择参数化；具体的 video VP / action linear 配对是否适合别的 WAM，需要重新核验其 schedule 与架构。" data-explain-wrong="单个速度数字和具体超参数都依赖 LingBot-VA、L40S 与评测口径。"><div class="q-label">最终检查 · 可迁移知识</div><div class="q-text">把 Flash-WAM 应用到另一种 WAM 时，最应该先迁移什么？</div><div class="q-options"><button class="q-opt" data-k="a">直接复制 348 ms</button><button class="q-opt" data-k="b">固定所有模型都用 $s_v=5,s_a=1$</button><button class="q-opt" data-k="c">先测各模态噪声边际与梯度尺度，再选择 consistency 参数化</button><button class="q-opt" data-k="d">删除所有动作去噪步骤</button></div><div class="q-feedback"></div></div>
+</section>
+</main>
+</div>
+</body>
+</html>

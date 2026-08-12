@@ -1,0 +1,366 @@
+<!DOCTYPE html>
+
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Qwen-RobotManip · 从异构数据到 G1 / 多本体训练</title>
+<link href="../assets/css/style.css" rel="stylesheet"/>
+<link href="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.css" rel="stylesheet"/>
+<script defer="" src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.js"></script>
+<script defer="" onload="renderMathInElement(document.body,{delimiters:[{left:'$$',right:'$$',display:true},{left:'$',right:'$',display:false}]})" src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/contrib/auto-render.min.js"></script>
+<script src="../assets/js/theme.js"></script>
+<script defer="" src="../assets/js/interactive.js"></script>
+<style>
+    .docs-layout { grid-template-columns: 240px minmax(0, 1fr); max-width: 1320px; }
+    .metric-strip { display:grid; grid-template-columns:repeat(4,minmax(0,1fr)); gap:10px; margin:18px 0 26px; }
+    .metric { padding:16px; border:1px solid var(--border); border-radius:10px; background:var(--bg2); }
+    .metric strong { display:block; font-family:var(--font-serif); font-size:25px; color:var(--accent); margin-bottom:4px; }
+    .metric span { font-size:12px; color:var(--text3); line-height:1.5; }
+    .source-lanes { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:12px; margin:20px 0; }
+    .source-lane { padding:17px; border:1px solid var(--border); border-radius:10px; background:var(--bg2); }
+    .source-lane .sl-type { font-family:var(--font-mono); color:var(--accent); font-size:11px; letter-spacing:.06em; margin-bottom:7px; }
+    .source-lane h4 { margin:0 0 8px; color:var(--text); }
+    .source-lane p { margin:0; font-size:14px; }
+    .contract { display:grid; grid-template-columns:29fr 3fr 20fr 20fr; gap:3px; margin:18px 0 8px; }
+    .contract > div { min-height:82px; padding:12px 8px; border:1px solid var(--border2); background:var(--bg2); display:flex; flex-direction:column; align-items:center; justify-content:center; text-align:center; font-size:12px; border-radius:7px; }
+    .contract strong { color:var(--accent); font-size:17px; }
+    .contract-note { font-family:var(--font-mono); font-size:11px; color:var(--text3); text-align:center; margin-bottom:18px; }
+    .verdict-grid { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:12px; margin:18px 0; }
+    .verdict { padding:18px; border-radius:10px; border:1px solid var(--border); background:var(--bg2); }
+    .verdict h4 { margin:0 0 8px; }
+    .verdict.ok h4 { color:var(--accent); }
+    .verdict.warn h4 { color:var(--amber); }
+    .decision-flow { display:grid; grid-template-columns:1fr 44px 1fr 44px 1fr; align-items:stretch; margin:20px 0; gap:5px; }
+    .decision-node { padding:17px; background:var(--bg2); border:1px solid var(--border); border-radius:10px; font-size:14px; }
+    .decision-node strong { color:var(--accent); display:block; margin-bottom:7px; }
+    .decision-edge { display:flex; align-items:center; justify-content:center; color:var(--accent); font-size:22px; }
+    .tab-switcher .tab { border:0; background:none; }
+    .compare-table th { white-space:nowrap; }
+    .mini-label { display:inline-block; padding:3px 8px; border-radius:999px; font-family:var(--font-mono); font-size:10px; color:var(--accent); border:1px solid var(--border2); margin-right:5px; }
+    @media(max-width:900px) {
+      .docs-layout { grid-template-columns:1fr; }
+      .docs-sidebar-left { display:none; }
+      .metric-strip, .source-lanes, .verdict-grid { grid-template-columns:1fr; }
+      .contract { grid-template-columns:1fr 1fr; }
+      .decision-flow { grid-template-columns:1fr; }
+      .decision-edge { transform:rotate(90deg); min-height:24px; }
+    }
+  </style>
+</head>
+<body>
+<nav class="nav">
+<a class="nav-logo" href="../index.html">Paper Notes</a>
+<div class="nav-links">
+<a href="../index.html">← 返回首页</a>
+<button aria-label="切换主题" class="theme-toggle">◐</button>
+</div>
+</nav>
+<div class="docs-layout">
+<aside class="docs-sidebar-left">
+<div class="ds-title">Qwen-RobotManip 精读</div>
+<a class="ds-leaf-top" href="#overview">§01 一句话看懂</a>
+<a class="ds-leaf-top" href="#sources">§02 数据从哪里来</a>
+<a class="ds-leaf-top" href="#h2r">§03 人类 → 机器人</a>
+<a class="ds-leaf-top" href="#curation">§04 数据清洗</a>
+<a class="ds-leaf-top" href="#alignment">§05 统一训练样本</a>
+<a class="ds-leaf-top" href="#g1">§06 对照我们的 G1</a>
+<a class="ds-leaf-top" href="#multi">§07 多本体怎么做</a>
+<a class="ds-leaf-top" href="#evidence">§08 证据与边界</a>
+</aside>
+<main class="docs-content">
+<header class="paper-header">
+<div class="paper-venue">arXiv:2606.17846v2 · 17 Jun 2026 · Qwen Team</div>
+<h1 class="paper-title">Qwen-RobotManip: Alignment Unlocks Scale for Robotic Manipulation Foundation Models</h1>
+<div class="paper-authors">Haoqi Yuan, Zhixuan Liang, Anzhe Chen, Ye Wang, et al. · Qwen Team</div>
+<div class="paper-badges">
+<span class="badge badge-green">Human-to-Robot Synthesis</span>
+<span class="badge badge-blue">Cross-Embodiment Alignment</span>
+<span class="badge badge-purple">Qwen-VL + Flow-Matching DiT</span>
+<span class="badge badge-amber">G1 Data Pipeline 对照</span>
+</div>
+<div class="paper-pdf" style="margin-top:14px; font-family:var(--font-mono); font-size:12px;">
+<a href="../pdfs/vla/qwen-robotmanip.pdf" style="color:var(--accent); text-decoration:none; border-bottom:1px dashed var(--accent);">📄 原版 PDF</a>
+<a href="wb-quality-vs-qwen.html" style="color:var(--accent); text-decoration:none; border-bottom:1px dashed var(--accent); margin-left:12px;">🧪 WB-WAM 质检逐步对照</a>
+<span style="color:var(--text3); margin-left:12px;">本页是围绕数据 pipeline 与 WB-WAM/G1 的定向精读，不是逐页翻译。</span>
+</div>
+</header>
+<section class="section" id="overview">
+<div class="section-num">§ 01</div>
+<h2>一句话看懂：不是“收集更多数据”，而是先把不同数据说成同一种物理语言</h2>
+<div class="cn-read">
+<div class="cn-label">这一节解决什么</div>
+<p>这篇论文的主张不是“Ego 视频很多，所以直接混进去训练”。作者认为，异构机器人数据若在<strong>动作含义、坐标系、视觉外观</strong>上彼此冲突，数据越多反而越互相干扰。它先做三件对齐：用统一槽位容纳不同本体、把末端动作改写到相机坐标系、用 Human-to-Robot 把人手视频变成机器人外观与机器人轨迹；之后才把规模拉到约 38,100 小时。</p>
+</div>
+<div class="metric-strip">
+<div class="metric"><strong>≈38,100 h</strong><span>最终 manipulation 预训练语料</span></div>
+<div class="metric"><strong>1,933 h</strong><span>原始第一视角人手视频</span></div>
+<div class="metric"><strong>24,808 h</strong><span>Human-to-Robot 合成演示</span></div>
+<div class="metric"><strong>15</strong><span>合成目标的双臂机器人形态</span></div>
+</div>
+<div class="fig-interactive panel-below">
+<div class="fig-block">
+<div class="hotspot-wrap" data-hotspot-group="fig1">
+<img alt="Figure 1: Human-to-robot data synthesis pipeline" src="../assets/figures/qwen-robotmanip/fig-1.png"/>
+<button class="hotspot" data-body="&lt;div class='hp-body'&gt;&lt;p&gt;&lt;strong&gt;这处在图里表示什么：&lt;/strong&gt;输入不是机器人遥操作轨迹，而是人类第一视角视频加手部姿态。它天然带来丰富环境和物体，但动作与视觉都还属于人类。 它对应逐步导览中的“第 1 步：输入是“人看见什么、手怎么动””。&lt;/p&gt;&lt;p&gt;&lt;strong&gt;输入与实际操作：&lt;/strong&gt; 相机图像或视频，加上任务指令和机器人当前状态。它们还是原始观测，模型尚未把它们变成可用于预测或控制的特征。 视频提供物体、场景和视角；手部关键点提供运动。它还不是某台机器人的 action。&lt;/p&gt;&lt;p&gt;&lt;strong&gt;输出、前后关系与必要性：&lt;/strong&gt; 经过本步骤处理、含义更明确的中间结果。这个结果会交给下一步“把人手的抓取几何变成末端动作”继续处理。 图中下一环节是“第 2 步：把人手的抓取几何变成末端动作”。 它把未经处理的原始问题变成后续模块可以计算的输入，是整条链路的起点。&lt;/p&gt;&lt;/div&gt;" data-id="input" data-title="① Input · 原始 Ego 视频" style="left:8.5%; top:15%;"></button>
+<button class="hotspot" data-body="&lt;div class='hp-body'&gt;&lt;p&gt;&lt;strong&gt;这处在图里表示什么：&lt;/strong&gt;人手关键点先映射成机器人末端位置、朝向和夹爪宽度，再做平滑；这是动作替换，不是简单复制人手关节角。 它对应逐步导览中的“第 2 步：把人手的抓取几何变成末端动作”。&lt;/p&gt;&lt;p&gt;&lt;strong&gt;输入与实际操作：&lt;/strong&gt; 来自上一步“输入是“人看见什么、手怎么动””的产物：经过本步骤处理、含义更明确的中间结果。本步骤还会按论文设置读取当前条件、时间步或训练信号。 拇指和虚拟手指确定夹爪开合与方向；随后平滑轨迹，减少逐帧手部估计产生的高频抖动。&lt;/p&gt;&lt;p&gt;&lt;strong&gt;输出、前后关系与必要性：&lt;/strong&gt; 经过本步骤处理、含义更明确的中间结果。这个结果会交给下一步“清空“人类外观””继续处理。 图中下一环节是“第 3 步：清空“人类外观””。 它承担上下两步之间的接口；缺少它，前一步产生的信息无法以正确格式或正确含义传到下一步。&lt;/p&gt;&lt;/div&gt;" data-id="retarget" data-title="② Retarget + Smooth · 先对齐动作" style="left:25%; top:15%;"></button>
+<button class="hotspot" data-body="&lt;div class='hp-body'&gt;&lt;p&gt;&lt;strong&gt;这处在图里表示什么：&lt;/strong&gt;SAM3 找到手臂区域，ProPainter 补出没有人手的背景。只有背景干净，才可以把机器人渲染到同一个场景里。 它对应逐步导览中的“第 3 步：清空“人类外观””。&lt;/p&gt;&lt;p&gt;&lt;strong&gt;输入与实际操作：&lt;/strong&gt; 来自上一步“把人手的抓取几何变成末端动作”的产物：经过本步骤处理、含义更明确的中间结果。本步骤还会按论文设置读取当前条件、时间步或训练信号。 这是视觉域对齐：若仍让模型总看人手、却要求它输出机器人动作，部署到机器人自视角时会留下明显外观缺口。&lt;/p&gt;&lt;p&gt;&lt;strong&gt;输出、前后关系与必要性：&lt;/strong&gt; 经过本步骤处理、含义更明确的中间结果。这个结果会交给下一步“为每个机器人找到可行关节轨迹”继续处理。 图中下一环节是“第 4 步：为每个机器人找到可行关节轨迹”。 它承担上下两步之间的接口；缺少它，前一步产生的信息无法以正确格式或正确含义传到下一步。&lt;/p&gt;&lt;/div&gt;" data-id="visual" data-title="③–④ 视觉对齐 · 分割并擦除人手" style="left:50%; top:15%;"></button>
+<button class="hotspot" data-body="&lt;div class='hp-body'&gt;&lt;p&gt;&lt;strong&gt;这处在图里表示什么：&lt;/strong&gt;每种机械臂长度、关节限制不同，所以都要独立搜索固定基座位置、做 IK 并检查可达性。它不是 G1 的行走 base 规划。 它对应逐步导览中的“第 4 步：为每个机器人找到可行关节轨迹”。&lt;/p&gt;&lt;p&gt;&lt;strong&gt;输入与实际操作：&lt;/strong&gt; 来自上一步“清空“人类外观””的产物：经过本步骤处理、含义更明确的中间结果。本步骤还会按论文设置读取当前条件、时间步或训练信号。 同一末端轨迹对 Panda、UR5e、ALOHA 等并不天然可达，因此每个本体独立做 base search + IK。&lt;/p&gt;&lt;p&gt;&lt;strong&gt;输出、前后关系与必要性：&lt;/strong&gt; 经过本步骤处理、含义更明确的中间结果。这个结果会交给下一步“按深度合成机器人画面”继续处理。 图中下一环节是“第 5 步：按深度合成机器人画面”。 它承担上下两步之间的接口；缺少它，前一步产生的信息无法以正确格式或正确含义传到下一步。&lt;/p&gt;&lt;/div&gt;" data-id="ik" data-title="⑤ Base Search + IK · 每个本体各算一次" style="left:76%; top:15%;"></button>
+<button class="hotspot" data-body="&lt;div class='hp-body'&gt;&lt;p&gt;&lt;strong&gt;这处在图里表示什么：&lt;/strong&gt;根据机器人渲染深度与估计场景深度决定遮挡关系，得到“看起来像机器人第一视角”的合成训练视频。 它对应逐步导览中的“第 5 步：按深度合成机器人画面”。&lt;/p&gt;&lt;p&gt;&lt;strong&gt;输入与实际操作：&lt;/strong&gt; 来自上一步“为每个机器人找到可行关节轨迹”的产物：经过本步骤处理、含义更明确的中间结果。本步骤还会按论文设置读取当前条件、时间步或训练信号。 不是把机械臂 PNG 贴上去；深度遮挡决定机械臂应该在锅、桌子或物体前面还是后面。&lt;/p&gt;&lt;p&gt;&lt;strong&gt;输出、前后关系与必要性：&lt;/strong&gt; 经过本步骤处理、含义更明确的中间结果。这个结果会交给下一步“保留来源差异，但把接口对齐”继续处理。 图中下一环节是“第 6 步：保留来源差异，但把接口对齐”。 它承担上下两步之间的接口；缺少它，前一步产生的信息无法以正确格式或正确含义传到下一步。&lt;/p&gt;&lt;/div&gt;" data-id="composite" data-title="⑥ Depth Composite · 把机器人放回视频" style="left:92%; top:15%;"></button>
+<button class="hotspot" data-body="&lt;div class='hp-body'&gt;&lt;p&gt;&lt;strong&gt;这处在图里表示什么：&lt;/strong&gt;同一批人类演示被渲染到 15 个机器人形态与多个场景中，产生 24,808 小时合成数据；这是本体覆盖度扩增，不是 15 倍独立的人类行为。 它对应逐步导览中的“第 6 步：保留来源差异，但把接口对齐”。&lt;/p&gt;&lt;p&gt;&lt;strong&gt;输入与实际操作：&lt;/strong&gt; 来自上一步“按深度合成机器人画面”的产物：经过本步骤处理、含义更明确的中间结果。本步骤还会按论文设置读取当前条件、时间步或训练信号。 最后仍有真机、仿真、人类、H2R 等不同来源；论文统一的是表征和监督 mask，不是假装它们质量相同。&lt;/p&gt;&lt;p&gt;&lt;strong&gt;输出、前后关系与必要性：&lt;/strong&gt; 经过本步骤处理、含义更明确的中间结果。这个结果会交给下一步“你们的 11,552 个“冻结候选”属于 C3，不是删除名单”继续处理。 图中下一环节是“后续执行或评测”。 它承担上下两步之间的接口；缺少它，前一步产生的信息无法以正确格式或正确含义传到下一步。&lt;/p&gt;&lt;/div&gt;" data-id="scale" data-title="规模化的真正含义" style="left:67%; top:61%;"></button>
+</div>
+<div class="fig-cap"><span class="fig-num">Fig. 1 · p.4</span>Human-to-robot data synthesis pipeline。上半部分是单段视频的 6 步转换；下半部分是“约 1,933h Ego × 15 个机器人形态 → 约 24,808h 合成数据”。</div>
+</div>
+<div class="hotspot-panel"></div>
+</div>
+<div class="step-walker" data-hotspot-group="fig1">
+<div class="sw-header"><div class="sw-title">🪜 跟一条 Ego 演示走到最终训练样本</div><div class="sw-controls"><button class="sw-btn prev">◀</button><span class="sw-counter">1 / 6</span><button class="sw-btn next">▶</button></div></div>
+<div class="sw-progress"><div class="sw-dot"></div><div class="sw-dot"></div><div class="sw-dot"></div><div class="sw-dot"></div><div class="sw-dot"></div><div class="sw-dot"></div></div>
+<div class="sw-body">
+<div class="sw-step active" data-hotspot="input"><h4>第 1 步：输入是“人看见什么、手怎么动”</h4><p>视频提供物体、场景和视角；手部关键点提供运动。它还不是某台机器人的 action。</p><div class="step-beginner"><div class="sb-label">给第一次接触这个领域的读者</div><p><strong>输入是什么：</strong>相机图像或视频，加上任务指令和机器人当前状态。它们还是原始观测，模型尚未把它们变成可用于预测或控制的特征。</p><p><strong>这一步究竟做什么：</strong>本步骤执行“输入是“人看见什么、手怎么动””。具体来说，视频提供物体、场景和视角；手部关键点提供运动。它还不是某台机器人的 action。 这里处理的只是整条链路中的一个接口：把上一步的结果整理成下一步能够正确读取和继续计算的形式。</p><p><strong>输出到哪里：</strong>经过本步骤处理、含义更明确的中间结果。这个结果会交给下一步“把人手的抓取几何变成末端动作”继续处理。</p><p><strong>为什么不能省略：</strong>它把未经处理的原始问题变成后续模块可以计算的输入，是整条链路的起点。</p></div></div>
+<div class="sw-step" data-hotspot="retarget"><h4>第 2 步：把人手的抓取几何变成末端动作</h4><p>拇指和虚拟手指确定夹爪开合与方向；随后平滑轨迹，减少逐帧手部估计产生的高频抖动。</p><div class="step-beginner"><div class="sb-label">给第一次接触这个领域的读者</div><p><strong>输入是什么：</strong>来自上一步“输入是“人看见什么、手怎么动””的产物：经过本步骤处理、含义更明确的中间结果。本步骤还会按论文设置读取当前条件、时间步或训练信号。</p><p><strong>这一步究竟做什么：</strong>本步骤执行“把人手的抓取几何变成末端动作”。具体来说，拇指和虚拟手指确定夹爪开合与方向；随后平滑轨迹，减少逐帧手部估计产生的高频抖动。 这个动作会真正改变环境，所以系统还要读取执行后的新观测，检查模型预期与现实之间的差距。</p><p><strong>输出到哪里：</strong>经过本步骤处理、含义更明确的中间结果。这个结果会交给下一步“清空“人类外观””继续处理。</p><p><strong>为什么不能省略：</strong>它承担上下两步之间的接口；缺少它，前一步产生的信息无法以正确格式或正确含义传到下一步。</p></div></div>
+<div class="sw-step" data-hotspot="visual"><h4>第 3 步：清空“人类外观”</h4><p>这是视觉域对齐：若仍让模型总看人手、却要求它输出机器人动作，部署到机器人自视角时会留下明显外观缺口。</p><div class="step-beginner"><div class="sb-label">给第一次接触这个领域的读者</div><p><strong>输入是什么：</strong>来自上一步“把人手的抓取几何变成末端动作”的产物：经过本步骤处理、含义更明确的中间结果。本步骤还会按论文设置读取当前条件、时间步或训练信号。</p><p><strong>这一步究竟做什么：</strong>这是视觉域对齐：若仍让模型总看人手、却要求它输出机器人动作，部署到机器人自视角时会留下明显外观缺口。</p><p><strong>输出到哪里：</strong>经过本步骤处理、含义更明确的中间结果。这个结果会交给下一步“为每个机器人找到可行关节轨迹”继续处理。</p><p><strong>为什么不能省略：</strong>它承担上下两步之间的接口；缺少它，前一步产生的信息无法以正确格式或正确含义传到下一步。</p></div></div>
+<div class="sw-step" data-hotspot="ik"><h4>第 4 步：为每个机器人找到可行关节轨迹</h4><p>同一末端轨迹对 Panda、UR5e、ALOHA 等并不天然可达，因此每个本体独立做 base search + IK。</p><div class="step-beginner"><div class="sb-label">给第一次接触这个领域的读者</div><p><strong>输入是什么：</strong>来自上一步“清空“人类外观””的产物：经过本步骤处理、含义更明确的中间结果。本步骤还会按论文设置读取当前条件、时间步或训练信号。</p><p><strong>这一步究竟做什么：</strong>同一末端轨迹对 Panda、UR5e、ALOHA 等并不天然可达，因此每个本体独立做 base search + IK。</p><p><strong>输出到哪里：</strong>经过本步骤处理、含义更明确的中间结果。这个结果会交给下一步“按深度合成机器人画面”继续处理。</p><p><strong>为什么不能省略：</strong>它承担上下两步之间的接口；缺少它，前一步产生的信息无法以正确格式或正确含义传到下一步。</p><div class="sb-terms"><strong>术语先翻译：</strong>IK（逆运动学）：已知机械臂末端要到哪里，反求每个关节应该转多少。</div></div></div>
+<div class="sw-step" data-hotspot="composite"><h4>第 5 步：按深度合成机器人画面</h4><p>不是把机械臂 PNG 贴上去；深度遮挡决定机械臂应该在锅、桌子或物体前面还是后面。</p><div class="step-beginner"><div class="sb-label">给第一次接触这个领域的读者</div><p><strong>输入是什么：</strong>来自上一步“为每个机器人找到可行关节轨迹”的产物：经过本步骤处理、含义更明确的中间结果。本步骤还会按论文设置读取当前条件、时间步或训练信号。</p><p><strong>这一步究竟做什么：</strong>本步骤执行“按深度合成机器人画面”。具体来说，不是把机械臂 PNG 贴上去；深度遮挡决定机械臂应该在锅、桌子或物体前面还是后面。 这里处理的只是整条链路中的一个接口：把上一步的结果整理成下一步能够正确读取和继续计算的形式。</p><p><strong>输出到哪里：</strong>经过本步骤处理、含义更明确的中间结果。这个结果会交给下一步“保留来源差异，但把接口对齐”继续处理。</p><p><strong>为什么不能省略：</strong>它承担上下两步之间的接口；缺少它，前一步产生的信息无法以正确格式或正确含义传到下一步。</p><div class="sb-terms"><strong>术语先翻译：</strong>mask（掩码）：故意隐藏一部分输入，让模型只根据可见信息预测被隐藏部分。</div></div></div>
+<div class="sw-step" data-hotspot="scale"><h4>第 6 步：保留来源差异，但把接口对齐</h4><p>最后仍有真机、仿真、人类、H2R 等不同来源；论文统一的是表征和监督 mask，不是假装它们质量相同。</p><div class="step-beginner"><div class="sb-label">给第一次接触这个领域的读者</div><p><strong>输入是什么：</strong>来自上一步“按深度合成机器人画面”的产物：经过本步骤处理、含义更明确的中间结果。本步骤还会按论文设置读取当前条件、时间步或训练信号。</p><p><strong>这一步究竟做什么：</strong>最后仍有真机、仿真、人类、H2R 等不同来源；论文统一的是表征和监督 mask，不是假装它们质量相同。</p><p><strong>输出到哪里：</strong>经过本步骤处理、含义更明确的中间结果。这个结果会交给下一步“你们的 11,552 个“冻结候选”属于 C3，不是删除名单”继续处理。</p><p><strong>为什么不能省略：</strong>它承担上下两步之间的接口；缺少它，前一步产生的信息无法以正确格式或正确含义传到下一步。</p><div class="sb-terms"><strong>术语先翻译：</strong>mask（掩码）：故意隐藏一部分输入，让模型只根据可见信息预测被隐藏部分。</div></div></div>
+</div>
+</div>
+<details class="en-quote">
+<summary>展开原文 · 作者对“alignment first, then scale”的表述</summary>
+<div class="quote-body"><p>“Alignment is therefore not an independent engineering choice but a prerequisite for data scaling itself.”</p><div class="quote-cite">— §1, p.2</div></div>
+</details>
+<div class="quiz" data-correct="c" data-explain="论文的逻辑是先消除表示、几何和视觉上的冲突，再扩大数据源；H2R 是把辅助人类数据变成与机器人训练接口更一致的数据。" data-explain-wrong="单纯把不同来源的 raw joint/action 拼在一起，模型会把容量耗在解释坐标系、关节含义和视觉外观冲突上。">
+<div class="q-label">🧠 理解检查</div>
+<div class="q-text">Qwen-RobotManip 说“alignment unlocks scale”，最接近下面哪种意思？</div>
+<div class="q-options"><button class="q-opt" data-k="a">只要合成足够多的图片，动作标签是否正确不重要</button><button class="q-opt" data-k="b">把所有机器人关节角零填充成同长向量即可</button><button class="q-opt" data-k="c">先让相似物理动作在数据中有一致含义，再让规模带来增益</button><button class="q-opt" data-k="d">训练时只保留一种机器人，避免异构数据</button></div>
+<div class="q-feedback"></div>
+</div>
+</section>
+<section class="section" id="sources">
+<div class="section-num">§ 02</div>
+<h2>最终不是一种“干净统一”的数据，而是四类样本共用一个训练接口</h2>
+<div class="cn-read">
+<div class="cn-label">承上 → 启下</div>
+<p>上一节解释了为什么要先对齐再扩规模。接下来最容易混淆的是：对齐之后，论文是否把所有数据都变成相同的机器人轨迹？答案是否。最终语料仍然保留<strong>真机 / 仿真 / 原始 Ego / H2R 合成</strong>的来源差异，只是每条样本都被整理成模型知道如何读取、又知道哪些字段不该监督的格式。</p>
+</div>
+<div class="source-lanes">
+<div class="source-lane"><div class="sl-type">A · ROBOT</div><h4>真实与仿真机器人数据 · 约 11,420 h</h4><p>单臂、双臂、移动和人形操作。它们提供真实的机器人 state/action，但不同数据集的坐标系、TCP、相机和 action 定义并不一致。</p></div>
+<div class="source-lane"><div class="sl-type">B · EGO</div><h4>原始第一视角人手数据 · 约 1,933 h</h4><p>EgoDex、VITRA、EgoVerse。它们提供丰富视觉场景和人手交互，但人体形态、速度与机器人不同。</p></div>
+<div class="source-lane"><div class="sl-type">C · H2R</div><h4>Human-to-Robot 合成数据 · 约 24,808 h</h4><p>同一 Ego 演示经过动作重定向、IK、机器人渲染后，变成“机器人图像 + 机器人轨迹”。这是把 B 变得更像 A 的桥。</p></div>
+<div class="source-lane"><div class="sl-type">D · VL</div><h4>视觉语言共训练数据 · 约 28M points</h4><p>通用 VQA、空间推理、OCR、ECoT、Ego 视频理解与 2D 轨迹预测。它不直接输出连续关节动作，主要防止 VLM 被 action 学习带偏。</p></div>
+</div>
+<div class="callout blue">
+<div class="callout-label">“统一”真正统一了什么？</div>
+<p><strong>不是原始数据格式。</strong>统一的是模型看到的 state/action 槽位、动作参考系、归一化方式和 loss mask。比如一个只有左手的样本，不会被要求预测不存在的右臂或腿；一个没有相机的样本，也不能被当成“看见一张黑色画面”。</p>
+</div>
+<table class="kv-table compare-table">
+<tr><td>最终 VLA 样本</td><td><code>(图像, 指令, 当前 state, 未来 action chunk, validity masks, embodiment metadata)</code></td></tr>
+<tr><td>真机/仿真数据</td><td>通常有图像、state、action；不同本体只填自己存在的关节/末端字段。</td></tr>
+<tr><td>原始 Ego 数据</td><td>有人手图像与手部轨迹；手离开画面后，论文会把对应手的 action slot mask 掉。</td></tr>
+<tr><td>H2R 数据</td><td>有合成的机器人图像和重定向后的机器人 action，是最接近机器人 VLA 格式的人类数据。</td></tr>
+<tr><td>VL 数据</td><td>走单独的 VLM next-token loss batch，不与连续 action loss 混在同一条样本里。</td></tr>
+</table>
+<details class="en-quote">
+<summary>展开原文 · 论文怎样定义三种 manipulation 数据</summary>
+<div class="quote-body"><p>“...three complementary data modalities: robotic manipulation demonstrations, egocentric human manipulation videos, and synthetic robot data generated by our human-to-robot pipeline.”</p><div class="quote-cite">— §2, p.3</div></div>
+</details>
+<div class="quiz" data-correct="b" data-explain="H2R 的作用是让同一份人类示范在动作和视觉上更接近机器人训练格式；真实 robot data 仍然是物理执行分布的锚点。" data-explain-wrong="论文没有把 H2R 视为对真机数据的完全替代。它通过合成扩大视觉和形态覆盖，但仍承认 retarget 与 inpainting 会引入分布缺口。">
+<div class="q-label">🧠 理解检查</div>
+<div class="q-text">H2R 合成数据在整个语料中的定位最准确的是？</div>
+<div class="q-options"><button class="q-opt" data-k="a">取代所有真机数据，因为它更容易大量生成</button><button class="q-opt" data-k="b">把 Ego 的视觉与动作变成更像机器人样本的辅助桥梁</button><button class="q-opt" data-k="c">只用于生成文字描述，不进入动作训练</button><button class="q-opt" data-k="d">只给低层 IK 控制器训练，不给 VLA 训练</button></div>
+<div class="q-feedback"></div>
+</div>
+</section>
+<section class="section" id="h2r">
+<div class="section-num">§ 03</div>
+<h2>Human-to-Robot 不是“换手贴图”：动作与视觉要各做一遍对齐</h2>
+<div class="cn-read">
+<div class="cn-label">承上 → 启下</div>
+<p>上一节把 H2R 定位成桥梁。桥的两端其实有两个鸿沟：<strong>人手与机器人动作不同</strong>，以及<strong>画面里的人手与部署时的机器人手臂不同</strong>。所以 Fig. 1 里的 retarget 和 segmentation/inpainting 不是可互换的两步，而是分别处理动作域和视觉域。</p>
+</div>
+<div class="verdict-grid">
+<div class="verdict ok"><h4>动作替换 · 先得到机器人能追的目标</h4><p>从 MANO 人手关键点构造虚拟夹爪：位置、方向和开合宽度。再对每个目标机器人做基座搜索和 IK，得到机器人关节/末端轨迹。</p></div>
+<div class="verdict warn"><h4>视觉替换 · 再让模型“看见机器人在做”</h4><p>SAM3 分割人手臂，ProPainter 修补背景，MuJoCo 渲染机器人与深度图，再用深度关系合成。只重定向 action 而不改视频，仍会留下人手→机器人外观 gap。</p></div>
+</div>
+<h3>3.1 人手关键点怎样变成一个平行夹爪？</h3>
+<p>论文没有试图逐一复刻人类所有手指自由度，而是把抓取几何压缩成<strong>一个末端执行器</strong>。令虚拟手指 $k_{vf}=0.7k_{index}+0.3k_{middle}$，则拇指尖与虚拟手指的中点是末端位置，两者距离是夹爪开口：</p>
+<div class="math-block">$$k_{vf}=0.7k_{index}+0.3k_{middle},\quad p=\frac{1}{2}(k_{thumb}+k_{vf}),\quad w=\lVert k_{thumb}-k_{vf}\rVert_2$$<span class="math-label">Eq. 1 · p.4</span></div>
+<div class="math-explain"><div class="me-title">逐项拆解</div><dl><dt>$k_{index},k_{middle}$</dt><dd>食指、中指指尖。加权是为了让“另外四指一侧”的方向更稳定。</dd><dt>$k_{thumb}$</dt><dd>拇指尖，代表平行夹爪的一片夹爪。</dd><dt>$p$</dt><dd>两侧中点，作为机器人末端位置。</dd><dt>$w$</dt><dd>两侧距离，作为平行夹爪张开宽度。它不是五指手的每根手指关节角。</dd></dl></div>
+<p>随后用手腕到指尖的方向、拇指到虚拟手指的方向构造夹爪朝向。位置/宽度经 Savitzky–Golay 滤波，旋转经 SLERP 平滑。这样做是为了保留抓取意图，同时去掉逐帧手部估计带来的高频抖动。</p>
+<h3>3.2 为什么“机器人 base”不是 G1 的骨盆或走路规划？</h3>
+<div class="callout amber"><div class="callout-label">对 G1 最重要的边界</div><p>论文的 base search 是：对一台<strong>固定基座双臂机械臂</strong>，在桌面轨迹附近找一个摆放位置，使更多末端目标可达。15 个合成本体也都是 Panda、UR、ALOHA 一类机械臂组合。它<strong>没有</strong>从纯 Ego 手部视频推断 G1 的双脚接触、质心、平衡和行走轨迹。</p></div>
+<div class="decision-flow"><div class="decision-node"><strong>只有 Ego 人手关键点</strong>可靠得到手/末端操作意图。</div><div class="decision-edge">→</div><div class="decision-node"><strong>固定双臂机器人</strong>可用 base search + IK 映射为关节轨迹。</div><div class="decision-edge">→</div><div class="decision-node"><strong>G1 全身</strong>还需人体躯干/脚轨迹、接触与平衡约束，不能由这条链自动补齐。</div></div>
+<details class="en-quote"><summary>展开原文 · 作者如何区分动作与视觉对齐</summary><div class="quote-body"><p>“We design an end-to-end synthesis pipeline that explicitly separates the process into action alignment and visual alignment.”</p><div class="quote-cite">— §2.3, p.4</div></div></details>
+<div class="quiz" data-correct="d" data-explain="论文的 H2R 对机械臂操作很直接，但 G1 全身运动多出脚、躯干、平衡与接触问题；需要更强的人体全身观测或独立的 whole-body retarget/controller。" data-explain-wrong="H2R 的 IK 解决的是给定目标末端轨迹的机械臂可达性，不等价于完整人形 locomotion-manipulation 的可行性。"><div class="q-label">🧠 理解检查</div><div class="q-text">为什么不能直接把这篇论文的 H2R pipeline 当成 G1 全身数据生成器？</div><div class="q-options"><button class="q-opt" data-k="a">因为 G1 没有机械臂</button><button class="q-opt" data-k="b">因为 G1 没有相机</button><button class="q-opt" data-k="c">因为 Ego 视频不能用于机器人训练</button><button class="q-opt" data-k="d">因为手部轨迹不足以约束脚、平衡和全身可行性</button></div><div class="q-feedback"></div></div>
+</section>
+<section class="section" id="curation">
+<div class="section-num">§ 04</div>
+<h2>数据清洗不是“检测一次跳变就删”：它在校正时间、坐标与跨模态关系</h2>
+<div class="cn-read">
+<div class="cn-label">承上 → 启下</div>
+<p>H2R 即使做完 retarget 仍可能有噪声；而真机、仿真和不同开源数据集也会有时钟不同步、TCP 定义不同、角度表示不同的问题。论文因此在训练前串起 5 个 state/action 检查和 3 个跨模态检查。你截图中的冻结和跳变检测正是这条链的开头，而不是最终判决。</p>
+</div>
+<div class="fig-interactive panel-below">
+<div class="fig-block">
+<div class="hotspot-wrap" data-hotspot-group="fig2">
+<img alt="Figure 2: multi-stage data curation pipeline" src="../assets/figures/qwen-robotmanip/fig-2.png"/>
+<button class="hotspot" data-body="&lt;div class='hp-body'&gt;&lt;p&gt;&lt;strong&gt;这处在图里表示什么：&lt;/strong&gt;不是只看一个最大跳变：原始轨迹与平滑趋势的残差、二阶差分 acceleration、三阶差分 jerk 要联合超过阈值，减少慢漂移或正常接触造成的误杀。 它对应逐步导览中的“第 2 步：action 跳变先过 S1，但阈值必须按数据源定”。&lt;/p&gt;&lt;p&gt;&lt;strong&gt;输入与实际操作：&lt;/strong&gt; 来自上一步“你们的 11,552 个“冻结候选”属于 C3，不是删除名单”的产物：经过本步骤处理、含义更明确的中间结果。本步骤还会按论文设置读取当前条件、时间步或训练信号。 MotionMillion、Bones Seed 没有视频，跳变不能直接证明坏数据；碰撞、坐标切换或正常动作可能产生大差分。S1 的价值是把“值得看”与“必定删除”分开。&lt;/p&gt;&lt;p&gt;&lt;strong&gt;输出、前后关系与必要性：&lt;/strong&gt; 经过本步骤处理、含义更明确的中间结果。这个结果会交给下一步“state 与 action 同时跳，先问“时延关系是否仍对””继续处理。 图中下一环节是“第 3 步：state 与 action 同时跳，先问“时延关系是否仍对””。 学习算法只能从它见过的经历中改进；这一步决定训练数据是否覆盖成功、失败和恢复状态。&lt;/p&gt;&lt;/div&gt;" data-id="s1" data-title="S1 · Sudden Change Detection" style="left:10%; top:19%;"></button>
+<button class="hotspot" data-body="&lt;div class='hp-body'&gt;&lt;p&gt;&lt;strong&gt;这处在图里表示什么：&lt;/strong&gt;action 应领先或同时导致 state 改变。论文用 cross-correlation 找时延，再比较对齐后一阶变化方向；这是你们当前报告最值得补的一层。 它对应逐步导览中的“第 3 步：state 与 action 同时跳，先问“时延关系是否仍对””。&lt;/p&gt;&lt;p&gt;&lt;strong&gt;输入与实际操作：&lt;/strong&gt; 来自上一步“action 跳变先过 S1，但阈值必须按数据源定”的产物：经过本步骤处理、含义更明确的中间结果。本步骤还会按论文设置读取当前条件、时间步或训练信号。 若 action 与 state 的趋势在合理时延后同向，可能是表示或动作本身变化；若长期反向、state 甚至领先于 action，才更像时钟错位或 packet loss。&lt;/p&gt;&lt;p&gt;&lt;strong&gt;输出、前后关系与必要性：&lt;/strong&gt; 经过本步骤处理、含义更明确的中间结果。这个结果会交给下一步“root3 接近 6.28 的跳变，先 unwrap 再判定”继续处理。 图中下一环节是“第 4 步：root3 接近 6.28 的跳变，先 unwrap 再判定”。 它承担上下两步之间的接口；缺少它，前一步产生的信息无法以正确格式或正确含义传到下一步。&lt;/p&gt;&lt;/div&gt;" data-id="s2" data-title="S2 · State-Action Trend Alignment" style="left:30%; top:19%;"></button>
+<button class="hotspot" data-body="按本体/数据集分别统计 q01 到 q99 的有效范围，防止少量极端 state/action 污染后续归一化；夹爪由于双峰分布被特殊处理。" data-id="s3" data-title="S3 · Extreme Value Detection" style="left:50%; top:19%;"></button>
+<button class="hotspot" data-body="&lt;div class='hp-body'&gt;&lt;p&gt;&lt;strong&gt;这处在图里表示什么：&lt;/strong&gt;用 URDF 由 joints 正向运动学得到 EEF，与日志 EEF 对比。发现问题时优先修 TCP、关节符号、旋转表示和 base frame，而非直接丢数据。 它对应逐步导览中的“第 4 步：root3 接近 6.28 的跳变，先 unwrap 再判定”。&lt;/p&gt;&lt;p&gt;&lt;strong&gt;输入与实际操作：&lt;/strong&gt; 来自上一步“state 与 action 同时跳，先问“时延关系是否仍对””的产物：经过本步骤处理、含义更明确的中间结果。本步骤还会按论文设置读取当前条件、时间步或训练信号。 $2\pi$ 附近从 +3.14 变到 −3.14 是同一角度的两种写法。先做周期角 unwrap，再检测跳变；否则会把坐标表示问题误当运动损坏。&lt;/p&gt;&lt;p&gt;&lt;strong&gt;输出、前后关系与必要性：&lt;/strong&gt; 经过本步骤处理、含义更明确的中间结果。这个结果会交给下一步“有 G1 视频的集合还应做“视频—状态重投影””继续处理。 图中下一环节是“第 5 步：有 G1 视频的集合还应做“视频—状态重投影””。 它承担上下两步之间的接口；缺少它，前一步产生的信息无法以正确格式或正确含义传到下一步。&lt;/p&gt;&lt;/div&gt;" data-id="s4" data-title="S4 · FK Consistency" style="left:70%; top:19%;"></button>
+<button class="hotspot" data-body="跨数据集校正世界坐标的 forward 方向和 EEF 朝向约定。同一 G1 的不同采集工具也可能在这里出错。" data-id="s5" data-title="S5 · Orientation Alignment" style="left:90%; top:19%;"></button>
+<button class="hotspot" data-body="长 episode 先切成子任务片段，再由 VLM 结构化判断“视频做的事”是否匹配语言，疑难样本交给多个模型投票。" data-id="c1" data-title="C1 · Instruction Consistency" style="left:31%; top:63%;"></button>
+<button class="hotspot" data-body="&lt;div class='hp-body'&gt;&lt;p&gt;&lt;strong&gt;这处在图里表示什么：&lt;/strong&gt;用 URDF + joint state 渲染机器人投影，再与分割到的真实机器人 mask 计算 IoU。低 IoU 先检查相机参数，否则剔除 episode。 它对应逐步导览中的“第 5 步：有 G1 视频的集合还应做“视频—状态重投影””。&lt;/p&gt;&lt;p&gt;&lt;strong&gt;输入与实际操作：&lt;/strong&gt; 来自上一步“root3 接近 6.28 的跳变，先 unwrap 再判定”的产物：经过本步骤处理、含义更明确的中间结果。本步骤还会按论文设置读取当前条件、时间步或训练信号。 对 GR00T、HIW、Humanoid-Everyday、Unitree UnifoRL、自采等，最强的检查是：当前 joint state 渲染出的机器人轮廓，是否真的和视频里的 G1 对上。&lt;/p&gt;&lt;p&gt;&lt;strong&gt;输出、前后关系与必要性：&lt;/strong&gt; 经过本步骤处理、含义更明确的中间结果。这是图中这条链路的最终产物，随后会进入真实执行、模型更新或指标评测。 图中下一环节是“后续执行或评测”。 它把前面得到的内部结果落实为可执行动作、可训练模型或可解释指标，完成从方法到结果的最后一步。&lt;/p&gt;&lt;/div&gt;" data-id="c2" data-title="C2 · Video-State Consistency" style="left:63%; top:63%;"></button>
+<button class="hotspot" data-body="&lt;div class='hp-body'&gt;&lt;p&gt;&lt;strong&gt;这处在图里表示什么：&lt;/strong&gt;黑帧、损坏帧、模糊帧和长静止段需要检查；但闭夹爪等视觉变化很小、语义上关键的时刻不能被误删。 它对应逐步导览中的“第 1 步：你们的 11,552 个“冻结候选”属于 C3，不是删除名单”。&lt;/p&gt;&lt;p&gt;&lt;strong&gt;输入与实际操作：&lt;/strong&gt; 来自上一步“保留来源差异，但把接口对齐”的产物：经过本步骤处理、含义更明确的中间结果。本步骤还会按论文设置读取当前条件、时间步或训练信号。 你们已发现只比首/中/末帧会把缓慢连续变化误判成冻结。论文同样强调静止段要和 state/action 一起看，并保护夹爪闭合等关键帧。&lt;/p&gt;&lt;p&gt;&lt;strong&gt;输出、前后关系与必要性：&lt;/strong&gt; 经过本步骤处理、含义更明确的中间结果。这个结果会交给下一步“action 跳变先过 S1，但阈值必须按数据源定”继续处理。 图中下一环节是“第 2 步：action 跳变先过 S1，但阈值必须按数据源定”。 它承担上下两步之间的接口；缺少它，前一步产生的信息无法以正确格式或正确含义传到下一步。&lt;/p&gt;&lt;/div&gt;" data-id="c3" data-title="C3 · Video Quality Filtering" style="left:89%; top:63%;"></button>
+</div>
+<div class="fig-cap"><span class="fig-num">Fig. 2 · p.5</span>五个数值信号阶段（S1–S5）加三个跨模态检查（C1–C3）。左下角表明它们共同约束 state、action、video 与 instruction，而非各自孤立清洗。</div>
+</div>
+<div class="hotspot-panel"></div>
+</div>
+<div class="step-walker" data-hotspot-group="fig2">
+<div class="sw-header"><div class="sw-title">🪜 把你们截图中的异常放回正确位置</div><div class="sw-controls"><button class="sw-btn prev">◀</button><span class="sw-counter">1 / 5</span><button class="sw-btn next">▶</button></div></div>
+<div class="sw-progress"><div class="sw-dot"></div><div class="sw-dot"></div><div class="sw-dot"></div><div class="sw-dot"></div><div class="sw-dot"></div></div>
+<div class="sw-body">
+<div class="sw-step active" data-hotspot="c3"><h4>第 1 步：你们的 11,552 个“冻结候选”属于 C3，不是删除名单</h4><p>你们已发现只比首/中/末帧会把缓慢连续变化误判成冻结。论文同样强调静止段要和 state/action 一起看，并保护夹爪闭合等关键帧。</p><div class="step-beginner"><div class="sb-label">给第一次接触这个领域的读者</div><p><strong>输入是什么：</strong>来自上一步“保留来源差异，但把接口对齐”的产物：经过本步骤处理、含义更明确的中间结果。本步骤还会按论文设置读取当前条件、时间步或训练信号。</p><p><strong>这一步究竟做什么：</strong>你们已发现只比首/中/末帧会把缓慢连续变化误判成冻结。论文同样强调静止段要和 state/action 一起看，并保护夹爪闭合等关键帧。</p><p><strong>输出到哪里：</strong>经过本步骤处理、含义更明确的中间结果。这个结果会交给下一步“action 跳变先过 S1，但阈值必须按数据源定”继续处理。</p><p><strong>为什么不能省略：</strong>它承担上下两步之间的接口；缺少它，前一步产生的信息无法以正确格式或正确含义传到下一步。</p></div></div>
+<div class="sw-step" data-hotspot="s1"><h4>第 2 步：action 跳变先过 S1，但阈值必须按数据源定</h4><p>MotionMillion、Bones Seed 没有视频，跳变不能直接证明坏数据；碰撞、坐标切换或正常动作可能产生大差分。S1 的价值是把“值得看”与“必定删除”分开。</p><div class="step-beginner"><div class="sb-label">给第一次接触这个领域的读者</div><p><strong>输入是什么：</strong>来自上一步“你们的 11,552 个“冻结候选”属于 C3，不是删除名单”的产物：经过本步骤处理、含义更明确的中间结果。本步骤还会按论文设置读取当前条件、时间步或训练信号。</p><p><strong>这一步究竟做什么：</strong>MotionMillion、Bones Seed 没有视频，跳变不能直接证明坏数据；碰撞、坐标切换或正常动作可能产生大差分。S1 的价值是把“值得看”与“必定删除”分开。</p><p><strong>输出到哪里：</strong>经过本步骤处理、含义更明确的中间结果。这个结果会交给下一步“state 与 action 同时跳，先问“时延关系是否仍对””继续处理。</p><p><strong>为什么不能省略：</strong>学习算法只能从它见过的经历中改进；这一步决定训练数据是否覆盖成功、失败和恢复状态。</p></div></div>
+<div class="sw-step" data-hotspot="s2"><h4>第 3 步：state 与 action 同时跳，先问“时延关系是否仍对”</h4><p>若 action 与 state 的趋势在合理时延后同向，可能是表示或动作本身变化；若长期反向、state 甚至领先于 action，才更像时钟错位或 packet loss。</p><div class="step-beginner"><div class="sb-label">给第一次接触这个领域的读者</div><p><strong>输入是什么：</strong>来自上一步“action 跳变先过 S1，但阈值必须按数据源定”的产物：经过本步骤处理、含义更明确的中间结果。本步骤还会按论文设置读取当前条件、时间步或训练信号。</p><p><strong>这一步究竟做什么：</strong>若 action 与 state 的趋势在合理时延后同向，可能是表示或动作本身变化；若长期反向、state 甚至领先于 action，才更像时钟错位或 packet loss。</p><p><strong>输出到哪里：</strong>经过本步骤处理、含义更明确的中间结果。这个结果会交给下一步“root3 接近 6.28 的跳变，先 unwrap 再判定”继续处理。</p><p><strong>为什么不能省略：</strong>它承担上下两步之间的接口；缺少它，前一步产生的信息无法以正确格式或正确含义传到下一步。</p></div></div>
+<div class="sw-step" data-hotspot="s4"><h4>第 4 步：root3 接近 6.28 的跳变，先 unwrap 再判定</h4><p>$2\pi$ 附近从 +3.14 变到 −3.14 是同一角度的两种写法。先做周期角 unwrap，再检测跳变；否则会把坐标表示问题误当运动损坏。</p><div class="step-beginner"><div class="sb-label">给第一次接触这个领域的读者</div><p><strong>输入是什么：</strong>来自上一步“state 与 action 同时跳，先问“时延关系是否仍对””的产物：经过本步骤处理、含义更明确的中间结果。本步骤还会按论文设置读取当前条件、时间步或训练信号。</p><p><strong>这一步究竟做什么：</strong>$2\pi$ 附近从 +3.14 变到 −3.14 是同一角度的两种写法。先做周期角 unwrap，再检测跳变；否则会把坐标表示问题误当运动损坏。</p><p><strong>输出到哪里：</strong>经过本步骤处理、含义更明确的中间结果。这个结果会交给下一步“有 G1 视频的集合还应做“视频—状态重投影””继续处理。</p><p><strong>为什么不能省略：</strong>它承担上下两步之间的接口；缺少它，前一步产生的信息无法以正确格式或正确含义传到下一步。</p></div></div>
+<div class="sw-step" data-hotspot="c2"><h4>第 5 步：有 G1 视频的集合还应做“视频—状态重投影”</h4><p>对 GR00T、HIW、Humanoid-Everyday、Unitree UnifoRL、自采等，最强的检查是：当前 joint state 渲染出的机器人轮廓，是否真的和视频里的 G1 对上。</p><div class="step-beginner"><div class="sb-label">给第一次接触这个领域的读者</div><p><strong>输入是什么：</strong>来自上一步“root3 接近 6.28 的跳变，先 unwrap 再判定”的产物：经过本步骤处理、含义更明确的中间结果。本步骤还会按论文设置读取当前条件、时间步或训练信号。</p><p><strong>这一步究竟做什么：</strong>对 GR00T、HIW、Humanoid-Everyday、Unitree UnifoRL、自采等，最强的检查是：当前 joint state 渲染出的机器人轮廓，是否真的和视频里的 G1 对上。</p><p><strong>输出到哪里：</strong>经过本步骤处理、含义更明确的中间结果。这是图中这条链路的最终产物，随后会进入真实执行、模型更新或指标评测。</p><p><strong>为什么不能省略：</strong>它把前面得到的内部结果落实为可执行动作、可训练模型或可解释指标，完成从方法到结果的最后一步。</p></div></div>
+</div>
+</div>
+<div class="callout amber"><div class="callout-label">对当前 14 类数据的建议</div><p><span class="mini-label">keep</span>高置信 episode 直接训练。<span class="mini-label">review</span>冻结候选、一次性跳变、未 unwrap 的 root3、视频帧映射可疑样本先复核。<span class="mini-label">exclude</span>确认时序错位、FK 不一致且无法修正、损坏视频或跨模态不匹配的 episode。不要把 11,552 个冻结候选直接全删。</p></div>
+<div class="quiz" data-correct="a" data-explain="S2 明确检查 action 和 state 的因果时延与方向一致性。它能把“数值突然变化”与“命令没有按合理时序反映在状态上”区分开。" data-explain-wrong="S1 只说明数值是否突然，C3 看视频质量，S4 看运动学一致性；只有 S2 直接检验 state/action 的时间因果关系。"><div class="q-label">🧠 理解检查</div><div class="q-text">若要判断一段 action 跳变是否更像“时间不同步”而非正常动作，最关键补哪一层？</div><div class="q-options"><button class="q-opt" data-k="a">S2：估计 state-action 时延，再比较趋势方向</button><button class="q-opt" data-k="b">只把跳变阈值调得更低</button><button class="q-opt" data-k="c">只检查视频是不是黑帧</button><button class="q-opt" data-k="d">把所有 action 都改成零</button></div><div class="q-feedback"></div></div>
+</section>
+<section class="section" id="alignment">
+<div class="section-num">§ 05</div>
+<h2>最终训练样本：统一槽位 + 有效 mask + 相机坐标系动作</h2>
+<div class="cn-read">
+<div class="cn-label">承上 → 启下</div>
+<p>清洗保证每条数据可信，但不同本体仍然有不同自由度和坐标系。作者接着解决“同一个动作在不同数据里数值完全不同”的问题：结构上用固定语义槽位，几何上用相机坐标系里的末端增量，训练上用 mask 让模型只为样本真正拥有的字段负责。</p>
+</div>
+<div class="fig-interactive panel-below">
+<div class="fig-block">
+<div class="hotspot-wrap" data-hotspot-group="fig3">
+<img alt="Figure 3: Qwen-RobotManip architecture and unified representation" src="../assets/figures/qwen-robotmanip/fig-3.png"/>
+<button class="hotspot" data-body="当前与历史图像进入 Qwen-VL。多视角不是简单拼图，论文还利用相机外参让图像 token 与动作 token 有共同几何关系。" data-id="obs" data-title="Vision · 多相机视觉" style="left:13%; top:25%;"></button>
+<button class="hotspot" data-body="prompt 明确写入 embodiment、instruction、speed、FPS、camera view direction。它告诉模型“谁在执行、执行节奏是什么”。" data-id="prompt" data-title="Structured Embodiment Prompt" style="left:33%; top:28%;"></button>
+<button class="hotspot" data-body="历史 observation-state-action chunk 经过 MLP 变成 context token。它让模型感知当前 episode 的实际速度、抓取风格和控制特征。" data-id="context" data-title="Context · 最近执行历史" style="left:54%; top:29%;"></button>
+<button class="hotspot" data-body="Qwen-VL 负责看图和理解语言，Flow-Matching DiT 负责连续动作。VLA 与纯 VL 训练用不同 batch，不是同一条样本同时做两种 loss。" data-id="dit" data-title="DiT Action Expert" style="left:83%; top:18%;"></button>
+<button class="hotspot" data-body="每臂有 joint 7D、EEF pose 9D、gripper 1D、dexterous hand 12D；两臂共 58D，再留 22D 给移动底盘等。没有的字段置零但由 mask 排除 loss。" data-id="slots" data-title="80D Canonical Slots" style="left:21%; top:54%;"></button>
+<button class="hotspot" data-body="高层共享动作不是“某号关节转多少”，而是“从相机看到的方向，末端应移动/旋转多少”。视觉上相似的动作因此在数值上更接近。" data-id="eef" data-title="Camera-frame Delta EEF" style="left:70%; top:55%;"></button>
+</div>
+<div class="fig-cap"><span class="fig-num">Fig. 3 · p.10</span>模型总览：Qwen-VL 编码视觉、语言和 context；DiT 生成连续动作。底部两幅子图分别是结构槽位统一与 camera-frame delta EEF 几何对齐。</div>
+</div>
+<div class="hotspot-panel"></div>
+</div>
+<h3>5.1 80D 不是“把不同关节硬拼一起”</h3>
+<div class="contract"><div><strong>7D</strong>每臂 joint position</div><div><strong>9D</strong>每臂 EEF pose<br/>3 pos + 6D rot</div><div><strong>1D</strong>每臂 gripper</div><div><strong>12D</strong>每臂 dexterous hand</div></div>
+<div class="contract-note">上面是单臂语义块。两臂各一份共 58D，剩余 22D 保留给 mobile-base velocity 等扩展自由度。</div>
+<p>例如 Franka 只填一侧的 joint/EEF/gripper；ALOHA 填双臂；有灵巧手的本体再填 hand 槽。关键是：<strong>缺失维度不产生梯度</strong>。这比零填充本身重要得多，因为零有时是合法关节位置，不能被误当作监督目标。</p>
+<h3>5.2 相机坐标系 EEF delta 是多本体迁移的主力，不是 joint token 的补丁</h3>
+<p>作者认为，不同机器人最难对齐的不是向量长度，而是“同一个动作在不同 base/world frame 下数值不同”。因此末端动作用相机参考系中的相对位姿表达。直觉上：</p>
+<div class="callout blue"><div class="callout-label">拿起桌上杯子</div><p>对 Franka 和 ALOHA 而言，底座高度、肩部位置、关节编号都不同；但在各自相机画面里，“末端向杯子左上方移动 5 cm，向下旋转一点”很接近。论文让高层共享这类 camera-frame delta，再由本体相关字段和控制器处理差异。</p></div>
+<h3>5.3 mask 后的 loss：每条样本只教模型它知道的部分</h3>
+<div class="math-block">$$\mathcal{L}_{FM}=\frac{1}{B}\sum_i\frac{\sum_{t,j}m_{i,t,j}\left\lVert f_\theta(x_{i,t},t_i,s_i,o_i)_j-v_{i,t,j}\right\rVert^2}{\sum_{t,j}m_{i,t,j}}$$<span class="math-label">Eq. 11 · masked flow-matching loss, p.14</span></div>
+<div class="math-explain"><div class="me-title">逐项拆解</div><dl><dt>$m_{i,t,j}$</dt><dd>第 $i$ 条样本在时间 $t$、维度 $j$ 是否有效。它同时包含本体槽位、时间有效性、Ego 手是否仍在画面中等 mask。</dd><dt>$f_\theta(\cdot)$</dt><dd>模型预测的 flow velocity，条件是图像 $o_i$ 与当前 state $s_i$。</dd><dt>$v_{i,t,j}$</dt><dd>从噪声走向真实 action chunk 的目标 velocity。</dd><dt>分母</dt><dd>对有效元素求平均，避免双臂/多手指样本因为维度多而天然拥有更大 loss 权重。</dd></dl></div>
+<div class="quiz" data-correct="c" data-explain="mask 的作用是不让缺失或异常维度参与监督，同时按有效元素平均，让不同本体、不同有效自由度的样本对训练更公平。" data-explain-wrong="零填充只解决张量形状，不告诉 loss 哪些零是“真实零”、哪些零只是“不存在”。"><div class="q-label">🧠 理解检查</div><div class="q-text">为什么统一槽位以后仍必须保留 per-dimension mask？</div><div class="q-options"><button class="q-opt" data-k="a">为了让所有机器人都输出同样多的关节</button><button class="q-opt" data-k="b">为了把相机图像变小</button><button class="q-opt" data-k="c">为了只监督每个样本真实存在且可信的自由度与时间步</button><button class="q-opt" data-k="d">为了不再做归一化</button></div><div class="q-feedback"></div></div>
+</section>
+<section class="section" id="g1">
+<div class="section-num">§ 06 · 项目对照</div>
+<h2>对照你们当前 WB-WAM：已经是 G1-centric 对齐，不等于多本体对齐</h2>
+<div class="cn-read">
+<div class="cn-label">承上 → 启下</div>
+<p>论文的 80D 是为多个机械臂本体设计的。你们当前已经明确完成的是：把不同来源的数据放进<strong>同一个 LeRobot v3 容器，并以固定的 110D / 136D 字段、mask 和训练切片读取</strong>。这让模型输入形状一致；但它本身<strong>不自动等于</strong>“所有来源已被重定向成 G1 身体合同”。只有转换脚本确实将源动作映射到 G1/Wuji 的语义槽位时，才可以这样说。</p>
+</div>
+<div class="contract"><div><strong>29D</strong>G1 body joints</div><div><strong>3D</strong>root roll / pitch / yaw velocity</div><div><strong>20D</strong>left hand slots</div><div><strong>20D</strong>right hand slots</div></div>
+<div class="contract-note">当前 WB-WAM：raw state 110D / action 136D → 取上述 72D 语义切片 → 右侧补至模型的 96D；每维有 state_mask / action_mask。</div>
+<table class="kv-table compare-table">
+<tr><td>当前 action 形式</td><td><strong>absolute</strong> G1 body/root/hand target。论文的 camera-frame delta EEF 目前不在这条 G1 主数据合同内。</td></tr>
+<tr><td>缺失字段</td><td>当前 loader 保留 per-dimension valid mask，并在归一化前后清零无效值。这已经具备“统一槽位 + mask”的关键基础。</td></tr>
+<tr><td>无视频样本</td><td>MotionMillion、Bones Seed 的图像应被标成 invalid，而不是把黑帧当成真实视觉观测；它们更像 body-motion prior。</td></tr>
+<tr><td>不同手型</td><td>UnifoRL 含 BrainCo 6D、Dex3 7D、夹爪 1D、Inspire 6D。即使身体都是 G1，手关节语义仍然异构，需要 hand_model metadata 和有效维度 mask。</td></tr>
+</table>
+<h3>6.1 你们的数据分工，可以这样看</h3>
+<div class="source-lanes">
+<div class="source-lane"><div class="sl-type">ANCHOR · 真机 G1</div><h4>GR00T Teleop G1、HIW-500、Humanoid-Everyday、UnifoRL、自采</h4><p>这是最终部署分布的锚：G1 视角、G1 body、实际手型与控制器。最后 SFT 和真实性评测应优先依赖这一组。</p></div>
+<div class="source-lane"><div class="sl-type">BRIDGE · 人类 Ego → G1</div><h4>Xperience</h4><p>人类第一视角视频，但 action 已 retarget 到 G1 body + Wuji 手。它补规模和场景，仍需标记为 retargeted，而不是当作真机执行。</p></div>
+<div class="source-lane"><div class="sl-type">HAND · 局部手部监督</div><h4>EgoDex、Psi-Real</h4><p>EgoDex 画面仍是人手、只监督 retarget 后 Wuji 手；Psi-Real 主要监督 Dex3 手。它们适合手物交互，不应强迫模型学习不存在的 body action。</p></div>
+<div class="source-lane"><div class="sl-type">MOTION · 无视觉身体先验</div><h4>MotionMillion、Bones Seed</h4><p>只有文本与运动轨迹，不教“看见什么物体”，但可以补 G1 身体协调和姿态覆盖。它们的高 review 数主要来自数值跳变，不能直接等同为坏数据。</p></div>
+</div>
+<div class="verdict-grid"><div class="verdict ok"><h4>现在能确认已经做到的</h4><p>跨数据源统一到 LeRobot v3 存储格式；训练时固定读取 110D state / 136D action，再按配置取 72D、保留无效维度 mask，并补齐为 96D 模型输入；已有主数据 / hand / motion 的混合实验配置。</p></div><div class="verdict warn"><h4>仍需逐数据集验证的事</h4><p>每个 110D / 136D 槽位是否真的具有同一套 G1/Wuji 物理含义。当前 loader 只切片、mask、归一化和补齐，不做 IK 或 retarget；转换脚本若只是搬运/零填充，则只是格式统一。EgoDex/Xperience 也尚未做 Qwen 那种“擦人手 + 渲染 G1/Wuji”的视觉替换。</p></div></div>
+<div class="callout amber"><div class="callout-label">一个特别容易误解的点</div><p><strong>Xperience 是很有价值的桥，但不是真机锚。</strong>它的图像来自人类 Ego，action 来自 G1/Wuji retarget。训练时这种“人手图像 → G1 action”的跨域监督会有用，但部署时机器人会看见自己的手臂。因此最接近 Qwen H2R 的下一步，是把一部分高质量 Xperience/EgoDex 做成“G1/Wuji 外观 + G1/Wuji action”的版本，再与原始 Ego 和真机 G1 做消融比较。</p></div>
+<div class="quiz" data-correct="b" data-explain="近期目标是单一 G1 时，统一到准确的 G1 body/hand 合同、保留 mask、提升清洗和真机 SFT，通常比立刻引入泛化到所有机器人的 joint 词表更直接。" data-explain-wrong="多本体接口有价值，但若最终部署只是一台固定 G1，先保证 G1 表征、相机、控制频率和真实执行数据可信，收益更确定。"><div class="q-label">🧠 理解检查</div><div class="q-text">若近期只部署 G1 + Wuji 手，最合理的优先级是什么？</div><div class="q-options"><button class="q-opt" data-k="a">先把所有机器人原始关节串成一个更长向量</button><button class="q-opt" data-k="b">先强化 G1 72D 合同、mask、质检、视觉对齐与真机 SFT</button><button class="q-opt" data-k="c">删掉所有没有双手的视频数据</button><button class="q-opt" data-k="d">忽略手型差异，因为身体都叫 G1</button></div><div class="q-feedback"></div></div>
+</section>
+<section class="section" id="multi">
+<div class="section-num">§ 07 · 落地路线</div>
+<h2>只做 G1 与做多本体，是两种不同的工程目标</h2>
+<div class="cn-read">
+<div class="cn-label">承上 → 启下</div>
+<p>上一节说明你们当前不是“还没统一”，而是已经统一到 G1。接下来需要避免一个常见误区：把 G1 项目做稳，和训练一个能同时控制 G1、Franka、ALOHA 的模型，不能只靠增加数据集名字来完成。它们的共享边界和低层接口不同。</p>
+</div>
+<div class="tab-switcher" data-tabs="deployment-path">
+<div class="tabs"><button class="tab active" data-tab="g1-only">路线 A · 近期只部署 G1</button><button class="tab" data-tab="multi-emb">路线 B · 真正多本体</button></div>
+<div class="panel active" data-panel="g1-only">
+<div class="decision-flow"><div class="decision-node"><strong>1. 固定目标硬件</strong>明确 G1 版本、Wuji 或 Dex3、相机、控制频率和低层 controller。</div><div class="decision-edge">→</div><div class="decision-node"><strong>2. 统一到 G1 72D</strong>所有来源离线转换到 body29 + root3 + hand slots，并保留 source/hand mask。</div><div class="decision-edge">→</div><div class="decision-node"><strong>3. 真机 SFT</strong>用高质量真实 G1 数据对最终模型校准，再用部署任务做 OOD 评测。</div></div>
+<p>建议实验顺序直接复用你们已有的采样配比：<span class="mini-label">100/0/0</span>G1 anchor 基线；<span class="mini-label">80/20/0</span>加 Ego/hand；<span class="mini-label">80/0/20</span>加 motion-only；<span class="mini-label">60/20/20</span>三类都加；再额外比较 <span class="mini-label">+ H2R visual</span> 对高质量 EgoDex/Xperience 做 G1/Wuji 外观替换后的收益。</p>
+<div class="callout blue"><div class="callout-label">何时值得做 G1 视觉替换？</div><p>当部署相机真的会看到 G1 手臂/手时，且你有相机标定、G1/Wuji URDF、可用 IK 与足够好的手臂分割。先把 action retarget 与质检做好；图像合成是减少视觉域 gap 的第二层，不应掩盖错误动作标签。</p></div>
+</div>
+<div class="panel" data-panel="multi-emb">
+<div class="decision-flow"><div class="decision-node"><strong>共享高层接口</strong>预测相机参考系中的左右 EEF delta、grasp semantic、pelvis/base command、feet pose/contact。</div><div class="decision-edge">→</div><div class="decision-node"><strong>本体条件与 mask</strong>embodiment、hand_model、FPS、controller、相机标定、有效维度、归一化统计。</div><div class="decision-edge">→</div><div class="decision-node"><strong>本体专属低层</strong>G1 WBC、Franka IK、ALOHA controller 各自把共享目标变为关节命令。</div></div>
+<p>这才是“跨本体”的真实分工：高层学<span class="focus-line">要让末端/身体在场景中怎样移动</span>，低层学<span class="focus-line">我的关节怎样完成它</span>。不能把不同机器人的 raw <code>action[0]</code> 当成同一物理量。</p>
+<div class="callout amber"><div class="callout-label">论文 80D 的适用边界</div><p>Qwen 的 80D canonical vector 对双臂 manipulation 很有参考价值，但人形全身多本体还应显式加入 pelvis、feet、contact、balance 和移动底盘/躯干任务空间字段。否则它只能对齐“手怎么动”，无法对齐“身体怎样站稳并走过去”。</p></div>
+</div>
+</div>
+<h3>最小可行的多本体 action contract</h3>
+<table class="kv-table compare-table"><tr><td>共享视觉操作</td><td>left/right camera-frame EEF delta pose；gripper open-close 或 hand latent。</td></tr><tr><td>共享全身任务</td><td>pelvis/base velocity；feet target pose；contact phase；可选的 head/camera pose。</td></tr><tr><td>本体特有字段</td><td>joint state、joint command、手指关节、controller gain、关节限位。保留在 slots + mask 或 adapter 内，而非假装可直接共享。</td></tr><tr><td>本体专属执行</td><td>IK / whole-body controller / MPC / RL tracking controller，把共享任务空间目标变成实际关节动作。</td></tr></table>
+<div class="quiz" data-correct="a" data-explain="跨本体共享最稳的是任务空间语义和视觉几何，例如相机参考系里的末端增量；关节命令由本体专属 IK/WBC/controller 处理。" data-explain-wrong="同一向量下标在不同机器人上没有相同物理含义。joint space 可以保留为本体信息，但不能充当唯一共享接口。"><div class="q-label">🧠 理解检查</div><div class="q-text">若以后要让 G1、Franka 和 ALOHA 共享一套高层策略，最合理的共享 action 是？</div><div class="q-options"><button class="q-opt" data-k="a">相机坐标系 EEF delta 等任务空间动作，再接本体专属 controller</button><button class="q-opt" data-k="b">把三台机器人的 joint 向量按索引直接平均</button><button class="q-opt" data-k="c">只保留 G1 的 29 个身体关节</button><button class="q-opt" data-k="d">删除所有相机标定，避免坐标系差异</button></div><div class="q-feedback"></div></div>
+</section>
+<section class="section" id="evidence">
+<div class="section-num">§ 08 · 证据与边界</div>
+<h2>“对齐”为什么带来收益：先让规模变成可学习的规模</h2>
+<div class="cn-read">
+<div class="cn-label">最后把结论落地</div>
+<p>论文的核心证据不是“Ego 数据越多越好”，而是：<strong>未经动作和视觉对齐的异构数据，规模收益不稳定；经过对齐后，更多数据才更像在教同一个任务。</strong>这也解释了为什么你们应把数据质量、表示合同和本体 metadata 放在“继续堆数据量”之前。</p>
+</div>
+<figure class="fig-block">
+<img alt="Figures 18 and 19: scaling and action-representation ablations" src="../assets/figures/qwen-robotmanip/fig-18-19.png"/>
+<figcaption class="fig-cap"><span class="fig-num">Fig. 18–19 · Appendix</span>左侧的 scaling 结果比较完整对齐、去掉统一空间等方案；右侧比较 joint action 与 camera-frame EEF delta。重点不是每个点的绝对数值，而是完整对齐方案随数据量增长更稳定，且在困难 OOD 设置中 EEF delta 更占优。</figcaption>
+</figure>
+<h3>8.1 三类数据各贡献什么？别把相关性读成因果</h3>
+<table class="kv-table compare-table">
+<tr><th>训练组成</th><th>RoboTwin Clean2Rand Hard</th><th>LIBERO-Plus total</th><th>可作出的解释</th></tr>
+<tr><td>Robot-only</td><td>54.7</td><td>87.1</td><td>真机/机器人数据是任务执行锚。</td></tr>
+<tr><td>Robot + raw Ego</td><td>55.0</td><td>88.4</td><td>原始 Ego 主要增加视觉场景与人手交互的覆盖，但其 action 并未天然是机器人 action。</td></tr>
+<tr><td>Robot + Ego + H2R</td><td><strong>58.7</strong></td><td><strong>89.0</strong></td><td>H2R 将同一类 Ego 场景补上机器人动作与机器人外观，提升更明显。</td></tr>
+</table>
+<p class="small-note">上表来自论文 Table 16–18 的消融汇总。它支持“raw Ego 与 H2R 有互补性”，但<strong>不证明</strong>任意项目都应把 H2R 放在真机数据之前：H2R 的收益依赖 retarget、渲染和相机几何是否可信。</p>
+<figure class="fig-block">
+<img alt="Tables 16 to 18: data source and action representation ablations" src="../assets/figures/qwen-robotmanip/table-16-18.png"/>
+<figcaption class="fig-cap"><span class="fig-num">Table 16–18 · Appendix</span>数据源、action space 与视觉对齐的对比。把它当作你们实验设计的模板，而不是直接迁移的性能承诺。</figcaption>
+</figure>
+<h3>8.2 对你们的可检验假设</h3>
+<div class="verdict-grid">
+<div class="verdict ok"><h4>假设 1：G1 anchor 必须留在主训练中</h4><p>若只部署 G1，真机 G1 数据应始终是固定锚。比较 100/0/0、80/20/0、80/0/20、60/20/20 时，所有组都要使用同一份真机 G1 SFT 和同一套部署评测，才能把“预训练数据差异”和“最后校准差异”分开。</p></div>
+<div class="verdict ok"><h4>假设 2：视觉替换只在标定可信时才有用</h4><p>挑一小批质量最高的 Xperience/EgoDex，做 <em>raw Ego image → G1/Wuji composite</em>。与原图并行训练或单独训练比较。若 IK、相机内外参、手臂 mask 有一项不可信，合成图反而会成为噪声。</p></div>
+<div class="verdict warn"><h4>不要从论文推出的结论</h4><p>“只要把人手擦掉、贴上机械臂，就自动得到 G1 全身数据。”不成立。论文未处理人形平衡、脚接触和全身低层 tracking；你们需要把这部分留给现有 G1 retarget/WBC 数据链。</p></div>
+<div class="verdict warn"><h4>也不要把 review 当坏数据比例</h4><p>MotionMillion / Bones Seed 的 review 多，首先意味着数值语义需要校准或抽检；无视频集合不能被 C3 视觉规则直接判死。先修 root angle unwrap、frame convention 和 state-action 时延分析，再决定 exclude。</p></div>
+</div>
+<div class="callout blue"><div class="callout-label">一页结论</div><p><strong>G1-only：</strong>先验证并写清每个转换器的 72D 槽位语义，再把 mask、清洗、真机 SFT 做成可靠闭环；之后小规模验证 H2R 视觉替换。<br/><strong>multi-embodiment：</strong>另建任务空间接口与本体 adapter；不把不同机器人 joint index 硬当共享 action。<br/><strong>数据治理：</strong>把每个 episode 的 <code>source / embodiment / hand_model / camera / action_frame / controller / quality_flags</code> 当作训练数据的一部分，而不是旁注。</p></div>
+<details class="en-quote"><summary>展开原文 · 作者对“对齐与规模”的结论</summary><div class="quote-body"><p>“Alignment unlocks scale for robotic manipulation foundation models.”</p><div class="quote-cite">— Title / central claim, Qwen-RobotManip Technical Report</div></div></details>
+<div class="quiz" data-correct="d" data-explain="最小而可验证的下一步，是固定 G1 真机锚和部署评测，再只改变一个变量：是否加入经过质量把关的 H2R-style 视觉对齐数据。这样才能判断增益来自什么。" data-explain-wrong="一次同时改采样比例、动作表示、相机、低层控制器和清洗规则，最终即使性能变化也无法解释原因。"><div class="q-label">🧠 最后检查</div><div class="q-text">如果下周只能做一个最有信息量的实验，应该选哪一个？</div><div class="q-options"><button class="q-opt" data-k="a">把所有 review episode 直接删掉再训练</button><button class="q-opt" data-k="b">把 G1、Franka、ALOHA 的 raw joint action 拼接起来</button><button class="q-opt" data-k="c">同时替换 action、相机、SFT 数据和控制器</button><button class="q-opt" data-k="d">固定 G1 anchor/SFT/评测，只比较是否加入一小批质检过的 H2R visual 数据</button></div><div class="q-feedback"></div></div>
+</section>
+</main>
+</div>
+<footer class="footer"><a href="../index.html">← 返回首页</a> · <a href="https://arxiv.org/abs/2606.17846" target="_blank">arXiv ↗</a></footer>
+<script>
+    document.querySelectorAll('.tab-switcher').forEach((root) => {
+      const tabs = root.querySelectorAll('.tab');
+      const panels = root.querySelectorAll('.panel');
+      tabs.forEach((tab) => tab.addEventListener('click', () => {
+        tabs.forEach((item) => item.classList.toggle('active', item === tab));
+        panels.forEach((panel) => panel.classList.toggle('active', panel.dataset.panel === tab.dataset.tab));
+      }));
+    });
+  </script>
+</body>
+</html>

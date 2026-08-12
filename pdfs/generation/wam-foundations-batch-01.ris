@@ -1,0 +1,30 @@
+TY  - JOUR
+TI  - Auto-Encoding Variational Bayes
+AU  - Kingma, Diederik P.
+AU  - Welling, Max
+PY  - 2013
+DA  - 2013/12/20
+DO  - 10.48550/arXiv.1312.6114
+UR  - https://arxiv.org/abs/1312.6114
+L1  - file:///Users/siyuanluo/STUDY/paper/learn_embodied_papers/pdfs/generation/Kingma%20and%20Welling%20-%202013%20-%20Auto-Encoding%20Variational%20Bayes.pdf
+N1  - WAM learning-route foundation; arXiv v11.
+KW  - WAM-route
+KW  - variational autoencoder
+ER  -
+
+TY  - CPAPER
+TI  - High-Resolution Image Synthesis with Latent Diffusion Models
+AU  - Rombach, Robin
+AU  - Blattmann, Andreas
+AU  - Lorenz, Dominik
+AU  - Esser, Patrick
+AU  - Ommer, Björn
+PY  - 2022
+T2  - 2022 IEEE/CVF Conference on Computer Vision and Pattern Recognition (CVPR)
+DO  - 10.48550/arXiv.2112.10752
+UR  - https://arxiv.org/abs/2112.10752
+L1  - file:///Users/siyuanluo/STUDY/paper/learn_embodied_papers/pdfs/generation/Rombach%20et%20al.%20-%202022%20-%20High-Resolution%20Image%20Synthesis%20with%20Latent%20Diffusion%20Models.pdf
+N1  - WAM learning-route foundation; CVPR 2022; arXiv v2.
+KW  - WAM-route
+KW  - latent diffusion
+ER  -

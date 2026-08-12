@@ -1,0 +1,1251 @@
+                                                   WorldScore: A Unified Evaluation Benchmark for World Generation
+
+                                                               Haoyi Duan∗      Hong-Xing Yu∗             Sirui Chen       Li Fei-Fei              Jiajun Wu
+                                                                                            Stanford University
+
+
+                                                                   Abstract                                                                    Next scene:       Next scene:
+                                                                                                                                               “Window …         “Flowers …
+
+
+
+
+arXiv:2504.00983v2 [cs.GR] 29 Nov 2025
+                                                                                                                                               Camera pans left” Camera moves left”
+                                             We introduce the WorldScore benchmark, the first uni-
+                                         fied benchmark for world generation. We decompose world               Task:
+                                                                                                               Generate a world
+
+                                                                                                                                     Model A
+                                         generation into a sequence of next-scene generation tasks
+                                         with explicit camera trajectory-based layout specifications,          starting from here
+
+                                         enabling unified evaluation of diverse approaches from 3D
+                                         and 4D scene generation to video generation models. The
+                                         WorldScore benchmark encompasses a curated dataset of
+                                         3,000 test examples that span diverse worlds: static and
+
+                                                                                                                                     Model B
+                                         dynamic, indoor and outdoor, photorealistic and stylized.
+                                         The WorldScore metric evaluates generated worlds through
+                                         three key aspects: controllability, quality, and dynamics.
+                                         Through extensive evaluation of 20 representative models,
+                                         including both open-source and closed-source ones, we                  VBench:                        Model A (80.28) ≈ Model B (83.06)
+                                                                                                                WorldScore (ours):             Model A (70.70) > Model B (46.28)
+                                         reveal key insights and challenges for each category of
+                                         models. Our dataset, evaluation code, and leaderboard               Figure 1. While existing video benchmarks like VBench [26]
+                                         can be found at https://haoyi-duan.github.io/                       rate Models A and B similarly based on single-scene video qual-
+                                         WorldScore/.                                                        ity, our WorldScore benchmark differentiates their world gen-
+                                                                                                             eration capabilities by identifying that Model B fails to gener-
+                                                                                                             ate a new scene or follow the instructed camera movement. In
+                                         1. Introduction                                                     https://haoyi-duan.github.io/WorldScore/, we
+                                                                                                             show the videos to explain our WorldScore metrics.
+                                         Recent advances in visual generation have sparked grow-
+                                         ing interest in world generation—the creation of large-scale,
+                                         diverse worlds with various scenes, which finds wide applica-       vidual scene generation. For example, VBench [26] primar-
+                                         tions in entertainment, education, simulation, and embodied         ily evaluates text-to-video (T2V) tasks using curated prompts
+                                         AI. The rapid progress in video generation [1, 6, 10, 88],          without explicit spatial layout control, restricting their eval-
+                                         3D scene generation [11, 16, 90, 91], and 4D scene genera-          uations to single scenes (Figure 1). Moreover, despite the
+                                         tion [3, 85, 89] has shown generating high-quality individual       promising potential of 3D and 4D scene generation methods
+                                         scenes, demonstrating the potential of these models as world        for world generation, current benchmarks lack essential com-
+                                         generation systems. However, as the concept of world gener-         ponents such as camera specifications and reference images,
+                                         ation expands, users demand to generate more comprehen-             making them incompatible with many state-of-the-art 3D/4D
+                                         sive worlds that seamlessly integrate multiple varied scenes        scene generation methods that require an image or a camera
+                                         with detailed spatial layout controls rather than disconnected      trajectory as inputs [11, 16, 39, 90, 91].
+                                         individual environments.                                                We introduce WorldScore, a unified benchmark for world
+                                             Achieving this vision requires a unified evaluation bench-      generation. Our key design is to decompose world generation
+                                         mark that systematically assesses different types of world          into a sequence of next-scene generation tasks, where each
+                                         generation models across large-scale, diverse worlds, which         step is characterized by a triplet of (current scene,
+                                         is currently absent. Existing benchmarks mainly focus on            next scene, layout). For unified evaluation across
+                                         video generation [15, 45, 46, 48, 92] and evaluate only indi-       different methods, we provide both an image and a text
+                                                                                                             prompt for a current scene, as well as both camera
+                                           * Equal contribution.                                             matrices and a textual description for a layout specifi-
+ Benchmark                  # Examples Multi-Scene Unified        Long Seq.   Image Cond.   Multi-Style   Camera Ctrl.   3D Consist.
+ TC-Bench [15]                   150           ✗           ✗          ✗            ✓             ✗             ✗             ✗
+ EvalCrafter [45]                700           ✗           ✗          ✗            ✗             ✗             ✗             ✗
+ FETV [46]                       619           ✗           ✗          ✗            ✗             ✗             ✗             ✗
+ VBench [26]                     800           ✗           ✗          ✗            ✗             ✗             ✗             ✗
+ T2V-CompBench [71]              700           ✗           ✗          ✗            ✗             ✗             ✗             ✗
+ Meng et al. [48]                160           ✗           ✗          ✗            ✗             ✗             ✗             ✗
+ Wang et al. [78]                423           ✗           ✗          ✓            ✗             ✗             ✗             ✗
+ ChronoMagic-Bench [92]         1649           ✗           ✗          ✗            ✗             ✗             ✗             ✗
+ WorldModelBench [40]            350           ✗           ✗          ✗            ✓             ✗             ✗             ✗
+ WorldScore (Ours)              3000           ✓           ✓          ✓            ✓             ✓             ✓             ✓
+
+Table 1. Comparison of Benchmarks. Our WorldScore benchmark is designed to evaluate various world generation approaches including
+3D, 4D, I2V and T2V models. It is designed to generate multiple scenes with varying sequence lengths. Our benchmark also features
+multiple visual styles, accurate camera control evaluation, and 3D consistency evaluation, all of which are important factors in world
+generation yet currently missing in existing benchmarks.
+
+cation. This design allows our WorldScore benchmark to                  dynamic scenes across various categories with multiple
+evaluate various approaches including 3D, 4D, text-to-video,            visual styles.
+and image-to-video models on large-scale world generation.            • We introduce the WorldScore metrics, which aggregate
+All methods are evaluated on a common output format, i.e.,              critical aspects in world generation model performances,
+rendered or generated videos, to enable direct comparison               including controllability, quality, and dynamics.
+of generation across different types of approaches.                   • Through the comprehensive evaluation of 18 open-source
+   Our evaluation metric, WorldScore, is computed by ag-                and 2 closed-source models, we reveal key insights and
+gregating three key aspects: controllability, which measures            challenges in current world generation approaches, provid-
+the adherence of the generated worlds w.r.t. control inputs;            ing valuable guidance for future research.
+quality, which measures the fidelity and consistency; dynam-
+ics, which measures how much the generated worlds exhibit             2. Related Work
+accurate and stable motions. Each of these aspects comprises
+a few distinct metrics, leading to a total of 10 metrics that        Video generation benchmarks. The progress of both open-
+contribute to computing the WorldScore.                              source [1, 10, 84, 88] and closed-source [2, 6, 20, 58] video
+   To enable a comprehensive assessment, we curate a di-             generation models has stimulated the proposal of numer-
+verse dataset covering both static and dynamic world gener-          ous benchmarks [15, 26, 45, 46, 48, 92]. However, most
+ation scenarios across different visual domains. For static          existing benchmarks, such as VBench [26] and WorldMod-
+worlds, we include 5 categories of indoor scenes and 5 cat-          elBench [40], focus on evaluating video generation models
+egories of outdoor scenes with varying sequence lengths.             based on single-scene video quality without layout control
+For dynamic worlds, we include 5 distinct types of dynam-            and multi-scene generation. Furthermore, their designs are
+ics such as rigid motion and fluid motion. Additionally,             incompatible with 3D/4D scene generation methods that
+each example in our dataset has a corresponding stylized             require camera specification. In contrast, our WorldScore
+counterpart sampled from a rich set of candidate styles, al-         benchmark is designed to focus on evaluating world gener-
+lowing the evaluation of various visual domains. In total, our       ation approaches with multi-scene generation tasks, and it
+dataset comprises 3000 high-quality test examples that span          is designed to accommodate 3D, 4D, I2V and T2V models.
+indoor/outdoor environments and photorealistic/stylized vi-          We show a detailed comparison in Table 1.
+sual domains.                                                        Video generation models. Recent advances in image gener-
+   We conduct extensive experiments by evaluating 20 di-             ation, including VAEs [36], GANs [5, 18, 30–33, 49], VQ
+verse models, including 6 image-to-video models (with 2              approaches [13, 73], and Diffusion models [23, 52, 68, 70],
+leading closed-source models), 7 text-to-video models, 6 3D          have fueled explorations in video generation [25, 47, 65,
+scene generation models, and a 4D generation model. In               76, 77]. The advent of Sora [6] has further demonstrated
+summary, our contributions are fourfold:                             the potential of video models as world generation mod-
+• We propose the first world generation benchmark, World-            els [29, 48, 83]. While most recent models focus on text-
+  Score, which allows unified evaluation across various ap-          to-video (T2V) generation [9, 10, 14, 41], developments in
+  proaches including 3D, 4D, I2V, and T2V models.                    image-to-video (I2V) [1, 84, 86, 88, 97] have also been sig-
+• We curate a high-quality, diverse dataset for our bench-           nificant. In our WorldScore benchmark, we evaluate both
+  mark evaluation. Our dataset covers diverse static and             T2V and I2V models as world generation approaches, thanks
+                       World Specification                                              WorldScore Metrics
+          Current scene          Next scene             Layout
+                                                                              WorldScore-Static                                        WorldScore-Dynamic
+                                “A cozy reading
+                                nook with a plush
+                                yellow armchair …”
+                                                                                Controllability                                            Quality                                                Dynamics
+        “Modern living room.”                      “Camera pulls out”
+
+
+
+        World Generation Models                                                 Generated Videos
+           • Video generation models
+           • 3D scene generation models
+           • 4D scene generation models
+
+Figure 2. Overview of the WorldScore benchmark design. Top left: World generation is decomposed into a sequence of next-scene
+generation tasks, where each step follows a structured world specification defining both spatial layout and semantic content. Bottom left: The
+unified world specification is used to instruct different types of models, including video generation and 3D/4D generation models. Bottom
+right: All models output videos for evaluation. Top right: Output videos are evaluated using the WorldScore metrics, which assess three
+fundamental aspects including controllability, quality, and dynamics.
+
+
+to our unified design that accommodates both image and text               generated outputs, standardized as videos (bottom right of
+conditioning strategies.                                                  Figure 2), are then evaluated using the WorldScore metrics
+3D scene generation. Besides video models, our World-                     (top right of Figure 2) that assess three critical aspects: con-
+Score benchmark also includes 3D and 4D generation meth-                  trollability, quality, and dynamics. This unified evaluation
+ods. Recent 3D scene generation models rely mainly                        approach ensures fair comparison across different method-
+on generative diffusion models [16, 90], which formulate                  ological paradigms.
+generating scenes in a sequential manner using supervi-                   3.1. World Specification
+sion from 2D image outpainting models. These meth-
+ods [11, 12, 24, 91] project the synthesized 2D scene exten-              Formulation. We decompose the world generation task into
+sions into a 3D representation by leveraging depth estimation             a sequence of next-scene generation tasks, where each step
+models [4, 34, 37, 87].                                                   is specified by a triplet of (C, N , L), where C = {I, P}
+    To incorporate dynamics, 4D generation methods [39, 43,               denotes the current scene given by a scene image I and a
+56, 66, 95, 96, 96] further integrate multi-view and video dif-           text prompt P, N denotes the next-scene text prompt, and
+fusion priors. Due to the difficulty of scene-level generation,           L = {T , Y} denotes the layout given by a camera trajectory
+most of existing methods focus on object-level generation.                T = (C1 , C2 , · · · , CN ) where Ci denotes a camera matrix
+Nevertheless, we include 4D-fy [3] in our benchmark due to                and a text prompt of camera movement Y. Then, a world
+its open-source accessibility.                                            generation model is instructed to generate a video:
+
+3. The WorldScore Benchmark                                                                  \mathbf {V} = g_\text {world}(w_\text {proc}(\mathcal {C}, \mathcal {N}, \mathcal {L})), \label {eq:world_generation}    (1)
+                                                                          where V denotes a video, gworld denotes the world generation
+Design overview. Our goal is to establish an evalua-
+                                                                          model, and wproc denotes a model-specific pre-processing
+tion benchmark for world generation that unifies different
+                                                                          which we detail in Supp. A.
+methodological approaches. Our WorldScore benchmark
+introduces three key components: (1) a standardized world                 Static and dynamic worlds. We explicitly disentangle the
+specification, (2) a carefully curated dataset, and (3) multi-            evaluation of dynamics aspect from the controllability and
+faceted metrics. We show an overview in Figure 2. We                      quality aspects due to their distinct natures. To this end, we
+decompose world generation into a sequence of next-scene                  have two types of tasks:
+generation tasks, where each step is defined by a world                   Static world generation: We instruct a model to generate
+specification encompassing both spatial layout and semantic               varying-length scene sequences for controllability and qual-
+content (top left of Figure 2). This world specification en-              ity assessment. Here, the next-scene text prompt N describes
+ables us to instruct different types of models ranging from               the new scene contents, and the layout L describes large cam-
+3D/4D scene generation to video generation approaches. The                era movements.
+     Dining spaces                       Living spaces                Passageways             Public spaces            Workspaces
+
+
+
+
+     City                                Suburb                       Aquatic landscape       Terrestrial landscape    Verdant landscape
+
+
+
+
+     Articulated                         Deformable                   Fluid                   Rigid body               Multi-motion
+
+
+
+
+Figure 3. Showcasing of the current scene images. Top two rows: Static world generation examples are categorized into indoor (first row)
+and outdoor (second row) scenes, each containing 5 categories. Bottom row: Dynamic world generation examples are divided into 5 motion
+types. Each dynamic example comes with an annotation of motion mask that indicates where the motion should happen.
+
+   Datasets             Filtering              Captioning      Photorealistic    3.2. Dataset Curation
+ • Unsplash          • Quality               “Yellow taxi in
+ • LHQ               • Manual                street …”                           Our dataset consists of 3000 examples (world specifications),
+       …                    …
+                                                                                 including 2000 for static world generation and 1000 for
+                                                                                 dynamic world generation. We show a detailed statistics in
+   Style Set             Prompt              Text-to-Image       Stylized
+                                                                                 Table S4 in the supplementary material.
+ • Anime             “Anime. Yellow          • Style control
+ • Ukiyo-E           taxi in street …”       • Prompt                            Curation on current scene C. The current scene C =
+        …
+                                                                                 {I, P} is given by an image I and its text prompt P. We
+                                                                                 show an illustration of our curation process in Figure 4.
+Figure 4. Curation on the current scene C. Top: Photorealistic                      For static world generation, we define 10 categories of
+worlds. Bottom: Stylized counterparts.                                           scenes including 5 indoor and 5 outdoor scene types. Then,
+                                                                                 we source images from open-source scene datasets [8, 38, 42,
+                                                                                 57, 62, 67, 69, 74, 98] and supplement with an online source,
+                                                                                 Unsplash [7]. We apply a very rigorous filtering strategy to
+Dynamic world generation: We instruct a model to generate                        ensure high quality and high diversity (Supp. B.1), leading
+in-scene motion for dynamics assessment. Here, the next-                         to approximately 5000 images I in photorealistic style (they
+scene text prompt N describes the same scene content as                          are either real photos or physically-based rendered images).
+C but with dynamics changes, e.g., an animal moving. The                         Then, we query a Vision-Language Model (VLM), GPT-
+layout L explicitly specifies a fixed camera position without                    4o [51], to generate captions P for these images and do a
+any camera motion.                                                               10-way classification to put each of them into a category.
+                                                                                                        generation, 20% of our static world generation examples are
+                     Push in
+   Orbit left                                               Orbit right
+                                                                                                        large worlds, and the others are small worlds.
+                                                                                                        Curation on layouts L. A layout L = {T , Y} is given
+                                                                                    “Living room, …”    by a camera trajectory T = (C1 , C2 , · · · , CN ) and a text
+ Move left                                                     Move right                               prompt of camera movement Y. We curate a set of 8 camera
+                                                                                                        movements (left of Figure 5) which are widely used in movie
+                                                                                                        industry. This design achieves two objectives: Firstly, it
+   Pan left                                                  Pan right
+                                                                                                        covers all spatial directions; secondly, it facilitates text-to-
+                     Pull out                                                                           video models to take the instruction Y as most of them
+                                                                                                        are trained on movie clips that often contain these camera
+Figure 5. Curation on layouts L. Left: Camera paths T and text
+                                                                                                        movement descriptions. These movements include both
+Y. Right: A move-right example.                                                                         intra-scene movements, such as moving into a scene, as well
+                                                                                                        as inter-scene transitions, such as pulling out the camera. For
+                                                                                                        each static scene generation example, we randomly assign
+Finally, we further filter each category by keeping the first
+                                                                                                        a layout L to a next-scene generation task. We show an
+100 highest-quality images, leading to 1000 images I and
+                                                                                                        example in the right of Figure 5. When the assigned layout
+their corresponding prompts P.
+                                                                                                        is intra-scene, we perform a replacement of N with P.
+   Then, we create a stylized counterpart for each example in
+                                                                                                            We leave details of our dataset curation in Supp. B.
+the photorealistic domain. For each example, we randomly
+pick a style from a set of 7 style candidates, and create a                                             3.3. The WorldScore Metrics
+new text prompt P by adding the style text to the prompt
+                                                                                                        Our WorldScore metrics include two overall scores:
+of the photorealistic example (Supp. B.2). Then, we lever-
+                                                                                                        WorldScore-Static which measures only the static world
+age a commercial style-controlled text-to-image generation
+                                                                                                        generation capability, and WorldScore-Dynamic which mea-
+model [55] to generate the stylized counterpart image I. We
+                                                                                                        sures dynamic world generation capability in addition to
+show examples in the top two rows in Figure 3.
+                                                                                                        static worlds. They are defined as the aggregation of several
+   For dynamic world generation, we define 5 categories
+                                                                                                        individual metrics in the three key aspects: controllability,
+of motion types and source Unsplash to manually curate
+                                                                                                        quality, and dynamics. We briefly introduce each individual
+100 images for each of the category. We follow a similar
+                                                                                                        metric in the following, and we leave details in Supp. C.
+process as in the static world generation examples to create
+text prompts and stylized counterpart, eventually leading to                                            Controllability. We have three metrics.
+a total of 1000 examples. We show examples in the bottom                                                Camera controllability: To evaluate how the models adhere
+row in Figure 3.                                                                                        to the instructed layout L = {T , Y}, we compute camera
+Curation on next-scene text prompts N . Each world gen-                                                 errors as follows:
+eration consists of a sequence of next-scene generation tasks.                                                                 e_{\text {camera}} = \sqrt {e_{\theta } \cdot e_t}, \label {algorithm:camera_error_geometric_mean}    (3)
+The next-scene text prompt N can have varying lengths. In
+particular, we consider two cases: (1) a small world where                                              where eθ and et are scale-invariant rotation and translation
+N consists of only one new scene, and (2) a large world                                                 errors with respect to the ground truth trajectory T , respec-
+where N consists of three new scenes.                                                                   tively. We compute camera errors across all the frames of
+   To generate coherent and contextually relevant scene se-                                             the generated video V. We leave more details in Supp. C.1.
+quences, we adopt an auto-regressive scene description gen-                                             Object controllability: We evaluate whether the objects spec-
+eration process [90], that is, we instruct an LLM to generate                                           ified in the next-scene prompt N appear in the generated
+the next-scene text prompt that should be different from all                                            next scene. To this end, we measure the success rate of
+current scene text prompts. For example, for a small world,                                             object detection. Specifically, we leverage a state-of-the-
+                                                                                                        art open-set object detection model [44]. We extract one
+                         \mathcal {N} = \text {LLM}(\mathcal {J}, \mathcal {P}),                  (2)   or two individual object descriptions from the text prompt
+                                                                                                        N . We compute the success rate by matching the detected
+where the LLM takes two inputs: (1) the task specification                                              objects with the object descriptions. This provides a quanti-
+J = “Generate a scene description different from the past                                               tative measure of how well the generated foreground objects
+scenes.” 1 , and (2) a collection of past and current scene                                             adheres to the world specification.
+descriptions. For a large world which consists of 4 scenes,
+                                                                                                        Content alignment: Besides the objects (which typically oc-
+we repeat this process for 3 times, so that N = N1 + N2 +
+N3 consists of three individual next-scene prompts. In our                                              cupies approximately only 14 of the text prompt length), we
+                                                                                                        also assess whether the generated scenes are aligned with
+  1 This is a brief summary of the actual prompt provided in Supp. B.3.                                 the entire text N using CLIPScore [22].
+        Next scene                        Good examples                                         Bad examples
+
+
+          “Seaside
+           dining,
+          seagull”
+
+
+                                     High 3D consistency: 92.88                            Low 3D consistency: 0.00
+
+
+           “Peaks,
+           clouds”
+
+
+
+                                High photometric consistency: 94.28                   Low photometric consistency: 11.95
+
+
+          “Octopus
+           moves”
+
+
+
+                                    High motion accuracy: 100.00                           Low motion accuracy: 0.00
+
+Figure 6. Typical examples. Top: 3D consistency. The bad example on the right-hand-side has a sudden change in geometry rather
+than smooth transition. Middle: Photometric consistency. The bad example exhibits severe texture shift in the mountain grassland.
+Bottom: Motion accuracy. In the good example, the octopus moves while the jellyfish remains static. For bad example on the right, the
+jellyfish moves while the octopus remains static. A full version of all metrics is in Figure S3 and Figure S4 in supplementary material. In
+https://haoyi-duan.github.io/WorldScore/, we show videos to explain our WorldScore metrics.
+
+Quality. We have four metrics.                                          as shown in Figure 6. We leave more details in Supp. C.3.
+3D consistency: We evaluate the 3D consistency in the static            Style consistency: We evaluate the style consistency by com-
+world videos. This metric focuses on how the geometry of                puting the differences (F-norm) between the Gram matri-
+a scene remains stable across frames, regardless of slight              ces [17] of the first frame and the last frame of a single
+changes in visual textures. To this end, we use DROID-                  next-scene generation task.
+SLAM [72], a standard SLAM method, to estimate dense                    Subjective quality: We use automatic metrics to evaluate the
+pixel-wise depth for each frame, and then we compute the                human perceptual quality of the generated scenes. There
+reprojection error between a pair of co-visible pixels in con-          exists some automatic image assessment metrics [82] and
+secutive frames. Since DROID-SLAM is designed to be                     aesthetic metrics [75], and thus we consider ensemble them.
+robust against appearance changes, this metric measures ge-             To find a combination that best fits human perception, we per-
+ometric inconsistency. We show an example in Figure 6, and              form a human study of 400 participants, enumerate different
+we leave more details in Supp. C.2.                                     metric combinations, and we pick the combination (CLIP-
+Photometric consistency: While 3D consistency exclusively               IQA+ [75] with CLIP Aesthetic [63]) that best matches hu-
+focuses on geometry, photometric consistency focuses on                 man preference. We leave more details in Supp. C.4.
+appearance (e.g., textures). Many video generation models               Dynamics. We have three metrics.
+struggle with maintaining consistent object textures, leading
+to appearance inconsistency issues such as texture flickering.          Motion accuracy: Accurate motion placement is essential
+Existing consistency metrics, such as those with CLIP or                in dynamics generation. For example, if a prompt specifies
+DINO features [26, 27], focus on categorical identity but fail          that a car should move while nearby pedestrians remain still,
+to capture fine-grained texture changes. For example, the               the model should animate the car, not the pedestrians. To
+mountain in the middle row of Figure 6 remains a mountain               quantify this, we introduce motion accuracy, which measures
+(i.e., the same geometry and semantic class) across frames,             whether the motion specified in the next-scene prompt N
+but the texture (grass) has been shifted and distorted over             occurs in the designated regions. As shown in the bottom
+time. This cannot be captured by CLIP/DINO features.                    row of Figure 6, the score is calculated by comparing optical
+    To detect photometric artifacts, our photometric consis-            flow within the intended region with the flow outside the
+tency metric estimates the optical flow between consecutive             region. We need to consider the outside flow as it cancels out
+frames and computes the Average End-Point Error (AEPE).                 the global motion caused by unintended camera movements.
+This metric effectively identifies unstable visual appearance,          Motion magnitude: We measure a world generation model’s
+                          WorldScore           Controllability                       Quality                    Dynamics
+Models
+                                           Camera Object Content 3D     Photo Style Subjective Motion Motion Motion
+                        -Static -Dynamic
+                                            Ctrl   Ctrl   Align Consist Consist Consist Qual    Acc    Mag Smooth
+Gen-3 [58]              60.71    57.58     29.47   62.92    50.49    68.31   87.09      62.82   63.85   54.53    27.48     68.87
+Hailuo [20]             57.55    56.36     22.39   69.56    73.53    67.18   62.82      54.91   52.44   63.46    27.20     70.07
+DynamiCrafter [84]      52.09    47.19     25.15   47.36    25.00    72.90   60.95      78.85   54.40   41.11    39.25     26.92
+VideoCrafter1-T2V [9]   47.10    43.54     21.61   50.44    60.78    64.86   51.36      38.05   42.63   11.76    75.00     18.87
+VideoCrafter1-I2V [9]   50.47    47.64     25.46   24.25    35.27    74.42   73.89      65.17   54.85   55.63    25.00     42.49
+VideoCrafter2 [9]       52.57    47.49     28.92   39.07    72.46    65.14   61.85      43.79   56.74   47.12    30.40     29.39
+T2V-Turbo [41]          45.65    40.20     27.80   30.68    69.14    38.72   34.84      49.65   68.74   34.87    40.09     7.48
+EasyAnimate [86]        52.85    51.65     26.72   54.50    50.76    67.29   47.35      73.05   50.31   75.00    31.16     40.32
+Allegro [97]            55.31    51.97     24.84   57.47    51.48    70.50   69.89      65.60   47.41   54.39    40.28     37.81
+Vchitect-2.0 [14]       42.28    38.47     26.55   49.54    65.75    41.53   42.30      25.69   44.58   33.59    33.81     21.31
+LTX-Video [19]          55.44    56.54     25.06   53.41    39.73    78.41   88.92      53.50   49.08   76.22    29.95     71.09
+CogVideoX-T2V [88]      54.18    48.79     40.22   51.05    68.12    68.81   64.20      42.19   44.67   25.00    47.31     36.28
+CogVideoX-I2V [88]      62.15    59.12     38.27   40.07    36.73    86.21   88.12      83.22   62.44   69.56    26.42     60.15
+SceneScape [16]         50.73    35.51     84.99   47.44    28.64    76.54   62.88      21.85   32.75    0.00     0.00     0.00
+Text2Room [24]          62.10    43.47     94.01   38.93    50.79    88.71   88.36      37.23   36.69    0.00     0.00     0.00
+LucidDreamer [11]       70.40    49.28     88.93   41.18    75.00    90.37   90.20      48.10   58.99    0.00     0.00     0.00
+WonderJourney [90]      63.75    44.63     84.60   37.10    35.54    80.60   79.03      62.82   66.56    0.00     0.00     0.00
+InvisibleStitch [12]    61.12    42.78     93.20   36.51    29.53    88.51   89.19      32.37   58.50    0.00     0.00     0.00
+WonderWorld [91]        72.69    50.88     92.98   51.76    71.25    86.87   85.56      70.57   49.81    0.00     0.00     0.00
+4D-fy [3]               27.98    32.10     69.92   55.09     0.85    35.47    1.59      32.04   0.89    22.22    22.88     80.06
+
+Table 2. WorldScore evaluation of 20 world generation models. Top: Close-source video models. Middle: Open-source video models.
+Bottom two rows: 3D and 4D models. Abbreviations: Ctrl=Controllability, Align=Alignment, Consist=Consistency, Photo=Photometric,
+Qual=Quality, Acc=Accuracy, Mag=Magnitude, Smooth=Smoothness.
+
+
+ability to create large motions by estimating the optical flow      Models. We evaluate 20 available world generation models
+between the consecutive frames of the generated video.              on our WorldScore benchmark. We assess 13 video gen-
+Motion smoothness: Temporal jittering is a common failure           eration models, including two leading commercial closed-
+mode in dynamic world generation. We utilize a standard             source I2V models—Gen-3 [58] and Hailuo [20], along with
+video frame interpolation model [93] to generate smooth in-         7 well-known open-source I2V models: DynamiCrafter [84],
+terpolation as ground truth to evaluate the temporal smooth-        VideoCrafter1-I2V [9], VideoCrafter2 [10], EasyAni-
+ness of generated videos V. We leave details in Supp. C.7.          mate [86], CogVideoX-I2V [88], LTX-Video [19] and Al-
+                                                                    legro [97], and 4 open-source T2V models: VideoCrafter1-
+Score normalization and aggregation. After computing in-
+                                                                    T2V, T2v-Turbo [41], Vchitect-2.0 [14], and CogVideoX-
+dividual evaluation metrics, we apply a linear normalization
+                                                                    T2V. Additionally, we evaluate six well-known 3D scene
+and mapping process based on empirical bounds (Supp. C.8)
+                                                                    generation models: SceneScape [16], Text2Room [24], Lu-
+to ensure that the final scores fall within the range between
+                                                                    cidDreamer [11], WonderJourney [90], InvisibleStitch [12],
+zero to one, and then we scale it by 100. Then, we com-
+                                                                    and WonderWorld [91]. Moreover, we include an open-
+pute the arithmetic mean of the dimension scores within
+                                                                    source 4D generation model, 4D-fy [3]. We leave details of
+control and quality aspects to obtain our WorldScore-Static.
+                                                                    these models in Table S1 in supplementary material.
+Additionally, we further incorporate three dynamics dimen-
+sion scores into the aggregation, resulting in WorldScore-          4.1. Observations and Challenges
+Dynamic. For 3D scene generation models that do not sup-
+port dynamic tasks, we assign 0 to each dynamics metric.            We show the WorldScore benchmark results in Table 2. We
+                                                                    identify key challenges in world generation:
+4. Results                                                          3D models excel in static world generation. From the
+                                                                    WorldScore-Static results, we observe that 3D scene gen-
+Validation. We validate our metrics by human study. Our             eration models generally perform better, e.g., Wonder-
+results suggest that WorldScore’s metrics align with human          World [91] (72.69) and LucidDreamer [11] (70.40) are the
+preference, and WorldScore is robust to different video reso-       top-2, much better than the best video model CogVideoX-
+lutions and aspect ratios. We leave details in Supp. D.             I2V [88] (62.15). This is because 3D models inherently have
+                                                             90   (59.12). However, CogVideoX-I2V is not better than them
+            Gen-3                                                 in every aspect. For instance, we observe that CogVideoX-
+            Hailuo                                                I2V is better at camera controllability yet worse at object
+                                                                  controllability and content alignment.
+   DynamiCrafter                                             80   Trade-offs in motion smoothness and magnitude. Com-
+VideoCrafter1-T2V                                                 paring motion smoothness and motion magnitude metrics
+ VideoCrafter1-I2V                                                for each method, we observe that larger motion often comes
+                                                                  at the cost of lower smoothness, revealing current challenge
+    VideoCrafter2                                            70   for video models in maintaining both significant motion and
+        T2v-Turbo                                                 natural transitions.
+                                                                  Larger motion does not necessarily mean more accurate
+     EasyAnimate
+                                                             60   motion placement. The correlation between the motion
+   CogVideoX-T2V                                                  magnitude and accuracy is weak. This implies that models
+   CogVideoX-I2V                                                  that can produce large motion do not guarantee correct mo-
+                                                                  tion placement to follow instructions. Instead, they could
+           Allegro                                                hallucinate unintended camera motion or irrelevant motion.
+                                                             50
+      Vchitect-2.0                                                More robust motion modeling may be needed to balance the
+                                                                  three dynamics metrics.
+      SceneScape
+                                                                  Video models are weak in long sequence generation and
+       Text2Room                                             40   in outdoor scenes. We further evaluate model performance
+    LucidDreamer                                                  across different subdomains, and we show WorldScore-Static
+                                                                  results in Figure 7. We observe that video generation mod-
+   WonderJourney                                                  els struggle significantly with long-sequence (large world
+    InvisibleStitch                                          30   generation) tasks. In addition, video models are significantly
+                                                                  weaker than 3D models in outdoor scenes, while the gap is
+     WonderWorld                                                  smaller in indoor scenes.
+             4D-fy                                                T2V models are easier to steer than I2V models. Com-
+                                                             20
+                     All listic lized ence ence door tdoor        pare T2V models to I2V models, e.g., CogVideoX-T2V
+                        a y u u In Ou
+                    tore Strt seqng seq                           and CogVideoX-I2V, we observe that T2V models generally
+                Pho        Sho Lo                                 have higher scores in the controllability aspect and larger
+                                                                  motion magnitude, while I2V models have higher scores in
+    Figure 7. WorldScore-Static across different subdomains.      quality aspect. Through empirical examination, we find that
+                                                                  this is because T2V models are willing to generate larger
+                                                                  camera motion, while I2V models tend to stick to the input
+high camera controllability and, thus, better content align-      image viewpoint. This reveals a challenging in controlling
+ment due to the larger space they can create, as well as high     I2V models to generate new scene contents. We leave further
+3D and photometric consistency. However, they do not allow        visualizations in Supp. E.
+for the generation of dynamic worlds. When extended to 4D
+for dynamics, 4D-fy [3] does not perform well, likely due to      5. Conclusion
+the intrinsic difficulty in 4D scene generation.
+                                                                  The WorldScore benchmark reveals current limitations in
+Video models lack camera controllability.             Even
+                                                                  world generation approaches. For 3D models, while they
+CogVideoX-T2V [88], the best video generation model in
+                                                                  excel in static world generation, extending them to 4D repre-
+camera controllability (40.22), scored much lower than any
+                                                                  sentations and incorporating dynamics remains challenging.
+3D/4D generation model. This is the main challenge for
+                                                                  For video models, the main challenges include controllabil-
+video generation models to achieve good static world gener-
+                                                                  ity, long-sequence generation, and generating outdoor scenes.
+ation. Recent work in injecting camera conditioning [21, 81]
+                                                                  These insights point to directions for future research: bridg-
+might be a promising solution.
+                                                                  ing the gap between 3D and 4D representations, developing
+The best open-source video models are as good as closed-          more robust controllability mechanisms, and designing ar-
+source video models. Comparing CogVideoX-I2V [88],                chitectures capable of handling extended scene sequences.
+with Gen-3 and Hailuo [20], we observe that CogVideoX-            We believe the WorldScore benchmark will serve as a valu-
+I2V scored even higher than both closed-source models in          able tool for measuring progress toward more capable and
+both WorldScore-Static (62.15) and WorldScore-Dynamic             versatile world generation systems.
+Acknowledgments. This work is in part supported by ONR              [13] Patrick Esser, Robin Rombach, and Bjorn Ommer. Taming
+YIP N00014-24-1-2117, ONR MURI N00014-22-1-2740,                         transformers for high-resolution image synthesis. In Proceed-
+NSF RI #2211258 and #2338203, and the Okawa Foundation.                  ings of the IEEE/CVF conference on computer vision and
+We thank Mohamed El Banani and Christoph Lassner for                     pattern recognition, pages 12873–12883, 2021. 2
+their helpful discussion.                                           [14] Weichen Fan, Chenyang Si, Junhao Song, Zhenyu Yang,
+                                                                         Yinan He, Long Zhuo, Ziqi Huang, Ziyue Dong, Jing-
+References                                                               wen He, Dongwei Pan, et al. Vchitect-2.0: Parallel trans-
+                                                                         former for scaling up video diffusion models. arXiv preprint
+ [1] Niket Agarwal, Arslan Ali, Maciej Bala, Yogesh Balaji, Erik         arXiv:2501.08453, 2025. 2, 7, S1
+     Barker, Tiffany Cai, Prithvijit Chattopadhyay, Yongxin Chen,   [15] Weixi Feng, Jiachen Li, Michael Saxon, Tsu-jui Fu, Wenhu
+     Yin Cui, Yifan Ding, et al. Cosmos world foundation model           Chen, and William Yang Wang. Tc-bench: Benchmark-
+     platform for physical ai. arXiv preprint arXiv:2501.03575,          ing temporal compositionality in text-to-video and image-
+     2025. 1, 2                                                          to-video generation. arXiv preprint arXiv:2406.08656, 2024.
+ [2] Luma AI. Luma dream machine: New freedoms of                        1, 2
+     imagination, 2025. https://lumalabs.ai/dream-                  [16] Rafail Fridman, Amit Abecasis, Yoni Kasten, and Tali Dekel.
+     machine, Accessed: 2025-02-24. 2                                    Scenescape: Text-driven consistent scene generation. Ad-
+ [3] Sherwin Bahmani, Ivan Skorokhodov, Victor Rong, Gordon              vances in Neural Information Processing Systems, 36, 2024.
+     Wetzstein, Leonidas Guibas, Peter Wonka, Sergey Tulyakov,           1, 3, 7, S2
+     Jeong Joon Park, Andrea Tagliasacchi, and David B Lindell.     [17] Leon A Gatys. A neural algorithm of artistic style. arXiv
+     4d-fy: Text-to-4d generation using hybrid score distillation        preprint arXiv:1508.06576, 2015. 6
+     sampling. In Proceedings of the IEEE/CVF Conference on
+                                                                    [18] Ian Goodfellow, Jean Pouget-Abadie, Mehdi Mirza, Bing
+     Computer Vision and Pattern Recognition, pages 7996–8006,
+                                                                         Xu, David Warde-Farley, Sherjil Ozair, Aaron Courville, and
+     2024. 1, 3, 7, 8, S2
+                                                                         Yoshua Bengio. Generative adversarial nets. Advances in
+ [4] Shariq Farooq Bhat, Reiner Birkl, Diana Wofk, Peter                 neural information processing systems, 27, 2014. 2
+     Wonka, and Matthias Müller. Zoedepth: Zero-shot trans-
+                                                                    [19] Yoav HaCohen, Nisan Chiprut, Benny Brazowski, Daniel
+     fer by combining relative and metric depth. arXiv preprint
+                                                                         Shalem, Dudu Moshe, Eitan Richardson, Eran Levin, Guy
+     arXiv:2302.12288, 2023. 3
+                                                                         Shiran, Nir Zabari, Ori Gordon, et al. Ltx-video: Realtime
+ [5] Andrew Brock. Large scale gan training for high fidelity
+                                                                         video latent diffusion. arXiv preprint arXiv:2501.00103, 2024.
+     natural image synthesis. arXiv preprint arXiv:1809.11096,
+                                                                         7, S2
+     2018. 2
+                                                                    [20] HailuoAI. Hailuo, 2024. https://hailuoai.video/,
+ [6] Tim Brooks, Bill Peebles, Connor Holmes, Will DePue, Yufei
+                                                                         Accessed: 2025-02-24. 2, 7, 8, S1, S2
+     Guo, Li Jing, David Schnurr, Joe Taylor, Troy Luhman, Eric
+     Luhman, Clarence Ng, Ricky Wang, and Aditya Ramesh.            [21] Hao He, Yinghao Xu, Yuwei Guo, Gordon Wetzstein, Bo
+     Video generation models as world simulators. 2024. 1, 2             Dai, Hongsheng Li, and Ceyuan Yang. Cameractrl: Enabling
+ [7] Supported by SQUARESPACE. Unsplash, 2013. https:                    camera control for text-to-video generation. arXiv preprint
+     //unsplash.com, Accessed: 2025-02-23. 4, S1                         arXiv:2404.02101, 2024. 8
+ [8] Angel Chang, Angela Dai, Thomas Funkhouser, Maciej Hal-        [22] Jack Hessel, Ari Holtzman, Maxwell Forbes, Ronan Le Bras,
+     ber, Matthias Niessner, Manolis Savva, Shuran Song, Andy            and Yejin Choi. Clipscore: A reference-free evaluation metric
+     Zeng, and Yinda Zhang. Matterport3d: Learning from rgb-d            for image captioning. arXiv preprint arXiv:2104.08718, 2021.
+     data in indoor environments. International Conference on 3D         5
+     Vision (3DV), 2017. 4, S1, S4                                  [23] Jonathan Ho, Ajay Jain, and Pieter Abbeel. Denoising diffu-
+ [9] Haoxin Chen, Menghan Xia, Yingqing He, Yong Zhang,                  sion probabilistic models. Advances in neural information
+     Xiaodong Cun, Shaoshu Yang, Jinbo Xing, Yaofang Liu,                processing systems, 33:6840–6851, 2020. 2
+     Qifeng Chen, Xintao Wang, Chao Weng, and Ying Shan.            [24] Lukas Höllein, Ang Cao, Andrew Owens, Justin Johnson,
+     Videocrafter1: Open diffusion models for high-quality video         and Matthias Nießner. Text2room: Extracting textured 3d
+     generation, 2023. 2, 7, S2                                          meshes from 2d text-to-image models. In Proceedings of
+[10] Haoxin Chen, Yong Zhang, Xiaodong Cun, Menghan Xia,                 the IEEE/CVF International Conference on Computer Vision,
+     Xintao Wang, Chao Weng, and Ying Shan. Videocrafter2:               pages 7909–7920, 2023. 3, 7, S2
+     Overcoming data limitations for high-quality video diffusion   [25] Wenyi Hong, Ming Ding, Wendi Zheng, Xinghan Liu, and Jie
+     models, 2024. 1, 2, 7, S2                                           Tang. Cogvideo: Large-scale pretraining for text-to-video gen-
+[11] Jaeyoung Chung, Suyoung Lee, Hyeongjin Nam, Jaerin                  eration via transformers. arXiv preprint arXiv:2205.15868,
+     Lee, and Kyoung Mu Lee. Luciddreamer: Domain-free                   2022. 2
+     generation of 3d gaussian splatting scenes. arXiv preprint     [26] Ziqi Huang, Yinan He, Jiashuo Yu, Fan Zhang, Chenyang
+     arXiv:2311.13384, 2023. 1, 3, 7, S2                                 Si, Yuming Jiang, Yuanhan Zhang, Tianxing Wu, Qingyang
+[12] Paul Engstler, Andrea Vedaldi, Iro Laina, and Christian Rup-        Jin, Nattapol Chanpaisit, et al. Vbench: Comprehensive
+     precht. Invisible stitch: Generating smooth 3d scenes with          benchmark suite for video generative models. In Proceedings
+     depth inpainting. arXiv preprint arXiv:2404.19758, 2024. 3,         of the IEEE/CVF Conference on Computer Vision and Pattern
+     7, S2                                                               Recognition, pages 21807–21818, 2024. 1, 2, 6
+[27] Ziqi Huang, Fan Zhang, Xiaojie Xu, Yinan He, Jiashuo Yu,               Yin, Joseph E Gonzalez, et al. Worldmodelbench: Judging
+     Ziyue Dong, Qianli Ma, Nattapol Chanpaisit, Chenyang Si,               video generation models as world models. arXiv preprint
+     Yuming Jiang, et al. Vbench++: Comprehensive and versatile             arXiv:2502.20694, 2025. 2
+     benchmark suite for video generative models. arXiv preprint       [41] Jiachen Li, Weixi Feng, Tsu-Jui Fu, Xinyi Wang, Sugato Basu,
+     arXiv:2411.13503, 2024. 6                                              Wenhu Chen, and William Yang Wang. T2v-turbo: Breaking
+[28] Linyi Jin, Jianming Zhang, Yannick Hold-Geoffroy, Oliver               the quality bottleneck of video consistency model with mixed
+     Wang, Kevin Blackburn-Matzen, Matthew Sticha, and                      reward feedback. arXiv preprint arXiv:2405.18750, 2024. 2,
+     David F Fouhey. Perspective fields for single image cam-               7, S1, S2
+     era calibration. In Proceedings of the IEEE/CVF Conference        [42] Mengtian Li, Yu-Xiong Wang, and Deva Ramanan. Towards
+     on Computer Vision and Pattern Recognition, pages 17307–               streaming perception. In Computer Vision–ECCV 2020: 16th
+     17316, 2023. S1                                                        European Conference, Glasgow, UK, August 23–28, 2020,
+[29] Bingyi Kang, Yang Yue, Rui Lu, Zhijie Lin, Yang Zhao,                  Proceedings, Part II 16, pages 473–488. Springer, 2020. 4,
+     Kaixin Wang, Gao Huang, and Jiashi Feng. How far is video              S4
+     generation from world model: A physical law perspective.          [43] Huan Ling, Seung Wook Kim, Antonio Torralba, Sanja Fi-
+     arXiv preprint arXiv:2411.02385, 2024. 2                               dler, and Karsten Kreis. Align your gaussians: Text-to-4d
+[30] Tero Karras. Progressive growing of gans for improved qual-            with dynamic 3d gaussians and composed diffusion models.
+     ity, stability, and variation. arXiv preprint arXiv:1710.10196,        In Proceedings of the IEEE/CVF Conference on Computer
+     2017. 2                                                                Vision and Pattern Recognition, pages 8576–8588, 2024. 3
+[31] Tero Karras. A style-based generator architecture for genera-     [44] Shilong Liu, Zhaoyang Zeng, Tianhe Ren, Feng Li, Hao
+     tive adversarial networks. arXiv preprint arXiv:1812.04948,            Zhang, Jie Yang, Qing Jiang, Chunyuan Li, Jianwei Yang,
+     2019.                                                                  Hang Su, et al. Grounding dino: Marrying dino with grounded
+[32] Tero Karras, Samuli Laine, Miika Aittala, Janne Hellsten,              pre-training for open-set object detection. In European Con-
+     Jaakko Lehtinen, and Timo Aila. Analyzing and improv-                  ference on Computer Vision, pages 38–55. Springer, 2025.
+     ing the image quality of stylegan. In Proceedings of the               5
+     IEEE/CVF conference on computer vision and pattern recog-         [45] Yaofang Liu, Xiaodong Cun, Xuebo Liu, Xintao Wang, Yong
+     nition, pages 8110–8119, 2020.                                         Zhang, Haoxin Chen, Yang Liu, Tieyong Zeng, Raymond
+                                                                            Chan, and Ying Shan. Evalcrafter: Benchmarking and eval-
+[33] Tero Karras, Miika Aittala, Samuli Laine, Erik Härkönen,
+                                                                            uating large video generation models. In Proceedings of
+     Janne Hellsten, Jaakko Lehtinen, and Timo Aila. Alias-free
+                                                                            the IEEE/CVF Conference on Computer Vision and Pattern
+     generative adversarial networks. Advances in neural informa-
+                                                                            Recognition, pages 22139–22149, 2024. 1, 2
+     tion processing systems, 34:852–863, 2021. 2
+                                                                       [46] Yuanxin Liu, Lei Li, Shuhuai Ren, Rundong Gao, Shicheng
+[34] Bingxin Ke, Anton Obukhov, Shengyu Huang, Nando Met-
+                                                                            Li, Sishuo Chen, Xu Sun, and Lu Hou. Fetv: A benchmark
+     zger, Rodrigo Caye Daudt, and Konrad Schindler. Repurpos-
+                                                                            for fine-grained evaluation of open-domain text-to-video gen-
+     ing diffusion-based image generators for monocular depth
+                                                                            eration. Advances in Neural Information Processing Systems,
+     estimation. In Proceedings of the IEEE/CVF Conference on
+                                                                            36, 2024. 1, 2
+     Computer Vision and Pattern Recognition, pages 9492–9502,
+                                                                       [47] Zhengxiong Luo, Dayou Chen, Yingya Zhang, Yan Huang,
+     2024. 3
+                                                                            Liang Wang, Yujun Shen, Deli Zhao, Jingren Zhou, and Tie-
+[35] Junjie Ke, Qifei Wang, Yilin Wang, Peyman Milanfar, and                niu Tan. Videofusion: Decomposed diffusion models for high-
+     Feng Yang. Musiq: Multi-scale image quality transformer.               quality video generation. arXiv preprint arXiv:2303.08320,
+     In Proceedings of the IEEE/CVF international conference on             2023. 2
+     computer vision, pages 5148–5157, 2021. S5                        [48] Fanqing Meng, Jiaqi Liao, Xinyu Tan, Wenqi Shao, Quan-
+[36] Diederik P Kingma. Auto-encoding variational bayes. arXiv              feng Lu, Kaipeng Zhang, Yu Cheng, Dianqi Li, Yu Qiao,
+     preprint arXiv:1312.6114, 2013. 2                                      and Ping Luo. Towards world simulator: Crafting physical
+[37] Katrin Lasinger, René Ranftl, Konrad Schindler, and Vladlen           commonsense-based benchmark for video generation. arXiv
+     Koltun. Towards robust monocular depth estimation: Mixing              preprint arXiv:2410.05363, 2024. 1, 2
+     datasets for zero-shot cross-dataset transfer. arXiv preprint     [49] Mehdi Mirza. Conditional generative adversarial nets. arXiv
+     arXiv:1907.01341, 2019. 3                                              preprint arXiv:1411.1784, 2014. 2
+[38] Hoang-An Le, Thomas Mensink, Partha Das, Sezer Karaoglu,          [50] Kepan Nan, Rui Xie, Penghao Zhou, Tiehan Fan, Zhen-
+     and Theo Gevers. Eden: Multimodal synthetic dataset of                 heng Yang, Zhijie Chen, Xiang Li, Jian Yang, and Ying Tai.
+     enclosed garden scenes. In Proceedings of the IEEE/CVF                 Openvid-1m: A large-scale high-quality dataset for text-to-
+     Winter Conference on Applications of Computer Vision, pages            video generation. arXiv preprint arXiv:2407.02371, 2024.
+     1579–1589, 2021. 4, S1, S4                                             S6
+[39] Yao-Chih Lee, Yi-Ting Chen, Andrew Wang, Ting-Hsuan               [51] OpenAI. Hello gpt-4o, 2024. https://openai.com/
+     Liao, Brandon Y Feng, and Jia-Bin Huang. Vividdream:                   index/hello-gpt-4o/, Accessed: 2025-02-23. 4, S1
+     Generating 3d scene with ambient dynamics. arXiv preprint         [52] William Peebles and Saining Xie. Scalable diffusion models
+     arXiv:2405.20334, 2024. 1, 3                                           with transformers. In Proceedings of the IEEE/CVF Inter-
+[40] Dacheng Li, Yunhao Fang, Yukang Chen, Shuo Yang, Shiyi                 national Conference on Computer Vision, pages 4195–4205,
+     Cao, Justin Wong, Michael Luo, Xiaolong Wang, Hongxu                   2023. 2
+[53] Alec Radford, Jong Wook Kim, Chris Hallacy, Aditya              [67] Ivan Skorokhodov, Grigorii Sotnikov, and Mohamed Elho-
+     Ramesh, Gabriel Goh, Sandhini Agarwal, Girish Sastry,                seiny. Aligning latent and image spaces to connect the un-
+     Amanda Askell, Pamela Mishkin, Jack Clark, et al. Learning           connectable. In Proceedings of the IEEE/CVF international
+     transferable visual models from natural language supervi-            conference on computer vision, pages 14144–14153, 2021. 4,
+     sion. In International conference on machine learning, pages         S1, S4
+     8748–8763. PMLR, 2021. S1                                       [68] Jascha Sohl-Dickstein, Eric Weiss, Niru Maheswaranathan,
+[54] Nikhila Ravi, Valentin Gabeur, Yuan-Ting Hu, Ronghang Hu,            and Surya Ganguli. Deep unsupervised learning using
+     Chaitanya Ryali, Tengyu Ma, Haitham Khedr, Roman Rädle,             nonequilibrium thermodynamics. In International confer-
+     Chloe Rolland, Laura Gustafson, et al. Sam 2: Segment any-           ence on machine learning, pages 2256–2265. PMLR, 2015.
+     thing in images and videos. arXiv preprint arXiv:2408.00714,         2
+     2024. S5                                                        [69] Shuran Song, Samuel P Lichtenberg, and Jianxiong Xiao.
+[55] Recraft. Recraft image generation and editing api, 2025.             Sun rgb-d: A rgb-d scene understanding benchmark suite. In
+     https://www.recraft.ai/docs, Accessed: 2025-                         Proceedings of the IEEE conference on computer vision and
+     02-25. 5, S1                                                         pattern recognition, pages 567–576, 2015. 4, S1, S4
+[56] Jiawei Ren, Liang Pan, Jiaxiang Tang, Chi Zhang, Ang Cao,       [70] Yang Song, Jascha Sohl-Dickstein, Diederik P Kingma, Ab-
+     Gang Zeng, and Ziwei Liu. Dreamgaussian4d: Generative 4d             hishek Kumar, Stefano Ermon, and Ben Poole. Score-based
+     gaussian splatting. arXiv preprint arXiv:2312.17142, 2023. 3         generative modeling through stochastic differential equations.
+                                                                          arXiv preprint arXiv:2011.13456, 2020. 2
+[57] Mike Roberts, Jason Ramapuram, Anurag Ranjan, Atulit Ku-
+     mar, Miguel Angel Bautista, Nathan Paczan, Russ Webb, and       [71] Kaiyue Sun, Kaiyi Huang, Xian Liu, Yue Wu, Zihan Xu,
+     Joshua M Susskind. Hypersim: A photorealistic synthetic              Zhenguo Li, and Xihui Liu. T2v-compbench: A comprehen-
+     dataset for holistic indoor scene understanding. In Proceed-         sive benchmark for compositional text-to-video generation.
+     ings of the IEEE/CVF international conference on computer            arXiv preprint arXiv:2407.14505, 2024. 2
+     vision, pages 10912–10922, 2021. 4, S1, S4                      [72] Zachary Teed and Jia Deng. Droid-slam: Deep visual slam
+[58] Runway. Introducing gen-3 alpha: A new frontier for                  for monocular, stereo, and rgb-d cameras. Advances in neural
+     video gneration, 2024. https :/ /runwayml .com /                     information processing systems, 34:16558–16569, 2021. 6,
+     research/introducing-gen-3-alpha, Accessed:                          S4
+     2025-02-24. 2, 7, S1, S2                                        [73] Aaron Van Den Oord, Oriol Vinyals, et al. Neural discrete
+                                                                          representation learning. Advances in neural information pro-
+[59] Babak Saleh and Ahmed Elgammal. Large-scale classification
+                                                                          cessing systems, 30, 2017. 2
+     of fine-art paintings: Learning the right metric on the right
+     feature. arXiv preprint arXiv:1505.00855, 2015. S1              [74] Igor Vasiljevic, Nick Kolkin, Shanyi Zhang, Ruotian Luo,
+                                                                          Haochen Wang, Falcon Z Dai, Andrea F Daniele, Moham-
+[60] Johannes Lutz Schönberger and Jan-Michael Frahm.
+                                                                          madreza Mostajabi, Steven Basart, Matthew R Walter, et al.
+     Structure-from-motion revisited. In Conference on Computer
+                                                                          Diode: A dense indoor and outdoor depth dataset. arXiv
+     Vision and Pattern Recognition (CVPR), 2016. S4
+                                                                          preprint arXiv:1908.00463, 2019. 4, S1, S4
+[61] Johannes Lutz Schönberger, Enliang Zheng, Marc Pollefeys,      [75] Jianyi Wang, Kelvin CK Chan, and Chen Change Loy. Ex-
+     and Jan-Michael Frahm. Pixelwise view selection for un-              ploring clip for assessing the look and feel of images. In
+     structured multi-view stereo. In European Conference on              Proceedings of the AAAI Conference on Artificial Intelligence,
+     Computer Vision (ECCV), 2016. S4                                     2023. 6, S1, S5, S7
+[62] Thomas Schops, Johannes L Schonberger, Silvano Galliani,        [76] Jiuniu Wang, Hangjie Yuan, Dayou Chen, Yingya Zhang,
+     Torsten Sattler, Konrad Schindler, Marc Pollefeys, and An-           Xiang Wang, and Shiwei Zhang. Modelscope text-to-video
+     dreas Geiger. A multi-view stereo benchmark with high-               technical report. arXiv preprint arXiv:2308.06571, 2023. 2
+     resolution images and multi-camera videos. In Proceedings
+                                                                     [77] Yaohui Wang, Xinyuan Chen, Xin Ma, Shangchen Zhou,
+     of the IEEE conference on computer vision and pattern recog-
+                                                                          Ziqi Huang, Yi Wang, Ceyuan Yang, Yinan He, Jiashuo Yu,
+     nition, pages 3260–3269, 2017. 4, S1, S4
+                                                                          Peiqing Yang, et al. Lavie: High-quality video generation
+[63] Christoph Schuhmann. Clip+ mlp aesthetic score predictor.            with cascaded latent diffusion models. International Journal
+     Clip+ mlp aesthetic score predictor, 2022. 6, S1, S5, S7             of Computer Vision, pages 1–20, 2024. 2
+[64] SDXL. 106 styles for stable diffusion xl model, 2023. S1        [78] Yiping Wang, Xuehai He, Kuan Wang, Luyao Ma, Jianwei
+[65] Uriel Singer, Adam Polyak, Thomas Hayes, Xi Yin, Jie An,             Yang, Shuohang Wang, Simon Shaolei Du, and Yelong Shen.
+     Songyang Zhang, Qiyuan Hu, Harry Yang, Oron Ashual,                  Is your world simulator a good story presenter? a consecutive
+     Oran Gafni, et al. Make-a-video: Text-to-video generation            events-based benchmark for future long video generation.
+     without text-video data. arXiv preprint arXiv:2209.14792,            arXiv preprint arXiv:2412.16211, 2024. 2
+     2022. 2                                                         [79] Yihan Wang, Lahav Lipson, and Jia Deng. Sea-raft: Simple,
+[66] Uriel Singer, Shelly Sheynin, Adam Polyak, Oron Ashual,              efficient, accurate raft for optical flow. In European Con-
+     Iurii Makarov, Filippos Kokkinos, Naman Goyal, Andrea                ference on Computer Vision, pages 36–54. Springer, 2024.
+     Vedaldi, Devi Parikh, Justin Johnson, et al. Text-to-4d dy-          S5
+     namic scene generation. arXiv preprint arXiv:2301.11280,        [80] Zhou Wang, Alan C Bovik, Hamid R Sheikh, and Eero P
+     2023. 3                                                              Simoncelli. Image quality assessment: from error visibility to
+     structural similarity. IEEE transactions on image processing,        Luo, and Li Yuan. Chronomagic-bench: A benchmark for
+     13(4):600–612, 2004. S6                                              metamorphic evaluation of text-to-time-lapse video genera-
+[81] Zhouxia Wang, Ziyang Yuan, Xintao Wang, Yaowei Li, Tian-             tion. arXiv preprint arXiv:2406.18522, 2024. 1, 2
+     shui Chen, Menghan Xia, Ping Luo, and Ying Shan. Mo-            [93] Guozhen Zhang, Chunxu Liu, Yutao Cui, Xiaotong Zhao, Kai
+     tionctrl: A unified and flexible motion controller for video         Ma, and Limin Wang. Vfimamba: Video frame interpolation
+     generation. In ACM SIGGRAPH 2024 Conference Papers,                  with state space models. arXiv preprint arXiv:2407.02315,
+     pages 1–11, 2024. 8                                                  2024. 7, S5, S6
+[82] Haoning Wu, Zicheng Zhang, Weixia Zhang, Chaofeng Chen,         [94] Richard Zhang, Phillip Isola, Alexei A Efros, Eli Shechtman,
+     Liang Liao, Chunyi Li, Yixuan Gao, Annan Wang, Erli                  and Oliver Wang. The unreasonable effectiveness of deep
+     Zhang, Wenxiu Sun, et al. Q-align: Teaching lmms for vi-             features as a perceptual metric. In Proceedings of the IEEE
+     sual scoring via discrete text-defined levels. arXiv preprint        conference on computer vision and pattern recognition, pages
+     arXiv:2312.17090, 2023. 6, S5                                        586–595, 2018. S6
+[83] Jiannan Xiang, Guangyi Liu, Yi Gu, Qiyue Gao, Yuting Ning,      [95] Yuyang Zhao, Zhiwen Yan, Enze Xie, Lanqing Hong, Zhen-
+     Yuheng Zha, Zeyu Feng, Tianhua Tao, Shibo Hao, Yemin                 guo Li, and Gim Hee Lee. Animate124: Animating one image
+     Shi, et al. Pandora: Towards general world model with                to 4d dynamic scene. arXiv preprint arXiv:2311.14603, 2023.
+     natural language actions and video states. arXiv preprint            3
+     arXiv:2406.09455, 2024. 2                                       [96] Yufeng Zheng, Xueting Li, Koki Nagano, Sifei Liu, Otmar
+[84] Jinbo Xing, Menghan Xia, Yong Zhang, Haoxin Chen, Xin-               Hilliges, and Shalini De Mello. A unified approach for text-
+     tao Wang, Tien-Tsin Wong, and Ying Shan. Dynamicrafter:              and image-guided 4d scene generation. In Proceedings of
+     Animating open-domain images with video diffusion priors.            the IEEE/CVF Conference on Computer Vision and Pattern
+     2023. 2, 7, S2                                                       Recognition, pages 7300–7309, 2024. 3
+[85] Dejia Xu, Hanwen Liang, Neel P Bhatt, Hezhen Hu, Hanxue         [97] Yuan Zhou, Qiuyue Wang, Yuxuan Cai, and Huan Yang. Alle-
+     Liang, Konstantinos N Plataniotis, and Zhangyang Wang.               gro: Open the black box of commercial-level video generation
+     Comp4d: Llm-guided compositional 4d scene generation.                model. arXiv preprint arXiv:2410.15458, 2024. 2, 7, S2
+     arXiv preprint arXiv:2403.16993, 2024. 1                        [98] Jingsen Zhu, Fujun Luan, Yuchi Huo, Zihao Lin, Zhihua
+[86] Jiaqi Xu, Xinyi Zou, Kunzhe Huang, Yunkuo Chen, Bo Liu,              Zhong, Dianbing Xi, Rui Wang, Hujun Bao, Jiaxiang Zheng,
+     MengLi Cheng, Xing Shi, and Jun Huang. Easyanimate: A                and Rui Tang. Learning-based inverse rendering of complex
+     high-performance long video generation method based on               indoor scenes with differentiable monte carlo raytracing. In
+     transformer architecture. arXiv preprint arXiv:2405.18991,           SIGGRAPH Asia 2022 Conference Papers, pages 1–8, 2022.
+     2024. 2, 7, S1, S2                                                   4, S1, S4
+[87] Lihe Yang, Bingyi Kang, Zilong Huang, Xiaogang Xu, Jiashi
+     Feng, and Hengshuang Zhao. Depth anything: Unleashing
+     the power of large-scale unlabeled data. In Proceedings of
+     the IEEE/CVF Conference on Computer Vision and Pattern
+     Recognition, pages 10371–10381, 2024. 3
+[88] Zhuoyi Yang, Jiayan Teng, Wendi Zheng, Ming Ding, Shiyu
+     Huang, Jiazheng Xu, Yuanming Yang, Wenyi Hong, Xiao-
+     han Zhang, Guanyu Feng, et al. Cogvideox: Text-to-video
+     diffusion models with an expert transformer. arXiv preprint
+     arXiv:2408.06072, 2024. 1, 2, 7, 8, S2
+[89] Heng Yu, Chaoyang Wang, Peiye Zhuang, Willi Mena-
+     pace, Aliaksandr Siarohin, Junli Cao, Laszlo A Jeni, Sergey
+     Tulyakov, and Hsin-Ying Lee. 4real: Towards photorealis-
+     tic 4d scene generation via video diffusion models. arXiv
+     preprint arXiv:2406.07472, 2024. 1
+[90] Hong-Xing Yu, Haoyi Duan, Junhwa Hur, Kyle Sargent,
+     Michael Rubinstein, William T Freeman, Forrester Cole, De-
+     qing Sun, Noah Snavely, Jiajun Wu, et al. Wonderjourney:
+     Going from anywhere to everywhere. In Proceedings of
+     the IEEE/CVF Conference on Computer Vision and Pattern
+     Recognition, 2024. 1, 3, 5, 7, S1, S2
+[91] Hong-Xing Yu, Haoyi Duan, Charles Herrmann, William T
+     Freeman, and Jiajun Wu. Wonderworld: Interactive 3d
+     scene generation from a single image. In Proceedings of
+     the IEEE/CVF Conference on Computer Vision and Pattern
+     Recognition, 2025. 1, 3, 7, S1, S2
+[92] Shenghai Yuan, Jinfa Huang, Yongqi Xu, Yaoyang Liu,
+     Shaofeng Zhang, Yujun Shi, Ruijie Zhu, Xinhua Cheng, Jiebo
+         WorldScore: A Unified Evaluation Benchmark for World Generation
+                                               Supplementary Material
+A. Additional Details on World Specification                      Quality. We employ CLIP-IQA [75] and CLIP Aes-
+                                                                  thetic [63] predictors to filter out images with poor visual
+We provide additional details on world specification pre-         quality.
+processing wproc in Eq. 1. We evaluate models across 3D
+scene generation, 4D scene generation, and video genera-          Perspective. To ensure appropriate viewpoint composition,
+tion, each with distinct input requirements. For instance,        we utilize the Perspective Fields [28] to model the local
+3D/4D scene generation models [90, 91] accept precise cam-        perspective properties (e.g., yaw, pitch, and FOV). We filter
+era poses as input, whereas video generation models do not.       out images with extreme roll or pitch angles and those with
+Also, among these models, some are T2V models [14, 41],           a narrow FOV, aiming to retain open-angle, front-facing
+which rely solely on text-based control, while others are         perspectives.
+I2V models [20, 58, 86, 90, 91], which accept image control       Similarity. Since many datasets contain redundant sequen-
+signals. To accommodate these variations, wproc ensures that      tial images, we use CLIPSIM [53] to remove visually similar
+each model receives inputs in its appropriate format.             images.
+   Specifically, wproc standardizes the inputs as follows:        Brightness. To exclude overly dark images, we compute
+• Reference image I: The image for current scene C is             image brightness and filter out those below a predefined
+  center-cropped and resized to match the resolution re-          threshold.
+  quired by each model (see Table S1 for the specific reso-       Human Judgment. Finally, we conduct a manual review to
+  lutions). This serves as both a visual style reference and      refine the selection, ensuring the curated images align with
+  a necessary input for I2V models. Notably, T2V models           human perception and the intended use case.
+  are treated as I2V models that ignore image-based control
+  signals.                                                        B.2. Stylized Image Generation
+• Layout L: The world specification module generates a            After filtering and categorization, we obtain our photorealis-
+  predefined precise camera trajectory T (which serve as          tic image dataset. Then, for each photorealistic image, we
+  ground truth for camera controllability) and corresponding      generate a stylized counterpart image using a text-to-image
+  textual descriptions Y (e.g., “camera moves left”) as world     model [55].
+  layout L. wproc gives models that accept explicit camera        Predefined style sets. To ensure diversity of visual style,
+  control signals the transformed camera poses T ′ , ensuring     we curate a predefined style set by referencing visual art his-
+  alignment across different camera types, while models           tory [59], supplemented with commonly used visual styles
+  without explicit camera control receive textual descriptions    from SDXL [64]. Our final selection includes: anime, cy-
+  Y instead.                                                      berpunk, Chinese ink painting, ukiyo-e, impressionism, post-
+• Next-scene prompt N : For 3D/4D models which all                impressionism, and minecraft. See example images in Fig-
+  accept camera matrices as input, wproc does not adapt the       ure S2.
+  prompt N . For video models that do not accept camera
+  matrices as input, wproc processes the next-scene prompt        B.3. Next-Scene Text Prompts Curation
+  N by adding camera movement text to it.                          We use GPT-4o [51] for scene description generation, with
+                                                                   distinct approaches for static and dynamic scenarios. Specif-
+B. Additional Details on Dataset Curation                          ically, for the static world generation task, we employ an
+                                                                   auto-regressive process using the following task specification
+B.1. Image Filtering
+                                                                   Jstatic for system calls:
+To construct a high-quality and diverse image dataset as our           “You are an intelligent scene generator. Imaging you
+starting current scene images, we source from both existing        are wondering through a sequence of scenes, please tell me
+datasets and supplement them with Unsplash [7]. Existing           what sequentially next scene would you likely to see? You
+scene datasets [8, 38, 57, 62, 67, 69, 74, 98] (Table S2) are      need to generate 1 to 3 most prominent entities in the scene.
+designed for scene understanding [8, 57, 69, 74]. Many of          The scenes are sequentially interconnected, and the entities
+the images in these datasets are not suitable as the current       within the scenes are adapted to match and fit with the scenes.
+scene image, as they may contain excessive redundancy, un-         You also have to generate a brief scene description. If needed,
+usual viewpoints, and narrow-angle perspectives. Therefore,        you can make reasonable guesses. Please ensure the output
+we apply filtering based on several criteria (see Figure S1 for    is in the following JSON format: {‘Entities’: [‘entity 1’, ...],
+visualization of the filtering):                                  ‘Prompt’: ‘scene description’}.”
+              Method                 Version    Ability Resolution Length (s) FPS Open Source            Speed†     Camera§
+
+              Gen-3 [58]             24.07.01    I2V     1280×768         10          24       ✗          1 min        ✗
+              Hailuo [20]            24.08.31    I2V     1072×720         5.6         25       ✗         3.5 min       ✗
+
+              DynamiCrafter [84]     23.10.18    I2V     1024×576          5          10       ✓         2.5 min       ✗
+                                                 T2V     1024×576          2           8       ✓          7 min        ✗
+              VideoCrafter1 [9]      23.10.30
+                                                 I2V     512×320           2           8       ✓          2 min        ✗
+              VideoCrafter2 [10]     24.01.17    T2V      512×320          2           8       ✓          2 min        ✗
+              T2V-Turbo [41]         24.05.29    T2V      512×320          3          16       ✓           5s          ✗
+              EasyAnimate [86]       24.05.29    I2V     1344×768          6           8       ✓         16 min        ✗
+                                                 T2V      720×480          6           8       ✓         2.4 min       ✗
+              CogVideoX [88]         24.08.12
+                                                 I2V     720×480           6           8       ✓         2.4 min       ✗
+              Allegro [97]           24.10.20    I2V     1280×720          6          15       ✓          0.5 h        ✗
+              Vchitect-2.0 [97]      25.01.14    T2V      768×432          5           8       ✓         2.8 min       ✗
+              LTX-Video [19]         25.05.05    I2V      768×512          4          30       ✓         2.4 min       ✗
+
+              SceneScape [16]        23.02.02    T2V      512×512          5          10       ✓        11.4 min       ✓
+              Text2room [24]         23.03.21    I2V      512×512          5          10       ✓        12.4 min       ✓
+              LucidDreamer [11]      23.11.22    I2V      512×512          5          10       ✓         6.4 min       ✓
+              WonderJourney [90]     23.12.06    I2V      512×512          5          10       ✓         6.3 min       ✓
+              InvisibleStitch [12]   24.04.30    I2V      512×512          5          10       ✓         2.3 min       ✓
+              WonderWorld [91]       24.06.13    I2V      512×512          5          10       ✓           10 s        ✓
+
+              4D-fy [3]∗             23.11.29    T2V      256×256          4          30       ✓           3h          ✓
+
+Table S1. Further details of the world generation models in our benchmark. † The reported values indicate the average generation time
+per instance. All generations were conducted on H100 and L40S GPUs. § This indicates whether the model accepts precise camera poses as
+input. ∗ For 4D-fy, it takes about 20 hours for each generation, so we decrease the iteration steps to save time. While these models use
+different output resolutions and aspect ratios, our validation shows that WorldScore metrics are robust against these differences (Sec. D).
+
+   Quality                  Perspective             Similarity                  Brightness                Manual
+
+
+
+
+Figure S1. Filtering. We apply the filtering based on several criteria to remove undesired images. Besides automatic metrics, we also apply
+a final manual inspection to remove infeasible world generation starting scenes such as the mid-air city image in the 4th column.
+
+
+   For the dynamic world generation task, we use the task               guesses. Please ensure the output is in the following JSON
+specification Jdynamic for single system call:                          format: {’Objects’: [’object 1’, ...], ’Prompt’: ’description
+                                                                        of how the object(s) move’}.”
+    “You are an intelligent motion dreamer, capable of iden-
+tifying the objects within an image that can exhibit dynamic
+motion. I will provide you with an image, and your task is to
+identify the most prominent object(s) that have the potential
+for dynamic movement. You also have to briefly describe                    We show an example of generated next-scene prompts in
+how the object(s) move. If needed, you can make reasonable              Table S3.
+       Anime
+
+
+
+
+   Cyberpunk
+
+
+
+
+    Chinese
+  ink painting
+
+
+
+
+      Ukiyo-E
+
+
+
+
+Impressionism
+
+
+
+
+    Post-
+Impressionism
+
+
+
+
+    Minecraft
+
+
+
+
+         Figure S2. Examples of stylized images. Our predefined style set contain 7 different visual art styles.
+
+
+                                                               C. Additional Details on Metrics
+                                                               C.1. Camera Controllability
+                                                               As formulated in Eq. 3, we combine eθ and et with geometric
+                                                               mean to calculate the camera error. Specifically, we estimate
+  Scene                            Image                              truth and the estimated camera rotations (in degrees):
+                Dataset                          Res.      # Images
+  Type                              Type
+            InterviorVerse [98]   Synthetic    640×480      50,000
+                                                                                  e_{\theta } = \arccos \left (\frac {\text {tr}(\mathbf {R}_{\text {gt}}\mathbf {R}^T) - 1}{2}\right ) \cdot \frac {180}{\pi }, \label {supp_algorithm:rotation_errors}             (S1)
+            Hypersim [57]         Synthetic    1024×768     77,400
+  Indoor    SUN-RGBD [69]           Real       640×480     10,000
+            Matterport3D [8]        Real      1280×1024    194,400    and the scale-invariant Euclidean distance between ground
+            DIODE-indoor [74]       Real      1024×768      9,052
+                                                                      truth and estimated camera positions:
+            ETH3D-indoor [62]       Real      6214×4138      597
+            LHQ [67]                Real      1024×1024     90,000                                                                e_t = \|\mathbf {t}_{\text {gt}} - s\mathbf {t}\|_2, \label {supp_algorithm:translation_errors}                                    (S2)
+            EDEN [38]             Synthetic    640×480     300,000
+ Outdoor    Argoverse-HD [42]       Real      1920×1200     70,000
+            DIODE-outdoor [74]      Real       1024×768     18,206
+                                                                      where Rgt , R ∈ SO(3) denote the ground truth and esti-
+            ETH3D-outdoor [62]      Real      6214×4138      301      mated rotation matrices, tgt , t ∈ R3 denote the ground truth
+                                                                      and estimated camera positions, and s denotes the least-
+    Table S2. Statistics of the scene datasets we source from.        square scale.
+                                                                         The final camera controllability error for a model is com-
+                                                                      puted by averaging the error ecamera over all frames of all
+    Generated Next-Scene Prompt N                                     generated videos.
+
+    Static world generation                                           C.2. 3D Consistency
+    # Scene 1                                                         To quantify the 3D consistency of generated videos, we use
+    {“Entities”: [“yellow armchair”, “bookshelf”],                    DROID-SLAM [72] to do the reconstruction and calculate
+   “Prompt”: “A Cozy Reading Nook with a plush Yellow                 the reprojection error. One key advantage of DROID-SLAM
+    Armchair surrounded by a towering Bookshelf filled                is its dense nature. Unlike sparse methods such as COLMAP
+    with books.”}                                                     [60, 61], which rely on selecting “good” feature matches
+    # Scene 2                                                         while discarding the rest, DROID-SLAM employs a dif-
+    {“Entities”: [“potted plants”], “Prompt”: “A                      ferentiable Dense Bundle Adjustment (DBA) layer. This
+    serene Tranquil Garden Patio featuring a cozy Yel-                layer continuously refines camera poses and dense, per-pixel
+    low Armchair surrounded by lush Potted Plants gen-                depth estimates to ensure consistency with the current op-
+    tly swaying in a soft, breezy atmosphere.”}                       tical flow. By leveraging all available points, rather than
+    # Scene 3                                                         focusing on partial matches, this dense approach aligns with
+    {“Entities”: [“wooden rail”], “Prompt”: “A Rustic                 our goal of assessing 3D consistency across the entire scene.
+    Balcony Retreat featuring a cozy Yellow Armchair                  This evaluation dimension ensures a more comprehensive
+    and a classic Wooden Rail bathed in the warm glow                 understanding of the spatial coherence in generated videos.
+    of the setting sun.”}                                                 Specifically, we calculate the reprojection error after DBA
+                                                                      layer refinement:
+    Dynamic world generation
+    {“Objects”:      [“windmill”, “cloud”, “sea”],                                e_{\text {reproj}} = \frac {1}{|\mathcal {V}|}\sum _{(i,j) \in \mathcal {V}} \left \| \mathbf {p}^*_{ij} - \Pi (\mathbf {P}_{ij}) \right \|_2, \label {supp:reprojection_error}    (S3)
+   “Prompt”: “The windmill blades spin in a circular
+    motion driven by the wind, creating a consistent ro-
+    tational movement. The clouds drift slowly across                 where V denotes the valid set of co-visible points, p∗ij is
+    the sky, pushed gently by the breeze. The sea surface             the observed point on the ground truth image, Pij is the
+    ripples and undulates, as small waves ripple across               reconstructed 3D point, obtained from refined depth and
+    its surface.”}                                                    camera pose, ∥·∥2 calculates the Euclidean distance.
+
+                                                                      C.3. Photometric Consistency
+Table S3. An example of generated next-scene prompt for static        The photometric consistency metric is to quantify the model
+and dynamic world generation. The “prompt” in the above box is        capability to generate stable visual appearances. We estimate
+the next-scene prompt N . The “entities” are the objects to detect
+                                                                      the optical flow between consecutive frames and compute
+when computing object controllability. The “objects” are used to
+help annotate the motion masks for computing motion accuracy.
+                                                                      the Average End-Point Error (AEPE). Specifically, given two
+                                                                      consecutive frames A and B, we first track a set of center-
+                                                                      cropped points pA from frame A to frame B using forward
+                                                                      optical flow FA→B :
+the frame-wise camera poses using DROID-SLAM [72].
+Then we compute the angular deviation between the ground                                                       \mathbf {p}_B = \mathbf {p}_A + \mathcal {F}_{A\to B}(\mathbf {p}_A).                                                                                 (S4)
+                                                                 Visual Style                                          Scene Type                                       Category                                                                                           # Samples
+
+                                                                                                                       Indoor                      Dining, Living, Passage, Public, Work                                                                                       5 × 100
+                             Static                              Photorealistic
+                                                                                                                       Outdoor                City, Suburb, Aquatic, Terrestrial, Verdant                                                                                      5 × 100
+
+                                                                                                                       Indoor                      Dining, Living, Passage, Public, Work                                                                                       5 × 100
+                                                                 Stylized
+                                                                                                                       Outdoor                City, Suburb, Aquatic, Terrestrial, Verdant                                                                                      5 × 100
+
+                                                                 Visual Style                                                                         Motion Type                                                                                                          # Samples
+                        Dynamic
+                                                                 Photorealistic                                        Articulated, Deformable, Fluid, Rigid, Multi-Motion                                                                                                     5 × 100
+                                                                 Stylized                                              Articulated, Deformable, Fluid, Rigid, Multi-Motion                                                                                                     5 × 100
+
+                                                                                                                                                                                                      # Total Samples                                                               3000
+
+Table S4. Dataset Statistics. We curate a dataset of 3000 test samples that span diverse worlds: static and dynamic, photorealistic and
+stylized, indoor and outdoor. The static subset is further divided into 5 indoor and outdoor scene categories, while the dynamic subset is
+categorized by 5 motion types.
+
+
+   We then track the same points back from frame B to                                                                                                   C.5. Motion Accuracy
+frame A using backward optical flow FB→A :                                                                                                              We assess whether motion occurs in the intended regions by:
+                                 \mathbf {p}_{A}^{\prime } = \mathbf {p}_B + \mathcal {F}_{B\to A}(\mathbf {p}_B).                          (S5)
+                                                                                                                                                               s_\text {motion-acc} = \max \left ( \mathbf {F} \odot \mathbf {M} \right ) - \max \left ( \mathbf {F} \odot \bar {\mathbf {M}} \right ), \label {eq:motion_accuracy}    (S7)
+    Ideally, if the object remains photometrically consistent,
+the tracked points should return to their original locations,                                                                                           where F ∈ RH×W denotes the magnitude of optical flow
+i.e., p′A ≈ pA . we quantify the deviation using the AEPE:                                                                                              between a pair of consecutive frames in the generated video
+                                                                                                                                                        V estimated by SEA-RAFT [79], M ∈ {0, 1}H×W denotes
+              e_\text {photometric} = \frac {1}{N} \sum _{i=1}^{N} \left \| \mathbf {p}_{A,i} - \mathbf {p}_{A,i}^{\prime } \right \|_2,    (S6)        the segmentation masks at the former frame which has 1 at
+                                                                                                                                                        the pixels of dynamic objects, and the max operator picks
+                                                                                                                                                        the maximum value among all the entries of a matrix. We
+where N is the number of sampled points. A higher AEPE in-                                                                                              track the mask of dynamic objects M using SAM2 [54],
+dicates greater photometric inconsistency, signaling anoma-                                                                                             where the first-frame segmentation masks are provided in
+lies such as identity shifts, texture flickering, or object dis-                                                                                        our dataset. The final motion accuracy score is computed by
+appearances. Finally, the photometric consistency error is                                                                                              averaging smotion-acc across all pairs of consecutive frames of
+computed by averaging ephotometric over all consecutive frame                                                                                           all generated videos.
+pairs of all generated videos.
+                                                                                                                                                        C.6. Motion Magnitude
+C.4. Subjective Quality                                                                                                                                 Some models take a “conservative” approach, generating
+Numerous trained image quality assessment metrics exist,                                                                                                only subtle motion. While the output appears visually
+such as CLIP-Aesthetic [63] and QAlign-Aesthetic [82],                                                                                                  smooth and high-quality, the motion is often minimal and
+which focus on factors like layout composition, color har-                                                                                              uninteresting. Some models even produce near-static videos
+mony, realism, and artistic appeal. Additionally, image qual-                                                                                           despite prompts explicitly describing motion. We measure
+ity predictors like MUSIQ [35] and CLIP-IQA [75] evaluate                                                                                               this with smotion-mag , defined as the median value of all the
+distortions such as overexposure, noise, and blur.                                                                                                      entries of F, and the final motion magnitude metric is the
+    Our goal is to use automatic metrics that align well with                                                                                           average of smotion-mag across all pairs of consecutive frames
+human perception to evaluate the subjective quality of gen-                                                                                             of all generated videos.
+erated scenes. To identify the (combination of) best subjec-
+tive quality predictors, we systematically conduct a human                                                                                              C.7. Motion Smoothness
+preference study the pick the one that best matches human                                                                                               We leverage the motion priors from a standard video frame
+perception on world generation quality. We find that the com-                                                                                           interpolation models [93] to evaluate the smoothness of gen-
+bination (arithmetic mean) of CLIP-IQA+ [75] and CLIP                                                                                                   erated motion. Specifically, given a generated video con-
+Aesthetic [63] works the best. We show more details in                                                                                                  sisting of frames {f0 , f1 , f2 , · · · }, we drop the odd-indexed
+Sec. D.                                                                                                                                                 frames {f1 , f3 , · · · } to obtain a lower frame rate video, and
+then we use video frame interpolation to infer the dropped         four metrics, defining appropriate empirical bounds is chal-
+frames. Finally, we compute the mean squared error, SSIM           lenging. To address this, we apply z-score rescaling, setting
+[80], and LPIPS [94] between the reconstructed frames and          the empirical best and worst values so that the performance
+the original dropped frames. After each metric score is com-       of selected models falls within the 25 to 75 range. This ap-
+puted and normalized (Supp. C.9), we average them to get           proach enhances differentiation and ensures a more reliable
+the motion smoothness metric.                                      evaluation.
+
+C.8. Empirical Bounds                                              C.9. Score Normalization and Mapping
+In this section, we discuss how we calculate the empirical         The detailed formulation for score normalization and map-
+bounds for each evaluation dimension, which will be used           ping is as follows:
+for linear normalization in Supp. C.9.
+Empirical bounds for camera controllability. Since the
+camera controllability metric calculates the deviation be-                 s^{\text {norm}} = \begin {cases} \left \langle \frac {s - b^\text {min}}{b^\text {max} - b^\text {min}} \right \rangle , & \text {if higher better}, \\ \left \langle 1 - \frac {s - b^\text {min}}{b^\text {max} - b^\text {min}} \right \rangle , & \text {if lower better}, \end {cases} \label {eq:normalization}    (S8)
+tween the ground truth and estimated camera poses, the
+empirical minimum is naturally 0, which also represents
+the theoretical lower bound. To approximate the highest            where s denotes the raw value of a given metric, b^\text {min} and b^\text {max}
+achievable values, we use a sequence of fixed cameras as a         denote the empirical bounds of the metric, and ⟨·⟩ denotes
+baseline. This effectively penalizes poorly performing world       the clip function, making sure the normalized score s^{\text {norm}} is
+generation that fails to exhibit any camera movement.              within the range [0, 1], where a higher value corresponds to
+Empirical bounds for object controllability. Since we eval-        better performance.
+uate object controllability using the object detection rate, the
+empirical minimum and maximum are naturally 0 and 100%,            D. Validation with Human Preference
+respectively, which also represent the theoretical bounds.
+                                                                   We validate the WorldScore metrics by human preference
+Empirical bounds for 3D consistency, style consistency,            study for three purposes: Firstly, we use human preference
+and photometric consistency. To establish empirical                to select the best combination of subjective quality metrics
+bounds for these frame-wise metrics, we randomly sample            (e.g., image quality assessment metrics and aesthetic metrics)
+image pairs from our dataset and generate videos by interpo-       to form a single “subjective quality”. Secondly, we use hu-
+lating intermediate frames using a video frame interpolation       man preference to validate other WorldScore metrics. Lastly,
+model [93]. This serves as a baseline exhibiting significant       we measure how robust are the metrics to different resolu-
+style shifts, low 3D consistency, and poor photometric sta-        tions and aspect ratios. In particular, we use the following
+bility. We define this baseline as empirical maximum for all       agreement score.
+three metrics, while the empirical minimum for each is set
+                                                                   Human preference agreement score. To measure how well
+to 0, which is also theoretical minimum.
+                                                                   each metric aligns with human preferences, we adopted a
+Empirical bounds for motion smoothness. To determine               probabilistic agreement score. Given a video pair (A, B), a
+empirical values for motion smoothness, we leverage high-          participant is forced to choose one video that appears to have
+quality real-world videos. Given that most world generation        higher subjective quality to them, a.k.a. 2-alternative forced
+models produce 3-10 second videos, we retrieve compara-            choice (2AFC). We denote the portion of all participants who
+ble video clips from OpenVid-1M [50], a large-scale, high-         preferred A as p, therefore the portion of all participants who
+quality video dataset. Specifically, for each prompt in our        preferred B is 1 − p. Then, consider an automatic assessment
+benchmark, we retrieve the top five OpenVid-1M videos              metric m:
+with the highest semantic similarity using CLIP-based text         • If the metric m assigned a higher score to A, i.e.,
+feature matching. Only 3-10 second clips are considered to            scorem (A) > scorem (B), then the agreement score for
+ensure consistency with the length of generated videos.               this pair (A, B) is p.
+   Then, we use the retrieved videos as a reference. We man-       • If the metric m assigned a higher score to B, i.e.,
+ually drop the odd frames and apply bilinear interpolation            scorem (A) < scorem (B), then the agreement score for
+to reconstruct them. This serves as a baseline, where the             this pair (A, B) is 1 − p.
+resulting interpolated videos represent the “empirical worst”      • If the metric assigned equal scores to A and B, then the
+(empirical maximum for MSE and LPIPS and empirical min-               agreement score was set to 0.5.
+imum for SSIM). The “empirical best” is set to 0, indicating       The final agreement score for each metric was obtained by
+perfectly smooth motion.                                           averaging the agreement scores across all human-rated pairs.
+Empirical bounds for content alignment, subjective qual-               To prepare the pairs of videos for human participants, we
+ity, motion accuracy, and motion magnitude. For these              randomly sampled videos generated from CogVideoX-I2V,
+VideoCrafter1-I2v, DynamiCrafter, WonderJourney, and In-              Metric                                                        Correlation
+visibleStitch. Each comparison consisted of a pair of videos
+from different models. We recruited 400 participants for the          CLIP-IQA                                                         0.596
+human study.                                                          CLIP-IQA+                                                        0.602
+   Note that in our human preference study, we only use               QAlign Quality                                                   0.581
+a single question, asking the participant “which video has            QAlign Video Quality                                             0.571
+higher quality”. While there are possibly different dimen-            MUSIQ                                                            0.530
+sions of subjective quality such as aesthetic quality and per-        CLIP Aesthetic                                                   0.628
+ceptual quality, our preliminary human preference study               QAlign Aesthetic                                                 0.479
+indicates that general human raters often struggle to differ-
+                                                                      QAlign Video Aesthetic                                           0.556
+entiate between specific dimensions, yielding a very high
+correlation between aesthetic quality and perceptual quality.         CLIP-IQA+ & QAlign Quality                                       0.582
+Therefore, we only use a single question.                             CLIP Aesthetic & QAlign Video Aesthetic                          0.629
+Agreement results on subjective quality. We show the                  CLIP-IQA+ & CLIP Aesthetic                                       0.637
+agreement results in Table S5. Since the combination (arith-          Upper Bound                                                      0.772
+metic mean) of CLIP-IQA+ [75] and CLIP Aesthetic [63]
+metrics yield the highest agreement, we use this combination       Table S5. Agreement of automatic assessment metrics with
+to compute our subjective quality.                                 human preference. The upper bound is the highest possible agree-
+Agreement results on other metrics. To validate other              ment score when a metric always agrees with the majority vote for
+metrics, we divide them into different score buckets, i.e.,        every 2AFC pair.
+90 ± 5, 60 ± 5, and 30 ± 5; and then we compare between
+buckets. We show results in Table S6. The 2AFC results                                    Cam Ctrl Obj Ctrl 3D Consist Photo Consist Motion Mag
+show the our metrics align well with human perception, so          60 ± 5 over 30 ± 5      71.2%     96.3%         91.7%        91.6%           91.8%
+                                                                   90 ± 5 over 60 ± 5      73.5%     87.7%         97.3%        95.1%           76.2%
+that a higher score (both “90 over 60” and “60 over 30”)
+consistently correlate to a higher human preference.               Table S6. 2AFC on WorldScore metrics with score difference 30.
+Robustness against different resolutions and aspect ra-                     Cam    Obj    Content 3D     Photo Style Subject Motion Motion Motion
+                                                                    Res.
+tios. We validate if the metrics are robust to different resolu-            Ctrl   Ctrl    Align Consist Consist Consist Qual Acc    Mag Smooth
+
+tions and aspect ratios because models vary in these aspects.      1344×768 25.72 54.50    49.81   67.29   46.65    73.05   49.66    75.00   37.76   40.32
+                                                                   256×256 25.69 53.78     50.32   67.41   47.06    73.88   48.99    74.89   36.90   39.62
+We use the videos generated by the highest-resolution model
+(EasyAnimate, 1344×768) and apply center-cropping and re-          Table S7. Robustness to resolution and aspect ratio differences.
+sizing to a create a version with small resolution (256 × 256).
+We evaluate both versions and show results in Table S7. The        motion magnitude tend to struggle with motion smoothness,
+differences in all metrics are very small (≤ 0.83), suggesting     suggesting a trade-off between large movements and tempo-
+that our metrics are robust to these differences.                  ral stability.
+                                                                       In Figure S6, the evaluation of static world generation
+E. Further Visualization                                           shows that 3D scene generation models (e.g., WonderWorld)
+                                                                   achieve high camera controllability, 3D consistency and pho-
+Our WorldScore metrics provide a comprehensive assess-
+                                                                   tometric consistency. However, they may struggle in subjec-
+ment by decomposing the broad concept of “world genera-
+                                                                   tive quality, indicating that while they excel in maintaining
+tion capability” into 10 independent dimensions. The typical
+                                                                   geometric and photometric coherence, they may generate
+examples for each metric are presented in Figure S3 and
+                                                                   less visually appealing results.
+Figure S4. Each row showcases the evaluation of a metric on
+two generated results, highlighting how WorldScore metrics
+effectively differentiate model performance.
+   We show performances of selected models on
+WorldScore-Dynamic in Figure S5 and WorldScore-Static in
+Figure S6. Figure S5 highlights the challenges that current
+video generation models face, with significant variations
+across different dimensions. Notably, all video generation
+models (e.g., Hailuo, VideoCrafter1-I2V, EasyAnimate, T2V-
+Turbo) exhibit very low camera controllability, indicating
+difficulty in following predefined camera trajectories. Ad-
+ditionally, models (e.g., T2V-Turbo) that perform well in
+         Next scene                       Good examples                                      Bad examples
+
+
+
+           “Camera
+          pans right”
+
+
+                                  High camera controllability: 99.96                 Low camera controllability: 0.00
+
+
+        “Seating area,
+       plants, cityview,
+           chairs”
+
+
+                                  High object controllability: 100.00                Low object controllability: 25.00
+
+
+           “Balcony
+           featuring
+             plant”
+
+
+                                    High content alignment: 71.13                      Low content alignment: 0.00
+
+
+           “Seaside
+            dining,
+           seagull”
+
+
+                                     High 3D consistency: 92.88                         Low 3D consistency: 0.00
+
+
+
+           “Peaks,
+           clouds”
+
+
+                                 High photometric consistency: 94.28               Low photometric consistency: 11.95
+
+
+
+            “Urban
+          streetview”
+
+
+                                    High style consistency: 84.80                      Low style consistency: 0.00
+
+
+           “A bright
+            modern
+            kitchen”
+
+
+                                   High subjective quality: 100.00                    Low subjective quality: 25.27
+
+
+Figure S3. Typical examples from controllability and quality aspects. Each row showcases the evaluation of a metric on two generated
+results, where the good example is shown on the left, and the bad example is shown on the right.
+         Scene motion                                 Good examples                                                     Bad examples
+
+
+
+            “Octopus
+             moves”
+
+
+                                            High motion accuracy: 100.00                                      Low motion accuracy: 0.00
+
+
+
+            “Octopus
+             glides”
+
+
+                                           High motion magnitude: 100.00                                    Low motion magnitude: 29.80
+
+
+            “Figure
+             scans
+            horizon”
+
+
+                                           High motion smoothness: 91.06                                   Low motion smoothness: 20.54
+
+
+Figure S4. Typical examples from dynamics aspect. Each row showcases the evaluation of a metric on two generated results, where the
+good example is shown on the left, and the bad example is shown on the right.
+
+
+
+
+ WorldScore Metrics Comparison                                                          WorldScore Metrics Comparison
+
+
+
+
+                                 Camera Ctrl                                                                              Camera Ctrl
+
+           Motion Smooth                                   Object Ctrl
+
+                                                                                           Subjective Qual                                              Object Ctrl
+
+
+ Motion Mag                                                            Content Align
+
+
+
+                                       0   20    40   60    80   100
+                                                                                                                               0   20   40   60    80   100
+
+
+
+
+ Motion Acc                                                              3D Consist    Style Consist                                                          Content Align
+
+
+
+
+           Subjective Qual                             Photo Consist
+
+                                 Style Consist                                                          Photo Consist                    3D Consist
+
+                   Hailuo                   VideoCrafter1-I2V
+                   T2V-Turbo                EasyAnimate                                             Hailuo                T2V-Turbo               CogvideoX-I2V
+                   CogvideoX-I2V            4D-fy                                                   SceneScape            WonderWorld
+
+
+Figure S5. Evaluation results of WorldScore-Dynamic on selected                        Figure S6. Evaluation results of WorldScore-Static on selected
+models.                                                                                models
+

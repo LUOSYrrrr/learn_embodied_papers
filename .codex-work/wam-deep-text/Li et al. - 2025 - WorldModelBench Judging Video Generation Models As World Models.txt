@@ -1,0 +1,1047 @@
+                                                WorldModelBench: Judging Video Generation Models As World Models
+
+                                                             Dacheng Li1 * Yunhao Fang2 * Yukang Chen3 Shuo Yang1
+                                                            Shiyi Cao1 Justin Wong1 Michael Luo1 Xiaolong Wang2,3
+                                                       Hongxu Yin3 Joseph E. Gonzalez1 Ion Stoica1 Song Han3,4 Yao Lu3
+                                                                   UC Berkeley1 UC San Diego2 NVIDIA3 MIT4
+
+
+
+
+arXiv:2502.20694v1 [cs.CV] 28 Feb 2025
+                                                                    Abstract
+
+                                         Video generation models have rapidly progressed, position-
+                                         ing themselves as video world models capable of supporting
+                                         decision-making applications like robotics and autonomous
+                                         driving. However, current benchmarks fail to rigorously
+                                         evaluate these claims, focusing only on general video quality,
+                                         ignoring important factors to world models such as physics
+                                         adherence. To bridge this gap, we propose WorldModel-
+                                         Bench, a benchmark designed to evaluate the world modeling
+                                         capabilities of video generation models in application-driven
+                                         domains. WorldModelBench offers two key advantages: (1)
+                                         Against to nuanced world modeling violations: By incorpo-
+                                         rating instruction-following and physics-adherence dimen-
+                                         sions, WorldModelBench detects subtle violations, such as
+                                         irregular changes in object size that breach the mass con-             Figure 1. Model A and B generate high quality videos, but the
+                                         servation law—issues overlooked by prior benchmarks. (2)               robotic arm in A’s video is on the air, violating gravity. Established
+                                         Aligned with large-scale human preferences: We crowd-                  benchmarks focus on general video quality assessment, and does
+                                         source 67K human labels to accurately measure 14 frontier              not distinguish videos that violate physical laws.
+                                         models. Using our high-quality human labels, we further                feasible future frames based on given text and image in-
+                                         fine-tune an accurate judger to automate the evaluation pro-           struction [1, 29, 40]. These future frames obey real-world
+                                         cedure, achieving 8.6% higher avereage accuracy in predict-            dynamics and unlock grounded planning on decision-making
+                                         ing world modeling violations than GPT-4o with 2B param-               tasks such as robotics, autonomous driving, and human body
+                                         eters. In addition, we demonstrate that training to align hu-          prediction [1, 6, 7, 9, 10, 19, 60].
+                                         man annotations by maximizing the rewards from the judger
+                                                                                                                   Despite their potential, the ability of video generation
+                                         noticeably improve the world modeling capability. The
+                                                                                                                models to act as reliable world models remains speculative.
+                                         website is available at https://worldmodelbench-
+                                                                                                                Existing benchmarks primarily evaluate on general video
+                                         team.github.io.
+                                                                                                                quality such as temporal consistency and aesthetic coher-
+                                                                                                                ence [24, 34, 51]. While these measures are necessary for
+                                                                                                                video world models, they are inadequate. Importantly, they
+                                         1. Introduction                                                        do not adequately capture real-world dynamics, e.g. adhere
+                                         Video generation models have achieved remarkable success               to basic real-world physics (Figure 1). While efforts like
+                                         in creating high-fidelity and realistic videos [8, 13, 18, 22,         VideoPhy [4] introduce physics-based evaluations, their fo-
+                                         27, 40, 42, 49, 54, 59]. Beyond generating visually com-               cus on interactions between daily objects overlooks broader
+                                         pelling content, these models are increasingly seen as po-             application-driven scenarios.
+                                         tential video world models. Video world models simulate                   To address the gap, we introduce WorldModelBench to
+                                                                                                                judge the world modeling capability of video generation
+                                            * indicates equal contribution. Part of the work was done when
+                                         Dacheng Li and Yunhao Fang were summer interns at NVIDIA. Correspon-
+                                                                                                                models. WorldModelBench consists of 350 image and text
+                                         dence to: dacheng177@berkeley.edu, yuf026@ucsd.edu,                    condition pairs, ranging over 7 application driven domains,
+                                         songhan@mit.edu, jasonlu@nvidia.com.                                   56 diverse subdomains, and provides support for both text-to-
+  Domains and examples in WorldModelBench
+                             Robotics                                            Human Activities                       Gaming
+                             The robotic arm slides                              The person touches                    The player carefully turns
+                             a yellow cloth along the                            their own hand with                   the corner, aiming their gun
+                             wooden surface.                                     the other hand.                       at an approaching enemy.
+
+
+                             Driving                                                                                      Animation
+                             The autonomous vehicle                                                                      The elf girl speaks to
+                             yields while waiting for                                                                    someone off-screen, with
+                             the intersection to clear.                                                                  a concerned expression.
+
+
+                             Industry                                                                                     Natural
+                             Water is dispensed into                                                                     The grasshopper jumps
+                             plastic bottles on rotary                                                                   from the ground into the
+                             filling machines.                                                                           air amidst the vegetation.
+
+
+   Example workflow
+                                                                                                                     Instruction Following Score
+    The hand touches the
+    top of the other hand.           Video
+                                    Generator                                                                           Common Sense Score
+
+                                                                                                                       Physics Adherence Score
+      Condition frame
+                                                   Improve by reward gradients                          Judger
+
+
+
+Figure 2. Overview of WorldModelBench. WorldModelBench judges the world modeling capability of video generation models across
+diverse application-driven domains. On WorldModelBench, a model generates a video based on text and optionally image conditions and is
+scored along commonsense, instruction following, and physics adherence dimensions. We collect 67K human labels to evaluate 14
+frontier models. WorldModelBench is paired with a fine-tuned judger, providing fine-grained feedback for future models, and training to
+aligns its reward improves world modeling capabilities.
+
+video (T2V) and image-to-video (I2V) models. In addition to                           itate future model evaluations. We find that the fine-tuned
+being a comprehensive benchmark, WorldModelBench fea-                                 judger, despite lightweight, learns to predict human prefer-
+tures two unique advantages.                                                          ence with 9.9% lower error rate than GPT-4o [2], thanks
+   Firstly, WorldModelBench detects nuanced world mod-                                to our high-quality human labels. More importantly, we
+eling violations that are overlooked by previous bench-                               find that aligning the human annotations by maximizing the
+marks. WorldModelBench maintains a minimal evaluation                                 scores from the fine-tuned judger improves the world mod-
+on general video quality (frame-wise and temporal quality),                           eling capability of video generation models [42, 62]. Our
+and focuses to introduce two dimensions specifically for                              contributions are:
+world modeling: instruction following and physics adher-                              1. We demonstrate that previous benchmarks are insuffi-
+ence. It further provides fine-grained categories for these                               cient for video world models, and contribute WorldMod-
+two dimensions to capture nuances: instruction following                                  elBench to measure world modeling capability of video
+dimension is broken down into four levels and physics ad-                                 generation models on diverse application driven domains.
+herence are listed into five common violations (§ 3.1). By                            2. An accurate fine-tuned judger. This judger accurately
+using this setup, it effectively capture cases such as object                             predicts world modeling violations, and fine-tuning on its
+changing sizes as Newton’s law violation.                                                 rewards leads to better generation.
+
+    Secondly, WorldModelBench is paired with large-scale                              2. Related Works
+human labels. We conduct a large scale human annotation
+procedure and collect 67K human labels to accurately reflect                          Video generation models Many diffusion-based video gen-
+the performance of existing models with the proposed met-                             eration models have made major improvement in synthesiz-
+rics (§ 3.3). Using these human annotations, we offer several                         ing realistic videos [3, 12–15, 18, 21, 22, 27, 28, 35, 36, 36,
+key insights of current video generation models, e.g. insuf-                          37, 40, 45, 47, 49, 53, 54, 56, 57, 59, 62]. Many of these
+ficient tuning on I2V models, in §4. We further fine-tune a                           models synthesized videos based on input text condition,
+2B parameter judger on the collected human labels to facil-                           e.g. [12, 13, 21, 27, 35, 37, 40, 47, 49, 56, 62] image con-
+dition [5], or both [28, 53, 54, 62]. In this paper, we focus
+on evaluation of video models that take in text and image                            Weather                                 Landscape
+                                                                                      Move                                     Water
+conditions.                                                                            Place                                 Anima
+                                                                                                                             Plan  l
+                                                                                         Put                                Life t
+Evaluation of video generation models. Previous video                                         e
+                                                                                          Tak n                        Fa
+                                                                                     Pi      Tur se                   Aw ntasy                    ure
+                                                                                                Clo                                            ent i
+generation evaluation mainly uses single-number metric such                                                             ard
+                                                                                 Slid ck                                                     v
+as Frechet Video Distance (FVD) [46] and CLIPSIM [43].                        Ope e                                   Natural              Ad Sci­F a
+Huang et al. [24] establishes VBench that provides a compre-              Swe n                            bo tics                               Dra e
+                                                                                                                                                      m
+                                                                       Machin p
+                                                                                 e                      Ro                       An                 Lov
+                                                                                                                                                          ry
+hensive evaluation on video generation models, focusing on                       ery                                              ima               Myste
+                                                                         Food                                                       tion              Action
+                                                                                             Industry
+general video quality and video-condition consistency. Wu            Metalworking                               56 Subdomains                        Comedy
+et al. [51] proposes T2VScore with text-video and general              Engine                                    350 Instances                     Navigation
+video quality criteria. Bansal et al. [4] further proposes to         Aerospacee                                                                      Steady
+                                                                                tur             Gam
+                                                                                                                                    g               Tu
+evaluate videos on whether it follows the correct physics              Adven n                                                   Drivin       Man rning
+                                                                                 o
+                                                                          A i tion
+                                                                             c t                        ing                                   O euver
+rules in a 0 or 1 granularity. They also keep an instruction                     ula                                                       De vertak ing
+                                                                          S i m       G                           Humans                      c
+                                                                                                                                           Ob elerat ng
+                                                                                                                                                       i
+following category in a 0 or 1 granularity. Our WorldModel-                        RP tegy                                                   sta ion
+                                                                                        a                                                       cle
+                                                                                    Str
+                                                                                            Ro l                            ing
+Bench further improves along the direction with more fine-                                Jum e­Pla                       pp g
+                                                                                                                       Sto ieldin ion
+                                                                                       Thr ping y
+                                                                                           ow                             Y lerat
+                                                                                                                              e
+grained physics scoring and instruction following scoring,                             Body ing                          Acc Cook
+                                                                                    Dancin                                      Eating
+                                                                                            g
+                                                                                  Interaction                                    Hands
+incorporating diverse application domains, and also incor-                        Touching
+                                                                                                                                 Tools
+porate previous metrics from VBench. He et al. [20] also
+uses human annotators, but does not focus on physics and
+instruction following capability. [25] studies the physics      Figure 3. WorldModelBench consists of 7 domains and 56 subdo-
+adherence of video generation models on 2D simulation.          mains, totaling 350 image and text conditions.
+Reward models for video generation models Li et al.
+[31], Prabhudesai et al. [42] explores using reward models         Specifically, we breakdown our grading criteria into two
+to improve the quality of video generation models. Unlike a     parts: (1) Instruction following: whether the generated
+rich set of image reward models [26, 52, 55], there is fewer    videos correctly follow the text (and image) prompt, and (2)
+video reward models [31]. VideoPhy collects human labeled       Future frame generation: whether the generated videos
+data with 0-1 corase labels on whether the model follows        represents feasible next state of the world, including physics
+instruction or physics. However, they do not further improve    adherence and commonsense. We introduce fine-grained
+the video generation based on the trained reward model. In      categories under these two parts in §3.1. The detailed cura-
+this paper, we collected a large scale of human preference      tion procedure is described in §3.2. Finally, we present the
+in video, specifically in the context of world modeling, and    procedure for obtaining human annotations in §3.3.
+train an accurate reward model to reflect human preference.
+    Learning from reward models has been shown effective        3.1. Grading Criteria
+to align the model output with human preference in the text     For each instances in WorldModelBench, a model gener-
+domain [30, 41]. In the video generation domain, [58] uses      ates a video based on the text (and image) condition. Each
+a text-image reward model (RM) to improve the generation        video is then graded in a fine-grained manner along the
+quality from human feedback. [31] further extends the idea      following dimensions, totaling a score up to 10. Table 1
+to use a mixture of text-image and text-video RM to improve     compares WorldModelBenchwith existing benchmarks.
+model. [42] proposes the reward gradient framework that
+incorporates multiple reward models. We follow the reward       3.1.1. Instruction Following
+gradients framework with our fine-tuned judger as the reward    We define four levels of instruction-following performance
+model to improve the video generation capability.               and assign scores according to the level (scores 0–3).
+                                                                Level 0 The subject is either absent or remains stationary.
+3. WorldModelBench
+                                                                Level 1 The subject moves but fails to follow the intended
+In this section, we formally introduce WorldModelBench.         action. For example, if the prompt instructs a car to turn left,
+Design principle An ideal video world model should syn-         but the generated video shows the car turning right.
+thesize feasible next few frames of the world in response to    Level 2 The subject partially follows the instruction but fails
+text (and image) instruction, to facilitate decision-making     to complete the task. For instance, if the prompt asks a
+downstream applications. Thus, the assessment of these          human to touch their shoulder, but the generated video only
+models should include: the judgment on the ability to pre-      shows the human moving their hand toward the shoulder
+cisely follow instruction in input condition, the judgment      without completing the action.
+on the ability to accurately synthesize next few frames, and    Level 3 The subject fully and accurately completes the in-
+include diverse application domains.                            structed task.
+                                                                       We give a score of 0 or 1 for each quality (total scores 0–2).
+                                                                       Frame-wise quality: Whether there is visually unappealing
+                                                                       frames or low-quality content.
+                                                                       Temporal quality: whether there is noticeable flickering,
+    (a) Newton’s First Law violation: motion without external force.
+                                                                       choppy motion, or abrupt appearance (disappearance) of
+                                                                       irrelevant objects.
+
+                                                                       Table 1. Comparison of WorldModelBench to other existing video
+         (b) Solid mechanics violation: irregular deformation.         benchmarks: VBench, VideoArena, and VideoPhy.
+
+                                                                                             VBench   VideoArena   VideoPhy   Ours
+                                                                          Metrics
+          (c) Fluid mechanics violation: unnatural liquid flow.           Instruction
+                                                                          Following            ✓          ×           ✓         ✓
+                                                                          Common
+                                                                          Sense                ✓          ×           ×         ✓
+                                                                          Physics
+      (d) Impenetrability violation: objects intersect unnaturally.       Adherence            ×          ×           ✓         ✓
+                                                                          Support Types
+                                                                          T2V                  ✓          ✓           ✓         ✓
+                                                                          I2V                  ✓          ✓           ×         ✓
+                                                                          Basic Statistics
+       (e) Gravity violation: inconsistent behavior under gravity.        Prompt
+                                                                          Suite Size          946        1500        688       350
+   Figure 4. Examples of violations across physics categories.            Human Label          -          30k        73k       67k
+                                                                          Label Release?       -          No         No        Yes
+
+3.1.2. Physics Adherence
+Physics laws are the foundational principles of the physi-             3.2. Curating Procedure for Diverse Domains
+cal world, and their adherence serves as a critical proxy for
+assessing the plausibility of generated frames. WorldMod-              WorldModelBench covers a diverse domains of autonomous
+elBench evaluates video generation models using five fun-              driving, robotics, human activities, industrial, natural scenes,
+damental physical laws, selected based on common failures              simulation gaming, and animation. Each domain consists of
+of contemporary models and findings from related work [4].             50 samples from 5-10 subdomains. Each sample is a text and
+Each law is assigned a binary score of 0 or 1, totaling scores         image condition pair. Figure 3 visualizes the subdomains.
+from 0 to 5. Examples of violations are illustrated in Fig-            To ensure the quality, we perform the following three steps
+ure 4.                                                                 to obtain each sample.
+Law 1: Newton’s First Law: Objects does not move with-                 1. Obtaining a reference video. To ensure that texts and
+out external forces.                                                      images condition pairs are feasible, we select a initial
+Law 2: Conservation of Mass and Solid Mechanics: ob-                      sets of videos from existing datasets as reference: driv-
+jects do not irregularly deform or distort.                               ing from [11], robotics from [39] and human activities
+Law 3: Fluid Mechanics: Liquid does not flow unnaturally                  from [10]. These datasets originally have categories, so
+or irregularly.                                                           we select common ones as our subdomains. We select
+Law 4: Impenetrability: Objects does not unnaturally pass                 the reference video of the remaining domains from [38].
+through each other.                                                       Specifically, we use GPT-4 [2] to caption videos and filter
+Law 5: Gravitation: Objects does not violate gravity, such                keywords of the domains. We also select the most popular
+as floating.                                                              subdomains within these domains.
+                                                                       2. Obtaining the text and image condition. For each refer-
+3.1.3. Commonsense                                                        ence video, we select the first frame as an image condition.
+While measures of general video generation quality is not the             We use GPT-4o [2] to caption the difference between the
+main focus of WorldModelBench, they are a prerequisite to a               first frame and the subsequent frames as the action. We
+good video world model, i.e., commonsense. For instance, a                also recaption the image condition to support T2V model.
+feasible representation of future states needs to have coherent           We perform detailed prompt engineering so that the T2V
+motion and visually reasonable quality. In particular, we                 model can have a coherent view of the video (e.g. the ob-
+follow the categorization of Huang et al. [24], and summarize             jects described in the action will appear in the description
+the commonsense into temporal-level and frame-wise quality.               of the first frame description).
+3. Human-in-the-loop verification The previous two steps         lowest average score from the five closed-source models.
+   can introduce errors. For instance, some videos can have      More details can be found at Table 8.
+   black initial frames, the captioning from GPT-4 is not
+   always precise, and that some videos do not have potential    Fine-tuning for automatic evaluation To obtain an auto-
+   violation of the grading criteria. Thus, we manually verify   matic judger for future released model, we fine-tune a visual
+   all the 350 images and text conditions are of good quality.   language model(VLM) on the collected annotations [48].
+                                                                 We process a single vote as 8 question answering pair, where
+3.3. Obtaining a Reliable World Modeling Judger
+                                                                 the VLM takes in the text (and image) condition and the
+While large (visual) language models have achieved decent        generated videos, and output the score for individual grad-
+agreement with human judgers in domains such as chat             ing criteria in § 3.1. For each prompt, we randomly select
+assistants [17, 61], it is unclear whether this ability holds    12 generated videos as the training set, and the remaining
+true on the world modeling domain, in particular, when it        generated videos as the test set. The results are shown in §4.
+involves subjects such as understanding physics laws. To         As a preview, we found that existing leading propriety VLM
+draw reliable conclusions on contemporary video generation       (GPT-4o) achieves decent performance in world model un-
+models, we perform a large scale of human annotations. For       derstanding, providing a new use case for VLM-as-a-judge
+each vote, we require the human voter to complete a dense        paradigm. Our fine-tuned judge, with only 2B parameter,
+annotation with selection of all criteria described in 3.1. In   efficiently achieves higher accuracy.
+the other words, one complete annotation contains a rich set
+of 8 human labels on world modeling. Thanks to the scale of      3.4. Alignment Using the Fine-tuned Judger
+our annotations, one generated video can receive more than       VLMs trained on internet-scale visual (images and videos)
+one vote, which allows us to compute human agreement to          and text data possess broad world knowledge and strong
+validate our vote quality.                                       reasoning capacities, making them promising candidates
+Vote statistics We show the statistics of human votings in       as “world model teachers”. Our judge model, a VLM fine-
+Table 2. For basic statistics, we collect 8336 complete votes,   tuned with human data, is well-suited to provide real-world
+translating into 67K human labels. We also check the quality     feedback to enhance video generation models as a more
+of our votes by computing agreement statistics between vot-      accurate world simulator. We propose a differentiable “learn
+ers: 87.1% of votes are within an absolute score difference      from feedback” approach to improve a pre-trained video
+of 2. To inspect the quality of our votes by comparing to        diffusion model using our autoregressive judge.
+related works that are mainly arena-style, we convert our
+votes into pairwise comparison. In particular, if there are
+more than one vote for a video, we compute the win or loss
+against other models of the same prompt by comparing the
+total scores, and report the probability of getting the same
+result (win or loss) as the pairwise agreement. We found a
+70% pairwise agreement, which is comparable to the 70 ∼
+75% in Bansal et al. [4] and 72.8% ∼ 83.1% in Chiang et al.
+[17]. Furthermore, we select votes from 10 experts that are
+at least CS PhD level as experts. We compute an interval of 1
+standard deviation away from the mean of expert votes. We
+find that 96.2% and 95.4% of experts and crowd votes fall        Figure 5. We enhance video generation models by leveraging
+into this interval, validating the quality from crowd votes.     sparse rewards from our fine-tuned judger. Solid arrows indicate
+                                                                 the forward process, while dashed lines are gradient directions.
+         Table 2. Vote statistics of WorldModelBench.
+                                                                     Building on VADER[42], we formulate our training ob-
+      Basic Statistics          Agreement Statistics
+                                                                 jectives as follows, given a pre-trained video diffusion model
+# complete votes    8336   Pairwise agreement           70.0%    pθ (.), an autoregressive reward model R(.), a grading crite-
+# voters             65    Score agreement (±2)         87.1%    ria G, and a context dataset Dc . Our training objective is to
+# votes per video   1.70   Experts agreement (±σ)       96.2%    maximize the reward from the world model judge:
+# labels            67K    Crowd agreement (±σ)         95.4%                                            X
+                                                                          J(θ) = Ec∼Dc ,x0 ∼pθ (x0 |c) [    R(x0 , c, g)]   (1)
+WorldModelBench-Hard Based on the previous voting re-
+                                                                                                      g∼G
+sults, we curate a smaller hard subset WorldModelBench-
+Hard to facilitate the model evaluation. Specifically,           where x0 represents the generated video. The reward
+WorldModelBench-Hard consists of 45 prompts with the             model evaluates the generated video based on key crite-
+Table 3. Model performance on WorldModelBench on human annotations. Bold and underline indicates the best performance over all
+models, and open models respectively. ”Deform.”, ”Penetr.”, ”Grav.” is short for ”Deformation”, ”Penetration”, ”Gravitation”.
+
+           Model                    Instruction    Common Sense                   Physics Adherence                Total
+                                                  Frame   Temporal     Newton    Mass    Fluid   Penetr.   Grav.
+           Closed Models
+           KLING [27]                  2.36       0.94       0.92        0.93    0.88    0.96     0.89     0.93    8.82
+           Minimax [37]                2.29       0.91       0.88        0.93    0.81    0.96     0.86     0.94    8.59
+           Mochi-official [3]          2.01       0.89       0.83        0.94    0.82    0.99     0.92     0.98    8.37
+           Runway [44]                 2.15       0.87       0.78        0.91    0.69    0.94     0.82     0.91    8.08
+           Luma [35]                   2.01       0.81       0.76        0.89    0.62    0.95     0.77     0.90    7.72
+           Open Models
+           Mochi [3]                   2.22       0.63       0.63        0.94    0.58    0.97     0.71     0.94    7.62
+           OpenSoraPlan-T2V [28]       1.79       0.70       0.77         0.9    0.66    0.97     0.89     0.93    7.61
+           CogVideoX-T2V [56]          2.11       0.60       0.51        0.91    0.52    0.96     0.74     0.95    7.31
+           CogVideoX-I2V [56]          1.89       0.56       0.43        0.87    0.43    0.96     0.66     0.96    6.75
+           OpenSora-Plan-I2V [28]      1.77       0.47       0.54        0.84    0.42    0.97     0.70     0.92    6.62
+           Pandora [53]                1.56       0.42       0.53        0.91    0.50    0.96     0.74     0.94    6.57
+           T2VTurbo [32]               1.33       0.49       0.43        0.88    0.42    0.96     0.75     0.96    6.22
+           OpenSora-T2V [62]           1.71       0.40       0.33        0.89    0.32    0.95     0.60     0.92    6.11
+           OpenSora-I2V [62]           1.60       0.37       0.25        0.90    0.25    0.92     0.60     0.94    5.83
+
+
+
+ria: instruction following, physical adherence, and com-             and an API version of mochi (Mochi-official). We use the
+monsense as detailed in Section 3, and naively combine               recommended hyper-parameters for open-source models (de-
+all sub-rewards through summation. To address the non-               tails in the appendix).
+differentiability introduced by the discrete nature of lan-
+guage models, we instead optimize the probability gap of             4.1. Evaluation Results
+the categorical distribution over the answer tokens (e.g.,           This section analyzes the performance of evaluated models
+p(token(′′ N o′′ ))−p(token(′′ Y es′′ )), where p(.) represents      and the quality of the votes.
+the categorical distribution after softmax for the final hid-
+den states). This method enable us to compute the gradient           Detailed scores Table 3 shows scores for all models aver-
+∇θ R(x0 , c, g) and propagate it back to update the parame-          aged over all prompts. We present four key observations:
+ters of the video generation models.                                     • Large gap to ideal video world model: The top scoring
+                                                                     model, kling, has only 61% of videos correctly finish the
+4. Experiments                                                       specified task. Furthermore, 12% of the generated videos
+In the experiment section, we first show and analyze the             violate mass conservation law and 11% synthesize objects
+results of current popular video generation models in our            penetrating each others. This indicates that it not yet has a
+benchmark (§ 4.1) with their absolute average scores, pair-          perfect understanding of properties of physical objects.
+wise elo score[16, 17], and per category breakdown scores.               • Better commonsense metrics do not lead to a better
+Additionally, we follow [17] to demonstrate the quality of the       video world model. Luma has higher frame-wise quality
+votes being used. Then, we evaluate our fine-tuned judger            (0.81 versus 0.63) and temporal quality (0.76 versus 0.63)
+(§ 4.2), by showing its accuracy in prediction human annota-         scores than the best open model, mochi. Yet, its instruction
+tions, and furthermore, the video quality improvement when           following capability is much worse than mochi (44% versus
+applying the reward gradients method with it as the reward           53% videos finish the specified task), and similar physics ad-
+model. Lastly, we show ablation studies (§ 4.3) on the scal-         herence (4.13 versus 4.14). While previous benchmark [24]
+ing effect of number of annotations, and the correlation of          mainly focus on the common sense dimension, our results
+our benchmark to the ones in existing VBench [24].                   further indicate dimensions that need be considered when
+Models We measure 14 models in total. For open-sourced               training the video generation models.
+models, we include OpenSora-v1.2 (T2V and I2V) [62],                     • I2V models are worse than their T2V counterpart.
+OpenSora-Plan-v1.3 (T2V and I2V) [28], T2VTurbo-v2 [32],             We observe this trend on all three pairs of models (cogvideox
+CogVideoX-5B (T2V and I2V) [56], Pandora [53], and                   7.31 versus 6.75, opensoraplan 7.62 versus 6.62, opensora
+mochi [3]. For close-sourced models, we include luma-                6.11 versus 5.83). This calls for a need to improve the I2V
+1.6 [35], runway-3.0 [44], minimax [37], kling-v1.5 [27],            counterpart of released models.
+                       Model                                  Scores ↑                        Prediction    further observe that there is a tradeoff between world mod-
+                                                         Human (H) Judge (J)                 Error (100%)   eling capability: e.g. mochi-official has the highest Physics
+  Closed Models
+  kling                                                    8.82                    9.08          2.95%
+                                                                                                            adherence score, yet a middle instruction following score.
+  minimax                                                  8.59                    8.92          3.84%      Subdomain breakdown We visualize the total scores
+  mochi-official                                           8.37                    8.66          3.46%
+  runway                                                   8.08                    8.63          6.81%
+                                                                                                            against all 56 subdomains using heatmap in Figure 7. We
+  luma                                                     7.72                    8.24          6.74%      find that most models suffer from autonomous driving, hu-
+  Open Models                                                                                               man activities and robotics categories, e.g. human throwing
+  mochi                                                    7.62                    7.91           3.81%     objects or jumping, robotics arm opening certain objects.
+  OpenSoraPlan-T2V                                         7.61                    8.04           5.65%     These domains require complex interaction with the envi-
+  CogVideoX-T2V                                            7.31                    7.65           4.65%     ronment and accurate modeling of the subject (e.g. human
+  CogVideoX-I2V                                            6.75                    7.08           4.89%
+  OpenSora-Plan-I2V                                        6.63                    6.86           3.47%
+                                                                                                            bodies). While most models perform well on natural do-
+  pandora                                                  6.57                    6.90           5.02%     mains, e.g. on subjects such as plants, animals and water
+  T2VTurbo                                                 6.22                    6.56           5.47%     bodies. This calls for a new generation of model that specifi-
+  OpenSora-T2V                                             6.11                    6.17           0.98%     cally address these hard categories.
+  OpenSora-I2V                                             5.83                    5.82          -0.17%
+                                                                                                            4.2. Quality of the Fine-tuned Judger
+Table 4. Score comparison between scores provided by hu-
+                                                                                                            In this section, we show the quality of our fined-tuned judger
+mansP andJudge−Human
+          by the judge model. The averaged predicting error
+( n1 n                  ) is 4.1%. The highest prediction error is                                          in two dimensions. Firstly, we compare its accuracy against
+     i=1    Human
+6.81%, showing the reliablity of our judge model.                                                           leading visual language models (GPT-4o) with various strate-
+                                                                                                            gies on the test set of our benchmark. Then, we show that
+                                                                                                            its score can be used to improve OpenSora-T2V.
+   • Top open models are competitive. We found that the                                                     Accuracy on test set To evaluate the effectiveness of our
+best open models, mochi and opensoraplan achieve close                                                      world model judger, we divide all benchmark votes into a
+performance to some closed models (7.62, 7.61 total score                                                   training set and a test set. For each of the 350 prompts, we
+versus 7.72 of luma). In particular, mochi has promising                                                    use videos from 14 different video generation models and
+instruction following and physics adherence ability.                                                        annotations from up to 3 distinct voters. We randomly select
+         1300
+                                                                                                            outputs from 12 models, along with the original video (the
+                                                                           1400
+         1200                                                              1300                             video that generates the text prompt and the first frame as
+                                                                           1200
+
+Rating                                                            Rating
+         1100
+         1000
+                                                                           1100                             conditions, receiving full rewards), to construct the training
+                                                                           1000
+          900                                                               900                             set, while reserving the rest 2 models for the test set. Our
+          800                                                               800
+                     opensorai2v                                            700   opensorai2v
+                                                                                                            fine-tuned judger is thus trained on a diverse mix of high-
+                     opensora                                                     opensora
+                     turbo
+                     pandora
+                     cogvideoxi2v
+                     opensoraplani2v
+                                                                                  turbo
+                                                                                  pandora
+                                                                                  cogvideoxi2v
+                                                                                                            reward (high-quality) and low-reward (low-quality) samples,
+                                                                                  opensoraplani2v
+                     cogvideox
+                     mochi
+                     opensoraplan
+                     luma
+                                                                                  cogvideox
+                                                                                  mochi
+                                                                                  opensoraplan
+                                                                                  luma
+                                                                                                            enabling it to effectively distinguish quality differences and
+                     runway                                                       runway
+                     mochiofficial
+                     minimax
+                     kling
+                                                                                  mochiofficial
+                                                                                  minimax
+                                                                                  kling                     predict scores for unseen videos generated from the same
+                                                 model                                     model
+ Loading [MathJax]/extensions/MathMenu.js
+                                            (a) Total                              (b) Common Sense         prompts.
+                                                                           1200
+                                                                                                                Our dataset includes a total of 4421 videos with 8 human
+         1000
+                                                                           1100                             annotations for training, and 713 videos for evaluation (ex-
+Rating                                                            Rating
+          900
+                                                                           1000                             cluding some samples that closed API endpoints refuse). For
+          800                                                              900
+                                                                                                            prompts with multiple votes, we use the majority agreement
+          700                                                              800
+                     turbo
+                     pandora
+                                                                                  opensorai2v
+                                                                                  opensora
+                                                                                                            as the ground truth sparse labels. To enhance alignment
+                                                                                  cogvideoxi2v
+                     opensorai2v
+                     opensora
+                     opensoraplani2v
+                     opensoraplan
+                                                                                  opensoraplani2v
+                                                                                  turbo
+                                                                                  pandora
+                                                                                                            with world knowledge and the underlying reasoning pro-
+                     cogvideoxi2v                                                 cogvideox
+                     mochiofficial
+                     luma
+                     cogvideox
+                     runway
+                                                                                  luma
+                                                                                  mochi
+                                                                                  runway
+                                                                                  opensoraplan
+                                                                                                            cesses, we prompt GPT-4o and Gemini-1.5-pro to generate
+                     mochi                                                        minimax
+                     minimax
+                     kling
+                                                                                  kling
+                                                                                  mochiofficial             reasoning chains on the training set, and retain chains that
+                             model
+               (c) Instruction Following                                          (d) Physics model
+                                                                                              Adherence     reach the correct final answer as additional training data. We
+                                                                                                            then compare our fine-tuned judger’s accuracy with differ-
+Figure 6. Model ELO rating for categories in WorldModelBench.
+                                                                                                            ent decoding strategies applied to GPT-4o (with zero-shot,
+                                                                                                            and chain-of-thought prompting [50]). Results from Table 5
+Pairwise comparison We further conduct a pairwise com-                                                      show that the find-tuned world model judger achieves higher
+parison of models in Figure 6. We convert our annotations                                                   accuracy than GPT-4o model.
+to pairwise setting by enumerating all possible model combi-                                                Score comparison between judge and humans score We
+nation for the same prompt. Following [17], we compute the                                                  further compare the total score graded by humans or the
+ELO score using Bradley-Terry model with 100 bootstrap-                                                     judge model in Table 4. On average, the judge achieves
+ping rounds, using opensora as the 800 ELO calibration. We                                                  4.1% averaged prediction error on all 350 instances in our
+             kling                                                                                                                                                                 10
+         minimax                                                                                                                                                                   9
+    mochiofficial
+          runway                                                                                                                                                                   8
+            luma
+           mochi                                                                                                                                                                   7
+   opensoraplan
+       cogvideox                                                                                                                                                                   6
+    cogvideoxi2v
+ opensoraplani2v                                                                                                                                                                   5
+         pandora
+            turbo                                                                                                                                                                  4
+        opensora
+     opensorai2v                                                                                                                                                                   3
+                          Co   me
+                          MAyctiody
+                               ste n
+                             DrLovey
+                       Ad Sama
+                           ve ci-   r
+                               ntu Fi
+                           FaAnwarre
+                     De Y tLasy
+                       Nce ield ife
+                           l e
+                    Ma av rating
+                        ne iga ion
+                           u
+                         Obvertiion
+                      Ov Ssttacnlg   d
+                          ert eade
+                               ak y
+                     Ac StTourniing
+                        ce pp ng
+                           ler in
+                               at g
+                          Da Toioon
+                         Th nc ls
+                          Croowiinng
+                               o
+                              E king
+                      IntJumating
+                          era ping
+                         Tou cti g
+                               ch on
+                       Ma HBaodgy
+                            c
+                    Me hin ds     in
+                                  n
+                       tal F ery
+                          wo oo
+                       Ae Enrkingd
+                           ros gin
+                                pa e
+                                   c
+                             AnPlane
+                       La Wimat
+                          nd a l
+                          Wescater
+                               athpe
+                                S er
+                               Oplide
+                             Sw en
+                               Pleaep
+                                   c
+                                  Pe
+                                Takut
+              Ad ve ntu ovne    Te
+                               M ur
+                        re CPick
+                          S(G los
+                               a
+                              Acmee)
+                                 tio
+                       Simtra RPGn
+                                t
+                         Roulategy
+                             le- ion
+                                 Pla  y
+
+Figure 7. Total scores of model performance visualized with all subdomains. More red colors indicate lower scores; more green colors
+indicate higher scores. White color denotes missing values due to response refusal from private models.
+
+                                  Temporal Consistency                                                                    Instruction Following
+
+
+     Ours
+
+
+
+
+   Original
+
+
+                                                                                                              "A bear sitting at a picnic table, enjoying a slice
+                                  "A goose playing chess."                                                    of cake, with a forest scene in the background."
+
+
+Figure 8. Improvement of our world model gradient method. The bottom row shows videos generated by the original Open-Sora 1.2, while
+the bottom row features videos produced by the reward-fine-tuned Open-Sora. The original issues of video flickering (left) and instruction
+non-compliance (right) are mitigated through learning from world model rewards. More results can be found at Figure 11.
+                                                                                                0.9                                                          0.9
+
+
+
+
+                                                                           WMB Frame-wise Quality                                        WMB Physics Adherence
+Table 5. Model prediction error results of different judge
+choices on WorldModelBench. VILA-2B is a vision-language                                        0.8                                                          0.8
+model with 2B parameters, trained on image and video understand-                                0.7                                                          0.7
+ing tasks [33]. We report the average error rate between the model’s                            0.6                                                          0.6
+predictions and the ground truth.                                                               0.5                                                          0.5
+                                                                                                0.4                                                          0.4
+ Model Prediction Error    Instruction (%)    Common (%)     Physics (%)                              0.5   0.6   0.7    0.8    0.9                            0.5    0.6   0.7   0.8   0.9
+  +Method                  following ↓        Sense ↓        Adherence ↓                               VBench Frame-wise Quality                                     VBench All Dimenstions
+ GPT-4o                    29.3               35.0           36.0                (a) Frame-wise Quality Correlation                              (b) Physics Adherence Correlation
+   +CoT                    29.7               28.5           45.6
+ Gemini-1.5-Pro            30.7               34.5           29.3
+   +CoT                    29.3               19.5           28.3             Figure 9. Correlation of model win rates based on different dimen-
+ Qwen2-VL-2B               30.3               39.0           39.7             sions on VBench and WorldModelBench. Each point represents
+ VILA-2B +Zero-Shot        21.0               28.0           24.0             the win rate between two models. The x-axis denotes the win rate
+ VILA-2B +CoT Fine-tuned   32.3               16.4           29.7
+                                                                              according to VBench, while the y-axis denotes the win rate accord-
+                                                                              ing to WorldModelBench.
+
+                                                                              4.3. Correlation to Established Benchmarks
+                                                                              Figure 1 provides a motivating example of WorldModel-
+benchmark. We provide further details of the instruction                      Bench, over existing general video quality benchmark. In
+following dimension in Appendix 8.4.                                          this section, we conduct an in depth comparative analysis
+                                                                              with VBench [23].
+Using the judger as the reward model We apply the algo-                          We evaluate generated videos on WorldModelBench con-
+rithm in § 3.4 with our judger on OpenSora-v1.2 T2V. We                       ditions with VBench grading procedure for Opensora, Pan-
+show qualitative samples in Figure 8. This shows positive                     dora, Luma, minimax, mochi, Cogvideox, Kling and runway.
+signs for future works to further improve the reward model.                   We compute a pairwise win rate between a pair of models by
+averaging their pairwise win or loss on the same text (and       vides fine-grained world modeling capability feedback to ex-
+image) condition, over all available conditions in WorldMod-     isting video generation models on commonsense, instruction
+elBench, where the win rate WA,B for model A and model           following, and physics adherence dimensions. We collect a
+B is calculated as follows:                                      large scale of human annotations of 67K to analyze contem-
+                                (                                porary video generation models as world models. We further
+                1        X        1 if evalA,p > evalB,p         fine-tune a VLM to accurately perform automatic judgement
+  WA,B =
+            |prompts| p∈prompts 0 otherwise                      on the benchmark. Finally, we show promising signals that
+                                                                 maximizing the rewards on the provided judge can improve
+In Figures 9a and 9b, each point represents the win rate         current video generation models world modeling capability.
+between two models, with the x-axis denoting the win rate
+according to VBench and the y-axis denoting the win rate         7. Acknowledgement
+according to WorldModelBench. Figure 9a illustrates the
+                                                                 We would like to also thank student volunteers from the
+win rates when models are evaluated solely on frame-wise         6.5940 MIT course (2024 Fall), Qinghao Hu, Guangx-
+quality, while Figure 9b shows the win rates when models         uan Xiao, Jiaming Tang, Muyang Li, Shang Yang,
+are evaluated based on physics adherence using WorldMod-         Yujun Lin, Zhuoyang Zhang, Haotian Tang, Han Cai,
+elBench and on all dimensions using VBench. We observed          Jinyi Hu, Yuxian Gu, Liuning He from MIT, Enze
+a correlation coefficient of 0.69 between the frame-wise         Xie from Nvidia, Xiuyu Li and Ziming Mao from UC
+quality win rates, indicating a relatively strong correlation.   Berkeley, Zeqi Xiao from NTU for helping us to set
+This suggests that both benchmarks are effective in assess-      up annotation pipeline and helpful technical discussions.
+ing general video quality and that our benchmark aligns
+with established standards. However, when examining the
+benchmarks’ ability to assess physics adherence, the correla-    References
+tion diminishes significantly to merely 0.28. This indicates      [1] 1X. 1x world model, 2024. Accessed: 2024-09-17. 1
+that VBench does not effectively distinguish between videos       [2] Josh Achiam, Steven Adler, Sandhini Agarwal, Lama Ahmad,
+based on their adherence to physical laws. Supporting this            Ilge Akkaya, Florencia Leoni Aleman, Diogo Almeida, Janko
+observation, the supplementary material presents an analysis          Altenschmidt, Sam Altman, Shyamal Anadkat, et al. Gpt-4
+of VBench’s other dimension scores, revealing their inability         technical report. arXiv preprint arXiv:2303.08774, 2023. 2, 4
+to discriminate based on physics adherence.                       [3] Genmo AI. Genmo ai blog. https://www.genmo.ai/
+                                                                      blog. Accessed: 2024-11-11. 2, 6, 1, 3
+5. Discussion                                                     [4] Hritik Bansal, Zongyu Lin, Tianyi Xie, Zeshun Zong, Michal
+                                                                      Yarom, Yonatan Bitton, Chenfanfu Jiang, Yizhou Sun, Kai-
+This section discusses several potential limitations and as-          Wei Chang, and Aditya Grover. Videophy: Evaluating phys-
+sumptions in the paper.                                               ical commonsense for video generation. arXiv preprint
+Compare to VideoPhy VideoPhy focuses on daliy objects,                arXiv:2406.03520, 2024. 1, 3, 4, 5, 9
+which are not the most relevant domains to world models![4].      [5] Andreas Blattmann, Tim Dockhorn, Sumith Kulal, Daniel
+We directly measure performance on application domains                Mendelevitch, Maciej Kilian, Dominik Lorenz, Yam Levi,
+such as robotics. In addition, WorldModelBench supports               Zion English, Vikram Voleti, Adam Letts, et al. Stable
+image-to-video models, and will open-source fine-grained              video diffusion: Scaling latent video diffusion models to
+labels.                                                               large datasets. arXiv preprint arXiv:2311.15127, 2023. 3
+Sample size WorldModelBench has a considerably a smaller          [6] Anthony Brohan, Noah Brown, Justice Carbajal, Yevgen
+                                                                      Chebotar, Joseph Dabis, Chelsea Finn, Keerthana Gopalakr-
+size of other video benchmarks, e.g.,VideoPhy (688). We
+                                                                      ishnan, Karol Hausman, Alex Herzog, Jasmine Hsu, et al.
+choose to lower the amount of prompts in our benchmark                Rt-1: Robotics transformer for real-world control at scale.
+to enable fast evaluation due to the high inference cost of           arXiv preprint arXiv:2212.06817, 2022. 1
+comtemporary models (e.g. Mochi takes 5 minutes for 4             [7] Anthony Brohan, Noah Brown, Justice Carbajal, Yevgen
+A100 GPUs). Nevertheless, WorldModelBench is indicative               Chebotar, Xi Chen, Krzysztof Choromanski, Tianli Ding,
+(Table 3): top 2 propriety models has a clear separation (8.82        Danny Driess, Avinava Dubey, Chelsea Finn, et al. Rt-2:
+versus 8.59)                                                          Vision-language-action models transfer web knowledge to
+                                                                      robotic control. arXiv preprint arXiv:2307.15818, 2023. 1
+6. Conclusion                                                     [8] T Brooks, B Peebles, C Homes, W DePue, Y Guo, L Jing,
+                                                                      D Schnurr, J Taylor, T Luhman, E Luhman, et al. Video
+This paper introduces WorldModelBench to evaluate video               generation models as world simulators, 2024. 1
+world models. We found that existing general video quality        [9] Jake Bruce, Michael D Dennis, Ashley Edwards, Jack Parker-
+benchmark is insufficient in evaluating world modeling ca-            Holder, Yuge Shi, Edward Hughes, Matthew Lai, Aditi
+pability, such as physics adherence. WorldModelBench pro-             Mavalankar, Richie Steigerwald, Chris Apps, et al. Genie:
+     Generative interactive environments. In Forty-first Interna-     [21] Yingqing He, Tianyu Yang, Yong Zhang, Ying Shan, and
+     tional Conference on Machine Learning, 2024. 1                        Qifeng Chen. Latent video diffusion models for high-fidelity
+[10] Fabian Caba Heilbron, Victor Escorcia, Bernard Ghanem, and            long video generation. 2022. 2
+     Juan Carlos Niebles. Activitynet: A large-scale video bench-     [22] Jonathan Ho, Tim Salimans, Alexey Gritsenko, William Chan,
+     mark for human activity understanding. In Proceedings of the          Mohammad Norouzi, and David J Fleet. Video diffusion
+     ieee conference on computer vision and pattern recognition,           models. Advances in Neural Information Processing Systems,
+     pages 961–970, 2015. 1, 4                                             35:8633–8646, 2022. 1, 2
+[11] Holger Caesar, Varun Bankiti, Alex H Lang, Sourabh Vora,         [23] Ziqi Huang, Yinan He, Jiashuo Yu, Fan Zhang, Chenyang
+     Venice Erin Liong, Qiang Xu, Anush Krishnan, Yu Pan, Gi-              Si, Yuming Jiang, Yuanhan Zhang, Tianxing Wu, Qingyang
+     ancarlo Baldan, and Oscar Beijbom. nuscenes: A multi-                 Jin, Nattapol Chanpaisit, Yaohui Wang, Xinyuan Chen, Limin
+     modal dataset for autonomous driving. In Proceedings of               Wang, Dahua Lin, Yu Qiao, and Ziwei Liu. VBench: Com-
+     the IEEE/CVF conference on computer vision and pattern                prehensive benchmark suite for video generative models. In
+     recognition, pages 11621–11631, 2020. 4                               Proceedings of the IEEE/CVF Conference on Computer Vi-
+[12] Haoxin Chen, Menghan Xia, Yingqing He, Yong Zhang,                    sion and Pattern Recognition, 2024. 8
+     Xiaodong Cun, Shaoshu Yang, Jinbo Xing, Yaofang Liu,             [24] Ziqi Huang, Yinan He, Jiashuo Yu, Fan Zhang, Chenyang
+     Qifeng Chen, Xintao Wang, Chao Weng, and Ying Shan.                   Si, Yuming Jiang, Yuanhan Zhang, Tianxing Wu, Qingyang
+     Videocrafter1: Open diffusion models for high-quality video           Jin, Nattapol Chanpaisit, et al. Vbench: Comprehensive
+     generation, 2023. 2                                                   benchmark suite for video generative models. In Proceedings
+                                                                           of the IEEE/CVF Conference on Computer Vision and Pattern
+[13] Haoxin Chen, Yong Zhang, Xiaodong Cun, Menghan Xia,
+                                                                           Recognition, pages 21807–21818, 2024. 1, 3, 4, 6
+     Xintao Wang, Chao Weng, and Ying Shan. Videocrafter2:
+     Overcoming data limitations for high-quality video diffusion     [25] Bingyi Kang, Yang Yue, Rui Lu, Zhijie Lin, Yang Zhao,
+     models. In Proceedings of the IEEE/CVF Conference on                  Kaixin Wang, Gao Huang, and Jiashi Feng. How far is video
+     Computer Vision and Pattern Recognition, pages 7310–7320,             generation from world model: A physical law perspective.
+     2024. 1, 2                                                            arXiv preprint arXiv:2411.02385, 2024. 3
+                                                                      [26] Yuval Kirstain, Adam Polyak, Uriel Singer, Shahbuland Ma-
+[14] Tsai-Shien Chen, Chieh Hubert Lin, Hung-Yu Tseng, Tsung-
+                                                                           tiana, Joe Penna, and Omer Levy. Pick-a-pic: An open dataset
+     Yi Lin, and Ming-Hsuan Yang. Motion-conditioned diffu-
+                                                                           of user preferences for text-to-image generation. Advances
+     sion model for controllable video synthesis. arXiv preprint
+                                                                           in Neural Information Processing Systems, 36:36652–36663,
+     arXiv:2304.14404, 2023.
+                                                                           2023. 3
+[15] Xinyuan Chen, Yaohui Wang, Lingjun Zhang, Shaobin
+                                                                      [27] Kuaishou. Kling, 2024. Accessed: [2024]. 1, 2, 6, 3
+     Zhuang, Xin Ma, Jiashuo Yu, Yali Wang, Dahua Lin, Yu
+                                                                      [28] PKU-Yuan Lab and Tuzhan AI etc. Open-sora-plan, 2024. 2,
+     Qiao, and Ziwei Liu. Seine: Short-to-long video diffusion
+                                                                           3, 6, 1
+     model for generative transition and prediction. In The Twelfth
+                                                                      [29] Yann LeCun. A path towards autonomous machine intelli-
+     International Conference on Learning Representations, 2023.
+                                                                           gence version 0.9. 2, 2022-06-27. Open Review, 62(1), 2022.
+     2
+                                                                           1
+[16] Herman Chernoff. Sequential design of experiments. Springer,     [30] Jan Leike, David Krueger, Tom Everitt, Miljan Martic,
+     1992. 6                                                               Vishal Maini, and Shane Legg. Scalable agent alignment
+[17] Wei-Lin Chiang, Lianmin Zheng, Ying Sheng, Anasta-                    via reward modeling: a research direction. arXiv preprint
+     sios Nikolas Angelopoulos, Tianle Li, Dacheng Li, Hao                 arXiv:1811.07871, 2018. 3
+     Zhang, Banghua Zhu, Michael Jordan, Joseph E Gonzalez,           [31] Jiachen Li, Weixi Feng, Tsu-Jui Fu, Xinyi Wang, Sugato Basu,
+     et al. Chatbot arena: An open platform for evaluating llms by         Wenhu Chen, and William Yang Wang. T2v-turbo: Breaking
+     human preference. arXiv preprint arXiv:2403.04132, 2024.              the quality bottleneck of video consistency model with mixed
+     5, 6, 7                                                               reward feedback. arXiv preprint arXiv:2405.18750, 2024. 3
+[18] Patrick Esser, Johnathan Chiu, Parmida Atighehchian,             [32] Jiachen Li, Qian Long, Jian Zheng, Xiaofeng Gao, Robinson
+     Jonathan Granskog, and Anastasis Germanidis. Structure                Piramuthu, Wenhu Chen, and William Yang Wang. T2v-
+     and content-guided video synthesis with diffusion models. In          turbo-v2: Enhancing video generation model post-training
+     Proceedings of the IEEE/CVF International Conference on               through data, reward, and conditional guidance design. arXiv
+     Computer Vision, pages 7346–7356, 2023. 1, 2                          preprint arXiv:2410.05677, 2024. 6, 1, 3
+[19] Shenyuan Gao, Jiazhi Yang, Li Chen, Kashyap Chitta, Yihang       [33] Ji Lin, Hongxu Yin, Wei Ping, Yao Lu, Pavlo Molchanov,
+     Qiu, Andreas Geiger, Jun Zhang, and Hongyang Li. Vista:               Andrew Tao, Huizi Mao, Jan Kautz, Mohammad Shoeybi,
+     A generalizable driving world model with high fidelity and            and Song Han. Vila: On pre-training for visual language
+     versatile controllability. arXiv preprint arXiv:2405.17398,           models. arXiv preprint arXiv:2312.07533, 2023. 8
+     2024. 1                                                          [34] Yaofang Liu, Xiaodong Cun, Xuebo Liu, Xintao Wang, Yong
+[20] Xuan He, Dongfu Jiang, Ge Zhang, Max Ku, Achint Soni,                 Zhang, Haoxin Chen, Yang Liu, Tieyong Zeng, Raymond
+     Sherman Siu, Haonan Chen, Abhranil Chandra, Ziyan Jiang,              Chan, and Ying Shan. Evalcrafter: Benchmarking and eval-
+     Aaran Arulraj, et al. Mantisscore: Building automatic metrics         uating large video generation models. In Proceedings of
+     to simulate fine-grained human feedback for video generation.         the IEEE/CVF Conference on Computer Vision and Pattern
+     arXiv preprint arXiv:2406.15252, 2024. 3                              Recognition, pages 22139–22149, 2024. 1
+[35] Luma AI. Luma dream machine — ai video generator, 2024.             Yu, Peiqing Yang, et al. Lavie: High-quality video gener-
+     Accessed: 2024-11-11. 2, 6, 3                                       ation with cascaded latent diffusion models. arXiv preprint
+[36] Zhengxiong Luo, Dayou Chen, Yingya Zhang, Yan Huang,                arXiv:2309.15103, 2023. 1, 2
+     Liang Wang, Yujun Shen, Deli Zhao, Jingren Zhou, and Tie-      [50] Jason Wei, Xuezhi Wang, Dale Schuurmans, Maarten Bosma,
+     niu Tan. Videofusion: Decomposed diffusion models for high-         Fei Xia, Ed Chi, Quoc V Le, Denny Zhou, et al. Chain-of-
+     quality video generation. arXiv preprint arXiv:2303.08320,          thought prompting elicits reasoning in large language models.
+     2023. 2                                                             Advances in neural information processing systems, 35:24824–
+[37] MiniMax AI. Minimax ai, 2024. Accessed: 2024-11-11. 2,              24837, 2022. 7
+     6, 3                                                           [51] Jay Zhangjie Wu, Guian Fang, Haoning Wu, Xintao Wang,
+[38] Kepan Nan, Rui Xie, Penghao Zhou, Tiehan Fan, Zhen-                 Yixiao Ge, Xiaodong Cun, David Junhao Zhang, Jia-Wei Liu,
+     heng Yang, Zhijie Chen, Xiang Li, Jian Yang, and Ying Tai.          Yuchao Gu, Rui Zhao, et al. Towards a better metric for text-
+     Openvid-1m: A large-scale high-quality dataset for text-to-         to-video generation. arXiv preprint arXiv:2401.07781, 2024.
+     video generation. arXiv preprint arXiv:2407.02371, 2024.            1, 3
+     4                                                              [52] Xiaoshi Wu, Keqiang Sun, Feng Zhu, Rui Zhao, and Hong-
+[39] Abby O’Neill, Abdul Rehman, Abhinav Gupta, Abhiram                  sheng Li. Human preference score: Better aligning text-to-
+     Maddukuri, Abhishek Gupta, Abhishek Padalkar, Abraham               image models with human preference. In Proceedings of
+     Lee, Acorn Pooley, Agrim Gupta, Ajay Mandlekar, et al.              the IEEE/CVF International Conference on Computer Vision,
+     Open x-embodiment: Robotic learning datasets and rt-x mod-          pages 2096–2105, 2023. 3
+     els. arXiv preprint arXiv:2310.08864, 2023. 4                  [53] Jiannan Xiang, Guangyi Liu, Yi Gu, Qiyue Gao, Yuting Ning,
+[40] OpenAI. Sora, 2024. Accessed: [2024]. 1, 2                          Yuheng Zha, Zeyu Feng, Tianhua Tao, Shibo Hao, Yemin
+                                                                         Shi, et al. Pandora: Towards general world model with
+[41] Long Ouyang, Jeffrey Wu, Xu Jiang, Diogo Almeida, Car-
+                                                                         natural language actions and video states. arXiv preprint
+     roll Wainwright, Pamela Mishkin, Chong Zhang, Sandhini
+                                                                         arXiv:2406.09455, 2024. 2, 3, 6, 1
+     Agarwal, Katarina Slama, Alex Ray, et al. Training language
+                                                                    [54] Jinbo Xing, Menghan Xia, Yong Zhang, Haoxin Chen, Xin-
+     models to follow instructions with human feedback. Advances
+                                                                         tao Wang, Tien-Tsin Wong, and Ying Shan. Dynamicrafter:
+     in neural information processing systems, 35:27730–27744,
+                                                                         Animating open-domain images with video diffusion priors.
+     2022. 3
+                                                                         arXiv preprint arXiv:2310.12190, 2023. 1, 2, 3
+[42] Mihir Prabhudesai, Russell Mendonca, Zheyang Qin, Kate-
+                                                                    [55] Jiazheng Xu, Xiao Liu, Yuchen Wu, Yuxuan Tong, Qinkai
+     rina Fragkiadaki, and Deepak Pathak. Video diffusion align-
+                                                                         Li, Ming Ding, Jie Tang, and Yuxiao Dong. Imagereward:
+     ment via reward gradients. arXiv preprint arXiv:2407.08737,
+                                                                         Learning and evaluating human preferences for text-to-image
+     2024. 1, 2, 3, 5
+                                                                         generation. Advances in Neural Information Processing Sys-
+[43] Alec Radford, Jong Wook Kim, Chris Hallacy, Aditya                  tems, 36, 2024. 3
+     Ramesh, Gabriel Goh, Sandhini Agarwal, Girish Sastry,
+                                                                    [56] Zhuoyi Yang, Jiayan Teng, Wendi Zheng, Ming Ding, Shiyu
+     Amanda Askell, Pamela Mishkin, Jack Clark, et al. Learning
+                                                                         Huang, Jiazheng Xu, Yuanming Yang, Wenyi Hong, Xiao-
+     transferable visual models from natural language supervi-
+                                                                         han Zhang, Guanyu Feng, et al. Cogvideox: Text-to-video
+     sion. In International conference on machine learning, pages
+                                                                         diffusion models with an expert transformer. arXiv preprint
+     8748–8763. PMLR, 2021. 3
+                                                                         arXiv:2408.06072, 2024. 2, 6, 1, 3
+[44] Runway ML. Introducing gen-3 alpha, 2024. Accessed:            [57] Shengming Yin, Chenfei Wu, Jian Liang, Jie Shi, Houqiang
+     2024-11-11. 6, 3                                                    Li, Gong Ming, and Nan Duan. Dragnuwa: Fine-grained
+[45] Uriel Singer, Adam Polyak, Thomas Hayes, Xi Yin, Jie An,            control in video generation by integrating text, image, and
+     Songyang Zhang, Qiyuan Hu, Harry Yang, Oron Ashual,                 trajectory. arXiv preprint arXiv:2308.08089, 2023. 2
+     Oran Gafni, et al. Make-a-video: Text-to-video generation      [58] Hangjie Yuan, Shiwei Zhang, Xiang Wang, Yujie Wei, Tao
+     without text-video data. arXiv preprint arXiv:2209.14792,           Feng, Yining Pan, Yingya Zhang, Ziwei Liu, Samuel Albanie,
+     2022. 2                                                             and Dong Ni. Instructvideo: instructing video diffusion mod-
+[46] Thomas Unterthiner, Sjoerd Van Steenkiste, Karol Kurach,            els with human feedback. In Proceedings of the IEEE/CVF
+     Raphael Marinier, Marcin Michalski, and Sylvain Gelly. To-          Conference on Computer Vision and Pattern Recognition,
+     wards accurate generative models of video: A new metric &           pages 6463–6474, 2024. 3
+     challenges. arXiv preprint arXiv:1812.01717, 2018. 3           [59] David Junhao Zhang, Jay Zhangjie Wu, Jia-Wei Liu, Rui
+[47] Jiuniu Wang, Hangjie Yuan, Dayou Chen, Yingya Zhang,                Zhao, Lingmin Ran, Yuchao Gu, Difei Gao, and Mike Zheng
+     Xiang Wang, and Shiwei Zhang. Modelscope text-to-video              Shou. Show-1: Marrying pixel and latent diffusion models for
+     technical report. arXiv preprint arXiv:2308.06571, 2023. 2          text-to-video generation. arXiv preprint arXiv:2309.15818,
+[48] Peng Wang, Shuai Bai, Sinan Tan, Shijie Wang, Zhihao Fan,           2023. 1, 2
+     Jinze Bai, Keqin Chen, Xuejing Liu, Jialin Wang, Wenbin        [60] Guosheng Zhao, Xiaofeng Wang, Zheng Zhu, Xinze Chen,
+     Ge, et al. Qwen2-vl: Enhancing vision-language model’s              Guan Huang, Xiaoyi Bao, and Xingang Wang. Drivedreamer-
+     perception of the world at any resolution. arXiv preprint           2: Llm-enhanced world models for diverse driving video
+     arXiv:2409.12191, 2024. 5                                           generation. arXiv preprint arXiv:2403.06845, 2024. 1
+[49] Yaohui Wang, Xinyuan Chen, Xin Ma, Shangchen Zhou,             [61] Lianmin Zheng, Wei-Lin Chiang, Ying Sheng, Siyuan
+     Ziqi Huang, Yi Wang, Ceyuan Yang, Yinan He, Jiashuo                 Zhuang, Zhanghao Wu, Yonghao Zhuang, Zi Lin, Zhuohan
+     Li, Dacheng Li, Eric Xing, et al. Judging llm-as-a-judge with
+     mt-bench and chatbot arena. Advances in Neural Information
+     Processing Systems, 36:46595–46623, 2023. 5
+[62] Zangwei Zheng, Xiangyu Peng, Tianji Yang, Chenhui Shen,
+     Shenggui Li, Hongxin Liu, Yukun Zhou, Tianyi Li, and Yang
+     You. Open-sora: Democratizing efficient video production
+     for all, 2024. 2, 3, 6, 1
+       WorldModelBench: Judging Video Generation Models As World Models
+                                               Supplementary Material
+                                                                                       0.9                                                                0.9
+
+
+
+
+                                                                   WMB Physics Adherence                                              WMB Physics Adherence
+8. Appendix
+                                                                                       0.8                                                                0.8
+8.1. Correlation to VBench’s Dimensions                                                0.7                                                                0.7
+                                                                                       0.6                                                                0.6
+Section 4.3 illustrates the high correlation (0.69) between                            0.5                                                                0.5
+frame-wise quality win rates of WorldModelBench and                                    0.4                                                                0.4
+VBench, as well as the low correlation (0.28) between World-                           0.3                                                                0.3
+                                                                                             0.5     0.6    0.7   0.8    0.9    1.0                             0.5     0.6     0.7   0.8     0.9   1.0
+ModelBench’s physics adherence win rates and VBench’s                                        VBench Subject Consistency                                       VBench Background Consistency
+total score win rates. In this section, we present an analy-                                (a) Subject Consistency                                        (b) Background Consistency
+sis of the correlations between WorldModelBench’s physics                              0.9                                                                0.8
+
+
+
+
+                                                                   WMB Physics Adherence                                              WMB Physics Adherence
+adherence and VBench’s other dimension scores.                                         0.8
+                                                                                       0.7                                                                0.6
+    We compare all VBench dimensions that support cus-
+                                                                                       0.6
+tomized videos, including subject consistency, background                                                                                                 0.4
+                                                                                       0.5
+consistency, motion smoothness, dynamic degree, aesthetic                              0.4                                                                0.2
+quality and imaging quality. Using the same metrics as                                 0.3
+in Section 4.3, we compute the correlation of model win                                   0.5 0.6 0.7 0.8 0.9                   1.0                            0.5            0.6       0.7         0.8
+                                                                                             VBench Motion Smoothness                                                VBench Dynamic Degree
+rates on each VBench dimension and the physics adherence
+                                                                                              (c) Motion Smoothness                                                   (d) Dynamic Degree
+win rates on WorldModelBench. According to Table 6 and                                 0.9                                                                0.9
+
+
+
+
+                                                                   WMB Physics Adherence                                              WMB Physics Adherence
+Figure 10, the highest correlation coefficient is 0.41 (for aes-                       0.8                                                                0.8
+thetic quality), and the lowest correlation coefficient is -0.05                       0.7                                                                0.7
+(for dynamic degree). Both are significantly lower than the                            0.6                                                                0.6
+0.69 correlation coefficient observed for frame-wise quality                           0.5                                                                0.5
+                                                                                       0.4                                                                0.4
+in Section 4.3. These findings support that VBench does not
+                                                                                       0.3                                                                0.3
+effectively distinguish videos based on their adherence to                                   0.5      0.6   0.7    0.8    0.9                                          0.6     0.7    0.8     0.9   1.0
+physical laws, highlighting the importance of our benchmark                                        VBench Aesthetic Quality                                           VBench Imaging Quality
+in evaluating physical realism.                                                                (e) Aesthetic Quality                                                  (f) Imaging Quality
+
+Table 6. Correlation coefficient of VBench Dimensions with            Figure 10. Correlation of model win rates based on all dimensions
+Physics Adherence                                                     on VBench and WorldModelBench’s physics adherence.
+
+                                                                     CogVideoX [56] We use CogVideox-5B T2V and I2V
+    VBench Dimension              Correlation Coefficient
+                                                                     model. We use a classifier guidance ratio of 6.0, and 50
+    Subject Consistency                     0.15
+                                                                     step DDIM solver, following the official usage of the model.
+    Background Consistency                  0.19
+                                                                     Open-Sora [62] We use 720P, 4 second, aspect ratio 9:16,
+    Motion Smoothness                       0.34
+                                                                     30 sampling steps, with a flow threshold 5.0 and aesthetic
+    Dynamic Degree                         -0.05
+                                                                     threshold 6.5, as recommended by the official website.
+    Aesthetic Quality                       0.41
+                                                                     Pandora [53] We use its official checkpoint, with the default
+    Imaging Quality                         0.24
+                                                                     setting provided in the github, with 50 DDIM steps.
+                                                                     Mochi [3] we use the default setting with a cfg scale of 4.5,
+                                                                     with 65 sampling steps.
+8.2. More Examples of Reward Optimization
+                                                                     t2v-turbo [32] We use 4 steps of sampling, 7.5 as classifier
+We provide more examples as the results of optimization              free guidance scale, 16 fps and 16 frames as recommended
+from the world model judge feedback, as shown in Fig-                by the official usage.
+ure 11. Our method shows potential in leveraging world               Open-Sora-Plan [28] We use fps 18, guidance scale 7.5,
+model feedback to enhance instruction following, improve             100 sampling steps, 352 as height and 640 as width as rec-
+physics adherence, and achieve better aesthetics, leaving            ommended by the official usage.
+opportunities for future exploration.
+                                                                      8.4. The judge reliability for instruction following
+8.3. Model Inference details                                         We further demonstrate the judge’s instruction following
+We provide the model inference details for open models in            capacity by computing the Kendall rank correlation between
+our evaluation in section 4.                                         the judge predictions and human annotations, and get τ =
+0.96 (1 as the max value). We show the score comparison in
+Table 7, where the average prediction error is 2.79%.
+
+       Model               Scores ↑             Prediction
+                      Human (H) Judge (J)      Error (100%)
+ Closed Models
+ kling                   2.36          2.31       -2.12%
+ minimax                 2.29          2.28       -0.44%
+ mochi-official          2.01          2.00       -0.50%
+ runway                  2.15          2.17        0.93%
+ luma                    2.01          1.98       -1.49%
+ Open Models
+ mochi                   2.22          2.06        -7.21%
+ OpenSoraPlan-T2V        1.79          1.72        -3.91%
+ CogVideoX-T2V           2.11          2.03        -3.79%
+ CogVideoX-I2V           1.89          1.78        -5.82%
+ OpenSora-Plan-I2V       1.77          1.76        -0.56%
+ pandora                 1.56          1.56         0.00%
+ T2VTurbo                1.33          1.37         3.01%
+ OpenSora-T2V            1.71          1.61        -5.85%
+ OpenSora-I2V            1.60          1.42       -11.25%
+
+Table 7. Score comparison between scores provided by humans
+and by the judge model, on instruction following. The averaged
+predicting error is 2.79%.
+
+
+8.5. Performance on WorldModelBench-Hard
+We provide the detailed score comparison between all mod-
+els for the hard subset in Table 8. The most performance
+kling has observed 1.21 regression (from 9.08 to 7.87).
+These problems are lightweight to evaluate, and also hard
+enough to distinguish models.
+
+       Model            Full dataset     Hard Subset Score
+ Closed Models
+ kling                      9.08                7.87
+ minimax                    8.92                7.27
+ mochi-official             8.66                7.24
+ runway                     8.63                7.31
+ luma                       8.24                6.58
+ Open Models
+ mochi                      7.91                6.93
+ OpenSoraPlan-T2V           8.04                7.04
+ CogVideoX-T2V              7.65                6.13
+ CogVideoX-I2V              7.08                6.27
+ OpenSora-Plan-I2V          6.86                5.67
+ pandora                    6.90                6.49
+ T2VTurbo                   6.56                5.64
+ OpenSora-T2V               6.17                4.82
+ OpenSora-I2V               5.82                4.71
+
+Table 8. Comparison of Judge Model Scores and Hard Subset
+Scores across Closed and Open Models.
+Table 9. Model performance on WorldModelBench (graded by our judge). Bold and underline indicates the best performance over all
+models, and open models respectively. ”Deform.”, ”Penetr.”, ”Grav.” is short for ”Deformation”, ”Penetration”, ”Gravitation”.
+
+              Model                       Instruction       Common Sense                         Physics Adherence                           Total
+                                                          Frame     Temporal       Newton    Deform.        Fluid    Penetr.    Grav.
+              Closed Models
+              KLING [27]                      2.32         0.99        0.97         1.00        0.90         1.00      0.93      0.99        9.10
+              Minimax [37]                    2.28         0.99        0.93         1.00        0.86         0.99      0.88      0.99        8.92
+              Mochi-official [3]              2.00         0.97        0.89         1.00        0.88         1.00      0.93      0.99        8.66
+              Runway [44]                     2.17         0.99        0.87         1.00        0.77         0.98      0.89      0.96        8.64
+              Luma [35]                       1.98         0.96        0.81         1.00        0.70         0.98      0.87      0.95        8.24
+              Open Models
+              OpenSoraPlan-T2V [28]           1.72         0.83        0.85         1.00        0.77         0.99      0.91      0.98        8.04
+              Mochi [3]                       2.06         0.78        0.68         0.99        0.63         0.99      0.79      0.98        7.91
+              CogVideoX-T2V [56]              2.03         0.75        0.60         0.99        0.58         0.99      0.73      0.98        7.65
+              CogVideoX-I2V [56]              1.78         0.61        0.52         1.00        0.52         0.99      0.68      0.99        7.08
+              Pandora [53]                    1.56         0.49        0.53         1.00        0.55         0.98      0.79      0.99        6.90
+              T2V-Turbo [32]                  1.37         0.64        0.44         0.99        0.41         0.99      0.73      0.98        6.56
+              OpenSora-T2V [62]               1.61         0.40        0.29         0.98        0.30         0.98      0.64      0.97        6.17
+              OpenSora-I2V [62]               1.42         0.36        0.18         0.98        0.22         0.98      0.68      0.98        5.82
+
+
+
+
+                                    Fluid Constitutive Law                                       Deformation & Instruction Following
+
+
+
+    Ours
+
+
+
+
+  Original
+
+
+                                                                                    "A lone elephant stands in a vast grassland under a bright blue sky
+                       "Waves crash energetically against the rocks, sending        dotted with scattered clouds. the background includes some sparse
+                         up sprays of white foam under a clear blue sky."           dead trees and a flat landscape stretching into the distance."
+
+                                    Newton's Third Law                                                  Gravity & Newton's First Law
+
+
+    Ours
+                           wave
+
+
+
+   Original
+
+
+
+               "A small boat moves across a calm lake under a sky of blue and
+               white clouds, leaving gentle waves rolling backward as it moves."                       "Fireworks bloom in the night sky."
+
+
+Figure 11. Improvement of our world model gradient method. “Original” shows videos generated by the original Open-Sora 1.2, while
+“Ours” features videos produced by the reward-fine-tuned Open-Sora. Fine-tuning with the ensembled reward leads to better adherence to
+world physics, such as: (top left) alleviating the sticky properties of fluids, (top right) recovering from deformation, (bottom left) simulating
+waves as a result of Newton’s third law, and (bottom right) correcting violations of inertia.
+

@@ -1,0 +1,143 @@
+<!DOCTYPE html>
+
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>V-JEPA · 视频表征空间预测</title>
+<link href="../assets/css/style.css" rel="stylesheet"/>
+<link href="https://cdn.jsdelivr.net/npm/katex@0.16/dist/katex.min.css" rel="stylesheet"/>
+<script src="../assets/js/theme.js"></script>
+<script defer="" src="../assets/js/interactive.js"></script>
+<script defer="" src="https://cdn.jsdelivr.net/npm/katex@0.16/dist/katex.min.js"></script>
+<script defer="" onload="renderMathInElement(document.body,{delimiters:[{left:'$$',right:'$$',display:true},{left:'$',right:'$',display:false}]})" src="https://cdn.jsdelivr.net/npm/katex@0.16/dist/contrib/auto-render.min.js"></script>
+</head>
+<body>
+<nav class="nav">
+<a class="nav-logo" href="../index.html">Paper Notes</a>
+<div class="nav-links">
+<a href="ijepa-self-supervised.html">← I-JEPA</a>
+<a href="vjepa2.html">V-JEPA 2 →</a>
+<a href="../pdfs/world-model/Bardes 等 - 2024 - Revisiting Feature Prediction for Learning Visual Representations from Video.pdf" target="_blank">📄 PDF</a>
+</div>
+</nav>
+<div class="page">
+<div class="docs-layout">
+<aside class="docs-sidebar-left">
+<div class="ds-title">V-JEPA · 2024</div>
+<a class="ds-leaf-top" href="#tldr">§1 路线定位</a>
+<a class="ds-leaf-top" href="#architecture">§2 架构与信号流</a>
+<a class="ds-leaf-top" href="#objective">§3 训练目标</a>
+<a class="ds-leaf-top" href="#evidence">§4 学到了什么</a>
+<a class="ds-leaf-top" href="#takeaway">§5 对 world model 的意义</a>
+</aside>
+<main class="docs-content">
+<div class="docs-breadcrumb"><a href="../index.html">paper-notes</a><span class="sep">/</span>world model<span class="sep">/</span>V-JEPA</div>
+<h1>Revisiting Feature Prediction for Learning Visual Representations from Video</h1>
+<p style="color:var(--text3);font-family:var(--font-mono);font-size:12px;margin-top:-12px;">
+          Adrien Bardes et al. · FAIR at Meta / Inria / ENS / NYU · arXiv:2404.08471 · 2024
+        </p>
+<div class="callout amber">
+<div class="callout-label">专题进度</div>
+<p>主干、公式与关键图已整理；实验表格和 predictor 可视化将在下一轮精读补齐。</p>
+</div>
+<h2 id="tldr">§1 从“图像补块”跨到“视频懂运动”</h2>
+<div class="cn-read">
+<div class="cn-label">这一节解决什么</div>
+<p>上一站 I-JEPA 证明了“预测被遮区域的<strong>表征</strong>”可以替代像素重建，但单张图没有真正的时间。V-JEPA 把相同原则扩展到时空块：只凭视频中可见部分，预测被遮住的时空区域在目标编码器中的 latent。读完这一节，你应当把它定位成<strong>视频自监督表征模型</strong>，还不是 action-conditioned robot world model。</p>
+</div>
+<table class="kv-table">
+<tr><td>训练数据</td><td>约 200 万公开视频；不使用文本、人工标签、负样本或预训练图像编码器。</td></tr>
+<tr><td>核心目标</td><td>在 feature space 预测被遮住的视频时空块，而非重建 RGB。</td></tr>
+<tr><td>评价方式</td><td>冻结 backbone，以 attentive probe 测运动、外观和低样本迁移。</td></tr>
+<tr><td>不是</td><td>不是逐帧视频生成器，也没有动作条件，因此不能直接做机器人 MPC。</td></tr>
+</table>
+<details class="en-quote">
+<summary>展开原文 · 论文问的核心问题</summary>
+<div class="quote-body">
+<p>“How effective is feature prediction as a stand-alone objective for unsupervised learning from video?”</p>
+<div class="quote-cite">— §1, p.1</div>
+</div>
+</details>
+<h2 id="architecture">§2 架构：条件变量告诉 predictor“该猜哪里”</h2>
+<div class="cn-read">
+<div class="cn-label">从 I-JEPA 承上</div>
+<p>I-JEPA 已经给出 context encoder、target encoder 和 predictor。视频版没有推翻这三件套，而是把 $x$、$y$ 变成同一视频中的不同时空区域，并让 $z$ 携带目标区域的位置。关键变化是<strong>遮罩沿空间与时间扩展</strong>，目标从“物体长什么样”升级到“物体怎样运动”。</p>
+</div>
+<div class="fig-interactive panel-below">
+<div class="fig-block">
+<div class="hotspot-wrap" data-hotspot-group="vjepa-fig2">
+<img alt="V-JEPA Figure 2: Joint-Embedding Predictive Architecture" src="../assets/figures/vjepa/fig-2.png"/>
+<div class="hotspot" data-body="&lt;div class='hp-body'&gt;&lt;p&gt;&lt;strong&gt;这处在图里表示什么：&lt;/strong&gt;读取可见时空块 x，输出上下文表征。部署下游任务时保留下来的主干就是它。 它对应逐步导览中的“第 1 步：编码可见时空块”。&lt;/p&gt;&lt;p&gt;&lt;strong&gt;输入与实际操作：&lt;/strong&gt; 相机图像或视频，加上任务指令和机器人当前状态。它们还是原始观测，模型尚未把它们变成可用于预测或控制的特征。 视频被切成 tubelet；遮掉大比例 token 后，online encoder 只处理剩余上下文。&lt;/p&gt;&lt;p&gt;&lt;strong&gt;输出、前后关系与必要性：&lt;/strong&gt; 一组比原始输入更紧凑的内部特征；它不是最终动作或画面。这个结果会交给下一步“计算干净目标”继续处理。 图中下一环节是“第 2 步：计算干净目标”。 模型不能高效地直接在所有原始像素和长序列上推理；这一步把信息压成后续模块能处理、比较和复用的形式。&lt;/p&gt;&lt;/div&gt;" data-id="context" data-title="x-encoder · 上下文编码器" style="left:45%;top:30%;"></div>
+<div class="hotspot" data-body="&lt;div class='hp-body'&gt;&lt;p&gt;&lt;strong&gt;这处在图里表示什么：&lt;/strong&gt;读取未遮挡目标 y，产生训练靶标 s_y；它由 online encoder 的 EMA 更新，并停止反传。 它对应逐步导览中的“第 2 步：计算干净目标”。&lt;/p&gt;&lt;p&gt;&lt;strong&gt;输入与实际操作：&lt;/strong&gt; 来自上一步“编码可见时空块”的产物：一组比原始输入更紧凑的内部特征；它不是最终动作或画面。本步骤还会按论文设置读取当前条件、时间步或训练信号。 EMA target encoder 看完整目标区域，但它不接收梯度。&lt;/p&gt;&lt;p&gt;&lt;strong&gt;输出、前后关系与必要性：&lt;/strong&gt; 一套固定且可复现的输入条件，后续所有模型都必须在这套条件下生成或行动。这个结果会交给下一步“注入目标位置”继续处理。 图中下一环节是“第 3 步：注入目标位置”。 它承担上下两步之间的接口；缺少它，前一步产生的信息无法以正确格式或正确含义传到下一步。&lt;/p&gt;&lt;/div&gt;" data-id="target" data-title="y-encoder · 目标编码器" style="left:75%;top:30%;"></div>
+<div class="hotspot" data-body="&lt;div class='hp-body'&gt;&lt;p&gt;&lt;strong&gt;这处在图里表示什么：&lt;/strong&gt;根据上下文表征和目标位置条件 z，预测目标区域表征，而不是预测像素。 它对应逐步导览中的“第 4 步：预测 latent”。&lt;/p&gt;&lt;p&gt;&lt;strong&gt;输入与实际操作：&lt;/strong&gt; 来自上一步“注入目标位置”的产物：一套固定且可复现的输入条件，后续所有模型都必须在这套条件下生成或行动。本步骤还会按论文设置读取当前条件、时间步或训练信号。 predictor 输出每个目标位置的表征。&lt;/p&gt;&lt;p&gt;&lt;strong&gt;输出、前后关系与必要性：&lt;/strong&gt; 一组诊断数值、分类结果或评测分数；它告诉后续模块当前结果哪里好、哪里需要修正。这个结果会交给下一步“只比表征”继续处理。 图中下一环节是“第 5 步：只比表征”。 没有统一诊断或评分，后续模块无法知道哪里出错，也无法公平比较两个模型是否真的进步。&lt;/p&gt;&lt;/div&gt;" data-id="predictor" data-title="Predictor" style="left:45%;top:11%;"></div>
+<div class="hotspot" data-body="&lt;div class='hp-body'&gt;&lt;p&gt;&lt;strong&gt;这处在图里表示什么：&lt;/strong&gt;告诉 predictor 目标块位于何时、何处；没有它，同一上下文无法区分多个目标。 它对应逐步导览中的“第 3 步：注入目标位置”。&lt;/p&gt;&lt;p&gt;&lt;strong&gt;输入与实际操作：&lt;/strong&gt; 来自上一步“计算干净目标”的产物：一套固定且可复现的输入条件，后续所有模型都必须在这套条件下生成或行动。本步骤还会按论文设置读取当前条件、时间步或训练信号。 mask token / 位置条件指出要预测哪些时空坐标。&lt;/p&gt;&lt;p&gt;&lt;strong&gt;输出、前后关系与必要性：&lt;/strong&gt; 一套固定且可复现的输入条件，后续所有模型都必须在这套条件下生成或行动。这个结果会交给下一步“预测 latent”继续处理。 图中下一环节是“第 4 步：预测 latent”。 它承担上下两步之间的接口；缺少它，前一步产生的信息无法以正确格式或正确含义传到下一步。&lt;/p&gt;&lt;/div&gt;" data-id="condition" data-title="z · 时空位置条件" style="left:20%;top:10%;"></div>
+<div class="hotspot" data-body="&lt;div class='hp-body'&gt;&lt;p&gt;&lt;strong&gt;这处在图里表示什么：&lt;/strong&gt;训练把预测表征 ŝ_y 拉向 EMA 目标表征 s_y。论文实现用 L1 回归。 它对应逐步导览中的“第 5 步：只比表征”。&lt;/p&gt;&lt;p&gt;&lt;strong&gt;输入与实际操作：&lt;/strong&gt; 来自上一步“预测 latent”的产物：一组诊断数值、分类结果或评测分数；它告诉后续模块当前结果哪里好、哪里需要修正。本步骤还会按论文设置读取当前条件、时间步或训练信号。 L1 让预测靠近目标 embedding，不为叶片纹理或像素噪声付费。&lt;/p&gt;&lt;p&gt;&lt;strong&gt;输出、前后关系与必要性：&lt;/strong&gt; 一组比原始输入更紧凑的内部特征；它不是最终动作或画面。这是图中这条链路的最终产物，随后会进入真实执行、模型更新或指标评测。 图中下一环节是“后续执行或评测”。 它把前面得到的内部结果落实为可执行动作、可训练模型或可解释指标，完成从方法到结果的最后一步。&lt;/p&gt;&lt;/div&gt;" data-id="distance" data-title="D(ŝy, sy) · 表征距离" style="left:76%;top:11%;"></div>
+</div>
+<div class="fig-cap"><span class="fig-num">Fig 2 · p.3</span> V-JEPA 的抽象 JEPA 结构。<span class="fig-cn">点击圆点看每个模块；这张图表达的是“预测 latent”，不是“生成 frame”。</span></div>
+</div>
+<div class="hotspot-panel"></div>
+</div>
+<div class="step-walker" data-hotspot-group="vjepa-fig2">
+<div class="sw-header"><div class="sw-title">🪜 一次训练样本怎样流动</div><div class="sw-controls"><button class="sw-btn prev">◀</button><span class="sw-counter">1 / 5</span><button class="sw-btn next">▶</button></div></div>
+<div class="sw-progress"><div class="sw-dot"></div><div class="sw-dot"></div><div class="sw-dot"></div><div class="sw-dot"></div><div class="sw-dot"></div></div>
+<div class="sw-body">
+<div class="sw-step active" data-hotspot="context"><h4>第 1 步：编码可见时空块</h4><p>视频被切成 tubelet；遮掉大比例 token 后，online encoder 只处理剩余上下文。</p><div class="step-beginner"><div class="sb-label">给第一次接触这个领域的读者</div><p><strong>输入是什么：</strong>相机图像或视频，加上任务指令和机器人当前状态。它们还是原始观测，模型尚未把它们变成可用于预测或控制的特征。</p><p><strong>这一步究竟做什么：</strong>视频被切成 tubelet；遮掉大比例 token 后，online encoder 只处理剩余上下文。</p><p><strong>输出到哪里：</strong>一组比原始输入更紧凑的内部特征；它不是最终动作或画面。这个结果会交给下一步“计算干净目标”继续处理。</p><p><strong>为什么不能省略：</strong>模型不能高效地直接在所有原始像素和长序列上推理；这一步把信息压成后续模块能处理、比较和复用的形式。</p><div class="sb-terms"><strong>术语先翻译：</strong>token：模型处理信息的基本小单元；在这里通常是一小段图像、语言、动作或其压缩向量；encoder（编码器）：把原始输入压缩成模型内部可计算的特征。</div></div></div>
+<div class="sw-step" data-hotspot="target"><h4>第 2 步：计算干净目标</h4><p>EMA target encoder 看完整目标区域，但它不接收梯度。</p><div class="step-beginner"><div class="sb-label">给第一次接触这个领域的读者</div><p><strong>输入是什么：</strong>来自上一步“编码可见时空块”的产物：一组比原始输入更紧凑的内部特征；它不是最终动作或画面。本步骤还会按论文设置读取当前条件、时间步或训练信号。</p><p><strong>这一步究竟做什么：</strong>本步骤执行“计算干净目标”。具体来说，EMA target encoder 看完整目标区域，但它不接收梯度。 这里处理的只是整条链路中的一个接口：把上一步的结果整理成下一步能够正确读取和继续计算的形式。</p><p><strong>输出到哪里：</strong>一套固定且可复现的输入条件，后续所有模型都必须在这套条件下生成或行动。这个结果会交给下一步“注入目标位置”继续处理。</p><p><strong>为什么不能省略：</strong>它承担上下两步之间的接口；缺少它，前一步产生的信息无法以正确格式或正确含义传到下一步。</p><div class="sb-terms"><strong>术语先翻译：</strong>encoder（编码器）：把原始输入压缩成模型内部可计算的特征；EMA（指数滑动平均）：用在线模型历史参数的平滑平均构造更稳定的目标网络。</div></div></div>
+<div class="sw-step" data-hotspot="condition"><h4>第 3 步：注入目标位置</h4><p>mask token / 位置条件指出要预测哪些时空坐标。</p><div class="step-beginner"><div class="sb-label">给第一次接触这个领域的读者</div><p><strong>输入是什么：</strong>来自上一步“计算干净目标”的产物：一套固定且可复现的输入条件，后续所有模型都必须在这套条件下生成或行动。本步骤还会按论文设置读取当前条件、时间步或训练信号。</p><p><strong>这一步究竟做什么：</strong>本步骤执行“注入目标位置”。具体来说，mask token / 位置条件指出要预测哪些时空坐标。 模型从相同起点产生候选未来，后续模块再检查这些未来是否符合条件、物理规律或动作需要。</p><p><strong>输出到哪里：</strong>一套固定且可复现的输入条件，后续所有模型都必须在这套条件下生成或行动。这个结果会交给下一步“预测 latent”继续处理。</p><p><strong>为什么不能省略：</strong>它承担上下两步之间的接口；缺少它，前一步产生的信息无法以正确格式或正确含义传到下一步。</p><div class="sb-terms"><strong>术语先翻译：</strong>token：模型处理信息的基本小单元；在这里通常是一小段图像、语言、动作或其压缩向量；mask（掩码）：故意隐藏一部分输入，让模型只根据可见信息预测被隐藏部分。</div></div></div>
+<div class="sw-step" data-hotspot="predictor"><h4>第 4 步：预测 latent</h4><p>predictor 输出每个目标位置的表征。</p><div class="step-beginner"><div class="sb-label">给第一次接触这个领域的读者</div><p><strong>输入是什么：</strong>来自上一步“注入目标位置”的产物：一套固定且可复现的输入条件，后续所有模型都必须在这套条件下生成或行动。本步骤还会按论文设置读取当前条件、时间步或训练信号。</p><p><strong>这一步究竟做什么：</strong>本步骤执行“预测 latent”。具体来说，predictor 输出每个目标位置的表征。 它把原本模糊的‘看起来对不对’拆成可重复计算或人工核对的判断，从而让不同模型能在同一标准下比较。</p><p><strong>输出到哪里：</strong>一组诊断数值、分类结果或评测分数；它告诉后续模块当前结果哪里好、哪里需要修正。这个结果会交给下一步“只比表征”继续处理。</p><p><strong>为什么不能省略：</strong>没有统一诊断或评分，后续模块无法知道哪里出错，也无法公平比较两个模型是否真的进步。</p><div class="sb-terms"><strong>术语先翻译：</strong>latent（隐表示）：模型内部压缩后的数字特征，人看不见，但比原始图像或动作更便于计算。</div></div></div>
+<div class="sw-step" data-hotspot="distance"><h4>第 5 步：只比表征</h4><p>L1 让预测靠近目标 embedding，不为叶片纹理或像素噪声付费。</p><div class="step-beginner"><div class="sb-label">给第一次接触这个领域的读者</div><p><strong>输入是什么：</strong>来自上一步“预测 latent”的产物：一组诊断数值、分类结果或评测分数；它告诉后续模块当前结果哪里好、哪里需要修正。本步骤还会按论文设置读取当前条件、时间步或训练信号。</p><p><strong>这一步究竟做什么：</strong>本步骤执行“只比表征”。具体来说，L1 让预测靠近目标 embedding，不为叶片纹理或像素噪声付费。 模型从相同起点产生候选未来，后续模块再检查这些未来是否符合条件、物理规律或动作需要。</p><p><strong>输出到哪里：</strong>一组比原始输入更紧凑的内部特征；它不是最终动作或画面。这是图中这条链路的最终产物，随后会进入真实执行、模型更新或指标评测。</p><p><strong>为什么不能省略：</strong>它把前面得到的内部结果落实为可执行动作、可训练模型或可解释指标，完成从方法到结果的最后一步。</p><div class="sb-terms"><strong>术语先翻译：</strong>embedding（向量表征）：用一串数字表示一个画面、词语或状态，使模型能比较和运算。</div></div></div>
+</div>
+</div>
+<h2 id="objective">§3 Loss：简单，但 collapse 约束藏在 EMA + stop-grad</h2>
+<div class="cn-read">
+<div class="cn-label">从架构到公式</div>
+<p>有了两路编码器，最危险的捷径是二者都输出同一个常数。V-JEPA 沿用 I-JEPA/BYOL 风格的非对称训练：目标分支 stop-gradient，目标编码器是 online encoder 的指数滑动平均。直觉上，学生追一个缓慢移动的老师，而不是两边一起冲向常数解。</p>
+</div>
+<div class="math-block">$$\min_{\theta,\phi}\left\|P_\phi(E_\theta(x),\Delta_y)-\operatorname{sg}(E_{\bar\theta}(y))\right\|_1$$<span class="math-label">Eq. 1 · §3.1, p.3</span></div>
+<div class="math-explain">
+<div class="me-title">逐项拆解</div>
+<dl>
+<dt>$E_\theta(x)$</dt><dd>online encoder 从遮罩后的视频上下文抽取 token。</dd>
+<dt>$\Delta_y$</dt><dd>目标时空位置；它决定 predictor 要回答哪一个“缺口”。</dd>
+<dt>$P_\phi(\cdot)$</dt><dd>较窄的 predictor，把上下文映射成目标 latent。</dd>
+<dt>$E_{\bar\theta}(y)$</dt><dd>EMA target encoder 计算的训练靶标。</dd>
+<dt>$\operatorname{sg}$</dt><dd>停止目标分支梯度，防止两个分支互相追逐导致坍缩。</dd>
+</dl>
+</div>
+<h2 id="evidence">§4 证据：冻结主干也能同时读外观和运动</h2>
+<div class="cn-read">
+<div class="cn-label">公式之后看它是否真学到时间</div>
+<p>如果模型只靠静态外观作弊，它在 Something-Something-v2 这类依赖细粒度运动的任务上不会强。论文把同一个冻结主干同时放到 Kinetics-400 和 SSv2，V-JEPA 位于两轴的高位，说明 feature prediction 没有只学“物体类别”，也抓住了动作动态。</p>
+</div>
+<div class="fig-interactive">
+<div class="fig-block">
+<div class="hotspot-wrap" data-hotspot-group="vjepa-fig1">
+<img alt="V-JEPA frozen evaluation on Kinetics-400 and Something-Something-v2" src="../assets/figures/vjepa/fig-1.png"/>
+<div class="hotspot" data-body="&lt;div class='hp-body'&gt;&lt;p&gt;&lt;strong&gt;图中位置与输入：&lt;/strong&gt;散点图中的 V-JEPA ViT-H/16 同时读取 K400 外观轴和 SSv2 运动轴成绩。&lt;/p&gt;&lt;p&gt;&lt;strong&gt;这里真正发生什么：&lt;/strong&gt;同一个冻结 backbone 在两类评估上都位于前沿，说明 latent prediction 没有只记场景外观，也捕捉了动作次序与物体交互。&lt;/p&gt;&lt;p&gt;&lt;strong&gt;它与相邻模块的关系：&lt;/strong&gt;它要与右侧图像模型和下方像素预测视频模型同时比较；单看 K400 高分无法证明模型真正理解动态。&lt;/p&gt;&lt;/div&gt;" data-id="vjepa" data-title="V-JEPA ViT-H/16" style="left:57%;top:16%;"></div>
+<div class="hotspot" data-body="&lt;div class='hp-body'&gt;&lt;p&gt;&lt;strong&gt;图中位置与输入：&lt;/strong&gt;VideoMAE 等像素预测模型使用视频预训练，也能获得不错 K400 表现。&lt;/p&gt;&lt;p&gt;&lt;strong&gt;这里真正发生什么：&lt;/strong&gt;其预训练目标要求恢复大量颜色、纹理和背景像素，模型容量可能被不可预测的低层细节占用；冻结评估时 SSv2 细粒度运动较弱。&lt;/p&gt;&lt;p&gt;&lt;strong&gt;它与相邻模块的关系：&lt;/strong&gt;这组点是 V-JEPA 的关键对照：差异不只是‘图像还是视频数据’，还包括预测像素还是预测抽象 target embedding。&lt;/p&gt;&lt;/div&gt;" data-id="pixel" data-title="像素预测视频模型" style="left:25%;top:28%;"></div>
+<div class="hotspot" data-body="&lt;div class='hp-body'&gt;&lt;p&gt;&lt;strong&gt;图中位置与输入：&lt;/strong&gt;DINOv2、I-JEPA 等只用静态图像训练，天然没有时间顺序输入。&lt;/p&gt;&lt;p&gt;&lt;strong&gt;这里真正发生什么：&lt;/strong&gt;它们能凭物体和场景外观在 K400 取得高分，却难区分 SSv2 中方向、先后顺序和交互结果不同的动作。&lt;/p&gt;&lt;p&gt;&lt;strong&gt;它与相邻模块的关系：&lt;/strong&gt;这条基线定义运动轴的必要性：若 V-JEPA 只比图像模型多看相邻帧却未利用顺序，SSv2 不应出现明显优势。&lt;/p&gt;&lt;/div&gt;" data-id="image" data-title="图像模型" style="left:54%;top:49%;"></div>
+<div class="hotspot" data-body="&lt;div class='hp-body'&gt;&lt;p&gt;&lt;strong&gt;图中位置与输入：&lt;/strong&gt;纵轴采用 Something-Something-v2，类别常由推、拉、放入、取出及其时间方向决定。&lt;/p&gt;&lt;p&gt;&lt;strong&gt;这里真正发生什么：&lt;/strong&gt;场景和物体相似时，模型必须追踪对象运动与手物交互才能分类，因此它更像动态表征探针。&lt;/p&gt;&lt;p&gt;&lt;strong&gt;它与相邻模块的关系：&lt;/strong&gt;与横轴 K400 联合阅读可区分‘只会识别背景’和‘同时编码外观与运动’；V-JEPA 的目标是向右上角移动。&lt;/p&gt;&lt;/div&gt;" data-id="motion-axis" data-title="纵轴 · Motion" style="left:7%;top:43%;"></div>
+<div class="hotspot" data-body="&lt;div class='hp-body'&gt;&lt;p&gt;&lt;strong&gt;图中位置与输入：&lt;/strong&gt;横轴采用 Kinetics-400，许多动作可由场景、服装、器具或单帧姿态提供强线索。&lt;/p&gt;&lt;p&gt;&lt;strong&gt;这里真正发生什么：&lt;/strong&gt;图像模型也能在此轴表现良好，所以高 K400 并不自动等价于视频理解。&lt;/p&gt;&lt;p&gt;&lt;strong&gt;它与相邻模块的关系：&lt;/strong&gt;它和 SSv2 构成互补坐标：理想视频表征既保留对象语义和外观，又能处理时间变化。&lt;/p&gt;&lt;/div&gt;" data-id="appearance-axis" data-title="横轴 · Appearance" style="left:51%;top:66%;"></div>
+</div>
+<div class="fig-cap"><span class="fig-num">Fig 1 · p.1</span> Frozen evaluation。<span class="fig-cn">读图重点不是绝对 SOTA，而是一个冻结主干能否同时覆盖 appearance 与 motion。</span></div>
+</div>
+<div class="hotspot-panel"></div>
+</div>
+<div class="quiz" data-correct="c" data-explain="V-JEPA 只接受视频与时空位置条件，不接收机器人动作；它首先是 action-free 表征模型。" data-explain-wrong="视频预测不等于动作条件世界模型。能做控制还需要动作进入动力学预测器或另行训练 policy。">
+<div class="q-label">🧠 理解检查</div><div class="q-text">为什么 V-JEPA 不能仅凭本文训练目标直接做机器人 MPC？</div>
+<div class="q-options"><button class="q-opt" data-k="a">因为它不能处理视频</button><button class="q-opt" data-k="b">因为它只能输出像素</button><button class="q-opt" data-k="c">因为训练时没有动作条件</button><button class="q-opt" data-k="d">因为冻结评估不允许规划</button></div><div class="q-feedback"></div>
+</div>
+<h2 id="takeaway">§5 在路线图里的位置</h2>
+<div class="callout blue"><div class="callout-label">一句话带走</div><p>V-JEPA 证明“只预测视频 latent”足以学到强时空表征；V-JEPA 2 才把这个表征接上动作条件 predictor 和 MPC，跨过 world model → control 的门槛。</p></div>
+<table class="kv-table">
+<tr><td>相对 I-JEPA</td><td>从空间 mask 走向时空 mask，获得 motion representation。</td></tr>
+<tr><td>相对生成式 WM</td><td>放弃可视化未来帧，换取更抽象、更快的 latent prediction。</td></tr>
+<tr><td>最大缺口</td><td>没有 action conditioning、没有闭环规划、dense locality 也不够好。</td></tr>
+<tr><td>下一篇</td><td><a href="vjepa2.html">V-JEPA 2</a>：1M 小时视频预训练 + 62 小时机器人数据 → latent MPC。</td></tr>
+</table>
+</main>
+</div>
+</div>
+</body>
+</html>

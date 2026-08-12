@@ -1,0 +1,1092 @@
+                                                                                                                                                                     February 28, 2025
+
+
+
+
+                                                                      Do generative video models
+                                                                     understand physical principles?
+                                                       Saman Motameda,1 , Laura Culpb , Kevin Swerskyb , Priyank Jainib,† , and Robert Geirhosb,†
+                                                        a
+                                                            INSAIT, Sofia University; work done while at Google DeepMind; b Google DeepMind; † Joint last authors.
+
+
+
+
+arXiv:2501.09038v3 [cs.CV] 27 Feb 2025
+                                          AI video generation is undergoing a revolution, with quality and       an analogy, large language models are trained in a similar
+                                         realism advancing rapidly. These advances have led to a passionate      fashion to predict the next tokens (characters or words) in
+                                         scientific debate: Do video models learn “world models” that discover   a text; a task formulation that is equally simple but has
+                                         laws of physics—or, alternatively, are they merely sophisticated        proven sufficient to enable impressive capabilities and text
+                                         pixel predictors that achieve visual realism without understanding      understanding. Moreover, predicting the future is a core
+                                         the physical principles of reality? We address this question by         principle of biological perception, too: The brain constantly
+                                         developing Physics-IQ, a comprehensive benchmark dataset that           generates predictions about incoming sensory input, enabling
+                                         can only be solved by acquiring a deep understanding of various         energy-efficient processing of information (4) and building a
+                                         physical principles, like fluid dynamics, optics, solid mechanics,      mental model of the world as postulated by von Helmholtz
+                                         magnetism and thermodynamics. We find that across a range of            (5) and later the predictive coding hypothesis (6). In short,
+                                         current models (Sora, Runway, Pika, Lumiere, Stable Video Diffusion,    successful prediction signals successful understanding.
+                                         and VideoPoet), physical understanding is severely limited, and            On the other hand, there are also important arguments
+                                         unrelated to visual realism. At the same time, some test cases          contra understanding through observation. According to the
+                                         can already be successfully solved. This indicates that acquiring       causality rationale, “watching” videos (or to be more precise,
+                                         certain physical principles from observation alone may be possible,     training models to predict how videos continue) is a passive
+                                         but significant challenges remain. While we expect rapid advances       process, with models unable to interact with the world. This
+                                         ahead, our work demonstrates that visual realism does not imply         lack of interaction means that a model cannot observe the
+                                         physical understanding. Our project page is at Physics-IQ-website;      causal effects of an intervention (as, for instance, children are
+                                         code at Physics-IQ-benchmark.                                           able to when playing with toys).
+                                            Can a machine truly understand the world without inter-                 Therefore, a model is faced with the nearly impossible task
+                                         acting with it? This question lies at the heart of the ongoing          of distinguishing correlation from causation if it is to succeed
+                                         debate surrounding the capabilities of AI video generation              in understanding physical principles.
+                                         models. While the generation of realistic videos has, for a long            Furthermore, video models that are touted as “a promising
+                                         time, been considered one of the major unsolved challenges              path towards building general purpose simulators of the
+                                         within deep learning, this recently changed. Within a relatively        physical world” (1) arguably experience a different world to
+                                         short period of time, the field has seen the development                begin with: the digital world as opposed to the real world
+                                         of impressive video generation models (1–3), capturing the              that an embodied system (like a robot, or virtually all living
+                                         imagination of the public and researchers alike. A major                beings) experience. As a consequence, skeptics argue that
+                                         milestone towards general-purpose artificial intelligence is to         visual realism by no means signals true understanding: All
+                                         build machines that understand the world, and if you cannot             it takes to produce realistic videos is to reproduce common
+                                         understand what you cannot create (as Feynman would say),               patterns from the model’s vast sea of training data—shortcuts
+                                         then the ability of those models to create visually realistic           without understanding (7, 8).
+                                         scenes is an essential step towards that capability. However,
+                                                                                                                    In light of these two diametrically opposed perspectives,
+                                         the degree to which successful generation signals successful
+                                                                                                                 how can we tell whether generative video models indeed
+                                         understanding is the subject of a passionate debate. Is it
+                                                                                                                 learn physical principles? To address this question in a
+                                         possible to understand the world without ever interacting
+                                                                                                                 quantifiable, tractable way, we created a challenging testbed
+                                         with it? Phrased differently, do generative video models learn
+                                                                                                                 for physical understanding in video models: the “Physics-IQ”
+                                         the physical principles that underpin reality from “watching”
+                                                                                                                 benchmark. The core idea is to enlist video models to do
+                                         videos?
+                                                                                                                 what they do best: predict the continuation of a video. In
+                                             Proponents argue that the way the models are trained—               order to test understanding, we designed a range of diverse
+                                         predicting how videos continue, a.k.a. next frame prediction—           scenarios where predicting the continuation requires a deep
+                                         is a task that forces models to understand physical principles.         understanding of physical principles, going beyond pattern
+                                         According to this line of argument, it is impossible to                 reproduction and testing out-of-distribution generalization.
+                                         predict the next frame of a sequence if the model has no                For instance, models are asked to predict how a domino
+                                         understanding of how objects move (trajectories), that things           chain falls—normally, vs. when a rubber duck is placed in
+                                         fall down instead of up (gravity), and how pouring juice                the middle of the chain; or how pillows react when a kettlebell
+                                         into a glass of water changes its color (fluid dynamics). As            vs. a piece of paper is dropped onto the pillow. The diverse
+
+                                                                                                                                                                                    1
+                                                       Do generative video models understand physical principles?
+
+
+   Solid Mechanics                    Fluid Dynamics                            Optics                    Thermodynamics                        Magnetism
+
+
+
+
+Fig. 1. Sample scenarios from the Physics-IQ dataset for testing physical understanding in generative video models. Models are shown the beginning of a video (single frame
+for image2video models; 3 seconds for video2video models) and need to predict how the video continues over the next 5 seconds, which requires understanding different
+physical properties: Solid Mechanics, Fluid Dynamics, Optics, Thermodynamics, and Magnetism. See here for an animated version of this figure.
+
+
+
+set of scenarios encompass solid mechanics, fluid dynamics,                            model can predict how a challenging, unusual video continues—
+optics, thermodynamics and magnetism, totalling 396 high-                              such as a chain of dominoes with a rubber duck in the middle
+quality videos filmed from three different perspectives in a                           interrupting the chain. Out-of-distribution scenarios like
+controlled environment. Samples are shown in Figure 1. We                              these test true understanding, since they cannot be solved
+then compare the model’s prediction to the ground truth                                by reproducing patterns seen or memorized from the training
+continuation using a set of metrics that capture different                             data (e.g. 7, 14–16). We therefore test physical understanding
+desiderata, and analyze a range of current models: Sora (1),                           of video generative models by taking a full video of 8 seconds
+Runway Gen 3 (9), Pika 1.0 (10), Lumiere (11), Stable Video                            in which a physically interesting event occurs, splitting the
+Diffusion (12), and VideoPoet (13).                                                    video into a 3-second conditioning video and a 5-second
+                                                                                       test video which acts as ground truth. The model is then
+Physics-IQ benchmark                                                                   given the conditioning signal: either the 3-second video for
+                                                                                       video2video models (named multiframe models in figures),
+Dataset. Our goal is to develop a dataset that tests the physical
+                                                                                       or the last frame of this—called the switch frame—in the
+understanding capabilities of video generative models on
+                                                                                       case of image2video models (named i2v models in figures).
+different physical laws like solid mechanics, fluid dynamics,
+                                                                                       Since video models are trained precisely to generate the next
+optics, thermodynamics, and magnetism. We therefore created
+                                                                                       frames given the previous frame(s) as conditioning signal, our
+the Physics-IQ dataset which consists of 396 videos each 8
+                                                                                       evaluation protocol matches the paradigm these models were
+seconds long covering 66 different physical scenarios. Each
+                                                                                       trained for. The switch frame is carefully selected manually for
+scenario in our dataset focuses on a specific physical law
+                                                                                       each scenario such that enough information about the physical
+and aims to test a video generative model’s understanding
+                                                                                       event and objects in the scenario is provided, while at the same
+of physical events. These events include examples like
+                                                                                       time making sure that successfully predicting the continuation
+collisions, object continuity, occlusion, object permanence,
+                                                                                       requires some understanding of physics (e.g., in the scenario
+fluid dynamics, chain reactions, trajectories under the influence
+                                                                                       involving the chain reaction when a domino falls, the switch
+of forces (e.g., gravity), material properties and reactions, as
+                                                                                       frame corresponds to the moment when the first domino is
+well as lights, shadows, reflections, and magnetism.
+                                                                                       tipped but has not yet contacted the second domino). We
+    Each scenario was filmed at 30 frames per second (FPS)
+                                                                                       provide video models that support multi-frame conditioning
+with a resolution of 3840 × 2160 (16:9 aspect ratio) from
+                                                                                       with as many conditioning frames (up to a maximum of 3
+three different perspectives: left, center, and right using high-
+                                                                                       seconds) as they can accommodate. Some video models (e.g.,
+quality Sony Alpha a6400 cameras equipped with 16-50mm
+                                                                                       Runway Gen 3, Pika 1.0, and Sora) generate subsequent frames
+lenses. Each scenario was shot twice (take 1 and take 2 ) under
+                                                                                       based on a single image. For these models, we provide just
+identical conditions to capture the inherent variability of real-
+                                                                                       the switch frame as the conditioning signal. Figure 9 shows
+world physical interactions. These variations are expected in
+                                                                                       the switch frame for all scenarios in the Physics-IQ dataset.
+real-world due to factors like chaotic motion, subtle changes
+                                                                                          Both multiframe and single-frame conditioned video models
+in friction, and variations in force trajectory. In this paper, we
+                                                                                       can additionally be conditioned on a human-written text
+refer to the differences observed between these two recordings
+                                                                                       description of the scene that describes the conditioning
+of the same scenario as physical variance. This results in a total
+                                                                                       part without, however, giving away the answer of how the
+of 396 videos (66 scenarios × 3 perspectives × 2 takes). All
+                                                                                       future unfolds. For evaluating image-to-video (i2v) and
+our videos are shot from a static camera perspective without
+                                                                                       multiframe video models, we provide both the captions and
+camera motion. The setup for filming the videos is illustrated
+                                                                                       the conditioning frame(s) as conditioning signals. Stable Video
+in fig. 8. The full dataset and code for evaluating model
+                                                                                       Diffusion is the only model in our study that does not accept
+predictions is open-sourced here:
+                                                                                       text as a conditioning signal.
+https://github.com/google-deepmind/physics-IQ-benchmark
+
+Evaluation protocol. Physical understanding can be measured                            Why create a real-world Physics-IQ dataset. The question of
+in different ways. One of the most stringent tests is whether a                        whether video generative models can understand physical
+
+                                                                                                                                                                         2
+                                                          Do generative video models understand physical principles?
+
+
+                                                           Test frames (5 seconds)
+
+
+
+
+                                                                                                        Evaluation metrics
+               Switch frame
+                                                                                                                                MSE            Spatiotemporal      Weighted Spatial    Spatial IoU
+                                                                                                                             "how action             IoU                 IoU          "where action
+                                                                                                                              happens"        "where and when      "where and how       happens"
+                                                         Generated frames (5 seconds)                                                          action happens"       much action
+
+
+                                      Video generative
+                                                                                                                                                                      happens"
+
+
+
+
+                                          model
+    Conditioning frames
+       (3 seconds)                                                                                  -
+
+
+
+
+Fig. 2. Overview of the Physics-IQ evaluation protocol. A video generative model produces a 5 second continuation of the conditioning frame(s), optionally including a textual
+description of the conditioning frames for models that accept text input. They are compared against the ground truth test frames using four metrics that quantify different
+properties of physical understanding. The metrics are defined and explained in the methods section. Code to run the evaluation is available at Physics-IQ-benchmark.
+
+
+
+principles has been explored through a range of benchmarks
+designed to evaluate physical reasoning. Physion (17) and its
+successor Physion++ (18) use object collisions and stability
+to assess a model’s ability to predict physical outcomes and
+infer relevant properties of objects (e.g., mass, friction) during
+dynamic interactions. Similarly, CRAFT (19) and IntPhys (20)                                   CRAFT                                 IntPhys                     Physion               ESPRIT
+assess causal reasoning and intuitive physics, testing whether
+models can infer forces or understand object permanence.
+Intuitive physics has a rich history in Cognitive Science
+and is concerned with understanding how humans build a
+commonsense intuition for physical principles (e.g. 21–31).
+Recent efforts have extended physical reasoning evaluation to                                Physion++                                CoPhy                  CLEVERER                 PhyWorld
+generative video models. VideoPhy (32) and PhyGenBench
+(33) focus on assessing physical commonsense through text-                               Fig. 3. A qualitative overview of recent synthetic datasets related to physical
+based descriptions rather than visual data. These works                                  understanding (17–20, 37–40). These datasets are great for the purposes they
+emphasize logical reasoning about physical principles but do                             were designed for, but not ideal for evaluating models trained on real-world videos
+not incorporate real-world videos or dynamic visual contexts.                            due to the distribution shift.
+
+PhysGame (34) focuses on gameplay, while the Cosmos project
+(35) aims to enable better embodied AI, including robotics.
+LLMPhy (36) combines a large language model with a non-                                  Models. We evaluate eight different video generative models
+differentiable physics simulator to iteratively estimate physical                       on our benchmark: VideoPoet (both i2v and multiframe)
+hyperparameters (e.g., friction, damping, layout) and predict                           (13), Lumiere (i2v and multiframe) (11), Runway Gen 3 (i2v)
+scene dynamics. Other benchmarks, such as CoPhy (37)                                    (9), Pika 1.0 (i2v) (10), Stable Video Diffusion (i2v) (12),
+and CLEVERER (38), emphasize counterfactual reasoning                                   and Sora (i2v) (1). We note that Luma (42) and Veo2 (2)
+and causal inference in video-based scenarios. ESPRIT (39)                              are two other popular video generative models that have not
+couples physical reasoning tasks with explainability via natural                        been included in our benchmark, because the Luma Labs
+language explanations, and PhyWorld (40) evaluates the ability                          usage policy prohibits benchmarking and because Veo2 is not
+of generative video models to encode physical laws, focusing on                         generally available at the time of writing. Different models
+physical realism. A comprehensive overview of recent models                             have different requirements for the input conditions (single
+and methods is provided by (41).                                                        frame, multi frame, or text conditioning), frame rates (8–30
+                                                                                        FPS), and resolution (between 256 × 256 and 1280 × 768). An
+                                                                                        overview is shown in Table 2. For our study, we matched the
+   However, a major drawback of many benchmarks is that                                 model’s preferred input conditions, frame rates, and resolution
+the data they use is synthetic (see Fig 3 for samples). This                            exactly by performing a pre-processing step on the Physics-IQ
+introduces a real-vs-synthetic distribution shift that may                              videos (see Algorithm 1 for pseudocode).
+confound results when testing video models trained on natural                                VideoPoet and Lumiere are the only two models in our
+videos. The Physics-IQ dataset overcomes this limitation by                              study that can take multiple frames as conditioning input.
+providing real-world videos, capturing diverse and complex                               These models also include a super-resolution stage, where they
+physical phenomena (see Fig 1). With three views per scenario,                           first generate a lower resolution video and subsequently upscale
+controlled and measured physical variance (by recording two                              it to a higher resolution. Since we noticed that the lower
+takes for each video), and challenging out-of-distribution                               resolution outputs suffice to test physical realism, we skipped
+settings it provides a rigorous design for evaluating video                              the super-resolution step for these models. The benchmark
+generative models.                                                                       consists of physical interactions where temporal information
+
+                                                                                                                                                                                                      3
+                                          Do generative video models understand physical principles?
+
+is decidedly useful to have, thus it is generally to be expected         object detection to measure overlap while penalizing areas
+that multiframe models should, in principle, be able do better           that differ):
+than i2v models.
+                                                                                                         binary,spatial    binary,spatial
+                                                                                                       |Mreal           ∩ Mgen            |
+                                                                                      Spatial-IoU =
+Metrics for physical understanding. Video generative models                                              binary,spatial
+                                                                                                       |Mreal              binary,spatial
+                                                                                                                        ∪ Mgen            |
+commonly use metrics (43–46) and benchmarks (47–49) suited
+for evaluating the visual quality and realism of the generated           where Mreal
+                                                                                 spatial
+                                                                                         and Mgen
+                                                                                              spatial
+                                                                                                      are the motion maps based on real
+videos. These metrics include Peak Signal-to-Noise Ratio                 and generated videos, respectively. Spatial IoU measures
+(PSNR) (43), Structural Similarity Index Measure (SSIM)                  whether the location where an action happens is correct.
+(44), Fréchet Video Distance (FVD) (45, 50), and Learned Per-           Where & when does action happen? Spatiotemporal IoU   Spa-
+ceptual Image Patch Similarity (LPIPS) (46). These metrics               tiotemporal IoU goes a step further than Spatial IoU by
+are useful for comparing the appearance, temporal smoothness,            also taking into account when an action occurs. Instead of
+and statistics of generated videos with the ground truth.                collapsing across time as Spatial IoU does, Spatiotemporal
+Unfortunately, these metrics are not equipped to assess the              IoU compares the two motion mask videos (based on real and
+understanding of physical laws by video models. For instance,            generated videos) frame-by-frame, averaging across t:
+both PSNR and SSIM evaluate pixel-level similarities but are
+not sensitive to the correctness of motion and interactions in                                                                |Mreal ∩ Mgen |
+                                                                                  Spatiotemporal-IoU(Mreal , Mgen ) =
+a video; FVD captures overall feature distributions but does                                                                  |Mreal ∪ Mgen |
+not penalize a model for physically implausible actions and              where Mreal and Mgen are the h × w × t binary motion masks
+LPIPS focuses on human-like perception of similarity rather              for the real and generated videos, respectively. Spatiotemporal
+than physical plausibility. While these metrics are great for            IoU thus tracks not only where an action occurs in a video,
+measuring what they were designed for, they are not equipped             but also whether it occurs at the right time (when). If a model
+to judge whether a model understands real-world physics.                 does well on Spatial IoU but poorly on Spatiotemporal IoU,
+   In our benchmark, we use the following four metrics to                this would therefore indicate that the model gets the location
+track different aspects of physical understanding:                       of the action right, but the timing wrong.
+ • Where does action happen? Spatial IoU                                 Where does action happen, and & how much action happens?
+ • Where & when does action happen? Spatiotemporal                       Weighted spatial IoU Weighted spatial IoU is similar to Spatial
+   IoU                                                                   IoU in the sense that it compares two h × w “motion maps”.
+ • Where & how much action happens? Weighted spatial                     However, instead of comparing binary motion maps (action
+   IoU                                                                   occurred or did not occur), it also assesses how much action
+ • How does action happen? MSE                                           happens at any given location. This distinguishes between
+                                                                         e.g. motion caused by a pendulum (showing repeated motion
+These four metrics—explained in detail below—are then
+                                                                         in an area) from motion by a rolling ball (which passes a
+combined into a single score, the Physics-IQ score, by
+                                                                         location only once). Weighted spatial IoU is computed by
+summing the individual scores (with a negative sign for MSE
+                                                                         taking the binary h × w × t motion mask video (described
+where lower= better). This Physics-IQ score is normalized
+                                                                         above in the section on Spatial IoU) and collapsing across the
+such that physical variance—the upper limit of what we can
+                                                                         time dimension t in a weighted fashion (instead of taking the
+reasonably expect a model to capture—is at 100%.
+                                                                         maximum). The weighting simply averages per-frame action.
+Where does action happen? Spatial IoU   The location of move-            This weighted h × w spatial “motion map” is then used to
+ment is an important indicator of physical “correctness”. For            compute the metric by summing the pixel-wise minimum of
+instance, in the “domino with duck interrupting the chain”               two motion maps and dividing by the pixel-wise maximum:
+scenario from Figure 1, only the part of the chain that is to                                          Pn
+                                                                                                               min Mreal,i
+                                                                                                                    weighted,spatial    weighted,spatial
+                                                                                                                                                            
+                                                                                                                                     , Mgen,i
+the right side of the duck should tumble, while the other part           Weighted-spatial-IoU = P        i=1
+                                                                                                         n
+                                                                                                             max        weighted,spatial    weighted,spatial
+                                                                                                                                                               
+should remain unchanged. Similarly, the spatial trajectory                                               i=1
+                                                                                                                       Mreal,i           , Mgen,i
+of a moving ball is indicative of whether the movement is
+realistic. Our Spatial IoU metric compares generated videos              where Mreal
+                                                                                  weighted,spatial
+                                                                                                   and Mgen
+                                                                                                        weighted,spatial
+                                                                                                                         are the weighted motion
+against ground truth to determine whether the location of                maps representing how much activity/action happes at any
+movement/action mirrors ground truth. Since the benchmark                location (based on real and generated videos, respectively).
+videos are filmed from a static perspective without camera               Weighted spatial IoU thus measures not only where an action
+movement, a simple threshold on pixel intensity changes across           occurs, but also how much action is happening.
+frames (see Algorithm 2 for pseudocode) easily identifies where          How does an action happen? MSE       Finally, mean squared
+movement happens. This leads to a binary h × w × t “motion               error (MSE) calculates the average squared difference between
+mask video” that highlights the regions of motion in a scene at          corresponding pixel values in two frames (e.g., a real and a
+any point in time. Spatial IoU then simply generates a binary            generated frame). Given two frames freal and fgen , the MSE is
+h × w spatial “motion map”—similar, in spirit, to a saliency             given by:
+map—by collapsing the masks across the time dimension with
+                                                                                                                  n
+a max operation. A motion map thus simply has a 1 whenever                                                     1X
+                                                                                        MSE(freal , fgen ) =      (freal,i − fgen,i )2
+action occurred, at any point in time, at a particular location;                                               n
+and a 0 otherwise. This motion map is compared against                                                           i=1
+
+the motion map from the real, ground truth video, using                  where n is the total number of pixels in the frame. MSE focuses
+Intersection over Union or IoU (a metric commonly used in                on pixel-level fidelity; this is a very strict requirement that is
+
+                                                                                                                                                        4
+                                                              Do generative video models understand physical principles?
+
+                                        Physical Variance
+                    100                                                                                           8
+                                                                                                                                                                       7.00
+                                                                                                                  7                                             6.50
+                     80
+                                                                                                                  6                               5.50
+                                                                                                                                                         5.75
+
+
+
+Physics-IQ score
+                                                                                                                  5
+                                                                                                  Mean rank
+                     60
+
+(higher = better)
+                                                                                                                  4
+                                                                                               (lower = better)
+                                                                                                                                    3.50   3.50
+                     40                                                                                                      3.00
+                                                                                                                  3
+                          29.5%
+                                  23.0% 22.8% 20.3%
+                                                      19.0%
+                                                                                                                  2
+                     20                                       14.8% 13.0%                                             1.25
+                                                                              10.0%                               1
+                      0        t (m                                                                               0 Lu            ult ifra
+                       Lu mi ere     ult ifra me                                                                       mi ere (m           me  )
+                        Ru  nw   (m  ult ifra     )                                                                  Ru  nw ay    ult ifra me
+                               ay  Ge n3      me  )                                                                             Ge  n3         )
+                              Vid           (i2 v)                                                                         Vid eo        (i2 v)
+                Sta             Lu
+                                  eo Po  et  (i2 v)                                                    t (m                   Pik
+                                                                                                                                  Po
+                                                                                                                                 a1
+                                                                                                                                      et  (i2 v)
+        oP          ble Vid eo     mi ere   (i2                                                oP            Sta                      .0 (i2
+          oe                   Dif fus ion   (i2
+                                                v)                                               oe              ble Vid eo  L u mi ere  (i2
+                                                                                                                                             v)
+ Vid e                           Pika1   .0 (i2
+                                                 v)                                         Vid e
+                                                                                                                            Dif fus ion   (i2
+                                                                                                                                             v)
+                                     So ra      v)                                                                                So ra       v)
+                                            (i2 v)                                                                                       (i2 v)
+
+Fig. 4. How well do current video generative models understand physical principles? Left. The Physics-IQ score is an aggregated measure across four individual metrics,
+normalized such that pairs of real videos that differ only by physical randomness score 100%. All evaluated models show a large gap, with the best model scoring 29.5%,
+indicating that physical understanding is severely limited. Right. In addition, the mean rank of models across all four metrics is shown here; the Spearman correlation between
+aggregated results on the left and mean rank on the right is high (-.92, p < .005), thus aggregating to a single Physics-IQ score largely preserves model rankings.
+
+
+
+sensitive to how objects look and interact. For instance, if a                              tive video models learn physical principles. Therefore,
+generative model would show a tendency to change the color                                  we test all eight models in our study on every scenario
+of objects, this physically unrealistic event would be heavily                              and for each camera position (left, center, right) in the
+penalized. MSE therefore tracks aspects that complement                                     benchmark dataset. These samples are visualized in Fig-
+the three other metrics. None of them is perfect, and none                                  ure 1.     We first report the aggregated Physics-IQ re-
+of them should be used in isolation, but collectively they                                  sults across all metrics related to physical understanding
+provide a comprehensive assessment of different aspects that                                (Spatial-IoU, Spatiotemporal-IoU, Weighted-spatial-IoU, MSE)
+quantify physical realism. Since raw MSE values can be hard                                 in Figure 4. The main takeaway from the left part of
+to interpret, we provide an intuition in Figure 10.                                         this figure is that all the models show a massive gap to
+                                                                                            the physical variance baseline, with the best model scoring
+Metric for visual realism: MLLM evaluation. In addition to                                  only 29.5% out of the possible 100.0%. As we mentioned
+measuring the physical realism, we are interested in tracking                               in the previous section, each scenario was recorded twice
+how convincingly a model can generate realistic videos, as                                  (take 1 and take 2 ) to estimate the natural variability in
+assessed by a multimodal large language model or MLLM                                       real-world physical phenomena. This estimate is termed
+(in our case: Gemini 1.5 Pro, (51)). Instead of rating videos                               the physical variance; the figure is normalized such that
+(which would be sensitive to model biases), we use the gold                                 pairs of real videos that differ only by physical randomness
+standard experimental methods from psychophysics, a 2AFC                                    score 100.0%. The gap between model performance and real
+paradigm. 2AFC stands for two-alternative-forced-choice. In                                 videos demonstrates a severe lack of physical understanding
+our case, this means that the MLLM is given pairs of real                                   in current powerful video generative models. Across the
+and generated videos of the same scenario in randomized                                     different models, VideoPoet (multiframe) (13) ranks best;
+order. The MLLM is asked to identify the generated video.                                   interestingly, VideoPoet is a causal model. For the two models
+The MLLM evaluation score is expressed as a percentage                                      that have both an image2video (i2v) and a version conditioned
+corresponding to the accuracy across all videos, with chance                                on multiple frames (multiframe), the multiframe variants do
+rate at 50%. Any accuracy that is higher indicates that the                                 better than the i2v variants. This is to be expected given
+MLLM was able to correctly identify at least some of the                                    that in order to predict the future as we require models to
+generated videos; while accuracies close to 50% indicates that                              do on our challenging Physics-IQ benchmark, having access
+a video generative model has successfully deceived the MLLM                                 to temporal information (as multiframe variants have) should
+into classifying the generated videos as real, indicating high                              help. Zooming in on these overall results, Figure 6 breaks
+visual realism. Details on the experiment are described in the                              down model performance into different categories that include
+appendix.                                                                                   solid mechanics, fluid dynamics, optics, thermodynamics,
+                                                                                            and magnetism. While there is no category that can be
+Results                                                                                     considered “solved”, performance varies across categories, with
+Physical understanding. The goal of our Physics-IQ bench-                                   some showing promising indications and differences across
+mark is to understand, and quantify, whether genera-                                        models. Interestingly, all models perform much better on
+
+                                                                                                                                                                              5
+                                                                                                     Do generative video models understand physical principles?
+
+                        100
+                                                                                                                                                                                        Sora (i2v)
+                         90                                                                                                86.9%
+
+
+
+
+                                                                                                                                         Visual realism (MLLM evaluation score)
+                                                                                                                                                                                   60
+
+
+MLLM evaluation score
+                                                                                                                85.4%
+                                                                          79.8%       80.5%          81.3%
+                         80                                77.3%
+                                              74.8%
+
+
+  (Lower = Better)
+                                                                                                                                                                                   70
+                                                                                                                                                                                                                                          Runway Gen 3 (i2v)
+                         70                                                                                                                                                                                                                                         VideoPoet (multiframe)
+                                                                                                                                                                                                     Pika 1.0Video
+                                                                                                                                                                                                     Stable                     Lumiere (i2v)
+                                                                                                                                                                                                              (i2v) Diffusion (i2v)
+                                                                                                                                                                                   80
+                         60
+                                   55.6%                                                                                                                                                                                            VideoPoet (i2v) (multiframe)
+                                                                                                                                                                                                                                            Lumiere
+                         50                                                                                                                                                        90
+                               v)             )            )              )           v)             )        2v         e)
+                              (i2           i2v      ultifra
+                                                                        i2v          (i2         i2v            )
+                                                                                                             t (i       ram
+                              ra           3(
+                                                            me     iere(        1.0            n(
+                                                                                                         oP         ltif
+                          So          en                                                   iffu            oe
+                                   wayG            t (m          Lu m         Pika             sio   Vid        ier
+                                                                                                                    mu                                                            100
+                                             oP                                        oD                e         e(
+                               Ru n            oe                                    Vid e                   Lu
+                                           Vid e                                                                m
+                                                                                ble
+                                                                               Sta                                                                                                        10.0         12.5      15.0       17.5      20.0      22.5       25.0       27.5     30.0
+                                                                                                                                                                                                                Physical understanding (Physics-IQ score)
+
+
+Fig. 5. Relationship between visual realism and physical understanding. Left. A multimodal large language model (Gemini 1.5 Pro) is asked to identify the generated video
+among the real and the generated video for each scenario (MLLM score) in a two-alternative forced choice paradigm. Chance rate is 50%; lower scores indicate that the
+model finds it harder to tell apart generated from real videos (= better realism). Sora-generated videos are hardest to distinguish from real videos for the model, whereas
+Lumiere (multiframe) is easiest. Right. Do models that produce ‘realistic-looking’ videos (as assessed by the MLLM score) also score better in terms of physical understanding
+(as assessed via the Physics-IQ score)? This scatterplot with linear fit and 95% confidence interval as a shaded blue area shows that this is not the case: Visual realism is
+uncorrelated with physical understanding (Pearson’s r = - 0.46, p=.249 not significant). Note that the y axis on this plot is inverted for easier interpretation (up & right are best).
+
+
+                                             Solid Mechanics                                   Fluid Dynamics                           Optics                                                                      Thermodynamics                              Magnetism
+                                              (38 Scenarios)                                    (15 Scenarios)                       (8 Scenarios)                                                                    (3 Scenarios)                            (2 Scenarios)
+
+
+
+     "Where action happens"
+
+
+
+           Spatial IoU
+
+
+
+        (higher = better)
+
+
+
+   "Where and when
+
+    action happens"
+
+  Spatiotemporal IoU
+
+    (higher = better)
+
+
+
+
+  "Where and how much
+
+    action happens"
+
+   Weighted spatial IoU
+
+     (higher = better)                                                                                                                                                                                                                                                 4
+
+
+
+
+  "How action happens"
+
+
+          MSE
+
+
+     (lower = better)
+
+
+
+
+                                                Lumiere                   Lumiere               VideoPoet             VideoPoet     Stable Video                                                     Pika 1.0             Sora           Runway Gen 3              Physical
+                                                 (i2v)                  (multiframe)               (i2v)             (multiframe)   Diffusion (i2v)                                                    (i2v)              (i2v)              (i2v)                 Variance
+
+
+Fig. 6. Performance comparison of video generative models across different physical categories (columns) and metrics (rows). For the top three metrics, higher is better; for the
+last metric lower values are best. Throughout, physical variance (i.e., the performance that is achievable by real videos differing only by physical randomness) is indicated by a
+dashed line. Across metrics and categories, models show a considerable lack in physical understanding. More lenient metrics like Spatial-IoU (top row) that only assess where
+an action occurred lead to higher scores than more strict metrics that also take into account e.g. when or how much action should be taking place.
+
+
+
+
+                                                                                                                                                                                                                                                                                        6
+                                                                                             Do generative video models understand physical principles?
+
+                                                 Success scenario                                    Failure scenario                                               Ground truth
+
+
+
+
+  VideoPoet ( multiframe)
+                              Fluid
+
+                            dynamics
+                                           "A rotating paint brush goes through a            "Paper towel is dropped onto a dish
+                                         dollop of paint that is put on a glass board."                of blue liquid."
+
+                              Solid
+
+                            mechanics
+                                           "A kettlebell is placed on a paper cup."             "An orange inflatable basketball
+                                                                                                    falls into a plastic crate"
+
+
+                               Fluid
+
+
+
+
+  Runway Gen 3 (i2v)
+                             dynamics
+                                                                                                 "Red liquid pouring into a glass
+                                          "Red liquid pouring on a rubber ducky"
+                                                                                                    placed under a pitcher"
+
+                               Solid
+
+                             mechanics
+                                          "A teapot is placed on a rotating platform
+                                                                                              "A knife cuts through half a tangerine"
+                                                    that rotates clockwise"
+
+
+Fig. 7. We here visualize success and failure scenarios within the fluid dynamics and solid mechanics categories for the two best models, VideoPoet and Runway Gen 3,
+according to our metrics. Both models are able to generate physics plausible frames for scenarios such as smearing paint on glass (VideoPoet) and pouring red liquid on a
+rubber duck (Runway Gen 3). At the same time, the models fail to simulate a ball falling into a crate or cutting a tangerine with a knife. See here for an animated version of this
+figure.
+
+
+
+Spatial-IoU, a metric that has the weakest requirement in the                                                                           so realistic? We decided to quantify the visual realism of
+sense that it is only sensitive to where an action occurred, not                                                                        model-generated videos by asking a capable multimodal large
+whether it occurred at the right time (as Spatiotemporal-IoU                                                                            language model, Gemini 1.5 Pro (51), to identify the generated
+would track) or whether it had just the right amount of action                                                                          one out of a pair of two videos for each scenario in the Physics-
+(as measured by Weighted-spatial-IoU). Furthermore, even a                                                                              IQ benchmark). The result of this experiment is presented in
+relatively simple metric like MSE shows a large gap between                                                                             Figure 5 (left). The MLLM score evaluates a model’s ability to
+physically realistic videos and model-generated predictions.                                                                            generate videos that can deceive a multimodal large language
+The performance of each model on each individual metric is                                                                              model into classifying them as real. Accuracies that are closer
+reported in Table 1. As expected based on the aggregated                                                                                to chance performance (50% by randomly guessing) indicate
+results, VideoPoet (multiframe) performs best on a majority                                                                             that the MLLM finds it harder to tell apart real from generated
+of the metrics (3 out of 4). Qualitatively, the generated videos                                                                        videos, thus attesting to the visual realism of the generated
+from Sora are often visually and artistically superior, but they                                                                        video. Overall, the MLLM frequently succeeds in identifying
+also frequently include transition cuts—despite instructed                                                                              the model-generated video (up to 86.9% accuracy for Lumiere
+not to change the camera perspective—which is penalized by                                                                              multiframe); that said, the model-produced explanations for
+several other metrics. We expect that if a future version of                                                                            decisions are often unrelated to the visual content, akin to
+this model more closely follows the prompt (static camera                                                                               post-hoc rationalizations known from human experiments (52).
+perspective, no camera movement), its Physics-IQ score would                                                                            One model particularly stands out: Sora achieved the best
+improve substantially. Qualitatively, success and failure cases                                                                         MLLM score of 55.6%, outperforming all other models by a
+are visualized in Figure 7.                                                                                                             significant margin. Runway Gen 3 and VideoPoet (multiframe)
+                                                                                                                                        ranked second and third, with scores of 74.8% and 77.3%,
+Table 1. Comparison of metric scores for different models. The                                                                          respectively, albeit with a considerable gap behind Sora.
+best-performing model for each metric is marked in bold. Note that                                                                      Thus, highly capable models such as Sora indeed succeed in
+Physical Variance serves as a performance upper bound for each
+metric, representing the difference between two real videos and
+                                                                                                                                        generating visually realistic videos—even though their ability
+capturing the inherent variability in real-world scenarios.                                                                             to understand physical principles, as shown in the previous
+                                                                                                                                        section, is very limited. This finding aligns with a number of
+     Model
+                                                      Spatial
+                                                       IoU ↑
+                                                                Spatiotemporal
+                                                                     IoU ↑
+                                                                                  Weighted spatial
+                                                                                       IoU ↑
+                                                                                                     MSE
+                                                                                                      ↓
+                                                                                                             Physics-IQ Score
+                                                                                                                    ↑
+                                                                                                                                        intriguing studies discovering that many deep learning models
+     Physical Variance                                 0.678         0.535             0.577         0.002        100.0                 also lack an understanding of intuitive physics and causal
+                                                                                                                                        reasoning (53–58) and are sometimes described as “blind” (59).
+     VideoPoet (multiframe)                            0.204         0.164             0.137         0.010        29.5
+     Lumiere (multiframe)                              0.170         0.155             0.093         0.013        23.0
+     Runway Gen 3 (i2v)
+     VideoPoet (i2v)
+                                                       0.201
+                                                       0.141
+                                                                     0.115
+                                                                     0.126
+                                                                                       0.116
+                                                                                       0.087
+                                                                                                     0.015
+                                                                                                     0.012
+                                                                                                                  22.8
+                                                                                                                  20.3
+                                                                                                                                        For video models, we find no significant correlation between
+     Lumiere (i2v)                                     0.113         0.173             0.061         0.016        19.0                  visual realism and physical understanding: Figure 5 (right)
+     Stable Video Diffusion (i2v)
+     Pika 1.0 (i2v)
+                                                       0.132
+                                                       0.140
+                                                                     0.076
+                                                                     0.041
+                                                                                       0.073
+                                                                                       0.078
+                                                                                                     0.021
+                                                                                                     0.014
+                                                                                                                  14.8
+                                                                                                                  13.0
+                                                                                                                                        demonstrates that there is a distinction between generating
+     Sora (i2v)                                        0.138         0.047             0.063         0.030        10.0                  realistic videos and comprehending the physical principles of
+                                                                                                                                        reality.
+
+                                                                                                                                        Discussion
+Visual realism: Multimodal large language model evaluation.
+Our results indicate a striking lack of physical understanding                                                                          We introduced Physics-IQ, a challenging and comprehensive
+in current generative video models. Why, then, do samples                                                                               real-world benchmark to evaluate physical understanding in
+from many of those models that are circulated online look                                                                               video generative models. We analyzed eight models on Physics-
+
+                                                                                                                                                                                                       7
+                                           Do generative video models understand physical principles?
+
+IQ and proposed metrics to quantify physical understanding.               an active area of research in deep learning (61). In our
+The benchmark data and metrics cover a wide range of                      experiments, we observed hallucinations in all models, but
+settings and reveal a striking discrepancy between visual                 more powerful models like Runway Gen 3 and Sora often
+realism (sometimes present in current models) and physical                hallucinated information that was at least consistent with the
+understanding (largely lacking in current models).                        scenario (e.g. matchstick - candle), indicating at least a certain
+                                                                          level of understanding.
+Do video models understand physical principles?      We investi-
+gated the question whether the ability of video generative
+                                                                                                                          We observed
+                                                                          Dataset biases are reflected in model generations.
+models to generate realistic-looking videos also implies that
+                                                                          that most models were consistent in producing videos that
+they have acquired an understanding of the physical principles
+                                                                          aligned with the scene and viewpoint provided. Models
+that govern reality. Our benchmark shows that this is
+                                                                          like Sora and Runway Gen 3 were particularly strong at
+not the case: all evaluated models currently lack a deep
+                                                                          understanding the given scene and generating subsequent
+understanding of physics. Even the highest-scoring model,
+                                                                          frames that were consistent with respect to object placement
+VideoPoet (multiframe), only achieves a score of 29.5, falling
+                                                                          and their attributes (shape, color, dynamics). Interestingly,
+significantly short of the best possible score of 100.0 obtained
+                                                                          many models also demonstrated biased generations depending
+from the physical variance baseline, which quantifies the
+                                                                          on properties of their training. For example, in prototyping
+natural variability observed between real-world videos. That
+                                                                          experiments we observed that when given a conditioning
+said, our results don’t imply that future models cannot learn a
+                                                                          video of a red pool table where one ball hits another, as
+better physical understanding through next frame prediction.
+                                                                          Lumiere starts generating, it immediately turned the red
+It remains an open question whether simply scaling the same
+                                                                          pool table to a green one, showing a bias to commonly
+paradigm further might solve this, or whether alternative
+                                                                          occurring green pool tables. Similarly, videos generated by
+(and possibly more interactive) training schemes might be
+                                                                          Sora often featured transition cuts, possibly suggesting a
+required. Given the success of scaling deep learning, we are
+                                                                          training paradigm optimized to generate artistic videos.
+optimistic that future-frame prediction alone could lead to a
+much better understanding: while successful prediction does
+not guarantee successful understanding, acquiring a better                Metrics and their limitations.Popular metrics to test quality
+understanding should certainly help with successful prediction.          and measure realism of generated videos include PSNR (43),
+Learning physics by predicting pixels may sound challenging,             FVD (45), LPIPS (46) and SSIM (44). However, designing
+but language models are known to learn syntax and grammar                metrics that quantify physical understanding in generated
+from text prediction alone (60).                                         videos is a challenging endeavor. We proposed a suite of
+                                                                         metrics to measure the spatial, temporal and perceptual
+    It may be worth pointing out that even though the models
+                                                                         coherence of video models. While individually none of these
+in our study often failed to generate physically plausible contin-
+                                                                         metrics is perfect, the combined insights from these metrics and
+uations, most current models were already successful on some
+                                                                         the Physics-IQ score that integrates a normalized score across
+scenarios. For example, the highest-ranking model, VideoPoet
+                                                                         these metrics provide a holistic assessment of the strengths and
+(multiframe), displayed remarkable physical understanding
+                                                                         weaknesses of video models. That said, none of these metrics
+in certain scenarios—such as accurately simulating paint
+                                                                         directly quantify any physical phenomena and instead serve
+smearing on glass. In contrast, many lower-ranking models
+                                                                         as proxies. For instance, the MLLM metric provided a way to
+exhibited fundamental errors, such as physically implausible
+                                                                         quantify how much generated videos ‘deceive’ a multimodal
+interactions (e.g., objects passing through other objects). A
+                                                                         model. However, the metric is limited by the capability of the
+studey based on synthetic datasets (40) has shown that given
+                                                                         underlying multimodal large language model (MLLM) itself.
+a large enough dataset size, video models are able to learn
+                                                                         In our analysis, we found that while the MLLM was frequently
+specific physical laws. We consider it likely that as models
+                                                                         able to identify generated videos (except for videos generated
+are trained on larger and more diverse corpora of videos,
+                                                                         by Sora), its explanations for the decision were often wrong.
+their understanding of real-world physics will continue to
+                                                                         As another example, we observed that Stable Video Diffusion
+improve. We hope that quantifying physical understanding,
+                                                                         often generated videos with large amounts of hallucinations
+as we aim to do by open-sourcing the physics-IQ benchmark,
+                                                                         and implausible object motions; nonetheless, its Spatial-IoU
+might facilitate tracking progress in this area.
+                                                                         score is in the same ballpark as Lumiere, Sora, Pika and
+Visual realism doesn’t imply physical understanding.   We ob-            VideoPoet (i2v) showing that no metric should be assessed in
+served a striking discrepancy between visual realism and phys-           isolation. This is also evidenced by the fact that e.g. Runway
+ical understanding: those two properties are not statistically           Gen 3 did very well in terms of the spatial location of actions
+significantly correlated (Figure 5), thus models that produce            (Spatial-IoU) while scoring poorly on temporal consistency
+the most realistic-looking videos don’t necessarily show the             (Spatiotemporal-IoU).
+most physically-plausible continuations. For instance, in a                  We intentionally designed Physics-IQ to be a challenging
+scenario where a burning matchstick is lowered into a glass full          benchmark in order to provide useful signal for model devel-
+of water (leading to the flame being extinguished), Runway                opment in the future; in this context it may be worth noting
+Gen 3 generates a continuation where as soon as the flame                 that our metrics may be on the conservative side by strongly
+touches the water, a candle spontaneously appears and is lit by           penalizing object hallucinations, camera movement (which we
+the match. Every single frame of the video is high quality in             prompted models not to do) or shot changes. For instance,
+terms of resolution and realism, but the temporal sequence is             Sora tends to show these more frequently than other models,
+physically impossible. Such a tendency to hallucinate objects             leading to low scores on some metrics. This is not ideal, but
+into existence is a drawback of many generative models and                we believe that in an area like deep learning where hype is
+
+                                                                                                                                          8
+                                                                 Do generative video models understand physical principles?
+
+omnipresent, scientific benchmarks should err on the side of                                             and Felix Berkenkamp, editors, Proceedings of the 41st International Conference on Machine
+caution.                                                                                                 Learning, volume 235 of Proceedings of Machine Learning Research, pages 25105–25124.
+                                                                                                         PMLR, 21–27 Jul 2024. URL https://proceedings.mlr.press/v235/kondratyuk24a.html.
+                                                                                                     14. Robert Geirhos, Carlos RM Temme, Jonas Rauber, Heiko H Schütt, Matthias Bethge, and
+Outlook: Understanding without interaction?     Our findings are                                         Felix A Wichmann. Generalisation in humans and deep neural networks. Advances in neural
+connected to a larger, interdisciplinary debate at the heart of                                          information processing systems, 31, 2018.
+intelligence: Does an understanding of the world emerge from                                         15. Dan Hendrycks and Thomas Dietterich. Benchmarking neural network robustness to
+                                                                                                         common corruptions and perturbations. In International Conference on Learning
+predicting what happens next (next-video-frame prediction                                                Representations, 2018.
+in artificial intelligence, predictive coding in neuroscience)—                                      16. Aarohi Srivastava, Abhinav Rastogi, Abhishek Rao, Abu Awal Md Shoeb, Abubakar Abid,
+
+or, alternatively, is it necessary to interact with the world in                                         Adam Fisch, Adam R Brown, Adam Santoro, Aditya Gupta, Adrià Garriga-Alonso, et al.
+                                                                                                         Beyond the imitation game: Quantifying and extrapolating the capabilities of language models.
+order to understand it (as argued by proponents of embodied                                              arXiv preprint arXiv:2206.04615, 2022.
+cognition and robotics)? In cognitive science, being able to                                         17. Daniel M. Bear, Elias Wang, Damian Mrowca, Felix J. Binder, Hsiao-Yu Fish Tung, R. T.
+
+interact with the world is seen as an important component                                                Pramod, Cameron Holdaway, Sirui Tao, Kevin Smith, Fan-Yun Sun, Li Fei-Fei, Nancy
+                                                                                                         Kanwisher, Joshua B. Tenenbaum, Daniel L. K. Yamins, and Judith E. Fan. Physion:
+for developing intuitive physics (62–65), in combination with                                            Evaluating physical prediction from vision in humans and machines, 2021.
+predicting the outcome of a person’s actions (66–68). In                                             18. Hsiao-Yu Tung, Mingyu Ding, Zhenfang Chen, Daniel Bear, Chuang Gan, Josh Tenenbaum,
+                                                                                                         Dan Yamins, Judith Fan, and Kevin Smith. Physion++: Evaluating physical scene
+contrast, deep learning’s current bread-and-butter approach                                              understanding that requires online inference of different physical properties. Advances in
+is scaling models and datasets without interactions. Will                                                Neural Information Processing Systems, 36, 2024.
+these models essentially solve physical understanding—or                                             19. Tayfun Ates, M Samil Atesoglu, Cagatay Yigit, Ilker Kesen, Mert Kobas, Erkut Erdem, Aykut
+                                                                                                         Erdem, Tilbe Goksun, and Deniz Yuret. Craft: A benchmark for causal reasoning about forces
+instead, hit a limit after which one can only improve one’s                                              and interactions. arXiv preprint arXiv:2012.04293, 2020.
+understanding of the world by interacting with it? The jury                                          20. Ronan Riochet, Mario Ynocente Castro, Mathieu Bernard, Adam Lerer, Rob Fergus,
+
+is still out on this question, but the benchmark and analyses                                            Véronique Izard, and Emmanuel Dupoux. IntPhys: A framework and benchmark for visual
+                                                                                                         intuitive physics reasoning. arXiv preprint arXiv:1803.07616, 2018.
+introduced in this article might help quantifying this either                                        21. Michael McCloskey, Alfonso Caramazza, and Bert Green. Curvilinear motion in the absence
+way. In addition to future models, improvements could also                                               of external forces: Naive beliefs about the motion of objects. Science, 210(4474):1139–1141,
+                                                                                                         1980.
+come from inference-time scaling (69–71) such as sampling                                            22. Michael McCloskey. Intuitive physics. Scientific american, 248(4):122–131, 1983.
+more. If this would indeed lead to strong results, it would                                          23. Philip J Kellman and Elizabeth S Spelke. Perception of partly occluded objects in infancy.
+raise the following question: from a model’s perspective, is                                             Cognitive psychology, 15(4):483–524, 1983.
+                                                                                                     24. Elizabeth S Spelke, Karen Breinlinger, Janet Macomber, and Kristen Jacobson. Origins of
+reality but one possibility among infinitely many others?                                                knowledge. Psychological review, 99(4):605, 1992.
+                                                                                                     25. Elizabeth S Spelke, Roberta Kestenbaum, Daniel J Simons, and Debra Wein. Spatiotemporal
+                                                                                                         continuity, smoothness of motion and object identity in infancy. British journal of
+Acknowledgments.          The authors would like to thank David                                          developmental psychology, 13(2):113–142, 1995.
+Fleet, Been Kim, Pieter-Jan Kindermans, Kelsey Allen, Jasmine                                        26. Alison Gopnik, Clark Glymour, David M Sobel, Laura E Schulz, Tamar Kushnir, and David
+Karimi, Katherine Hermann, Mike Mozer, Phoebe Kirk, Saurabh                                              Danks. A theory of causal learning in children: causal maps and bayes nets. Psychological
+Saxena, Daniel Watson, Meera Hahn, Sara Mahdavi, Tim Brooks,                                             review, 111(1):3, 2004.
+Charles Herrmann, Isabelle Simpson, Jon Shlens, and Chris Jones                                      27. Rebecca Saxe and Susan Carey. The perception of causality in infancy. Acta psychologica,
+for helpful discussions and/or supporting this project in various                                        123(1-2):144–165, 2006.
+ways.                                                                                                28. Pulkit Agrawal, Ashvin V Nair, Pieter Abbeel, Jitendra Malik, and Sergey Levine. Learning to
+                                                                                                         poke by poking: Experiential learning of intuitive physics. Advances in neural information
+                                                                                                         processing systems, 29, 2016.
+References.                                                                                          29. James R Kubricht, Keith J Holyoak, and Hongjing Lu. Intuitive physics: Current research and
+  1. OpenAI. Sora: OpenAI’s Multimodal Agent. https://openai.com/index/sora/, 2024. Accessed:            controversies. Trends in cognitive sciences, 21(10):749–759, 2017.
+     2024-11-24.                                                                                     30. Joshua B Tenenbaum, Charles Kemp, Thomas L Griffiths, and Noah D Goodman. How to
+  2. DeepMind. Veo2: Our state-of-the-art video generation model.                                        grow a mind: Statistics, structure, and abstraction. science, 331(6022):1279–1285, 2011.
+     https://deepmind.google/technologies/veo/veo-2/, 2024. Accessed: 2025-01-09.                    31. Luis S Piloto, Ari Weinstein, Peter Battaglia, and Matthew Botvinick. Intuitive physics learning
+  3. Meta AI. Meta Movie Gen: AI-powered movie generation.                                               in a deep-learning model inspired by developmental psychology. Nature human behaviour, 6
+     https://ai.meta.com/research/movie-gen/, 2024. Accessed: 2024-11-24.                                (9):1257–1267, 2022.
+  4. Horace B Barlow et al. Possible principles underlying the transformation of sensory             32. Hritik Bansal, Zongyu Lin, Tianyi Xie, Zeshun Zong, Michal Yarom, Yonatan Bitton, Chenfanfu
+     messages. Sensory communication, 1(01):217–233, 1961.                                               Jiang, Yizhou Sun, Kai-Wei Chang, and Aditya Grover. Videophy: Evaluating physical
+  5. Hermann von Helmholtz. Handbuch der physiologischen Optik: mit 213 in den Text                      commonsense for video generation, 2024.
+     eingedruckten Holzschnitten und 11 Tafeln, volume 9. Voss, 1867.                                33. Fanqing Meng, Jiaqi Liao, Xinyu Tan, Wenqi Shao, Quanfeng Lu, Kaipeng Zhang, Yu Cheng,
+  6. Karl Friston. A theory of cortical responses. Philosophical transactions of the Royal Society       Dianqi Li, Yu Qiao, and Ping Luo. Towards world simulator: Crafting physical
+     B: Biological sciences, 360(1456):815–836, 2005.                                                    commonsense-based benchmark for video generation, 2024.
+  7. Robert Geirhos, Jörn-Henrik Jacobsen, Claudio Michaelis, Richard Zemel, Wieland Brendel,       34. Meng Cao, Haoran Tang, Haoze Zhao, Hangyu Guo, Jiaheng Liu, Ge Zhang, Ruyang Liu,
+     Matthias Bethge, and Felix A Wichmann. Shortcut learning in deep neural networks. Nature            Qiang Sun, Ian Reid, and Xiaodan Liang. Physgame: Uncovering physical commonsense
+     Machine Intelligence, 2(11):665–673, 2020.                                                          violations in gameplay videos. arXiv preprint arXiv:2412.01800, 2024.
+  8. Bingyi Kang, Yang Yue, Rui Lu, Zhijie Lin, Yang Zhao, Kaixin Wang, Gao Huang, and Jiashi        35. Niket Agarwal, Arslan Ali, Maciej Bala, Yogesh Balaji, Erik Barker, Tiffany Cai, Prithvijit
+     Feng. How far is video generation from world model: A physical law perspective. arXiv               Chattopadhyay, Yongxin Chen, Yin Cui, Yifan Ding, et al. Cosmos world foundation model
+     preprint arXiv:2411.02385, 2024.                                                                    platform for physical AI. arXiv preprint arXiv:2501.03575, 2025.
+  9. Runway Team. Runway. https://runwayml.com, 2024. Platform for AI-powered video editing          36. Anoop Cherian, Radu Corcodel, Siddarth Jain, and Diego Romeres. LLMPhy: Complex
+     and generative media creation.                                                                      physical reasoning using large language models and world models. arXiv preprint
+ 10. Pika Labs Team. Pika labs. https://pikalabs.com, 2024. Generative AI platform for creating          arXiv:2411.08027, 2024.
+     video and visual content.                                                                       37. Fabien Baradel, Natalia Neverova, Julien Mille, Greg Mori, and Christian Wolf. Cophy:
+ 11. Omer Bar-Tal, Hila Chefer, Omer Tov, Charles Herrmann, Roni Paiss, Shiran Zada, Ariel               Counterfactual learning of physical dynamics. arXiv preprint arXiv:1909.12000, 2019.
+     Ephrat, Junhwa Hur, Guanghui Liu, Amit Raj, Yuanzhen Li, Michael Rubinstein, Tomer              38. Kexin Yi, Chuang Gan, Yunzhu Li, Pushmeet Kohli, Jiajun Wu, Antonio Torralba, and
+     Michaeli, Oliver Wang, Deqing Sun, Tali Dekel, and Inbar Mosseri. Lumiere: A space-time             Joshua B Tenenbaum. Clevrer: Collision events for video representation and reasoning.
+     diffusion model for video generation, 2024.                                                         arXiv preprint arXiv:1910.01442, 2019.
+ 12. Andreas Blattmann, Tim Dockhorn, Sumith Kulal, Daniel Mendelevitch, Maciej Kilian, Dominik      39. Nazneen Fatema Rajani, Rui Zhang, Yi Chern Tan, Stephan Zheng, Jeremy Weiss, Aadit
+     Lorenz, Yam Levi, Zion English, Vikram Voleti, Adam Letts, et al. Stable video diffusion:           Vyas, Abhijit Gupta, Caiming Xiong, Richard Socher, and Dragomir Radev. Esprit: Explaining
+     Scaling latent video diffusion models to large datasets. arXiv preprint arXiv:2311.15127,           solutions to physical reasoning tasks. arXiv preprint arXiv:2005.00730, 2020.
+     2023.                                                                                           40. Bingyi Kang, Yang Yue, Rui Lu, Zhijie Lin, Yang Zhao, Kaixin Wang, Gao Huang, and Jiashi
+ 13. Dan Kondratyuk, Lijun Yu, Xiuye Gu, Jose Lezama, Jonathan Huang, Grant Schindler, Rachel            Feng. How far is video generation from world model: A physical law perspective, 2024.
+     Hornung, Vighnesh Birodkar, Jimmy Yan, Ming-Chang Chiu, Krishna Somandepalli, Hassan            41. Daochang Liu, Junyu Zhang, Anh-Dung Dinh, Eunbyung Park, Shichao Zhang, and Chang
+     Akbari, Yair Alon, Yong Cheng, Joshua V. Dillon, Agrim Gupta, Meera Hahn, Anja Hauth,               Xu. Generative physical AI in vision: A survey. arXiv preprint arXiv:2501.10928, 2025.
+     David Hendon, Alonso Martinez, David Minnen, Mikhail Sirotenko, Kihyuk Sohn, Xuan Yang,         42. Luma AI Team. Luma ai. https://lumalabs.ai, 2024. Generative AI platform specializing in 3D
+     Hartwig Adam, Ming-Hsuan Yang, Irfan Essa, Huisheng Wang, David A Ross, Bryan Seybold,              content and photorealistic modeling.
+     and Lu Jiang. VideoPoet: A large language model for zero-shot video generation. In Ruslan       43. Alain Hore and Djemel Ziou. Image quality metrics: Psnr vs. ssim. In 2010 20th international
+     Salakhutdinov, Zico Kolter, Katherine Heller, Adrian Weller, Nuria Oliver, Jonathan Scarlett,       conference on pattern recognition, pages 2366–2369. IEEE, 2010.
+
+
+
+                                                                                                                                                                                                       9
+                                                                Do generative video models understand physical principles?
+
+44. Zhou Wang, Alan C Bovik, Hamid R Sheikh, and Eero P Simoncelli. Image quality
+    assessment: from error visibility to structural similarity. IEEE transactions on image
+    processing, 13(4):600–612, 2004.
+45. Thomas Unterthiner, Sjoerd Van Steenkiste, Karol Kurach, Raphael Marinier, Marcin
+    Michalski, and Sylvain Gelly. Towards accurate generative models of video: A new metric &
+    challenges. arXiv preprint arXiv:1812.01717, 2018.
+46. Richard Zhang, Phillip Isola, Alexei A Efros, Eli Shechtman, and Oliver Wang. The
+    unreasonable effectiveness of deep features as a perceptual metric. In Proceedings of the
+    IEEE conference on computer vision and pattern recognition, pages 586–595, 2018.
+47. Ziqi Huang, Yinan He, Jiashuo Yu, Fan Zhang, Chenyang Si, Yuming Jiang, Yuanhan Zhang,
+    Tianxing Wu, Qingyang Jin, Nattapol Chanpaisit, et al. Vbench: Comprehensive benchmark
+    suite for video generative models. In Proceedings of the IEEE/CVF Conference on Computer
+    Vision and Pattern Recognition, pages 21807–21818, 2024.
+48. Ziqi Huang, Fan Zhang, Xiaojie Xu, Yinan He, Jiashuo Yu, Ziyue Dong, Qianli Ma, Nattapol
+    Chanpaisit, Chenyang Si, Yuming Jiang, et al. Vbench++: Comprehensive and versatile
+    benchmark suite for video generative models. arXiv preprint arXiv:2411.13503, 2024.
+49. Xuan He, Dongfu Jiang, Ge Zhang, Max Ku, Achint Soni, Sherman Siu, Haonan Chen,
+    Abhranil Chandra, Ziyan Jiang, Aaran Arulraj, et al. Videoscore: Building automatic metrics to
+    simulate fine-grained human feedback for video generation. arXiv preprint arXiv:2406.15252,
+    2024.
+50. Songwei Ge, Aniruddha Mahapatra, Gaurav Parmar, Jun-Yan Zhu, and Jia-Bin Huang. On
+    the content bias in frechet video distance. In Proceedings of the IEEE/CVF Conference on
+    Computer Vision and Pattern Recognition (CVPR), pages 7277–7288, June 2024.
+51. Gemini Team Google: Petko Georgiev and 1133 other authors. Gemini 1.5: Unlocking
+    multimodal understanding across millions of tokens of context. arXiv preprint
+    arXiv:2403.05530, 2024. URL https://arxiv.org/abs/2403.05530.
+52. Richard E Nisbett and Timothy D Wilson. Telling more than we can know: Verbal reports on
+    mental processes. Psychological review, 84(3):231, 1977.
+53. Brenden M Lake, Tomer D Ullman, Joshua B Tenenbaum, and Samuel J Gershman. Building
+    machines that learn and think like people. Behavioral and brain sciences, 40:e253, 2017.
+54. Shane Storks, Qiaozi Gao, Yichi Zhang, and Joyce Chai. Tiered reasoning for intuitive
+    physics: Toward verifiable commonsense language understanding. In Findings of Conference
+    on Empirical Methods in Natural Language Processing (EMNLP) 2021, 2021.
+55. Luca Weihs, Amanda Yuile, Renée Baillargeon, Cynthia Fisher, Gary Marcus, Roozbeh
+    Mottaghi, and Aniruddha Kembhavi. Benchmarking progress to infant-level physical
+    reasoning in ai. Transactions on Machine Learning Research, 2022.
+56. Marcel Binz and Eric Schulz. Using cognitive psychology to understand GPT-3. Proceedings
+    of the National Academy of Sciences, 120(6):e2218523120, 2023.
+57. Serwan Jassim, Mario Holubar, Annika Richter, Cornelius Wolff, Xenia Ohmer, and Elia Bruni.
+    GRASP: A novel benchmark for evaluating language grounding and situated physics
+    understanding in multimodal language models. arXiv preprint arXiv:2311.09048, 2023.
+58. Luca M Schulze Buschoff, Elif Akata, Matthias Bethge, and Eric Schulz. Visual cognition in
+    multimodal large language models. Nature Machine Intelligence, pages 1–11, 2025.
+59. Pooyan Rahmanzadehgervi, Logan Bolton, Mohammad Reza Taesiri, and Anh Totti Nguyen.
+    Vision language models are blind. In Proceedings of the Asian Conference on Computer
+    Vision, pages 18–34, 2024.
+60. John Hewitt and Christopher D Manning. A structural probe for finding syntax in word
+    representations. In Proceedings of the 2019 Conference of the North American Chapter of
+    the Association for Computational Linguistics: Human Language Technologies, Volume 1
+    (Long and Short Papers), pages 4129–4138, 2019.
+61. Vipula Rawte, Amit Sheth, and Amitava Das. A survey of hallucination in large foundation
+    models. arXiv preprint arXiv:2309.05922, 2023.
+62. Elizabeth S Spelke. The origins of physical knowledge. Clarendon Press/Oxford University
+    Press, 1988.
+63. Renée Baillargeon. The acquisition of physical knowledge in infancy: A summary in eight
+    lessons. Blackwell handbook of childhood cognitive development, pages 47–83, 2002.
+64. Michele Vicovaro. Grounding intuitive physics in perceptual experience. Journal of
+    Intelligence, 11(10):187, 2023.
+65. Michael B Chang, Tomer Ullman, Antonio Torralba, and Joshua B Tenenbaum. A
+    compositional object-based approach to learning physical dynamics. arXiv preprint
+    arXiv:1612.00341, 2016.
+66. Jason Fischer and Bradford Z Mahon. What tool representation, intuitive physics, and action
+    have in common: The brain’s first-person physics engine. Cognitive neuropsychology, 38
+    (7-8):455–467, 2021.
+67. Yichen Li, YingQiao Wang, Tal Boger, Kevin A Smith, Samuel J Gershman, and Tomer D
+    Ullman. An approximate representation of objects underlies physical reasoning. Journal of
+    Experimental Psychology: General, 2023.
+68. Felix A Sosa, Samuel J Gershman, and Tomer D Ullman. Blending simulation and abstraction
+    for physical reasoning. Cognition, 254:105995, 2025.
+69. Aaron Jaech, Adam Kalai, Adam Lerer, Adam Richardson, Ahmed El-Kishky, Aiden Low, Alec
+    Helyar, Aleksander Madry, Alex Beutel, Alex Carney, et al. OpenAI o1 system card. arXiv
+    preprint arXiv:2412.16720, 2024.
+70. Charlie Snell, Jaehoon Lee, Kelvin Xu, and Aviral Kumar. Scaling LLM test-time compute
+    optimally can be more effective than scaling model parameters. arXiv preprint
+    arXiv:2408.03314, 2024.
+71. Nanye Ma, Shangyuan Tong, Haolin Jia, Hexiang Hu, Yu-Chuan Su, Mingda Zhang, Xuan
+    Yang, Yandong Li, Tommi Jaakkola, Xuhui Jia, et al. Inference-time scaling for diffusion
+    models beyond scaling denoising steps. arXiv preprint arXiv:2501.09732, 2025.
+
+
+
+
+                                                                                                                             10
+                                                               Do generative video models understand physical principles?
+
+Supplementary Material                                                                        Algorithm 1 Change video FPS with linear interpolation
+                                                                                              Require: video file V , original FPS fpsoriginal , new FPS fpsnew ,
+                                                                                                  output dimensions (w, h) (optional)
+                                                                                              Ensure: video V ′ with adjusted FPS and resolution
+                                                                                               1: foriginal ← extract frames from V at fpsoriginal
+                                                                                               2: duration ← length of of V
+                                                                                               3: noriginal ← number of frames in fpsoriginal
+                                                                                               4: nnew ← duration · fpsnew
+                                                                                               5: Initialize empty list nnew
+                                                                                               6: for j ← 0 to nnew − 1 do
+                                                                                               7:      α ← j × (noriginal − 1)/(nnew − 1)
+                                                                                               8:      i ← ⌊α⌋        ▷ Index of the first frame for interpolation
+                                                                                               9:      β ←α−i                      ▷ Weight for linear interpolation
+                                                                                              10:      f1 ← foriginal [i]
+                                                                                              11:      f2 ← foriginal [min(i + 1, noriginal − 1)]
+                                                                                              12:      finterpolated ← (1 − β) · f1 + β · f2
+                                                                                              13:      if (w, h) is not None then
+                                                                                              14:           resize finterpolated to (w, h)
+                                                                                              15:      append finterpolated to fnew
+                                                                                              16: V ← recreate video from fnew with fpsnew
+                                                                                                    ′
+
+                                                                                              17: Save V
+                                                                                                            ′
+
+
+
+                                                                                              Algorithm 2 Generate binary mask video for moving objects
+                                                                                              Require: Video V , output file V ′ , threshold τ , update rate
+                                                                                                  α, averaging window size w
+                                                                                              Ensure: Binary mask video V ′ highlighting moving objects
+                                                                                               1: Initialize video reader for V and writer for V
+                                                                                                                                                     ′
+
+                                                                                               2: Read first w frames {f1 , . . . , fw } and preprocess: grayscale
+                                                                                                  and blur                                   Pw
+       Fig. 8. Illustration of recording setup (top) and perspectives (bottom).                3: Initialize background model B ← w
+                                                                                                                                           1
+                                                                                                                                                  f
+                                                                                                                                               i=1 i
+                                                                                                                                                          ▷ Initial
+                                                                                                  average reduces noise
+Overview of all Physics-IQ scenarios. Figure 9 presents the switch                             4: for each frame ft in V do
+frames (center view) from all 66 scenarios in the Physics-IQ dataset.                          5:     Preprocess ft : grayscale and blur
+These frames represent the last frame of the conditioning signal,                              6:     Update background B ← (1 − α) · B + α · ft
+after which a model is asked to generate a prediction for the future
+frames.
+                                                                                               7:     Compute difference dt ← |ft − B|
+                                                                                               8:     Threshold mt ← 255 if dt > τ , else 0
+Visualizing different MSE values. Figure 10 illustrates the relationship
+                                                                                               9:     Morphologically clean mt (opening and closing)
+between a distortion applied to a video and MSE (Mean Squared                                 10:     Write mt to V ′
+                                                                                              11: Save and close V
+                                                                                                                     ′
+Error) in a scene. Note that none of the videos in the benchmark
+have a distortion applied to them; instead, this is inteneded as
+an visual intuition for how much a certain MSE value distorts an
+image.
+                                                                                              Generating binary mask videos. This pseudocode describes a method
+                                                                                              to generate binary mask videos that highlight moving objects. The
+Table 2. Specifications of evaluated video models, including input                            algorithm combines background subtraction with adaptive updates
+conditioning, frame rate (FPS), and resolution.                                               and morphological operations to detect and cleanly segment motion
+                                                                                              in video frames. This approach is useful for creating spatial and
+  Model
+                                   Text      Multi-frame   Single-frame
+                                                                          FPS   Resolution
+                                                                                              temporal masks in Physics-IQ evaluations.
+                                 Condition   Condition      Condition
+                                                 ✗
+  VideoPoet (i2v)
+  VideoPoet (multiframe)
+                                    ✓
+                                    ✓            ✓
+                                                                ✓
+                                                                ✗
+                                                                          8
+                                                                          8
+                                                                                128×224
+                                                                                128×224
+                                                                                              MLLM evaluation prompt. The following prompt was used in the
+  Lumiere (i2v)                     ✓            ✗              ✓         16    128×128       two-alternative forced-choice paradigm: “Your task is to help me
+  Lumiere (multiframe)              ✓            ✓              ✗         16    128×128       sort my videos. I mixed up real videos that I shot with my camera
+  Stable Video Diffusion (i2v)      ✗            ✗              ✓         8     1024×576      and similar videos that I generated with a computer. I only know
+  Runway Gen 3 (i2v)                ✓            ✗              ✓         24    1280×768      that exactly one of the two videos is the real one, and exactly one
+                                                 ✗
+  Pika 1.0 (i2v)
+  Sora (i2v)
+                                    ✓
+                                    ✓            ✗
+                                                                ✓
+                                                                ✓
+                                                                          24
+                                                                          30
+                                                                                1280×720
+                                                                                854×480
+                                                                                              of the following two videos is the generated one. Please take a look
+                                                                                              at the two videos and let me know which of them is the generated
+                                                                                              one. I’ll tip you $100 if you do a great job and help me identify
+                                                                                              the generated one. First explain your reasoning, then end with the
+Adjusting video frame rate. This pseudocode outlines the method for                           following statement: ‘For this reason, the first video is the generated
+changing the frame rate (FPS) of a video using linear interpolation.                          one’ or ‘For this reason, the second video is the generated one’.”
+It generates a smooth transition between original frames while
+optionally resizing the output resolution. This technique ensures
+temporal consistency, making it well-suited for generating videos
+with desired FPS to adapt Physics-IQ for models with different
+FPS.
+
+
+                                                                                                                                                                  11
+                                                         Do generative video models understand physical principles?
+
+
+
+
+Fig. 9. The switch frames (here: center view only) of all scenarios in the Physics-IQ benchmark. A switch frame is the last conditioning frame before a model is asked to predict
+5 seconds of future frames.
+
+
+
+
+                                                                                                                                                                              12
+                                                         Do generative video models understand physical principles?
+
+
+
+
+Fig. 10. Since mean squared error (MSE) values can be hard to interpret, this figure shows the effect of a distortion applied to the scene, serving as a rough intuition for the
+effect of a MSE at different noise levels.
+
+
+
+
+                                                                                                                                                                             13
+

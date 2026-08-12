@@ -1,0 +1,266 @@
+<!DOCTYPE html>
+
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>World Action Model 学习路线 · 2026</title>
+<link href="../assets/css/style.css" rel="stylesheet"/>
+<link href="https://cdn.jsdelivr.net/npm/katex@0.16/dist/katex.min.css" rel="stylesheet"/>
+<script src="../assets/js/theme.js"></script>
+<script defer="" src="../assets/js/interactive.js"></script>
+<script defer="" src="https://cdn.jsdelivr.net/npm/katex@0.16/dist/katex.min.js"></script>
+<script defer="" onload="renderMathInElement(document.body,{delimiters:[{left:'$$',right:'$$',display:true},{left:'$',right:'$',display:false}]})" src="https://cdn.jsdelivr.net/npm/katex@0.16/dist/contrib/auto-render.min.js"></script>
+<style>
+    .route-list { display:grid; gap:10px; margin:18px 0; }
+    .route-row { display:grid; grid-template-columns:125px minmax(0,1fr); gap:14px; align-items:start; padding:14px 16px; border:1px solid var(--border); border-radius:10px; background:var(--bg2); }
+    .route-key { font-family:var(--font-mono); font-size:11px; color:var(--accent); line-height:1.6; }
+    .route-papers { display:flex; gap:7px; flex-wrap:wrap; }
+    .paper-chip { padding:5px 9px; border-radius:7px; border:1px solid var(--border); color:var(--text2); text-decoration:none; font-size:12px; background:var(--bg3); }
+    .paper-chip:hover { border-color:var(--accent); color:var(--text); }
+    .paper-chip.done { color:var(--accent); border-color:rgba(74,222,154,.35); }
+    .paper-chip.verify { color:var(--amber); border-style:dashed; }
+    .legend { display:flex;gap:14px;flex-wrap:wrap;font-family:var(--font-mono);font-size:10px;color:var(--text3);margin:12px 0 24px; }
+    .relation-map { margin:18px 0 24px; padding:18px; border:1px solid var(--border); border-radius:14px; background:linear-gradient(145deg,var(--bg2),var(--bg3)); }
+    .rm-head { display:flex; align-items:baseline; justify-content:space-between; gap:12px; margin-bottom:14px; }
+    .rm-title { color:var(--text); font-weight:700; font-size:15px; }
+    .rm-rule { color:var(--text3); font-family:var(--font-mono); font-size:10px; }
+    .rm-flow { display:flex; align-items:stretch; gap:8px; }
+    .rm-node { flex:1; min-width:0; padding:12px 13px; border:1px solid var(--border); border-radius:10px; background:var(--bg); color:var(--text2); line-height:1.6; font-size:12px; text-decoration:none; }
+    .rm-node strong { display:block; color:var(--text); margin-bottom:3px; font-size:13px; }
+    .rm-node .rm-kind { display:block; margin-bottom:6px; color:var(--accent); font-family:var(--font-mono); font-size:9px; letter-spacing:.06em; text-transform:uppercase; }
+    .rm-node.core { border-color:rgba(74,222,154,.48); box-shadow:inset 0 3px 0 rgba(74,222,154,.45); }
+    .rm-node.alt { border-color:rgba(251,191,36,.45); box-shadow:inset 0 3px 0 rgba(251,191,36,.42); }
+    .rm-node.target { border-color:rgba(96,165,250,.5); box-shadow:inset 0 3px 0 rgba(96,165,250,.45); }
+    .rm-arrow { align-self:center; flex:0 0 auto; color:var(--accent); font-family:var(--font-mono); font-weight:700; }
+    .rm-branch-grid { display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:10px; margin-top:10px; }
+    .rm-branch-grid.two { grid-template-columns:repeat(2,minmax(0,1fr)); }
+    .rm-branch-grid.four { grid-template-columns:repeat(4,minmax(0,1fr)); }
+    .rm-branch-label { margin:12px 0 6px; color:var(--text3); font-size:11px; text-align:center; }
+    .rm-note { margin:12px 2px 0; color:var(--text3); font-size:11px; line-height:1.7; }
+    .rm-note strong { color:var(--amber); }
+    @media (max-width:800px){
+      .route-row{grid-template-columns:1fr;gap:7px;}
+      .rm-head{display:block}.rm-rule{display:block;margin-top:5px}
+      .rm-flow{display:grid;grid-template-columns:1fr}.rm-arrow{text-align:center;transform:rotate(90deg)}
+      .rm-branch-grid,.rm-branch-grid.two,.rm-branch-grid.four{grid-template-columns:1fr}
+    }
+  </style>
+</head>
+<body>
+<nav class="nav">
+<a class="nav-logo" href="../index.html">Paper Notes</a>
+<div class="nav-links">
+<a href="../index.html">← 首页</a>
+<a href="../leaderboard/?topic=world-model">论文榜单</a>
+<a href="../pdfs/world-model/Wang 等 - 2026 - World Action Models The Next Frontier in Embodied AI.pdf" target="_blank">📄 Survey PDF</a>
+</div>
+</nav>
+<div class="page">
+<div class="docs-layout">
+<aside class="docs-sidebar-left">
+<div class="ds-title">WAM 路线 · 2026</div>
+<a class="ds-leaf-top" href="#definition">§1 VLA / WM / WAM</a>
+<a class="ds-leaf-top" href="#foundation">§2 生成模型地基</a>
+<a class="ds-leaf-top" href="#latent-action">§3 Latent Action</a>
+<a class="ds-leaf-top" href="#taxonomy">§4 两大 WAM 路线</a>
+<a class="ds-leaf-top" href="#frontier">§5 工程前沿</a>
+<a class="ds-leaf-top" href="#evaluation">§6 评测</a>
+<a class="ds-leaf-top" href="#side-routes">§7 JEPA / 4DGS / Real-to-Sim</a>
+</aside>
+<main class="docs-content">
+<div class="docs-breadcrumb"><a href="../index.html">paper-notes</a><span class="sep">/</span>专题<span class="sep">/</span>World Action Model</div>
+<h1>World Action Model 学习路线：从视频生成到“想象 + 动作”</h1>
+<p style="color:var(--text3);font-family:var(--font-mono);font-size:12px;margin-top:-12px;">主线按《World Action Models: The Next Frontier in Embodied AI》及用户提供的 2026 路线图整理 · arXiv:2605.12090</p>
+<div class="cn-read">
+<div class="cn-label">怎么使用这页</div>
+<p>这不是“论文名字堆”。顺序是：先补生成模型地基，再理解没有动作标签时如何发现 latent action，随后抓住 WAM 的两大架构分叉，最后看实时化、多模态与评测。路线中的论文条目均已完成身份核验，并链接到站内独立 HTML 精读页。</p>
+</div>
+<div class="legend"><span>● 绿色 = 已核验、已归档、已有独立笔记</span><span>WAM 主线共核验 38 份来源 PDF；Genie 重复文件合并后对应 37 篇独立精读</span></div>
+<h2 id="definition">§1 先把 VLA、World Model、WAM 分开</h2>
+<div class="cn-read">
+<div class="cn-label">第一道门槛</div>
+<p>普通 VLA 直接学“看见现在 → 输出动作”；World Model 学“给定现在和干预 → 世界怎样变化”；WAM 则把未来状态与动作放进同一个问题。是否真正建模 $o'$，是“带视频 loss 的 policy”和“World Action Model”之间最容易混淆的地方。</p>
+</div>
+<div class="relation-map">
+<div class="rm-head"><div class="rm-title">关系图 1 · 三者不是按参数量区分，而是按“预测什么”区分</div><div class="rm-rule">箭头 = 信息如何进入决策</div></div>
+<div class="rm-flow">
+<div class="rm-node core"><span class="rm-kind">共同输入</span><strong>当前观测 $o$ + 语言 $l$</strong>相机、机器人状态和任务指令描述“现在在哪里、要做什么”。</div>
+<div class="rm-arrow">→</div>
+<div class="rm-node"><span class="rm-kind">Reactive VLA</span><strong>直接输出动作 $a$</strong>学习 $p(a\mid o,l)$；未来世界只隐含在参数里，没有被显式监督。</div>
+<div class="rm-arrow">↔</div>
+<div class="rm-node alt"><span class="rm-kind">World Model</span><strong>给动作，预测未来 $o'$</strong>学习 $p(o'\mid o,a)$；擅长回答“如果这样做会怎样”，但动作通常由外部 policy 提供。</div>
+<div class="rm-arrow">→</div>
+<div class="rm-node target"><span class="rm-kind">World Action Model</span><strong>未来 $o'$ 与动作 $a$ 联合约束</strong>学习 $p(o',a\mid o,l)$，或先预测未来再反推动作。</div>
+</div>
+<p class="rm-note"><strong>判断口诀：</strong>只生成动作通常仍是 policy；只预测后果通常是 world model；把“想象的后果”和“执行的动作”放进同一闭环，才进入 WAM 讨论。</p>
+</div>
+<div class="math-block">$$\text{VLA}:\quad p(a\mid o,l)$$<span class="math-label">Reactive policy</span></div>
+<div class="math-explain"><div class="me-title">逐项拆解</div><dl><dt>$o$</dt><dd>当前视觉/状态观测。</dd><dt>$l$</dt><dd>语言任务。</dd><dt>$a$</dt><dd>下一段动作。模型没有被要求显式回答动作后世界会怎样。</dd></dl></div>
+<div class="math-block">$$\text{WAM}:\quad p(o',a\mid o,l)$$<span class="math-label">Joint future-state and action modeling</span></div>
+<div class="math-explain"><div class="me-title">逐项拆解</div><dl><dt>$o'$</dt><dd>未来状态，可以是 RGB、video latent、光流、目标姿态或抽象表征。</dd><dt>$a$</dt><dd>与未来状态相互约束的可执行动作。</dd><dt>真正难点</dt><dd>不是多一个输出头，而是让“想象”与“动作”保持因果一致。</dd></dl></div>
+<div class="route-list">
+<div class="route-row"><div class="route-key">Reactive VLA 对照</div><div class="route-papers"><a class="paper-chip done" href="rt1.html">RT-1 · 规模化机器人策略 ✓</a><a class="paper-chip done" href="rt2.html">RT-2 · Web 知识迁移 ✓</a><a class="paper-chip done" href="diffusion-policy.html">Diffusion Policy · 生成式动作头 ✓</a></div></div>
+</div>
+<h2 id="foundation">§2 生成模型地基：WAM 的视频分支从哪里来</h2>
+<div class="cn-read"><div class="cn-label">按截图的第一步</div><p>生成式 WAM 本质上是动作条件下的视频或 latent 生成，因此 DDPM、CFG、VAE/LDM、DiT 和 Flow Matching 不是旁课，而是看懂 Joint-Diffusion WAM 的语法。</p></div>
+<div class="relation-map">
+<div class="rm-head"><div class="rm-title">关系图 2 · DDPM 如何分叉成图像、视频、动作与 WAM</div><div class="rm-rule">继承核心：从噪声中逐步恢复目标样本</div></div>
+<div class="rm-flow">
+<a class="rm-node core" href="generation/ddpm.html"><span class="rm-kind">生成原理</span><strong>DDPM</strong>训练时给真实样本逐步加噪，网络学习预测噪声或干净样本；推理时从随机噪声反复去噪。</a>
+<div class="rm-arrow">→</div>
+<div class="rm-node"><span class="rm-kind">三种可替换部件</span><strong>采样、条件、表示空间</strong>DDIM 改推理路径；CFG 加强条件控制；VAE/LDM 把去噪从像素搬到低维 latent。</div>
+<div class="rm-arrow">→</div>
+<div class="rm-node target"><span class="rm-kind">网络与时空扩展</span><strong>DiT / Video DiT</strong>用 Transformer 充当去噪器，并把二维图像 token 扩展到带时间轴的视频 token。</div>
+</div>
+<div class="rm-branch-label">同一个扩散思想，根据“被去噪的变量”分成不同应用</div>
+<div class="rm-branch-grid four">
+<div class="rm-node"><span class="rm-kind">去噪图像/latent</span><strong>DDPM → LDM / DiT</strong>输出一张图或其 latent，是视频扩散之前的生成模型基础。</div>
+<div class="rm-node"><span class="rm-kind">去噪时空 latent</span><strong>Video DiT</strong>Sora、CogVideoX、Open-Sora、Wan 学习一段随时间变化的视觉未来。</div>
+<a class="rm-node alt" href="diffusion-policy.html"><span class="rm-kind">去噪动作序列</span><strong>Diffusion Policy</strong>把 $x_0$ 换成 action chunk，并以视觉/状态为条件；最终只执行动作，不要求生成未来画面。</a>
+<div class="rm-node target"><span class="rm-kind">去噪未来 + 动作</span><strong>Joint-Diffusion WAM</strong>让视频/latent 与动作共同生成或相互条件，追求“想象—动作”一致。</div>
+</div>
+<div class="rm-branch-grid two">
+<a class="rm-node alt" href="generation/flow-matching.html"><span class="rm-kind">平行生成路线</span><strong>Flow Matching</strong>不必沿用 DDPM 的离散反向马尔可夫链，而是学习把噪声连续运输到数据的速度场；它与 diffusion 目标不同，但也能驱动 DiT 和动作生成。</a>
+<div class="rm-node"><span class="rm-kind">DDPM 与 Diffusion Policy 的准确关系</span><strong>“原理祖先”与“机器人应用”</strong>Diffusion Policy 继承条件去噪与多峰分布建模；改变的是生成对象、条件输入、网络时域以及闭环执行方式，不是发明了另一套无关算法。</div>
+</div>
+<p class="rm-note"><strong>最容易混淆：</strong>Diffusion Policy 是生成式 policy，但通常不是 world model，因为它没有显式预测动作执行后的 $o'$；只有把未来状态也纳入训练与推理，才向 WAM 迈进一步。</p>
+</div>
+<div class="route-list">
+<div class="route-row"><div class="route-key">01 · 扩散原理</div><div class="route-papers"><a class="paper-chip done" href="generation/ddpm.html">DDPM ✓</a><a class="paper-chip done" href="generation/ddim.html">DDIM ✓</a><a class="paper-chip done" href="generation/classifier-free-guidance.html">Classifier-Free Guidance ✓</a></div></div>
+<div class="route-row"><div class="route-key">02 · 潜空间</div><div class="route-papers"><a class="paper-chip done" href="generation/vae.html">VAE ✓</a><a class="paper-chip done" href="generation/latent-diffusion.html">Latent Diffusion ✓</a></div></div>
+<div class="route-row"><div class="route-key">03 · Transformer</div><div class="route-papers"><a class="paper-chip done" href="dit.html">DiT ✓</a><a class="paper-chip done" href="generation/flow-matching.html">Flow Matching ✓</a></div></div>
+<div class="route-row"><div class="route-key">04 · Video DiT</div><div class="route-papers"><a class="paper-chip done" href="generation/sora-world-simulators.html">Sora · 官方网页报告 ✓</a><a class="paper-chip done" href="generation/cogvideox.html">CogVideoX ✓</a><a class="paper-chip done" href="generation/open-sora.html">Open-Sora ✓</a><a class="paper-chip done" href="generation/wan.html">Wan ✓</a></div></div>
+</div>
+<h2 id="latent-action">§3 Latent Action：没有动作标签，怎样从视频发现“可控变化”</h2>
+<div class="cn-read"><div class="cn-label">按截图的第二步</div><p>互联网视频规模大，但通常没有机器人 action。Latent-action 方法用逆动力学、离散码本或连续潜变量，把两帧之间的可控变化压成 action-like token；它让人类视频能进入 WAM 预训练，但 latent action 是否可映射到真实机器人控制仍是关键瓶颈。</p></div>
+<div class="relation-map">
+<div class="rm-head"><div class="rm-title">关系图 3 · 从无动作视频到可执行机器人动作</div><div class="rm-rule">难点 = latent action 不是天然的关节命令</div></div>
+<div class="rm-flow">
+<div class="rm-node core"><span class="rm-kind">原始数据</span><strong>连续视频帧 $(o_t,o_{t+1})$</strong>能看见世界发生变化，但没有记录“人当时按了什么控制量”。</div>
+<div class="rm-arrow">→</div>
+<div class="rm-node"><span class="rm-kind">逆向归因</span><strong>IDM / Action Tokenizer</strong>从相邻帧的可控差异中压缩出离散 code 或连续 latent $z_t$。</div>
+<div class="rm-arrow">→</div>
+<div class="rm-node target"><span class="rm-kind">视频预训练</span><strong>Latent-action World Model</strong>以 $z_t$ 为条件预测下一帧或未来 latent，学习“某类控制变化会导致什么后果”。</div>
+<div class="rm-arrow">→</div>
+<div class="rm-node alt"><span class="rm-kind">机器人落地</span><strong>Action Grounding</strong>用少量有动作标签的机器人数据，把抽象 $z_t$ 映射到关节、末端位姿或 action chunk。</div>
+</div>
+<div class="rm-branch-grid three">
+<div class="rm-node"><span class="rm-kind">起点</span><strong>Genie</strong>证明无标签视频可以形成可交互的 latent action 环境。</div>
+<div class="rm-node"><span class="rm-kind">迁移到机器人</span><strong>LAPA / villa-X / Motus</strong>把 latent action 用于大规模预训练，再用机器人数据完成控制语义对齐。</div>
+<div class="rm-node"><span class="rm-kind">表征预测分支</span><strong>VLA-JEPA / FLARE</strong>更强调在 hidden/latent 空间预测可控未来，减少完整像素生成成本。</div>
+</div>
+</div>
+<div class="route-list">
+<div class="route-row"><div class="route-key">必读起点</div><div class="route-papers"><a class="paper-chip done" href="lapa.html">LAPA · ICLR 2025 ✓</a><a class="paper-chip done" href="genie.html">Genie · 2024 ✓</a></div></div>
+<div class="route-row"><div class="route-key">隐表示 / Latent WAM</div><div class="route-papers"><a class="paper-chip done" href="villa-x.html">villa-X · 2025 ✓</a><a class="paper-chip done" href="motus.html">Motus · 2025 ✓</a><a class="paper-chip done" href="flare.html">FLARE · 2025 ✓</a><a class="paper-chip done" href="vla-jepa.html">VLA-JEPA · 2026 ✓</a></div></div>
+<div class="route-row"><div class="route-key">站内相关</div><div class="route-papers"><a class="paper-chip done" href="dreamdojo.html">DreamDojo ✓</a><a class="paper-chip done" href="being-m07.html">Being-M0.7 ✓</a></div></div>
+</div>
+<h2 id="taxonomy">§4 WAM 两大路线：先想后做，还是一起生成</h2>
+<div class="cn-read"><div class="cn-label">按截图的第三步</div><p>级联式把“未来”当中间计划，再交给第二阶段取动作；联合式直接共同建模未来与动作。前者可解释、可换视频大模型，代价是两阶段误差与延迟；后者耦合紧、推理可省掉完整视频，但训练更重，且容易出现“视频看着对、动作却不对”的对齐问题。</p></div>
+<div class="relation-map">
+<div class="rm-head"><div class="rm-title">关系图 4 · WAM 架构不是论文年代，而是概率分解方式</div><div class="rm-rule">同一目标：让 future 与 action 相互约束</div></div>
+<div class="rm-branch-grid two">
+<div class="rm-node core"><span class="rm-kind">Cascaded · 先想后做</span><strong>$o' \rightarrow a$</strong>第一阶段生成 RGB、flow、pose 或 latent 计划；第二阶段用 IDM/VLA/几何控制器翻译成动作。UniPi、AVDC、Vidar、VPP 属于这条线。</div>
+<div class="rm-node target"><span class="rm-kind">Joint · 一起建模</span><strong>$(o',a)$ 同一训练目标</strong>未来与动作 token/latent 在同一模型内交互，减少阶段间接口，但训练和一致性约束更困难。</div>
+</div>
+<div class="rm-branch-label">Joint 内部继续按生成语法分叉</div>
+<div class="rm-branch-grid three">
+<div class="rm-node"><span class="rm-kind">Autoregressive</span><strong>逐 token 预测</strong>GR-1/2、WorldVLA、CoT-VLA 把视觉和动作离散化后按序列建模。</div>
+<div class="rm-node alt"><span class="rm-kind">Diffusion / Flow</span><strong>联合去噪或运输</strong>PAD、UWM、UVA、Cosmos Policy、DreamZero 共同生成连续 latent/动作。</div>
+<div class="rm-node"><span class="rm-kind">Multi-stream</span><strong>分流但跨流交互</strong>DiT4DiT、MotionWAM、Fast-WAM、τ0-WM 为视频与动作保留不同头或时间尺度。</div>
+</div>
+<p class="rm-note"><strong>不是二选一：</strong>一个系统可以训练时联合、推理时只读 action head；也可以先在 latent 中级联、再用共享骨干联合优化。分类看的是主要因果接口，而不是名字。</p>
+</div>
+<div class="math-block">$$\underbrace{p(o',a\mid o,l)}_{\text{Cascaded}}=\underbrace{p(a\mid o',o,l)}_{\text{action extraction}}\;\underbrace{p(o'\mid o,l)}_{\text{future prediction}}$$<span class="math-label">Cascaded WAM factorization · Survey §1</span></div>
+<div class="math-explain"><div class="me-title">逐项拆解</div><dl><dt>$p(o'\mid o,l)$</dt><dd>先生成未来 RGB、video latent、flow 或 pose。</dd><dt>$p(a\mid o',o,l)$</dt><dd>再由 IDM、VLA 或几何模块把未来计划翻译成动作。</dd><dt>误差路径</dt><dd>第一阶段漂移会污染第二阶段；两次推理也增加闭环延迟。</dd></dl></div>
+<div class="fig-interactive panel-below">
+<div class="fig-block">
+<div class="hotspot-wrap" data-hotspot-group="wam-fig1">
+<img alt="World Action Models taxonomy" src="../assets/figures/wam-survey/fig-1.png"/>
+<div class="hotspot" data-body="&lt;div class='hp-body'&gt;&lt;p&gt;&lt;strong&gt;图中位置与输入：&lt;/strong&gt;架构树左侧的 Joint WAM 分支接收当前观测、语言以及待建模的未来/动作变量。&lt;/p&gt;&lt;p&gt;&lt;strong&gt;这里真正发生什么：&lt;/strong&gt;未来状态和动作不是两个互不相关的任务，而是在同一网络或同一训练目标中交换信息；动作应能解释状态变化，想象的未来也应约束动作。&lt;/p&gt;&lt;p&gt;&lt;strong&gt;它与相邻模块的关系：&lt;/strong&gt;它继续分成自回归、扩散/流匹配和多流结构。与级联式相比，接口误差更少，但训练成本和跨模态一致性要求更高。&lt;/p&gt;&lt;/div&gt;" data-id="joint" data-title="Joint WAM · 联合式" style="left:32%;top:64%;"></div>
+<div class="hotspot" data-body="&lt;div class='hp-body'&gt;&lt;p&gt;&lt;strong&gt;图中位置与输入：&lt;/strong&gt;架构树右侧的 Cascaded WAM 把未来状态当成动作之前的中间计划。&lt;/p&gt;&lt;p&gt;&lt;strong&gt;这里真正发生什么：&lt;/strong&gt;第一阶段先预测 RGB、光流、姿态或 latent future；第二阶段再用逆动力学、VLA 或几何控制器把这个计划翻译成机器人动作。&lt;/p&gt;&lt;p&gt;&lt;strong&gt;它与相邻模块的关系：&lt;/strong&gt;它的优势是中间结果可检查、两个模块可分别替换；代价是第一阶段的预测误差会传给动作模块，而且两次推理增加闭环延迟。&lt;/p&gt;&lt;/div&gt;" data-id="cascade" data-title="Cascaded WAM · 级联式" style="left:77%;top:64%;"></div>
+<div class="hotspot" data-body="&lt;div class='hp-body'&gt;&lt;p&gt;&lt;strong&gt;图中位置与输入：&lt;/strong&gt;Joint 分支中的 diffusion/flow 子类同时接收带噪未来 latent 和带噪动作。&lt;/p&gt;&lt;p&gt;&lt;strong&gt;这里真正发生什么：&lt;/strong&gt;PAD、UWM、UVA、Cosmos Policy、DreamZero 等在迭代去噪过程中让视觉 token 与动作 token 交换条件，从随机噪声恢复一致的未来—动作样本。&lt;/p&gt;&lt;p&gt;&lt;strong&gt;它与相邻模块的关系：&lt;/strong&gt;它继承 DDPM/Flow Matching 的多峰连续生成能力，适合动作 chunk；但多步采样太慢，因此又催生 Fast-WAM、Flash-WAM 等蒸馏和缓存工作。&lt;/p&gt;&lt;/div&gt;" data-id="joint-diff" data-title="Joint-Diffusion" style="left:20%;top:52%;"></div>
+<div class="hotspot" data-body="&lt;div class='hp-body'&gt;&lt;p&gt;&lt;strong&gt;图中位置与输入：&lt;/strong&gt;Joint 分支中的 autoregressive 路线先把图像、状态和动作离散成 token，并按时间或模态顺序排列。&lt;/p&gt;&lt;p&gt;&lt;strong&gt;这里真正发生什么：&lt;/strong&gt;GR-1/2、WorldVLA、CoT-VLA 等用 causal Transformer 预测下一个视觉或动作 token；历史 token 是上下文，未来 token 逐个追加。&lt;/p&gt;&lt;p&gt;&lt;strong&gt;它与相邻模块的关系：&lt;/strong&gt;它复用语言模型训练范式并容易接入 VLM，但长序列会累积误差；与 Joint-Diffusion 的差别是逐 token 概率分解，而不是对整段连续变量反复去噪。&lt;/p&gt;&lt;/div&gt;" data-id="joint-ar" data-title="Joint-AR" style="left:50%;top:52%;"></div>
+<div class="hotspot" data-body="&lt;div class='hp-body'&gt;&lt;p&gt;&lt;strong&gt;图中位置与输入：&lt;/strong&gt;级联树中间计划可直接显示为未来 RGB、光流、深度或 3D pose。&lt;/p&gt;&lt;p&gt;&lt;strong&gt;这里真正发生什么：&lt;/strong&gt;UniPi 先生成视频、AVDC 从视频提光流、Vidar/π0.7 使用可观察的视觉或几何目标，再由第二阶段求动作。&lt;/p&gt;&lt;p&gt;&lt;strong&gt;它与相邻模块的关系：&lt;/strong&gt;可视中间计划便于发现是世界预测错了还是动作提取错了；但渲染完整未来通常昂贵，并且漂亮画面并不保证动作在机器人动力学上可执行。&lt;/p&gt;&lt;/div&gt;" data-id="explicit" data-title="显式级联" style="left:69%;top:51%;"></div>
+<div class="hotspot" data-body="&lt;div class='hp-body'&gt;&lt;p&gt;&lt;strong&gt;图中位置与输入：&lt;/strong&gt;级联树的另一支不渲染完整 RGB，而把计划保存为 latent、hidden state 或 action-like code。&lt;/p&gt;&lt;p&gt;&lt;strong&gt;这里真正发生什么：&lt;/strong&gt;VPP、LAPA、villa-X、OmniVTA 等先预测紧凑 carrier，再由动作头读取；carrier 只需保留控制相关变化，不必重建纹理等无关细节。&lt;/p&gt;&lt;p&gt;&lt;strong&gt;它与相邻模块的关系：&lt;/strong&gt;它比显式级联快，也更适合闭环；代价是中间状态难解释，必须额外验证 latent 是否真的包含可控因果信息并能稳定映射到真实动作。&lt;/p&gt;&lt;/div&gt;" data-id="implicit" data-title="隐式级联" style="left:88%;top:51%;"></div>
+</div>
+<div class="fig-cap"><span class="fig-num">Survey Fig 1 · p.2</span> WAM 时间线与架构树。<span class="fig-cn">截图里的两大路线来自这张图；箭头表示结构探索，不表示后一类淘汰前一类。</span></div>
+</div>
+<div class="hotspot-panel"></div>
+</div>
+<div class="route-list">
+<div class="route-row"><div class="route-key">Cascaded · 显式 / latent</div><div class="route-papers"><a class="paper-chip done" href="unipi.html">UniPi · NeurIPS 2023 ✓</a><a class="paper-chip done" href="avdc.html">AVDC · ICLR 2024 ✓</a><a class="paper-chip done" href="vidar.html">Vidar · 2025 ✓</a><a class="paper-chip done" href="pi07-steerable-generalist.html">π0.7 ✓</a><a class="paper-chip done" href="vpp.html">VPP · ICML 2025 ✓</a></div></div>
+<div class="route-row"><div class="route-key">Joint · AR</div><div class="route-papers"><a class="paper-chip done" href="gr-1.html">GR-1 · ICLR 2024 ✓</a><a class="paper-chip done" href="gr-2.html">GR-2 · 2024 技术报告 ✓</a><a class="paper-chip done" href="worldvla.html">WorldVLA · 2025 技术报告 ✓</a><a class="paper-chip done" href="cot-vla.html">CoT-VLA · CVPR 2025 ✓</a><a class="paper-chip done" href="vla-jepa.html">VLA-JEPA ✓</a></div></div>
+<div class="route-row"><div class="route-key">Joint · Diffusion</div><div class="route-papers"><a class="paper-chip done" href="pad.html">PAD · NeurIPS 2024 ✓</a><a class="paper-chip done" href="uwm.html">UWM · 2025 技术报告 ✓</a><a class="paper-chip done" href="uva.html">UVA · 2025 技术报告 ✓</a><a class="paper-chip done" href="cosmos3.html">Cosmos Policy / Cosmos 3 ✓</a><a class="paper-chip done" href="dreamzero.html">DreamZero · 2026 技术报告 ✓</a><a class="paper-chip done" href="lingbot-va.html">LingBot-VA · 2026 技术报告 ✓</a></div></div>
+<div class="route-row"><div class="route-key">Multi-stream</div><div class="route-papers"><a class="paper-chip done" href="dit4dit.html">DiT4DiT ✓</a><a class="paper-chip done" href="motionwam.html">MotionWAM ✓</a><a class="paper-chip done" href="fast-wam.html">Fast-WAM ✓</a><a class="paper-chip done" href="tau0-wm.html">τ0-WM ✓</a></div></div>
+</div>
+<h2 id="frontier">§5 工程前沿：让 WAM 真能闭环跑</h2>
+<div class="cn-read"><div class="cn-label">按截图的 2026 趋势</div><p>当前硬伤不是“不会生成漂亮视频”，而是动作频率、长程误差、感知模态和想象—动作一致性。尤其在机器人闭环里，完整扩散 rollout 往往来不及，越来越多方法只在训练期保留视频目标，推理期读 hidden state 或蒸馏成单步。</p></div>
+<div class="relation-map">
+<div class="rm-head"><div class="rm-title">关系图 5 · 每个工程分支都在消除一个闭环瓶颈</div><div class="rm-rule">瓶颈 → 技术手段 → 代表工作</div></div>
+<div class="rm-branch-grid three">
+<div class="rm-node core"><span class="rm-kind">扩散太慢</span><strong>蒸馏 / 缓存 / 少步采样</strong>Flash-WAM、Fast-WAM、Efficient-WAM、C³ache、HiMem-WAM 减少网络评估或复用历史计算。</div>
+<div class="rm-node alt"><span class="rm-kind">RGB rollout 太重</span><strong>只预测 latent / hidden state</strong>V-JEPA 2、LeWorldModel、Being-M0.7 用紧凑状态承载未来，动作头不必等待完整视频渲染。</div>
+<div class="rm-node target"><span class="rm-kind">RGB 看不见接触</span><strong>增加触觉与力觉</strong>OmniVTA、FAWAM 把接触、滑动和受力信号加入世界状态，修补纯视觉的部分可观测性。</div>
+</div>
+<div class="rm-flow" style="margin-top:10px">
+<div class="rm-node"><span class="rm-kind">共同目标</span><strong>训练时允许“想得多”</strong>利用视频、未来 latent 和多模态辅助目标学到因果结构。</div><div class="rm-arrow">→</div>
+<div class="rm-node target"><span class="rm-kind">部署约束</span><strong>推理时必须“做得快”</strong>只保留动作所需的最小计算，并在机器人控制周期内完成闭环。</div>
+</div>
+</div>
+<div class="route-list">
+<div class="route-row"><div class="route-key">效率 / 实时</div><div class="route-papers"><a class="paper-chip done" href="flash-wam.html">Flash-WAM · 2026 技术报告 ✓</a><a class="paper-chip done" href="fast-wam.html">Fast-WAM ✓</a><a class="paper-chip done" href="efficient-wam.html">Efficient-WAM · 2026 技术报告 ✓</a><a class="paper-chip done" href="c3ache.html">C³ache · 2026 技术报告 ✓</a><a class="paper-chip done" href="himem-wam.html">HiMem-WAM · 2026 技术报告 ✓</a></div></div>
+<div class="route-row"><div class="route-key">多模态扩展</div><div class="route-papers"><a class="paper-chip done" href="omnivta.html">OmniVTA · 触觉 · 2026 技术报告 ✓</a><a class="paper-chip done" href="fawam.html">FAWAM · 力觉 · 2026 技术报告 ✓</a></div></div>
+<div class="route-row"><div class="route-key">Latent rollout</div><div class="route-papers"><a class="paper-chip done" href="vjepa2.html">V-JEPA 2 / 2-AC ✓</a><a class="paper-chip done" href="leworldmodel.html">LeWorldModel ✓</a><a class="paper-chip done" href="being-m07.html">Being-M0.7 ✓</a></div></div>
+</div>
+<div class="callout red"><div class="callout-label">三个公认难题</div><p>① 自回归长程误差累积；② 视频/latent rollout 的闭环延迟；③ 缺少同时衡量“想象是否物理正确、动作是否可执行、二者是否因果一致”的统一指标。</p></div>
+<h2 id="evaluation">§6 评测：不能只看 FVD，也不能只看成功率</h2>
+<div class="cn-read"><div class="cn-label">按截图的最后一步</div><p>视觉逼真不等于物理正确，动作成功也可能只是 policy 记住了数据。WAM 应至少三层评估：生成质量、物理常识、下游动作；更进一步，还要测同一个未来预测是否真能解释那段动作。</p></div>
+<div class="relation-map">
+<div class="rm-head"><div class="rm-title">关系图 6 · 评测必须从“像不像”逐层走到“因果是否一致”</div><div class="rm-rule">越往右越接近真实闭环</div></div>
+<div class="rm-flow">
+<div class="rm-node"><span class="rm-kind">Level 1 · Appearance</span><strong>画面质量</strong>FVD、PSNR、SSIM、LPIPS 只回答生成结果与数据分布是否相似。</div>
+<div class="rm-arrow">→</div>
+<div class="rm-node"><span class="rm-kind">Level 2 · Physics</span><strong>物理与常识</strong>VideoPhy、WorldModelBench、Physics-IQ 检查重力、碰撞、持续性和状态变化。</div>
+<div class="rm-arrow">→</div>
+<div class="rm-node alt"><span class="rm-kind">Level 3 · Actionability</span><strong>动作可恢复/可执行</strong>IDM 或 WorldSimBench 判断生成未来能否对应一段合理动作。</div>
+<div class="rm-arrow">→</div>
+<div class="rm-node target"><span class="rm-kind">Level 4 · Closed Loop</span><strong>策略真实成功</strong>在 LIBERO、RoboTwin、CALVIN、真机任务中测成功率、延迟与恢复能力。</div>
+</div>
+<p class="rm-note"><strong>WAM 特有的第五问：</strong>同一个动作改变后，模型想象的未来是否也按因果方向改变？如果视频和动作分别得高分却互不对应，仍不是可靠的 world-action model。</p>
+</div>
+<table class="kv-table">
+<tr><td>视觉质量</td><td>FVD、PSNR、SSIM、LPIPS、DreamSim、DINO distance</td></tr>
+<tr><td>物理常识</td><td><a href="videophy.html">VideoPhy ✓</a>、<a href="vbench-2.html">VBench-2.0 ✓</a>、<a href="worldmodelbench.html">WorldModelBench ✓</a>、<a href="physics-iq.html">Physics-IQ · WACV 2026 ✓</a>、<a href="worldscore.html">WorldScore · ICCV 2025 ✓</a></td></tr>
+<tr><td>动作可行性</td><td><a href="worldsimbench.html">WorldSimBench ✓</a>、IDM-based “Turing test” 类评估</td></tr>
+<tr><td>策略 benchmark</td><td>LIBERO、SimplerEnv、ManiSkill2/3、RoboTwin、CALVIN、RoboCasa</td></tr>
+</table>
+<div class="quiz" data-correct="b" data-explain="联合式的定义是未来状态与动作在统一目标中共同建模；是否最终渲染 RGB 不是定义条件。" data-explain-wrong="不要用“能否看到生成视频”区分两类，关键是训练目标与结构耦合方式。">
+<div class="q-label">🧠 理解检查</div><div class="q-text">区分 Cascaded 与 Joint WAM 最可靠的标准是什么？</div>
+<div class="q-options"><button class="q-opt" data-k="a">是否使用 DiT</button><button class="q-opt" data-k="b">未来状态与动作是分阶段还是统一目标建模</button><button class="q-opt" data-k="c">是否使用语言</button><button class="q-opt" data-k="d">是否在真机测试</button></div><div class="q-feedback"></div>
+</div>
+<h2 id="side-routes">§7 两条必须并行看的支撑线</h2>
+<div class="relation-map">
+<div class="rm-head"><div class="rm-title">关系图 7 · JEPA、生成式 WAM 与 Real-to-Sim 在系统中怎样合作</div><div class="rm-rule">不是三条互斥路线，而是三个系统层</div></div>
+<div class="rm-branch-grid three">
+<div class="rm-node core"><span class="rm-kind">数据与环境层</span><strong>Real-to-Sim / 3DGS</strong>把真实场景重建成可重复采样、可换视角的环境；物理引擎补足碰撞、关节与接触。</div>
+<div class="rm-node alt"><span class="rm-kind">状态与预测层</span><strong>JEPA / Latent World Model</strong>舍弃非必要像素细节，在紧凑表征中预测任务相关未来，适合低延迟规划。</div>
+<div class="rm-node target"><span class="rm-kind">高带宽生成层</span><strong>Video / Diffusion WAM</strong>生成可视未来、动作或二者，用于可解释想象、数据扩增和多模态训练。</div>
+</div>
+<div class="rm-flow" style="margin-top:10px">
+<div class="rm-node"><strong>Real-to-Sim 提供经历</strong>生成大量可控交互与反事实场景。</div><div class="rm-arrow">→</div>
+<div class="rm-node"><strong>World Model 压缩规律</strong>学习哪些状态变化对任务真正重要。</div><div class="rm-arrow">→</div>
+<div class="rm-node target"><strong>Policy / WAM 选择动作</strong>在想象与真实反馈之间闭环修正。</div>
+</div>
+</div>
+<div class="module-grid">
+<div class="module-card"><div class="module-card-name">LATENT WORLD MODEL</div><div class="module-card-title">JEPA：不生成像素，预测任务相关 latent</div><div class="module-card-desc"><a href="lecun-autonomous-intelligence.html">LeCun 2022</a> → <a href="ijepa-self-supervised.html">I-JEPA</a> → <a href="vjepa.html">V-JEPA</a> → <a href="vjepa2.html">V-JEPA 2</a> → <a href="vjepa21.html">V-JEPA 2.1</a> / <a href="leworldmodel.html">LeWorldModel</a>。</div></div>
+<div class="module-card"><div class="module-card-name">REAL-TO-SIM / 3DGS</div><div class="module-card-title">把真实世界变成可渲染、可碰撞、可评测的环境</div><div class="module-card-desc">3D/4D Gaussian Splatting 负责高保真可微渲染；mesh / articulation / physics engine 负责接触动力学。核心阅读：<a href="4d-gaussian-splatting.html">4D-GS</a>、<a href="splatsim.html">SplatSim ✓</a>、<a href="gsworld.html">GSWorld ✓</a>、<a href="gaussgym.html">GaussGym ✓</a>、<a href="simfoundry.html">SimFoundry</a>。</div></div>
+</div>
+<div class="callout blue"><div class="callout-label">我的判断</div><p>生成式 WAM、latent JEPA、real-to-sim 并不是三选一。最有可能的系统形态是：real-to-sim 提供可交互数据与评测场，latent world model 提供低延迟状态预测，生成模型提供高带宽想象与数据扩增。</p></div>
+</main>
+</div>
+</div>
+</body>
+</html>

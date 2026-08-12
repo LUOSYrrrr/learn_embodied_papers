@@ -1,0 +1,315 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>DDPM：扩散模型的训练地基 · Paper Notes</title>
+  <link rel="stylesheet" href="../../assets/css/style.css">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16/dist/katex.min.css">
+  <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16/dist/katex.min.js"></script>
+  <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16/dist/contrib/auto-render.min.js"
+          onload="renderMathInElement(document.body,{delimiters:[{left:'$$',right:'$$',display:true},{left:'$',right:'$',display:false}]})"></script>
+  <script src="../../assets/js/theme.js"></script>
+  <script src="../../assets/js/interactive.js" defer></script>
+</head>
+<body>
+  <nav class="nav">
+    <a class="nav-logo" href="../../index.html">Paper Notes</a>
+    <div class="nav-links">
+      <a href="../wam-roadmap.html">WAM 路线图</a>
+      <a href="../../pdfs/generation/Ho 等 - 2020 - Denoising Diffusion Probabilistic Models.pdf" target="_blank">📄 PDF</a>
+    </div>
+  </nav>
+
+  <div class="page">
+    <div class="docs-layout">
+      <aside class="docs-sidebar-left">
+        <div class="ds-title">DDPM · 扩散原理</div>
+        <a class="ds-leaf-top" href="#tldr">§1 心智模型</a>
+        <details open>
+          <summary>§2 前向加噪</summary>
+          <a class="ds-leaf" href="#single-step">2.1 单步公式从零拆解</a>
+          <a class="ds-leaf" href="#closed-form">2.2 任意时刻闭式采样</a>
+        </details>
+        <details open>
+          <summary>§3 训练目标</summary>
+          <a class="ds-leaf" href="#reverse">3.1 学逆过程</a>
+          <a class="ds-leaf" href="#epsilon">3.2 预测噪声</a>
+          <a class="ds-leaf" href="#simple-loss">3.3 简化损失</a>
+        </details>
+        <a class="ds-leaf-top" href="#sampling">§4 采样算法</a>
+        <a class="ds-leaf-top" href="#evidence">§5 实验与代价</a>
+        <a class="ds-leaf-top" href="#wam">§6 为什么 WAM 必修</a>
+        <a class="ds-leaf-top" href="#takeaway">§7 一页记住</a>
+      </aside>
+
+      <main class="docs-content">
+        <div class="docs-breadcrumb">
+          <a href="../../index.html">paper-notes</a><span class="sep">/</span>
+          <a href="../wam-roadmap.html">world model</a><span class="sep">/</span>DDPM · 2020
+        </div>
+
+        <h1>Denoising Diffusion Probabilistic Models</h1>
+        <p style="color:var(--text3);font-family:var(--font-mono);font-size:12px;margin-top:-12px;">
+          Jonathan Ho, Ajay Jain, Pieter Abbeel · NeurIPS 2020 · arXiv:2006.11239
+        </p>
+
+        <div class="cn-read">
+          <div class="cn-label">先建立正确层级</div>
+          <p><strong>DDPM 不是 U-Net，也不是视频模型。</strong>它定义了一套“如何破坏数据、如何训练去噪器、如何逐步采样”的概率建模框架。后面的 DDIM 改采样轨迹，CFG 改条件控制，DiT 改去噪网络，LDM 改工作空间；它们都可以建立在这块地基上。</p>
+        </div>
+
+        <h2 id="tldr">§1 一句话：先学会认噪声，再从噪声走回数据</h2>
+        <div class="callout">
+          <div class="callout-label">核心主张</div>
+          <p>固定一个逐步加高斯噪声的前向过程 $q$，再训练参数化逆过程 $p_\theta$。真正落地时，网络不直接预测“上一张图”，而是预测当前样本里混入的噪声 $\epsilon$。</p>
+        </div>
+
+        <details class="en-quote">
+          <summary>展开原文 · Abstract</summary>
+          <div class="quote-body">
+            <p>“Our best results are obtained by training on a weighted variational bound.”</p>
+            <div class="quote-cite">— Abstract, p.1</div>
+          </div>
+        </details>
+
+        <div class="fig-interactive panel-below">
+          <div class="fig-block">
+            <div class="hotspot-wrap" data-hotspot-group="ddpm-process">
+              <img src="../../assets/figures/ddpm/figure-2-process.png" alt="DDPM 前向与逆向链">
+              <div class="hotspot" data-id="prior" style="left:7.9%;top:44.3%;" data-title="纯噪声先验" data-body="$x_T$ 被设计为接近标准高斯。生成从这里开始，不需要一张真实图作为种子。"></div>
+              <div class="hotspot" data-id="reverse" style="left:50.9%;top:29.4%;" data-title="学习的逆过程" data-body="$p_\theta(x_{t-1}|x_t)$ 由神经网络参数化；它要把当前噪声级别的样本恢复一步。"></div>
+              <div class="hotspot" data-id="forward" style="left:50.9%;top:79.5%;" data-title="固定的前向过程" data-body="$q(x_t|x_{t-1})$ 只负责加已知方差的高斯噪声，训练时不学习它。"></div>
+            </div>
+            <div class="fig-cap"><span class="fig-num">Fig 2 · p.2</span> DDPM 的两条方向相反的链。<span class="fig-cn">虚线方向用于构造训练样本；实线逆链才是生成。</span></div>
+          </div>
+          <div class="hotspot-panel"></div>
+        </div>
+
+        <div class="step-walker" data-hotspot-group="ddpm-process">
+          <div class="sw-header"><div class="sw-title">从数据到生成器：3 步导览</div><div class="sw-controls"><button class="sw-btn prev">←</button><span class="sw-counter"></span><button class="sw-btn next">→</button></div></div>
+          <div class="sw-progress"><span class="sw-dot"></span><span class="sw-dot"></span><span class="sw-dot"></span></div>
+          <div class="sw-body">
+            <div class="sw-step" data-hotspot="forward"><h4>1. 训练时主动破坏数据</h4><p>从真实样本 $x_0$ 出发，按噪声日程逐步得到 $x_t$。这条链完全已知，因此监督信号可以无限在线生成。</p></div>
+            <div class="sw-step" data-hotspot="reverse"><h4>2. 学习每一步如何撤销噪声</h4><p>网络接收 $(x_t,t)$，估计其中的噪声；由估计值构造 $x_{t-1}$ 的高斯均值。</p></div>
+            <div class="sw-step" data-hotspot="prior"><h4>3. 推理时从随机噪声反复去噪</h4><p>先采 $x_T\sim\mathcal N(0,I)$，再执行 $T$ 次逆转移，最终获得 $x_0$。</p></div>
+          </div>
+        </div>
+
+        <h2 id="forward">§2 前向过程：把数据逐步变成高斯</h2>
+        <div class="cn-read"><div class="cn-label">为什么先讲加噪</div><p>训练生成器最难的是没有“正确的生成路径”。DDPM 反过来人为规定一条破坏路径：每步只加一点高斯噪声。因为路径已知，逆向学习就变成很多个带噪回归问题。</p></div>
+
+        <h3 id="single-step">2.1 单步公式：一边保留信号，一边注入随机噪声</h3>
+
+        <div class="math-block">
+          $$q(x_t\mid x_{t-1})=\mathcal N\!\left(x_t;\sqrt{1-\beta_t}\,x_{t-1},\beta_t I\right)$$
+          <span class="math-label">Eq. 2 · p.2 · 单步前向转移</span>
+        </div>
+        <div class="math-explain"><div class="me-title">逐项拆解</div><dl>
+          <dt>$\beta_t$</dt><dd>第 $t$ 步注入的噪声方差；论文用从 $10^{-4}$ 到 $0.02$ 的线性日程。</dd>
+          <dt>$\sqrt{1-\beta_t}$</dt><dd>保留原信号的系数。每一步都轻微缩小信号，再补上高斯噪声。</dd>
+          <dt>$T=1000$</dt><dd>原论文的离散步数。小步近似容易，但采样必须串行执行一千次。</dd>
+        </dl></div>
+
+        <div class="callout blue">
+          <div class="callout-label">分布写法 = 采样写法</div>
+          <p>上面的 $\mathcal N$ 写法描述“$x_t$ 整体会怎样分布”；下面的等式描述“怎样实际生成一个 $x_t$”。它们在给定 $x_{t-1}$ 时表示同一件事。</p>
+        </div>
+        <div class="math-block">
+          $$\begin{aligned}
+          x_t&=\sqrt{1-\beta_t}\,x_{t-1}+\sqrt{\beta_t}\,\epsilon_t,\\
+          \epsilon_t&\sim\mathcal N(0,I)
+          \end{aligned}$$
+          <span class="math-label">Eq. 2 的重参数化采样写法</span>
+        </div>
+        <div class="math-explain"><div class="me-title">先把每个符号认清</div><dl>
+          <dt>$t$</dt><dd>扩散的时间步。$\beta_t$ 在指定的第 $t$ 步是固定值，但通常会随 $t$ 改变。</dd>
+          <dt>$\epsilon_t$</dt><dd>第 $t$ 步新抽取的标准高斯噪声图；它与 $x_t$ 形状相同，每次采样都可以不同。</dd>
+          <dt>$I$</dt><dd>单位矩阵。对角线是 1，表示每个像素/通道维度的标准噪声方差为 1；非对角线是 0，表示不同维度之间不相关。</dd>
+          <dt>$n_t=\sqrt{\beta_t}\epsilon_t$</dt><dd>只是给“第 $t$ 步实际加入的整张噪声”起个简写。$n_{t,i}$ 表示这张噪声图中第 $i$ 个像素/通道位置的噪声值；$t$ 管时间，$i$ 管位置。</dd>
+        </dl></div>
+
+        <h4>什么叫“固定 $x_{t-1}$”和条件期望</h4>
+        <p>竖线 $\mid$ 读作“在……已知的条件下”。计算 $\mathbb E[x_t\mid x_{t-1}]$ 时，想象拿定同一张 $x_{t-1}$，反复抽取不同的 $\epsilon_t$ 来生成很多张 $x_t$，然后逐像素求平均。“固定”只是说求这个平均时不改变 $x_{t-1}$，不是冻结模型参数。</p>
+        <div class="math-block">
+          $$\begin{aligned}
+          \mathbb E[x_t\mid x_{t-1}]
+          &=\sqrt{1-\beta_t}\,x_{t-1}
+            +\sqrt{\beta_t}\,\mathbb E[\epsilon_t]\\
+          &=\sqrt{1-\beta_t}\,x_{t-1}
+          \end{aligned}$$
+          <span class="math-label">噪声均值为 0，所以第一项就是条件均值</span>
+        </div>
+        <div class="math-explain"><div class="me-title">为什么“前一项”恰好是均值</div><dl>
+          <dt>$\mathbb E[\epsilon_t]=0$</dt><dd>高斯噪声有正有负，大量采样后平均为 0。</dd>
+          <dt>$\sqrt{\beta_t}\epsilon_t$</dt><dd>它是绕着 0 的随机偏移，只让每次结果不同，不改变平均中心。</dd>
+          <dt>条件均值</dt><dd>因此很多次结果的中心是 $\sqrt{1-\beta_t}x_{t-1}$，这正是 $\mathcal N(x_t;\mu,\Sigma)$ 中的 $\mu$。</dd>
+        </dl></div>
+
+        <h4>方差和协方差：为什么要把偏差平方</h4>
+        <p>方差不是“先把偏差加起来再平方”，而是每个偏差先平方，再求平均。不平方时，正负噪声会相互抵消，均值为 0 却不代表“没有噪声”。</p>
+        <div class="math-block">
+          $$\begin{aligned}
+          \operatorname{Var}(X)
+          &=\mathbb E\!\left[(X-\mathbb E[X])^2\right],\\
+          \operatorname{Cov}(\mathbf X)
+          &=\mathbb E\!\left[(\mathbf X-\boldsymbol\mu)(\mathbf X-\boldsymbol\mu)^\top\right]
+          \end{aligned}$$
+          <span class="math-label">方差是一维的波动；协方差矩阵把多个维度一起记录</span>
+        </div>
+        <div class="math-explain"><div class="me-title">协方差矩阵怎么读</div><dl>
+          <dt>对角线 $\operatorname{Cov}_{ii}$</dt><dd>第 $i$ 个位置自己的方差，也就是它的噪声通常波动多大。</dd>
+          <dt>非对角线 $\operatorname{Cov}_{ij}$</dt><dd>第 $i$ 和第 $j$ 个位置是否会一起变大/变小。$\beta_t I$ 的这些位置都是 0，对高斯噪声来说即各维独立。</dd>
+          <dt>$\mathbb E[n_{t,i}^2]=\beta_t$</dt><dd>因为 $n_{t,i}$ 的均值为 0，其“平方后的平均噪声大小”就是方差 $\beta_t$。更直观的典型幅度是标准差 $\sqrt{\beta_t}$。</dd>
+        </dl></div>
+
+        <div class="callout amber">
+          <div class="callout-label">$\beta_t$ 控制的是“统计强度”，不是某次的确切噪声</div>
+          <p>$n_{t,i}\sim\mathcal N(0,\beta_t)$ 没有硬边界，偶尔可以抽到较大值；但约 68% 会落在 $\pm\sqrt{\beta_t}$ 内，约 95% 会落在 $\pm2\sqrt{\beta_t}$ 内。因此 $\beta_t$ 无法指定某一次的随机结果，却能精确调节长期平均噪声能量和典型波动范围。</p>
+        </div>
+
+        <h4>两个平方根从哪里来</h4>
+        <p>先写成一般形式 $x_t=a_tx_{t-1}+b_t\epsilon_t$。DDPM 把 $\beta_t$ 定义成这一步的噪声方差，因此 $b_t^2=\beta_t$，得到 $b_t=\sqrt{\beta_t}$。同时希望信号和噪声的总数值尺度大致稳定，于是让 $a_t^2+b_t^2=1$，得到 $a_t=\sqrt{1-\beta_t}$。</p>
+        <div class="math-block">
+          $$\begin{aligned}
+          \operatorname{Var}(cX)&=c^2\operatorname{Var}(X),\\
+          (\sqrt{1-\beta_t})^2+(\sqrt{\beta_t})^2&=1
+          \end{aligned}$$
+          <span class="math-label">系数管“幅度”，系数的平方才管“方差/能量”</span>
+        </div>
+        <div class="math-explain"><div class="me-title">这里有两个不同的方差视角</div><dl>
+          <dt>固定 $x_{t-1}$</dt><dd>旧信号是常数，只有新噪声在变，所以 $\operatorname{Cov}(x_t\mid x_{t-1})=\beta_tI$。</dd>
+          <dt>遍历整个数据分布</dt><dd>若 $x_{t-1}$ 已标准化且协方差约为 $I$，旧信号贡献 $(1-\beta_t)I$，新噪声贡献 $\beta_tI$，加起来仍是 $I$。</dd>
+          <dt>为什么保持尺度</dt><dd>只加噪不缩小旧信号，数值会越来越大；只缩小不补噪声，数值会塌到 0。这个平衡让原图信息逐步消失，但网络在各个 $t$ 看到的输入尺度接近，最终也能收敛到容易采样的 $\mathcal N(0,I)$。</dd>
+        </dl></div>
+
+        <div class="quiz" data-correct="b" data-explain="βₜ 规定每个维度的噪声方差，标准差是 √βₜ。它控制长期统计强度，不锁定某次高斯采样的确切值。" data-explain-wrong="高斯采样仍然是随机的；βₜ 是方差日程的控制量，不是某张噪声图的确定数值。">
+          <div class="q-label">理解检查</div>
+          <div class="q-text">在指定的第 $t$ 步，“$\beta_t$ 是固定的”真正表示什么？</div>
+          <div class="q-options">
+            <button class="q-opt" data-k="a">每个像素这次必须加上同一个确定值</button>
+            <button class="q-opt" data-k="b">噪声方差/典型强度固定，具体采样仍随机</button>
+            <button class="q-opt" data-k="c">噪声的正负号和绝对值都已经固定</button>
+            <button class="q-opt" data-k="d">所有时间步都必须使用同一个 $\beta$</button>
+          </div>
+          <div class="q-feedback"></div>
+        </div>
+
+        <h3 id="closed-form">2.2 最关键的工程性质：不必真的加噪 $t$ 次</h3>
+        <p>上面讲清了“单步加多少噪声”，下一个问题是：走了 $t$ 步后，原图总共还剩多少？定义 $\alpha_t=1-\beta_t$ 表示第 $t$ 步保留的信号方差比例，再用连乘得到累计保留比例：</p>
+        <div class="math-block">
+          $$\begin{aligned}
+          \alpha_t&=1-\beta_t,\\
+          \bar\alpha_t&=\prod_{s=1}^{t}\alpha_s
+          =\prod_{s=1}^{t}(1-\beta_s)
+          \end{aligned}$$
+          <span class="math-label">$\beta_t$ 管当前一步；$\bar\alpha_t$ 管从 1 到 $t$ 的累计结果</span>
+        </div>
+        <div class="math-explain"><div class="me-title">三个量不要混</div><dl>
+          <dt>$\beta_t$</dt><dd>第 $t$ 步新增的噪声方差比例。</dd>
+          <dt>$\alpha_t=1-\beta_t$</dt><dd>第 $t$ 步保留的旧信号方差比例。</dd>
+          <dt>$\bar\alpha_t=\alpha_1\cdots\alpha_t$</dt><dd>前 $t$ 步走完后，相对 $x_0$ 累计保留的信号方差比例。每一步都只能保留上一步的一部分，所以要连乘，不是相加。</dd>
+        </dl></div>
+        <p>多步中的独立高斯噪声可以合并成一个新的标准高斯噪声，因此任意时刻都能从 $x_0$ 一步采样：</p>
+        <div class="math-block">
+          $$x_t=\sqrt{\bar\alpha_t}\,x_0+\sqrt{1-\bar\alpha_t}\,\epsilon,\qquad \epsilon\sim\mathcal N(0,I)$$
+          <span class="math-label">由 Eq. 4 重参数化 · p.2</span>
+        </div>
+        <div class="math-explain"><div class="me-title">为什么训练能并行</div><dl>
+          <dt>$\sqrt{\bar\alpha_t}x_0$</dt><dd>仍然留下的干净信号。</dd>
+          <dt>$\sqrt{1-\bar\alpha_t}\epsilon$</dt><dd>当前噪声级别的随机扰动。</dd>
+          <dt>闭式采样</dt><dd>训练时随机抽一个 $t$，直接合成 $x_t$；无需先运行 $1\rightarrow2\rightarrow\cdots\rightarrow t$。</dd>
+        </dl></div>
+
+        <div class="quiz" data-correct="c" data-explain="因为 $q(x_t|x_0)$ 有闭式表达式，训练时可以随机抽 t 并一步构造 x_t。" data-explain-wrong="前向链的闭式边缘分布才是关键；不是因为 U-Net，也不是因为省略时间条件。">
+          <div class="q-label">理解检查</div><div class="q-text">DDPM 为什么可以随机训练某一个时间步，而不用先执行前面的所有加噪步骤？</div>
+          <div class="q-options"><button class="q-opt" data-k="a">因为网络没有时间输入</button><button class="q-opt" data-k="b">因为 U-Net 会缓存中间状态</button><button class="q-opt" data-k="c">因为 $q(x_t|x_0)$ 可闭式采样</button><button class="q-opt" data-k="d">因为训练只使用 $t=T$</button></div><div class="q-feedback"></div>
+        </div>
+
+        <h2 id="reverse">§3 训练目标：从 ELBO 走到预测噪声</h2>
+        <p>生成模型写成从标准高斯出发的逆向马尔可夫链：</p>
+        <div class="math-block">
+          $$p_\theta(x_{0:T})=p(x_T)\prod_{t=1}^{T}p_\theta(x_{t-1}\mid x_t)$$
+          <span class="math-label">Eq. 1 · p.2</span>
+        </div>
+        <div class="math-explain"><div class="me-title">这条式子怎样定义生成过程</div><dl>
+          <dt>$p(x_T)$</dt><dd>采样的起点，通常取标准高斯。也就是说，生成不是从空白画布开始，而是从纯噪声开始。</dd>
+          <dt>$p_\theta(x_{t-1}\mid x_t)$</dt><dd>网络学习的单步逆转移：看到第 $t$ 级噪声状态，预测稍微干净一点的状态。</dd>
+          <dt>$\prod_{t=1}^{T}$</dt><dd>把所有逆转移串成一条马尔可夫链。DDPM 采样慢的根源就在这里：每一步都依赖上一步，不能一次并行完成。</dd>
+          <dt>$x_{0:T}$</dt><dd>包含干净样本 $x_0$ 和全部中间噪声状态的完整轨迹；训练只观察 $x_0$，其余状态由已知前向过程构造。</dd>
+        </dl></div>
+        <p>论文从负对数似然的变分上界出发，把它拆成逐步 KL 项。由于 $q(x_{t-1}|x_t,x_0)$ 可解析，每个逆步骤都有可训练目标。</p>
+
+        <h3 id="epsilon">3.2 为什么最后变成“预测噪声”</h3>
+        <div class="math-block">
+          $$\mu_\theta(x_t,t)=\frac{1}{\sqrt{\alpha_t}}\left(x_t-\frac{\beta_t}{\sqrt{1-\bar\alpha_t}}\,\epsilon_\theta(x_t,t)\right)$$
+          <span class="math-label">Eq. 11 · p.4 · 以噪声参数化逆均值</span>
+        </div>
+        <div class="math-explain"><div class="me-title">网络到底输出什么</div><dl>
+          <dt>$\epsilon_\theta(x_t,t)$</dt><dd>网络估计混进 $x_t$ 的标准高斯噪声，而非直接输出 $x_{t-1}$。</dd>
+          <dt>$t$</dt><dd>噪声强度条件。论文用正弦位置编码注入 U-Net 残差块。</dd>
+          <dt>$\mu_\theta$</dt><dd>用估计噪声换算出的逆转移均值，随后再按 $\sigma_t$ 添加随机项。</dd>
+        </dl></div>
+
+        <h3 id="simple-loss">3.3 实际使用的简化损失</h3>
+        <div class="math-block">
+          $$\mathcal L_{\text{simple}}=\mathbb E_{t,x_0,\epsilon}\left[\left\|\epsilon-\epsilon_\theta\!\left(\sqrt{\bar\alpha_t}x_0+\sqrt{1-\bar\alpha_t}\epsilon,t\right)\right\|_2^2\right]$$
+          <span class="math-label">Eq. 14 · p.5</span>
+        </div>
+        <div class="math-explain"><div class="me-title">训练样本是怎样现场造出来的</div><dl>
+          <dt>$t\sim\{1,\ldots,T\}$</dt><dd>随机抽一个噪声等级，让同一个网络学会处理从轻度污染到接近纯噪声的全部状态。</dd>
+          <dt>$\sqrt{\bar\alpha_t}x_0+\sqrt{1-\bar\alpha_t}\epsilon$</dt><dd>利用闭式前向公式一步得到 $x_t$，因此训练不需要真的执行 $t$ 次加噪。</dd>
+          <dt>$\epsilon_\theta(x_t,t)$</dt><dd>网络根据带噪样本和时间条件猜测当初加入的噪声。</dd>
+          <dt>$\|\epsilon-\epsilon_\theta\|_2^2$</dt><dd>普通均方误差。它看似只是“猜噪声”，实际等价于学习各噪声层的数据 score，并由此确定逆向去噪方向。</dd>
+        </dl></div>
+        <div class="callout blue"><div class="callout-label">读代码时的识别器</div><p>看到“随机采样时间步 + 给干净数据加噪 + MSE 回归噪声”，基本就是 DDPM 式训练。网络可以是 U-Net、DiT、视频 Transformer，输出空间也可以是像素、latent、未来帧或动作。</p></div>
+
+        <h2 id="sampling">§4 采样：简单，但昂贵</h2>
+        <div class="math-block">
+          $$x_{t-1}=\frac{1}{\sqrt{\alpha_t}}\left(x_t-\frac{\beta_t}{\sqrt{1-\bar\alpha_t}}\epsilon_\theta(x_t,t)\right)+\sigma_t z$$
+          <span class="math-label">Algorithm 2 · p.4</span>
+        </div>
+        <div class="math-explain"><div class="me-title">一次反向采样拆成“去噪均值 + 随机性”</div><dl>
+          <dt>$x_t-\frac{\beta_t}{\sqrt{1-\bar\alpha_t}}\epsilon_\theta(x_t,t)$</dt><dd>先按网络估计的噪声方向，从当前状态中扣掉一小部分噪声。</dd>
+          <dt>$1/\sqrt{\alpha_t}$</dt><dd>补偿前向过程中对信号的缩放，把状态放回第 $t-1$ 个噪声尺度。</dd>
+          <dt>$\sigma_t z$</dt><dd>重新注入与后验方差匹配的随机噪声；$z\sim\mathcal N(0,I)$，最后一步通常取 $z=0$。</dd>
+          <dt>递推代价</dt><dd>这条更新要从 $T$ 一直执行到 1。后续 DDIM、蒸馏和 Flow Matching 的共同目标，都是减少这条长链的函数评估次数。</dd>
+        </dl></div>
+        <div class="module-grid">
+          <div class="module-card"><div class="module-card-name">INPUT</div><div class="module-card-title">$x_T\sim\mathcal N(0,I)$</div><div class="module-card-desc">只有随机噪声和时间索引，不需要编码器。</div></div>
+          <div class="module-card"><div class="module-card-name">LOOP</div><div class="module-card-title">$T\rightarrow1$</div><div class="module-card-desc">每一步至少运行一次去噪网络，严格串行。</div></div>
+          <div class="module-card"><div class="module-card-name">STOCHASTICITY</div><div class="module-card-title">$\sigma_t z$</div><div class="module-card-desc">随机项使同一中间状态仍可产生不同细节。</div></div>
+          <div class="module-card"><div class="module-card-name">OUTPUT</div><div class="module-card-title">$x_0$</div><div class="module-card-desc">最终样本；在条件模型中每步还会注入文本、图像或动作条件。</div></div>
+        </div>
+
+        <h2 id="evidence">§5 论文证据：先成形，再补细节</h2>
+        <div class="fig-block">
+          <img src="../../assets/figures/ddpm/figure-6-progressive.png" alt="DDPM progressive generation">
+          <div class="fig-cap"><span class="fig-num">Fig 6 · p.7</span> 同一样本随逆扩散推进的估计。<span class="fig-cn">大尺度类别与构图先出现，纹理和边缘在后期补齐；这是理解视频/WAM 长程一致性的一个起点。</span></div>
+        </div>
+        <div class="module-grid">
+          <div class="module-card"><div class="module-card-name">CIFAR-10</div><div class="module-card-title">FID 3.17</div><div class="module-card-desc">当时高质量无条件生成的重要结果。</div></div>
+          <div class="module-card"><div class="module-card-name">QUALITY</div><div class="module-card-title">IS 9.46</div><div class="module-card-desc">证明扩散模型不只会优化似然，也能生成有竞争力的样本。</div></div>
+          <div class="module-card"><div class="module-card-name">COST</div><div class="module-card-title">1000 次串行网络调用</div><div class="module-card-desc">质量来自细粒度逆过程，也直接造成推理慢。</div></div>
+          <div class="module-card"><div class="module-card-name">TRADE-OFF</div><div class="module-card-title">似然并非最优</div><div class="module-card-desc">简化目标偏向样本质量；优秀 FID 不等于最佳 bits/dim。</div></div>
+        </div>
+
+        <div class="callout red"><div class="callout-label">不要从 2020 结果过度外推</div><p>原论文验证的是较小图像数据集与 U-Net。今天的大模型继承的是训练范式，不是“1000 步 + 线性 $\beta$ + 原版 U-Net”这套具体配置。</p></div>
+
+        <h2 id="wam">§6 为什么 World Action Model 必修 DDPM</h2>
+        <div class="cn-read"><div class="cn-label">从图像生成迁移到世界建模</div><p>生成式 WAM 把 $x_0$ 从“单张图像”换成“未来视频块、未来 latent 或动作序列”，再把历史观测、语言、机器人状态和动作作为条件。核心训练仍可能是：抽噪声级别、污染目标、预测噪声/速度、逐步生成未来。</p></div>
+        <div class="module-grid">
+          <div class="module-card"><div class="module-card-name">DDPM 里的对象</div><div class="module-card-title">$x_0$：图像</div><div class="module-card-desc">学习静态数据分布。</div></div>
+          <div class="module-card"><div class="module-card-name">WAM 里的对象</div><div class="module-card-title">$x_0$：未来 + 动作</div><div class="module-card-desc">条件从类别扩展到历史、语言、控制和多模态状态。</div></div>
+          <div class="module-card"><div class="module-card-name">继承</div><div class="module-card-title">噪声训练目标</div><div class="module-card-desc">稳定、可扩展，能覆盖多模态未来。</div></div>
+          <div class="module-card"><div class="module-card-name">放大的难题</div><div class="module-card-title">延迟与长程误差</div><div class="module-card-desc">视频和闭环控制无法容忍上千步推理，也更怕时间不一致。</div></div>
+        </div>
+
+        <h2 id="takeaway">§7 一页记住</h2>
+        <div class="callout"><div class="callout-label">四句话</div><p><strong>训练：</strong>随机时间步预测噪声。<br><strong>生成：</strong>从高斯噪声逐步逆扩散。<br><strong>优点：</strong>目标稳定、覆盖模式好、能扩展到复杂条件。<br><strong>瓶颈：</strong>采样串行而慢；DDIM、蒸馏、flow/consistency 等路线都在解决这一点。</p></div>
+        <div class="callout blue"><div class="callout-label">下一篇</div><p><a href="ddim.html">DDIM</a> 保留几乎相同的训练，却把采样变成可跳步、可确定的轨迹。它回答：既然网络已经学会所有噪声级别，为什么一定要走完 1000 步？</p></div>
+      </main>
+    </div>
+  </div>
+</body>
+</html>

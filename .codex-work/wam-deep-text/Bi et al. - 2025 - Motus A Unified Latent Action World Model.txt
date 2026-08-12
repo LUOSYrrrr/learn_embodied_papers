@@ -1,0 +1,1361 @@
+                                                                     Motus: A Unified Latent Action World Model
+
+                                            Hongzhe Bi1∗† , Hengkai Tan1∗† , Shenghao Xie2,1∗ , Zeyuan Wang1∗ , Shuhe Huang1∗ , Haitian Liu1∗ ,
+                                               Ruowen Zhao1 , Yao Feng1 , Chendong Xiang1 , Yinze Rong1 , Hongyan Zhao1 , Hanyu Liu2 ,
+                                                                      Zhizhong Su3 , Lei Ma2 , Hang Su1 , Jun Zhu1
+                                                          1
+                                                              Dept. of Comp. Sci. and Tech., Institute for AI, BNRist Center, THBI Lab,
+                                                                       Tsinghua-Bosch Joint ML Center, Tsinghua University
+                                                                             2
+                                                                               Peking University 3 Horizon Robotics
+
+
+
+
+arXiv:2512.13030v2 [cs.CV] 25 Dec 2025
+                                                                               ∗
+                                                                                 Joint first authors † Joint project lead
+                                                                  {bhz24, thj23}@mails.tsinghua.edu.cn, dcszj@tsinghua.edu.cn
+                                                              Project Page: https://motus-robotics.github.io/motus
+
+
+                                                                   Abstract                                   predicting consequences and generating actions—into a
+                                                                                                              unified whole. However, existing methods model these
+                                         While a general embodied agent must function as a unified            capabilities in isolation: some rely on vision-language-
+                                         system, current methods are built on isolated models for             action models (VLAs) [5, 8, 11, 26, 31, 36, 60, 65] to
+                                         understanding, world modeling, and control. This fragmen-            learn static policies from vision and language; others use
+                                         tation prevents unifying multimodal generative capabilities          world models or generative approaches built on predicted
+                                         and hinders learning from large-scale, heterogeneous data.           futures [4, 7, 19, 21, 25, 28, 39, 41, 53, 56, 62]; and F1 [32]
+                                         In this paper, we propose Motus, a unified latent action             combines VLAs and inverse dynamics models (IDMs) by ex-
+                                         world model that leverages existing general pretrained mod-          plicitly imagining future visual observations, but it excludes
+                                         els and rich, sharable motion information. Motus introduces          world models or video generation models (VGMs), resulting
+                                         a Mixture-of-Transformer (MoT) architecture to integrate             in incomplete unification. These approaches fragment what
+                                         three experts (i.e., understanding, video generation, and ac-        should be a unified system into 5 separate modeling tasks:
+                                         tion) and adopts a UniDiffuser-style scheduler to enable             • VLA: p(at+1:t+k | ot , ℓ).
+                                         flexible switching between different modeling modes (i.e.,           • WM: p(ot+1:t+k | ot , at+1:t+k ).
+                                         world models, vision-language-action models, inverse dy-             • IDM: p(at+1:t+k | ot:t+k ).
+                                         namics models, video generation models, and video-action             • VGM: p(ot+1:t+k | ot , ℓ).
+                                         joint prediction models). Motus further leverages the op-            • Video-Action Joint Prediction Model:
+                                         tical flow to learn latent actions and adopts a recipe with                    p(ot+1:t+k , at+1:t+k | ot , ℓ).
+                                         three-phase training pipeline and six-layer data pyramid,
+                                                                                                                  Two fundamental challenges (detailed in Sec. 3) hinder
+                                         thereby extracting pixel-level “delta action” and enabling
+                                                                                                              the integration of these capabilities. First, unifying such
+                                         large-scale action pretraining. Experiments show that Motus
+                                                                                                              multimodal generative capabilities within one framework is
+                                         achieves superior performance against state-of-the-art meth-
+                                                                                                              nontrivial. While unified world models (UWMs) [64] offer a
+                                         ods in both simulation (a +15% improvement over X-VLA
+                                                                                                              theoretical prototype, they are typically trained from scratch
+                                         and a +45% improvement over π0.5 ) and real-world scenar-
+                                                                                                              or with limited priors, lacking either robust vision-language
+                                         ios(improved by +11~48%), demonstrating unified modeling
+                                                                                                              understanding from vision-language models (VLMs) or rich
+                                         of all functionalities and priors significantly benefits down-
+                                                                                                              physical interaction knowledge from VGMs. Second, em-
+                                         stream robotic tasks.
+                                                                                                              bodied intelligence demands the ability to learn from large-
+                                                                                                              scale heterogeneous data—including internet videos, ego-
+                                                                                                              centric human demonstrations, and multi-robot trajectories—
+                                         1. Introduction                                                      but action spaces vary widely across embodiments, and most
+                                         A unified model is essential for embodied agents to inte-            video data lack action labels, making it difficult to pretrain
+                                         grate a spectrum of cognitive functions—from understand-             action experts with general motion and interaction priors.
+                                         ing scenes and instructions, imagining possible futures, to              To address these challenges, we propose Motus, a unified
+
+
+                                                                                                          1
+                                                               (�� ,��+1 ,...��+� )
+                                                                 (�� ,��+1 ,...��+� )
+                                                                             or
+
+
+                                   Video Decoder                   Action Decoder
+
+
+
+
+                                 Cross Attn & FFN                        FFN                               FFN
+
+                                       AdaLN                           AdaLN                            LayerNorm
+
+
+                                                        Tri-model Joint Attention
+
+                                        QKV                              QKV                               QKV
+
+                                       AdaLN                            AdaLN                           LayerNorm
+
+                               Video Gen. Model                    Action Expert                      Und. Expert
+                        ��                                                                   ��
+
+                                   Video Encoder                   Action Encoder                    Pre-trained VLM
+
+
+                                                                                                            put bread into
+                                                                                                                 oven
+
+
+
+Figure 1. Motus Architecture. Here, at . . . at+k are actions, zt . . . zt+k are latent actions, and τv and τa are the rectified flow timesteps for
+the video generation model and the action expert, respectively.
+
+latent action world model that integrates pretrained experts                      whereas its encoded low-dimensional latents are supervised
+within a Mixture-of-Transformers (MoT) architecture. Our                          with a few action labels, both task-related and task-agnostic,
+approach unifies the 5 key distributions by connecting a                          thus steering the focus towards patterns associated with
+video generator (generative expert), an action expert, and                        robotic activities.
+a vision-language understanding expert via shared multi-                              Subsequently, Motus undergoes a three-phase pretrain-
+head self-attention layers—a design we term Tri-model                             ing–finetuning pipeline (i.e., video pretraining, latent action
+Joint Attention—which preserves specialized functionali-                          pretraining, and embodiment-specific action finetuning) on
+ties while enabling cross-modal knowledge fusion. To fur-                         a six-layer data pyramid spanning web-scale, egocentric
+ther coordinate multimodal generation, Motus incorporates                         human, simulation, task-agnostic, multi-robotic, and target-
+a UniDiffuser-like scheduler, allocating distinct timesteps                       robotic data. This recipe aligns behaviors across different
+and noise scales to each modality (e.g., videos and actions).                     embodiments within the motion space described by opti-
+This enables a unified manner for simultaneous modeling                           cal flows and shares such interaction knowledge with target
+marginal, conditional, and joint distributions, as well as adap-                  embodiments to enhance the generalization in downstream
+tive switching among different inference modes (e.g., VLA,                        tasks, thereby providing the action expert with pretraining
+WM, IDM, VGM, Video-Action Joint Prediction Model).                               like other experts.
+   Additionally, to leverage heterogeneous data at scale, we                          Overall, our contributions can be summarized as follows:
+introduce latent actions, which encode motion patterns from                       • A unified embodied foundation model that integrates five
+optical flow as a pixel-level “delta action”. This representa-                       mainstream paradigms (i.e., WMs, IDMs, VLAs, VGMs,
+tion bridges visual dynamics with control signals, enabling                          and Video-Action Joint Prediction Models) without com-
+the action expert to be pretrained on diverse unlabeled videos                       promising general multimodal priors.
+and robot trajectories. Specifically, a pretrained deep com-                      • A scalable robotic recipe with a three-phase training
+pression autoencoder (DC-AE) with additional lightweight                             pipeline and six-layer data pyramid that leverages opti-
+downsampling modules is used to reconstruct optical flow,                            cal flow-based latent action to learn cross-embodiment
+
+
+                                                                         2
+  transferable motion knowledge.                                     expression [12, 46, 61], we use it to align cross-embodiment
+• Extensive experiments show that Motus significantly out-           behaviors and learn latent actions to facilitate large-scale
+  performs state-of-the-art approaches in both simulation            pretraining.
+  (a +15% improvement over X-VLA [60] and a +45%
+  improvement over π0.5 [8]) and real-world scenarios (im-           3. Problem Formulation and Challenges
+  proved by +11~48%), demonstrating that large-scale gen-
+                                                                     Embodied Policies We consider the task of language-
+  eral and domain-specific priors can be effectively fused to
+                                                                     conditioned robotic manipulation. For each embodiment,
+  enhance the generalization of policy learning.
+                                                                     the task defines an action a ∈ A, an observation o ∈ O
+                                                                     (visual input), a language instruction ℓ ∈ L, and the pro-
+2. Related Works                                                     prioception of the robot p, where A, O and L denote the
+2.1. Unified Multimodal Models                                       action space, the observation space, and the language instruc-
+                                                                     tion space respectively. The task typically provides an ex-
+Unified multimodal models jointly model various modali-              pert dataset Dexpert = {{ℓ, p1 , o1 , a1 , . . . , pN , oN , aN }},
+ties and tasks within a single generative framework [29, 40,         which contains robot proprioception, visual observations,
+45, 47, 49, 52], showing broad applications across several           and actions collected by an expert over N timesteps, along
+domains [35, 54, 63]. In particular, Bagel [18] achieves uni-        with corresponding language annotations for each trajectory.
+fication via MoT [30], sharing the multi-head self-attention         We train a policy parameterized by θ on Dexpert . At each
+layers between understanding experts and generation experts.         timestep t, the policy predicts the next k actions (action
+In contrast, existing embodied foundation models are devel-          chunking [59]) based on the current observation and propri-
+oped independently, spawning multiple disparate paradigms:           oception, modeling the distribution pθ (at+1:t+k | ot , pt , ℓ)
+some leverage the text-image understanding capabilities of           or pθ (at+1:t+k | ot , ℓ). The policy pθ is trained to maximize
+VLMs to learn action prediction [6, 8, 27], while others uti-        the likelihood objective:
+lize VGMs to generate video sequences and infer actions
+from consecutive frames [19, 21, 62]. Recently, F1 [32]              max E(ot ,pt ,at+1:t+k ,ℓ)∼Dexpert log pθ (at+1:t+k | ot , pt , ℓ).
+                                                                       θ
+extends VLAs to explicitly imagine future visual states and                                                                   (1)
+output actions by IDMs, thereby merging both models. Fur-               Furthermore, based on the symbolic definitions above, we
+thermore, UWM [64] unifies WMs, VLAs, IDMs, VGMs,                    can derive the probability distributions for the 5 modeling
+and Video-Action Joint Prediction Models within a single dif-        types of embodied intelligence, which can be integrated into
+fusion backbone, making an initial exploration of complete           a single model for training:
+robotic models. Unlike UWM, our method goes beyond                   • VLA: p(at+1:t+k | ot , ℓ).
+unified modeling by further incorporating internet-scale gen-        • WM: p(ot+1:t+k | ot , at+1:t+k ).
+eral multimodal priors and specialized priors from massive           • IDM: p(at+1:t+k | ot:t+k ).
+robotic trajectories.                                                • VGM: p(ot+1:t+k | ot , ℓ).
+                                                                     • Video-Action Joint Prediction Model:
+2.2. Latent Action Models                                                     p(ot+1:t+k , at+1:t+k | ot , ℓ).
+Latent actions mitigate the scarcity of action labels by
+capturing visual dynamics, and are typically derived by              Challenge 1: Unifying Multimodal Generative Capabili-
+coupling IDMs with forward dynamics models (FDMs)                    ties. A capable embodied agent must integrate a spectrum
+to reconstruct the next frame conditioned on the previous            of cognitive functions—from understanding scenes and in-
+one [9, 10, 20, 37]. Initially, RGB images are used for              structions, imagining possible futures, to predicting conse-
+supervision, but this introduces task-irrelevant appearance          quences and generating actions—to possess a human-like
+information [58]. To remove such interference, a common              capacity, as a unified whole. Current models, however, are
+approach is restricting autoencoder’s capacity to encode low-        fragmented and fail to capture the full set of necessary capa-
+dimensional latents [15, 38, 55], thereby reducing the inclu-        bilities within one system. This presents a challenge: how to
+sion of redundancy. AdaWorld [22] attempts to decouple               unify the modeling of five key distributions—VLA, World
+the representations, such as β-VAE [23], in order to retain          Model, IDM, Video Generation Model, and Video-Action
+only the useful factors. Other approaches explore alternative        Joint Prediction Model—within a single framework. While
+reconstruction objectives, e.g., DINOv2 features [11, 15, 50],       prior work, such as UWMs [64], has made some progress,
+object keypoints [17, 51, 57], and language instructions [16],       a critical limitation persists: these approaches are either
+which carries rich semantic and spatial features. Moreover,          trained from scratch, built upon smaller base models, or—
+LAOM [34] employs a few action labels to encourage the               even when incorporating some priors—invariably lack the
+model to focus on robotic activities. Building on these ad-          full spectrum of knowledge, missing either visual under-
+vances and inspired by optical flow as a universal motion            standing priors from VLMs or physical interaction priors
+
+
+                                                                 3
+from VGMs. Consequently, they lack the comprehensive                   the multi-head self-attention layers are concatenated, i.e.,
+world knowledge required for robust and generalizable em-              Tri-model Joint Attention. This not only preserves distinct
+bodied intelligence. Therefore, the nontrivial challenge of            function roles across experts without causing task interfer-
+jointly modeling various distributions of vision, language,            ence but also enables effective cross-modal feature fusion,
+and action within a unified framework remains unaddressed,             encouraging diverse pretrained knowledge to complement
+which is precisely the gap our work fills.                             one another. During training, Motus jointly predicts chunks
+                                                                       of videos and actions with rectified flow-based objectives:
+Challenge 2: Utilization of Heterogeneous Data. A cen-                   θ                                                            2
+                                                                        laction = E(ot:t+k ,at+1:t+k ,ℓ)∼D vaθ − (ϵa − at+1:t+k ) 2 ,
+tral challenge in embodied intelligence is how to make ef-                              τa ∼U (0,Tτ )
+fective use of large scale heterogeneous data. Action spaces                            ϵa ∼N (0,I)
+vary widely between embodiments in dimension, range,
+and semantics, and robots differ in morphology, actuation,
+                                                                          θ                                                       2
+and sensing. As a result, control signals are not directly               lobs = E(ot:t+k ,at+1:t+k ,ℓ)∼D voθ − (ϵo − ot+1:t+k ) 2 ,
+reusable and policies struggle to learn universal priors that                          τo ∼U (0,Tτ )
+                                                                                       ϵo ∼N (0,I)
+transfer across embodiments. Existing approaches, includ-
+ing [8, 31, 43, 60], try to address this by using a general
+                                                                                             lθ = laction
+                                                                                                   θ         θ
+                                                                                                          + lobs .
+backbone with embodiment-specific information injection,
+or constructing high-dimensional action vectors that forcibly          where ot is the condition frame, ot+1:t+k , at+1:t+k are sub-
+unify different embodiments However, they still depend pri-            sequent observations and actions, τa and τo are the assigned
+marily on labeled robotic trajectories and cannot integrate            timesteps, ϵa , ϵo are the sampled Gaussian noises, , vaθ , voθ
+these datasets with large-scale internet videos or egocentric                                                                  θ
+                                                                       are velocity field predicted by our unified model, and laction ,
+human videos, which lack action annotations but contain                 θ
+                                                                       lobs are loss of observations and actions. By allocating dif-
+abundant motion and physical interaction cues. This limita-            ferent timesteps and noise scales to videos and actions, re-
+tion prevents large-scale pretraining of the action expert and         spectively, Motus establishes a UniDiffuser-like scheduler
+reduces the ability to learn general motion priors.                    to capture heterogeneous data distributions and adaptively
+                                                                       switch between various embodied foundation models during
+4. Methodology                                                         inference (e.g., VLA, World Model, IDM, VGM, Joint Pre-
+                                                                       diction). The resulting model understands scenes, follows
+4.1. Motus                                                             instructions, predicts outcomes, imagines futures, and out-
+Model Architecture. To address the challenges of uni-                  puts actions—all within a unified multimodal architecture.
+fying multimodal generative capabilities outlined in Sec
+. 3, we propose Motus, a unified latent action world model.
+First, Motus is designed as a general generative model that                                       Sampled Frames
+                                                                             0                                             Timeline
+jointly learns on heterogeneous multimodal data, thereby
+integrating the diverse capabilities (e.g., modeling 5 distribu-                                  Sampled Actions
+
+tions) of a general-purpose system within a single network.
+Second, to circumvent the need for impractical amounts
+of aligned multimodal data, Motus leverages the rich, pre-
+                                                                       Figure 2. Action-Dense Video-Sparse Prediction. The sampling
+trained priors of existing foundation models. It integrates a
+                                                                       rates for video frames and actions differ.
+pretrained VGM (generative expert), an understanding ex-
+pert with pretrained VLM, and an action expert within a
+Mixture-of-Transformers (MoT) architecture (as shown in                Action-Dense Video-Sparse Prediction. Since our model
+Fig. 1), effectively fusing their complementary strengths—             builds upon the widely cited action-chunking technique, Mo-
+encompassing scenes understanding, instructions interpret-             tus needs to predict a chunk of future video and action se-
+ing, consequences prediction, future video imagination, and            quences ot+1:t+k , at+1:t+k . This leads to several issues: (1)
+action planning—without requiring full end-to-end training             low training and inference efficiency, (2) redundant video
+from scratch. Unlike Unified World Models (UWMs) [64],                 frame predictions, and (3) an imbalance in the Tri-modal
+which simply concatenate observation tokens and action to-             Joint Attention mechanism—where the number of video to-
+kens and process them through a single series of N UWM                 kens significantly exceeds that of action tokens. This imbal-
+blocks (containing self-attention and feed-forward network             ance causes the model to overfit to video prediction, thereby
+(FFN) layers), our approach leverages pretrained VLMs and              weakening its action prediction capability. To address these
+VGMs by adopting a MoT structure. In our model, each                   problems, we propose an Action-Dense Video-Sparse Pre-
+expert maintains an individual Transformer module, while               diction strategy, as shown in Fig. 2. During both training and
+
+
+                                                                   4
+inference, we downsample the video frames so that the num-            randomly sampling the target robot’s action space in a task-
+ber of video tokens and action tokens remains balanced—for            agnostic manner. This data provides additional real action
+example, by setting the video frame rate to one-sixth of the          supervision, helping the VAE learn an embedding that re-
+action frame rate.                                                    flects feasible motor behaviors and anchors the latent actions
+                                                                      to the true control distribution.
+Experts Details. For the generative expert, we employ                     During training, we mix 90% unlabeled data for self-
+Wan 2.2 5B [42] as the video foundation model for its acces-          supervised reconstruction with 10% labeled trajectories for
+sibility and ease of use. We extend its self-attention context        weak action supervision, where the labeled portion includes
+to create a cross-modal Tri-model Joint Attention mecha-              both task-agnostic data and standard robot demonstrations.
+nism. For the action expert, we construct a Transformer               Dimensional correspondence and weak action supervision
+block of the same depth as Wan. Each block comprises                  jointly drive the latent-action distribution to align with the
+AdaLN for injecting rectified flow timesteps, a Feed-Forward          real action distribution, allowing motion priors learned from
+Network (FFN), and the Tri-model Joint Attention for cross-           videos to naturally map to executable controls.
+expert interaction. We select Qwen3-VL-2B [2, 3, 44] for                  The total loss combines reconstruction, alignment, and
+our understanding expert due to its inherent capabilities in          KL regularization:
+3D grounding, spatial understanding, and precise object lo-
+calization, which are crucial for robotic manipulation. The                    L = Lrecon + λa ||areal − apred ||2 + βLKL ,       (2)
+input to this expert is taken from the last-layer corresponding
+                                                                      where Lrecon minimizes flow-reconstruction error, the second
+tokens of the VLM. The understanding expert itself consists
+                                                                      term aligns latent and real actions, LKL regularizes the latent
+of several Transformer blocks, each containing Layer Nor-
+                                                                      space; λa and β are hyperparameters.
+malization, an FFN, and the Tri-model Joint Attention.
+4.2. Latent Actions
+We further address Challenge 2 to leverage large-scale het-                                       DPFlow
+erogeneous data by learning generalizable action patterns
+directly from visual dynamics. Specifically, we introduce
+latent actions that encode the motion learned directly from
+pixels. These latent actions allow the model to absorb mo-                                        DC-AE
+tion knowledge from various sources such as internet videos,
+egocentric human demonstrations, and multi-robot trajecto-                                        Encoder
+                                                                                                    �� latent action
+ries, thereby strengthening the pretraining of action expert
+even on data without explicit action labels.
+                                                                                                  Decoder
+Optical Flow Based Representation. We adopt optical
+flow as a natural representation of motion, which cap-
+tures pixel-level displacements between consecutive frames.
+                                                                                                  DC-AE
+Specifically, optical flows are computed by DPFlow [33]
+and then converted into RGB images. To compress this
+high-dimensional representation into a control-level space,
+we employ a deep convolutional variational autoencoder
+(DC-AE [13]) that reconstructs the flow while encoding it
+into four 512-dimensional tokens. A lightweight encoder
+                                                                                     Figure 3. The Latent Action VAE.
+then projects these concatenated 4 × 512 features into a 14-
+dimensional vector, roughly matching the scale of typical
+robot action spaces. The overall architecture is shown in             4.3. Model Training and Data
+Figure 3. This dimensional correspondence ensures that the            Motus Training. Motus is trained in three structured
+latent representation can align naturally with real robotic           stages (Tab. 1) to progressively integrate physical interaction
+controls and act as a bridge between perception and action.           priors from diverse datasets into a policy transferable to a
+                                                                      target robot. Each stage addresses a key challenge:
+Training and Distribution Alignment. To help align the                • Stage 1: Learning Visual Dynamics. To anchor the
+latent space to realistic action space, we incorporate task-            model in realistic physical interactions, we first adapt the
+agnostic data following AnyPos [39]. Specifically, task-                Video Generation Model (VGM) using multi-robot tra-
+agnostic data uses Curobo to collect image-action pairs by              jectories and human videos. This enables the VGM to
+
+
+                                                                  5
+  generate plausible future video sequences of tasks from a                      • Image + Action:                 task-agnostic interaction data
+  language instruction and an initial image.                                       {(o1 , a1 , . . . , oi , ai )}.
+• Stage 2: Learning Action Representations. To bridge                            • Language-only: textual corpora {ℓ}.
+  visual forecasts with control, we pretrain the entire Motus                       We exclude data lacking visual modality (e.g., language
+  model (VLM frozen) on videos, language, and latent ac-                         + action) as it is unsuitable for visuomotor policy learning.
+  tions. This stage initializes the action expert by embedding                   The remaining types form the complete spectrum of useful
+  knowledge of motion and interaction into the latent action                     sources for embodied policy acquisition. To structure this
+  space.                                                                         diversity, we introduce the embodied data pyramid (Fig. 4),
+• Stage 3: Specializing for the Target Robot. We finalize                        which organizes data types hierarchically by richness and
+  the model by fine-tuning it on target-robot data, ensuring                     policy relevance.
+  that the acquired priors are fully adapted to the specific                        Our framework effectively integrates and aligns all six
+  embodiment’s dynamics and kinematics.                                          data levels—from large-scale but indirect web sources to tar-
+                                                                                 geted robot demonstrations—across tailored training stages
+                      Table 1. Motus Training.
+                                                                                 (Tab. 1), unifying heterogeneous datasets [1, 14, 24, 31, 48]
+                                                                                 within a single, cohesive model architecture.
+ Stage                 Data                            Training
+
+ Pretrained            Level 1: Web Data               VGM and VLM
+                                                                                                                      Target-Robot Task
+ Foundation                                                                                                           Trajectory Data
+ Models
+ (Off-the-shelf)                                                                                                           Multi-Robot Task
+                                                                                                                           Trajectory Data
+ Stage 1 (Video        Level 2: Egocentric             Only VGM
+ Generation)           Human Videos                                                                                             Task-Agnostic Data
+                       Level 3: Synthetic Data
+                       Level 5: Multi-Robot                                                                                          Synthetic Data
+                       Task Trajectory Data
+                                                                                                                                          Egocentric Human
+ Stage 2 (Unified      Level 2: Egocentric             Motus (all 3                                                                       Videos
+ Training with         Human Videos                    experts, with
+ Latent Actions)       Level 3: Synthetic Data         latent actions)                                                                          Web Data
+                       Level 4: Task-agnostic
+                       Data
+                       Level 5: Multi-Robot
+                                                                                 Figure 4. The Embodied Data Pyramid categorizes data into six
+                       Task Trajectory Data
+                                                                                 levels, from Level 1 at the base to Level 6 at the top. Data quantity
+ Stage 3 (SFT)         Level 6: Target-Robot           Motus (all 3              decreases from bottom to top, while data quality increases. The
+                       Task Trajectory Data            experts, with             order of Levels 3 and 4 may sometimes vary.
+                                                       actions)
+                                                                                 5. Experiments
+Data. To equip robots with generalizable manipulation                            We conduct extensive experiments to assess the effectiveness
+skills, we leverage large-scale multimodal data that encap-                      of Motus in both simulated and real-world environments.
+sulates rich prior knowledge—from semantic understand-
+ing and physical reasoning to spatiotemporal dynamics and                        5.1. Baselines
+decision-making. As outlined in Section 3, embodied data                         We compare Motus against several state-of-the-art methods:
+inherently spans multiple modalities: language ℓ, image o,                       π0.5 [8] and X-VLA [60]. We evaluate all the models in
+and action a1 . By considering the presence or absence of                        simulation environments and further assess the performance
+each modality, we systematically identify all meaningful                         of the baseline model π0.5 in real-world tasks. We also
+data types2 :                                                                    compared both the from-scratch and Stage-1-only trained
+• Language + Image + Action: robot trajectories (e.g., used                      models against our own model.
+  in VLAs), {ℓ, o1 , a1 , . . . , oN , aN }.
+• Language + Image: video sequences {ℓ, o1 , . . . , oN } or                     5.2. Evaluation in Simulation Environment
+  image-text pairs {(o, ℓ)}.                                                     We evaluated single-task performance on 50 representative
+   1 In joint position control, proprioception and action share the same         manipulation tasks from the RoboTwin 2.0 tasks in random-
+representation space.                                                            ized scenes. To probe the general ability of our method, we
+   2 Language can be annotated post-hoc to support task-oriented learning.       carry out multi-task training: Motus and all baselines are
+
+
+                                                                             6
+                      Table 2. Evaluation on RoboTwin 2.0 Simulation (Clean vs Randomized, 50+ tasks).
+
+                    Simulation Task           π0.5      X-VLA     w/o Pretrain   Stage1      Motus
+                                          Clean Rand. Clean Rand. Clean Rand. Clean Rand. Clean Rand.
+                    Place Dual Shoes      12%     7%      79%     88%     78%    80%     94%     94%     93%     87%
+                    Move Stapler Pad      16%     18%     78%     73%     49%    37%     75%     68%     83%     85%
+                    Stack Blocks Two      48%     56%     92%     87%     96%    94%     99%     99%     100%    98%
+                       Scan Object        42%     38%     14%     36%     42%    50%     56%     69%     67%     66%
+                   Place Object Stand     74%     65%     86%     88%     91%    93%     93%     96%     98%     97%
+                         Place Fan        25%     36%     80%     75%     77%    85%     77%     85%     91%     87%
+                   Move Pillbottle Pad    33%     29%     73%     71%     83%    83%     96%     90%     93%     96%
+                    Pick Dual Bottles     10%      6%     47%     36%     58%    68%      7%     17%     96%     90%
+                   Blocks Ranking Rgb     43%     35%     83%     83%     92%    88%     97%     98%     99%     97%
+                      ......(50 tasks)
+                       Turn Switch         5%      6%     40%     61%     69%    60%     59%     64%     84%     78%
+                   Pick Diverse Bottles    5%      3%     58%     36%     53%    62%     18%     18%     90%     91%
+                   Place Bread Basket     48%     56%     81%     71%     73%    83%     89%     87%     91%     94%
+                   Stack Blocks Three     15%     16%      6%     10%     71%    76%     99%     95%     91%     95%
+                   Put Bottles Dustbin    12%     9%      74%     77%     36%    33%     34%     24%     81%     79%
+                    Place Can Basket      19%     25%     49%     52%     46%    62%     66%     55%     81%     76%
+                        Stamp Seal        36%     23%     76%     82%     80%    88%     93%     95%     93%     92%
+                      Hanging Mug          3%      3%     23%     27%     14%    10%     37%     25%     38%     38%
+                     Handover Block       18%     19%     73%     37%     34%    15%     55%     55%     86%     73%
+                    Stack Bowls Three     33%     35%     76%     86%     90%    74%     86%     83%     79%     87%
+                   Place Object Basket    43%     36%     44%     39%     74%    75%     76%     80%     81%     87%
+                     Open Microwave       35%     37%     79%     71%     83%    82%     82%     84%     95%     91%
+                      Average (%)         42.98   43.84   72.80   72.84   72.8   77.00   82.86   81.86   88.66   87.02
+
+
+trained on 2500 demonstrations collected in clean scenes (50          performance.
+per task) plus 25000 demonstrations gathered in heavily ran-
+domized scenes (500 per task). The randomization includes             5.3. Real-World Experiments
+random backgrounds, a cluttered table, table-height pertur-
+                                                                      We evaluate Motus across two distinct real-world dual-arm
+bations, and randomized lighting. All models are finetuned
+                                                                      robotic platforms, AC-One and Agilex-Aloha-2 under a com-
+for 40k steps on the RoboTwin dataset starting from their
+                                                                      prehensive set of non-trivial tasks that span various dimen-
+pretrained checkpoints, and we evaluate performance by
+                                                                      sions of policy capabilities including: (1) Spatial Under-
+measuring the success rate of each task over 100 execution
+                                                                      standing (2) Deformable Objects Manipulation (3) Precision
+trials.
+                                                                      Fluid Control (4) Visual understanding (5) Long-Horizon
+   This benchmark is particularly challenging and informa-            Planning, such as fold towel, brew coffee using drip coffee
+tive because it contains a large variety of task scenes and           machine and grind coffee beans with grinder.
+randomized instructions, testing a model’s ability to han-                For each task, we employed 100 trajectories for training.
+dle various manipulation settings. Its strong background              Consistent with the simulator, a multi-task joint training
+and environmental variability further evaluate the general-           scheme was adopted: all tasks on each robotic platform were
+ization under distribution shift. Moreover, all models are            trained collectively within a single model, which was subse-
+allowed only 40k finetuning steps on top of their pretrained          quently evaluated on every individual task. This approach
+checkpoints, providing a strict and fair assessment of the            provides a comprehensive and rigorous assessment of the
+effectiveness of different pretraining strategies.                    model’s robustness and generalization capabilities.
+   As shown in Tab. 2, Motus achieves state-of-the-art per-               We choose π0.5 as our baseline. Since most tasks involve
+formance on the RoboTwin 2.0 randomized multi-task set-               long-horizon reasoning and are decomposable, we employed
+ting, delivering over a 45% absolute improvement compared             the partial success rate for evaluation. This metric quantifies
+with the π0.5 model. By using a unified MoT model, Motus              performance by decomposing a task into subtasks, where the
+successfully integrates vision, language, and action genera-          model earns partial scores for achieving specific subgoals
+tion, solving Challenge 1. In Challenge 2, the introduction           and a full score only for overall success, thereby offering a
+of latent actions enables Motus to effectively leverage both          more compelling demonstration of its capability. Examples
+labeled and large-scale unlabeled data, improving general-            are shown in Table 6 and Table 5.
+ization across embodiments and capturing rich motion priors.              The results are reported in Table 3. Our results demon-
+This combination of techniques allows Motus to overcome               strate that Motus significantly outperforms the baseline π0.5
+the limitations of previous approaches and achieve superior           across all tasks on both robotic arms. Visualizations are
+
+
+                                                                  7
+                                                                                                                            Table 4. Put Bread into Oven Task on AC-One Platform with a
+                                  Brew Coffee using Coffee Maker                                                            Detailed Subtask Breakdown. The number preceding each subtask
+                                                                                                                            indicates the score assigned to its successful completion.
+
+                                                                                                                                                           Subgoal               π0.5     w/o Pretrain       Motus
+    The robot is required to (1) grasp the cup and pour the coffee beans into the coffee maker, (2) place
+    the cup on the table, and (3) press the button.                                                                                             0.0: Complete Failure             6            4              5
+                                       Touch Instructed Keyboard                                                                                 0.2: Open the Oven               3            0              0
+                                                                                                                                                 0.4: Grab the Bread              0            2              1
+                                                                                                                                           0.6: Put the Bread into the Oven       1            1              0
+                                                                                                                                                 0.8: Close the Oven              0            2              1
+                                                                                                                                                 1.0: Spin the Button             0            1              3
+                                                                                                                                                 Partial Success Rate            12%          40%            42%
+         The robot is required to press the key corresponding to the letter displayed on the screen.
+
+                                           Put Bread into Oven                                                              Table 5. Get Water from Water Dispenser Task on Agilex-Aloha-2
+                                                                                                                            Platform with a Detailed Subtask Breakdown. The number pre-
+                                                                                                                            ceding each subtask indicates the score assigned to its successful
+                                                                                                                            completion.
+    The robot is required to (1) open the oven door, (2) place the piece of bread inside the oven, (3)
+    close the oven door securely, and (4) press the start button to initiate heating.                                                                      Subgoal             π0.5     w/o Pretrain   Motus
+                                                                                                                                                   0.0: Complete Failure        0            8            0
+Figure 5. Task Definitions and Visualizations. For each task, we                                                                                     0.4: Grab the cup          5            2            0
+describe its language instruction and definitions of each sub-task.                                                                             0.8: Fill the cup with water    4            0            2
+                                                                                                                                                  1.0: Complete Success         1            0            8
+                                                                                                                                                    Partial Success Rate       62%          8%           96%
+Table 3. Robotic Manipulation Tasks Performance Across Plat-
+                                                                                                                                                                                                       w/o pretrain
+forms (Partial Success Rate %).                                                                                                                                                                        stage1 pretrain
+                                                                                                                                                                                                       stage2 pretrain
+                                                                                                                                           90                                            +11.10%              88.66%
+ Task Description                                             π0.5           w/o Pretrain                Motus                                   +10.02%             87.02%
+                                                  AC-One
+                                                                                                                                           85
+
+
+
+                                                                                                                        Success Rate (%)
+ Fold Towel                                                    4                     1                       14.5                                           81.86%                                  82.26%
+ Brew Coffee using Coffee Maker                                0                      0                       62
+ Get Water from Water Dispenser                               30                      8                       36                           80
+ Place Cube into Plate                                        46                     60                      100                                  77.00%                                  77.56%
+ Place Cube into Plate(OOD)                                 28.125                 18.75                      75
+ Grind Coffee Beans with Grinder                               8                      0                       92                           75
+ Pour Water from Kettle to Flowers                             5                      5                       65
+ Touch Instructed Keyboard                                     0                    100                      82.5
+                                                                                                                                           70
+ Put Bread into Oven                                          12                    40                        42
+ Average                                                    14.79                  25.86                    63.22                                Robotwin2 Randomized                        Robotwin2 Clean
+                                            Agilex-Aloha-2
+                                                                                                                            Figure 6. Ablation in RoboTwin 2.0 Randomized Multi-task
+ Fold Towel                                                  27.5                    0                        39
+                                                                                                                            Setting. The figure presents the total success rates (%) of the
+ Get Water from Water Dispenser                                62                    8                        96
+ Pour Water from Kettle to Flowers                             45                   40                       47.5           original Motus (Stage 2 Pretrain) and its two variants: Without
+ Touch Instructed Keyboard                                    72.5                  85                        80            Pretrain and Stage 1 Pretrain.
+ Put Bread into Oven                                           36                    0                        34
+ Average                                                     48.60                 26.60                    59.30
+                                                                                                                            experiments are shown in Table 3.
+
+provided in Figure 5                                                                                                        6. Conclusion and Limitations
+                                                                                                                            In this work, we present Motus, a unified latent-action world
+                                                                                                                            model that integrates mainstream capabilities of embodied
+5.4. Ablation Study
+                                                                                                                            foundation models into a single generative framework, i.e.,
+We performed ablation studies to demonstrate the contribu-                                                                  vision-language understanding, video generation, inverse
+tion of each training stage. This involved benchmarking                                                                     dynamics, world modeling, and video-action joint prediction.
+models without pretraining and only Stage 1 pretraining.                                                                    By connecting pretrained experts through MoT, coordinat-
+Evaluations were carried out in the RoboTwin 2.0 simulator                                                                  ing multimodal modeling with a UniDiffuser-style sched-
+to measure accuracy. In real-world deployments we compare                                                                   uler, and introducing latent actions as a pixel-level “delta
+Motus against its from-scratch counterpart. The results in                                                                  action” and motion representation, Motus effectively learns
+simulator are summarized in Fig 6, and results in real-world                                                                from large-scale heterogeneous data and inherits both gen-
+
+
+                                                                                                                    8
+eral multimodal priors and rich physical interaction knowl-                   dation model for generalist humanoid robots. arXiv preprint
+edge. Extensive experiments across simulation and real-                       arXiv:2503.14734, 2025. 3
+world environments demonstrate that Motus consistently                    [7] Kevin Black, Mitsuhiko Nakamoto, Pranav Atreya, Homer
+outperforms existing state-of-the-art embodied models (im-                    Walke, Chelsea Finn, Aviral Kumar, and Sergey Levine. Zero-
+proved by +15~45% in simulation and +11~48% in real-                          shot robotic manipulation with pretrained image-editing dif-
+                                                                              fusion models. CoRR, abs/2310.10639, 2023. 1
+world scenarios), validating the importance of unifying mul-
+                                                                          [8] Kevin Black, Noah Brown, James Darpinian, Karan Dhabalia,
+timodal generative capabilities and shared motion priors.
+                                                                              Danny Driess, Adnan Esmail, Michael Robert Equi, Chelsea
+We hope Motus inspires future research on unified architec-                   Finn, Niccolo Fusai, Manuel Y Galliker, et al. \π0.5 : a vision-
+tures, motion-centric representation learning, and large-scale                language-action model with open-world generalization. In
+embodied pretraining.                                                         9th Annual Conference on Robot Learning, 2025. 1, 3, 4, 6
+   In the future, we will continue to explore more advanced               [9] Jake Bruce, Michael D Dennis, Ashley Edwards, Jack
+unified model architectures, pursue more universal motion                     Parker-Holder, Yuge Shi, Edward Hughes, Matthew Lai,
+priors, and learn latent actions from internet-scale general                  Aditi Mavalankar, Richie Steigerwald, Chris Apps, Yusuf
+videos for embodied intelligence.                                             Aytar, Sarah Maria Elisabeth Bechtle, Feryal Behbahani,
+                                                                              Stephanie C.Y. Chan, Nicolas Heess, Lucy Gonzalez, Simon
+References                                                                    Osindero, Sherjil Ozair, Scott Reed, Jingwei Zhang, Konrad
+                                                                              Zolna, Jeff Clune, Nando de Freitas, Satinder Singh, and Tim
+ [1] AgiBot-World-Contributors, Qingwen Bu, Jisong Cai, Li                    Rocktäschel. Genie: Generative interactive environments. In
+     Chen, Xiuqi Cui, Yan Ding, Siyuan Feng, Shenyuan Gao,                    Forty-first International Conference on Machine Learning,
+     Xindong He, Xuan Hu, Xu Huang, Shu Jiang, Yuxin Jiang,                   2024. 3
+     Cheng Jing, Hongyang Li, Jialu Li, Chiming Liu, Yi Liu,             [10] Qingwen Bu, Jisong Cai, Li Chen, Xiuqi Cui, Yan Ding,
+     Yuxiang Lu, Jianlan Luo, Ping Luo, Yao Mu, Yuehan Niu,                   Siyuan Feng, Shenyuan Gao, Xindong He, Xuan Hu, Xu
+     Yixuan Pan, Jiangmiao Pang, Yu Qiao, Guanghui Ren, Cheng                 Huang, et al. Agibot world colosseo: A large-scale manipula-
+     Ruan, Jiaqi Shan, Yongjian Shen, Chengshi Shi, Mingkang                  tion platform for scalable and intelligent embodied systems.
+     Shi, Modi Shi, Chonghao Sima, Jianheng Song, Huijie Wang,                arXiv preprint arXiv:2503.06669, 2025. 3
+     Wenhao Wang, Dafeng Wei, Chengen Xie, Guo Xu, Junchi                [11] Qingwen Bu, Yanting Yang, Jisong Cai, Shenyuan Gao,
+     Yan, Cunbiao Yang, Lei Yang, Shukai Yang, Maoqing Yao,                   Guanghui Ren, Maoqing Yao, Ping Luo, and Hongyang Li.
+     Jia Zeng, Chi Zhang, Qinglin Zhang, Bin Zhao, Chengyue                   Univla: Learning to act anywhere with task-centric latent
+     Zhao, Jiaqi Zhao, and Jianchao Zhu. Agibot world colosseo:               actions. arXiv preprint arXiv:2505.06111, 2025. 1, 3
+     A large-scale manipulation platform for scalable and intelli-       [12] Hila Chefer, Uriel Singer, Amit Zohar, Yuval Kirstain, Adam
+     gent embodied systems. arXiv preprint arXiv:2503.06669,                  Polyak, Yaniv Taigman, Lior Wolf, and Shelly Sheynin.
+     2025. 6, 5                                                               Videojam: Joint appearance-motion representations for en-
+ [2] Jinze Bai, Shuai Bai, Shusheng Yang, Shijie Wang, Sinan Tan,             hanced motion generation in video models. arXiv preprint
+     Peng Wang, Junyang Lin, Chang Zhou, and Jingren Zhou.                    arXiv:2502.02492, 2025. 3
+     Qwen-vl: A versatile vision-language model for understand-          [13] Junyu Chen, Han Cai, Junsong Chen, Enze Xie, Shang Yang,
+     ing, localization, text reading, and beyond. arXiv preprint              Haotian Tang, Muyang Li, and Song Han. Deep compres-
+     arXiv:2308.12966, 2023. 5                                                sion autoencoder for efficient high-resolution diffusion mod-
+ [3] Shuai Bai, Keqin Chen, Xuejing Liu, Jialin Wang, Wenbin Ge,              els. In The Thirteenth International Conference on Learning
+     Sibo Song, Kai Dang, Peng Wang, Shijie Wang, Jun Tang,                   Representations, ICLR 2025, Singapore, April 24-28, 2025.
+     Humen Zhong, Yuanzhi Zhu, Mingkun Yang, Zhaohai Li,                      OpenReview.net, 2025. 5
+     Jianqiang Wan, Pengfei Wang, Wei Ding, Zheren Fu, Yiheng            [14] Tianxing Chen, Zanxin Chen, Baijun Chen, Zijian Cai, Yibin
+     Xu, Jiabo Ye, Xi Zhang, Tianbao Xie, Zesen Cheng, Hang                   Liu, Zixuan Li, Qiwei Liang, Xianliang Lin, Yiheng Ge,
+     Zhang, Zhibo Yang, Haiyang Xu, and Junyang Lin. Qwen2.5-                 Zhenyu Gu, et al. Robotwin 2.0: A scalable data gen-
+     vl technical report. arXiv preprint arXiv:2502.13923, 2025.              erator and benchmark with strong domain randomization
+     5                                                                        for robust bimanual robotic manipulation. arXiv preprint
+ [4] Homanga Bharadhwaj, Debidatta Dwibedi, Abhinav Gupta,                    arXiv:2506.18088, 2025. 6, 5
+     Shubham Tulsiani, Carl Doersch, Ted Xiao, Dhruv Shah, Fei           [15] Yi Chen, Yuying Ge, Weiliang Tang, Yizhuo Li, Yixiao Ge,
+     Xia, Dorsa Sadigh, and Sean Kirmani. Gen2act: Human                      Mingyu Ding, Ying Shan, and Xihui Liu. Moto: Latent
+     video generation in novel scenarios enables generalizable                motion token as the bridging language for learning robot
+     robot manipulation. CoRR, abs/2409.16283, 2024. 1                        manipulation from videos. arXiv preprint arXiv:2412.04445,
+ [5] Hongzhe Bi, Lingxuan Wu, Tianwei Lin, Hengkai Tan,                       2024. 3
+     Zhizhong Su, Hang Su, and Jun Zhu. H-rdt: Human ma-                 [16] Jaden Clark, Suvir Mirchandani, Dorsa Sadigh, and Suneel
+     nipulation enhanced bimanual robotic manipulation, 2025.                 Belkhale. Action-free reasoning for policy generalization.
+     1                                                                        In ICRA 2025 Workshop on Foundation Models and Neuro-
+ [6] Johan Bjorck, Fernando Castañeda, Nikita Cherniadev,                     Symbolic AI for Robotics, 2025. 3
+     Xingye Da, Runyu Ding, Linxi Fan, Yu Fang, Dieter Fox,              [17] Jeremy A Collins, Loránd Cheng, Kunal Aneja, Albert
+     Fengyuan Hu, Spencer Huang, et al. Gr00t n1: An open foun-               Wilcox, Benjamin Joffe, and Animesh Garg. Amplify: Ac-
+
+
+                                                                     9
+     tionless motion priors for robot learning from videos. arXiv               Zettlemoyer, and Xi Victoria Lin. Mixture-of-transformers:
+     preprint arXiv:2506.14198, 2025. 3                                         A sparse and scalable architecture for multi-modal foundation
+[18] Chaorui Deng, Deyao Zhu, Kunchang Li, Chenhui Gou, Feng                    models. In ICLR 2025 Workshop on World Models: Under-
+     Li, Zeyu Wang, Shu Zhong, Weihao Yu, Xiaonan Nie, Ziang                    standing, Modelling and Scaling, 2025. 3
+     Song, et al. Emerging properties in unified multimodal pre-           [31] Songming Liu, Lingxuan Wu, Bangguo Li, Hengkai Tan,
+     training. arXiv preprint arXiv:2505.14683, 2025. 3                         Huayu Chen, Zhengyi Wang, Ke Xu, Hang Su, and Jun Zhu.
+[19] Yilun Du, Sherry Yang, Bo Dai, Hanjun Dai, Ofir Nachum,                    Rdt-1b: a diffusion foundation model for bimanual manipula-
+     Josh Tenenbaum, Dale Schuurmans, and Pieter Abbeel. Learn-                 tion. In The Thirteenth International Conference on Learning
+     ing universal policies via text-guided video generation. Ad-               Representations. 1, 4, 6, 5
+     vances in neural information processing systems, 36:9156–             [32] Qi Lv, Weijie Kong, Hao Li, Jia Zeng, Zherui Qiu, Delin
+     9172, 2023. 1, 3                                                           Qu, Haoming Song, Qizhi Chen, Xiang Deng, and Jiang-
+[20] Ashley Edwards, Himanshu Sahni, Yannick Schroecker, and                    miao Pang. F1: A vision-language-action model bridging
+     Charles Isbell. Imitating latent policies from observation. In             understanding and generation to actions. arXiv preprint
+     International conference on machine learning, pages 1755–                  arXiv:2509.06951, 2025. 1, 3
+     1763. PMLR, 2019. 3                                                   [33] Henrique Morimitsu, Xiaobin Zhu, Roberto M. Cesar, Xi-
+[21] Yao Feng, Hengkai Tan, Xinyi Mao, Chendong Xiang,                          angyang Ji, and Xu-Cheng Yin. Dpflow: Adaptive opti-
+     Guodong Liu, Shuhe Huang, Hang Su, and Jun Zhu. Vidar:                     cal flow estimation with a dual-pyramid framework. In
+     Embodied video diffusion model for generalist manipulation.                IEEE/CVF Conference on Computer Vision and Pattern
+     arXiv preprint arXiv:2507.12898, 2025. 1, 3                                Recognition, CVPR 2025, Nashville, TN, USA, June 11-15,
+[22] Shenyuan Gao, Siyuan Zhou, Yilun Du, Jun Zhang, and                        2025, pages 17810–17820. Computer Vision Foundation /
+     Chuang Gan. Adaworld: Learning adaptable world models                      IEEE, 2025. 5
+     with latent actions. In Forty-second International Conference         [34] Alexander Nikulin, Ilya Zisman, Denis Tarasov, Nikita
+     on Machine Learning, 2025. 3                                               Lyubaykin, Andrei Polubarov, Igor Kiselev, and Vladislav
+[23] Irina Higgins, Loic Matthey, Arka Pal, Christopher Burgess,                Kurenkov. Latent action learning requires supervision in the
+     Xavier Glorot, Matthew Botvinick, Shakir Mohamed, and                      presence of distractors. arXiv preprint arXiv:2502.00379,
+     Alexander Lerchner. beta-VAE: Learning basic visual con-                   2025. 3
+     cepts with a constrained variational framework. In Interna-           [35] Junzhi Ning, Wei Li, Cheng Tang, Jiashi Lin, Chenglong
+     tional Conference on Learning Representations, 2017. 3                     Ma, Chaoyang Zhang, Jiyao Liu, Ying Chen, Shujian Gao,
+[24] Ryan Hoque, Peide Huang, David J Yoon, Mouli Sivapu-                       Lihao Liu, Yuandong Pu, Huihui Xu, Chenhui Gou, Ziyan
+     rapu, and Jian Zhang. Egodex: Learning dexterous manip-                    Huang, Yi Xin, Qi Qin, Zhongying Deng, Diping Song, Bin
+     ulation from large-scale egocentric video. arXiv preprint                  Fu, Guang Yang, Yuanfeng Ji, Tianbin Li, Yanzhou Su, Jin
+     arXiv:2505.11709, 2025. 6, 5                                               Ye, Shixiang Tang, Ming Hu, and Junjun He. Unimedvl:
+[25] Yucheng Hu, Yanjiang Guo, Pengchao Wang, Xiaoyu Chen,                      Unifying medical multimodal understanding and generation
+     Yen-Jen Wang, Jianke Zhang, Koushil Sreenath, Chaochao                     through observation-knowledge-analysis, 2025. 3
+     Lu, and Jianyu Chen. Video prediction policy: A generalist            [36] Abby O’Neill, Abdul Rehman, Abhiram Maddukuri, Ab-
+     robot policy with predictive visual representations. CoRR,                 hishek Gupta, Abhishek Padalkar, Abraham Lee, Acorn Poo-
+     abs/2412.14803, 2024. 1                                                    ley, Agrim Gupta, Ajay Mandlekar, Ajinkya Jain, Albert
+[26] Moo Jin Kim, Karl Pertsch, Siddharth Karamcheti, Ted Xiao,                 Tung, Alex Bewley, Alexander Herzog, Alex Irpan, Alexan-
+     Ashwin Balakrishna, Suraj Nair, Rafael Rafailov, Ethan P                   der Khazatsky, Anant Rai, Anchit Gupta, Andrew E. Wang,
+     Foster, Pannag R Sanketi, Quan Vuong, et al. Openvla: An                   Anikait Singh, Animesh Garg, Aniruddha Kembhavi, An-
+     open-source vision-language-action model. In 8th Annual                    nie Xie, Anthony Brohan, Antonin Raffin, Archit Sharma,
+     Conference on Robot Learning. 1                                            Arefeh Yavary, Arhan Jain, Ashwin Balakrishna, Ayzaan
+[27] Moo Jin Kim, Karl Pertsch, Siddharth Karamcheti, Ted Xiao,                 Wahid, Ben Burgess-Limerick, Beomjoon Kim, Bernhard
+     Ashwin Balakrishna, Suraj Nair, Rafael Rafailov, Ethan P                   Schölkopf, Blake Wulfe, Brian Ichter, Cewu Lu, Charles
+     Foster, Pannag R Sanketi, Quan Vuong, Thomas Kollar, Ben-                  Xu, Charlotte Le, Chelsea Finn, Chen Wang, Chenfeng Xu,
+     jamin Burchfiel, Russ Tedrake, Dorsa Sadigh, Sergey Levine,                Cheng Chi, Chenguang Huang, Christine Chan, Christopher
+     Percy Liang, and Chelsea Finn. OpenVLA: An open-source                     Agia, Chuer Pan, Chuyuan Fu, Coline Devin, Danfei Xu,
+     vision-language-action model. In 8th Annual Conference on                  Daniel Morton, Danny Driess, Daphne Chen, Deepak Pathak,
+     Robot Learning, 2024. 3                                                    Dhruv Shah, Dieter Büchler, Dinesh Jayaraman, Dmitry
+[28] Shuang Li, Yihuai Gao, Dorsa Sadigh, and Shuran Song.                      Kalashnikov, Dorsa Sadigh, Edward Johns, Ethan Paul Foster,
+     Unified video action model. CoRR, abs/2503.00200, 2025. 1                  Fangchen Liu, Federico Ceola, Fei Xia, Feiyu Zhao, Freek
+[29] Zijie Li, Henry Li, Yichun Shi, Amir Barati Farimani, Yuval                Stulp, Gaoyue Zhou, Gaurav S. Sukhatme, Gautam Salhotra,
+     Kluger, Linjie Yang, and Peng Wang. Dual diffusion for                     Ge Yan, Gilbert Feng, Giulio Schiavi, Glen Berseth, Gregory
+     unified image generation and understanding. In Proceedings                 Kahn, Guanzhi Wang, Hao Su, Haoshu Fang, Haochen Shi,
+     of the Computer Vision and Pattern Recognition Conference,                 Henghui Bao, Heni Ben Amor, Henrik I. Christensen, Hiroki
+     pages 2779–2790, 2025. 3                                                   Furuta, Homer Walke, Hongjie Fang, Huy Ha, Igor Mordatch,
+[30] Weixin Liang, LILI YU, Liang Luo, Srini Iyer, Ning Dong,                   Ilija Radosavovic, Isabel Leal, Jacky Liang, Jad Abou-Chakra,
+     Chunting Zhou, Gargi Ghosh, Mike Lewis, Wen tau Yih, Luke                  Jaehyung Kim, Jaimyn Drake, Jan Peters, Jan Schneider, Jas-
+
+
+                                                                      10
+     mine Hsu, Jeannette Bohg, Jeffrey Bingham, Jeffrey Wu,                    actions. In The Twelfth International Conference on Learning
+     Jensen Gao, Jiaheng Hu, Jiajun Wu, Jialin Wu, Jiankai Sun,                Representations, 2024. 3
+     Jianlan Luo, Jiayuan Gu, Jie Tan, Jihoon Oh, Jimmy Wu,               [39] Hengkai Tan, Yao Feng, Xinyi Mao, Shuhe Huang, Guodong
+     Jingpei Lu, Jingyun Yang, Jitendra Malik, João Silvério, Joey             Liu, Zhongkai Hao, Hang Su, and Jun Zhu. Anypos: Auto-
+     Hejna, Jonathan Booher, Jonathan Tompson, Jonathan Yang,                  mated task-agnostic actions for bimanual manipulation, 2025.
+     Jordi Salvador, Joseph J. Lim, Junhyek Han, Kaiyuan Wang,                 1, 5
+     Kanishka Rao, Karl Pertsch, Karol Hausman, Keegan Go,                [40] Chameleon Team. Chameleon: Mixed-modal early-fusion
+     Keerthana Gopalakrishnan, Ken Goldberg, Kendra Byrne,                     foundation models. arXiv preprint arXiv:2405.09818, 2024.
+     Kenneth Oslund, Kento Kawaharazuka, Kevin Black, Kevin                    3
+     Lin, Kevin Zhang, Kiana Ehsani, Kiran Lekkala, Kirsty Ellis,
+                                                                          [41] Yang Tian, Sizhe Yang, Jia Zeng, Ping Wang, Dahua Lin,
+     Krishan Rana, Krishnan Srinivasan, Kuan Fang, Kunal Pratap
+                                                                               Hao Dong, and Jiangmiao Pang. Predictive inverse dynamics
+     Singh, Kuo-Hao Zeng, Kyle Hatch, Kyle Hsu, Laurent Itti,
+                                                                               models are scalable learners for robotic manipulation. CoRR,
+     Lawrence Yunliang Chen, Lerrel Pinto, Li Fei-Fei, Liam Tan,
+                                                                               abs/2412.15109, 2024. 1
+     Linxi Jim Fan, Lionel Ott, Lisa Lee, Luca Weihs, Magnum
+                                                                          [42] Team Wan, Ang Wang, Baole Ai, Bin Wen, Chaojie Mao,
+     Chen, Marion Lepert, Marius Memmel, Masayoshi Tomizuka,
+                                                                               Chen-Wei Xie, Di Chen, Feiwu Yu, Haiming Zhao, Jianx-
+     Masha Itkina, Mateo Guaman Castro, Max Spero, Maxim-
+                                                                               iao Yang, Jianyuan Zeng, Jiayu Wang, Jingfeng Zhang, Jin-
+     ilian Du, Michael Ahn, Michael C. Yip, Mingtong Zhang,
+                                                                               gren Zhou, Jinkai Wang, Jixuan Chen, Kai Zhu, Kang Zhao,
+     Mingyu Ding, Minho Heo, Mohan Kumar Srirama, Mohit
+                                                                               Keyu Yan, Lianghua Huang, Mengyang Feng, Ningyi Zhang,
+     Sharma, Moo Jin Kim, Naoaki Kanazawa, Nicklas Hansen,
+                                                                               Pandeng Li, Pingyu Wu, Ruihang Chu, Ruili Feng, Shiwei
+     Nicolas Heess, Nikhil J. Joshi, Niko Sünderhauf, Ning Liu,
+                                                                               Zhang, Siyang Sun, Tao Fang, Tianxing Wang, Tianyi Gui,
+     Norman Di Palo, Nur Muhammad (Mahi) Shafiullah, Oier
+                                                                               Tingyu Weng, Tong Shen, Wei Lin, Wei Wang, Wei Wang,
+     Mees, Oliver Kroemer, Osbert Bastani, Pannag R. Sanketi,
+                                                                               Wenmeng Zhou, Wente Wang, Wenting Shen, Wenyuan Yu,
+     Patrick Tree Miller, Patrick Yin, Paul Wohlhart, Peng Xu,
+                                                                               Xianzhong Shi, Xiaoming Huang, Xin Xu, Yan Kou, Yangyu
+     Peter David Fagan, Peter Mitrano, Pierre Sermanet, Pieter
+                                                                               Lv, Yifei Li, Yijing Liu, Yiming Wang, Yingya Zhang, Yi-
+     Abbeel, Priya Sundaresan, Qiuyu Chen, Quan Vuong, Rafael
+                                                                               tong Huang, Yong Li, You Wu, Yu Liu, Yulin Pan, Yun
+     Rafailov, Ran Tian, Ria Doshi, Roberto Martín-Martín, Ro-
+                                                                               Zheng, Yuntao Hong, Yupeng Shi, Yutong Feng, Zeyinzi
+     han Baijal, Rosario Scalise, Rose Hendrix, Roy Lin, Run-
+                                                                               Jiang, Zhen Han, Zhi-Fan Wu, and Ziyu Liu. Wan: Open and
+     jia Qian, Ruohan Zhang, Russell Mendonca, Rutav Shah,
+                                                                               advanced large-scale video generative models. arXiv preprint
+     Ryan Hoque, Ryan Julian, Samuel Bustamante, Sean Kir-
+                                                                               arXiv:2503.20314, 2025. 5
+     mani, Sergey Levine, Shan Lin, Sherry Moore, Shikhar Bahl,
+     Shivin Dass, Shubham D. Sonawani, Shuran Song, Sichun                [43] Lirui Wang, Xinlei Chen, Jialiang Zhao, and Kaiming He.
+     Xu, Siddhant Haldar, Siddharth Karamcheti, Simeon Ade-                    Scaling proprioceptive-visual learning with heterogeneous
+     bola, Simon Guist, Soroush Nasiriany, Stefan Schaal, Stefan               pre-trained transformers. In Advances in Neural Information
+     Welker, Stephen Tian, Subramanian Ramamoorthy, Sudeep                     Processing Systems 38: Annual Conference on Neural Infor-
+     Dasari, Suneel Belkhale, Sungjae Park, Suraj Nair, Suvir                  mation Processing Systems 2024, NeurIPS 2024, Vancouver,
+     Mirchandani, Takayuki Osa, Tanmay Gupta, Tatsuya Harada,                  BC, Canada, December 10 - 15, 2024, 2024. 4
+     Tatsuya Matsushima, Ted Xiao, Thomas Kollar, Tianhe Yu,              [44] Peng Wang, Shuai Bai, Sinan Tan, Shijie Wang, Zhihao Fan,
+     Tianli Ding, Todor Davchev, Tony Z. Zhao, Travis Armstrong,               Jinze Bai, Keqin Chen, Xuejing Liu, Jialin Wang, Wenbin Ge,
+     Trevor Darrell, Trinity Chung, Vidhi Jain, Vincent Vanhoucke,             Yang Fan, Kai Dang, Mengfei Du, Xuancheng Ren, Rui Men,
+     Wei Zhan, Wenxuan Zhou, Wolfram Burgard, Xi Chen, Xiao-                   Dayiheng Liu, Chang Zhou, Jingren Zhou, and Junyang Lin.
+     long Wang, Xinghao Zhu, Xinyang Geng, Xiyuan Liu, Liang-                  Qwen2-vl: Enhancing vision-language model’s perception of
+     wei Xu, Xuanlin Li, Yao Lu, Yecheng Jason Ma, Yejin Kim,                  the world at any resolution. arXiv preprint arXiv:2409.12191,
+     Yevgen Chebotar, Yifan Zhou, Yifeng Zhu, Yilin Wu, Ying                   2024. 5
+     Xu, Yixuan Wang, Yonatan Bisk, Yoonyoung Cho, Young-                 [45] Xinlong Wang, Xiaosong Zhang, Zhengxiong Luo, Quan Sun,
+     woon Lee, Yuchen Cui, Yue Cao, Yueh-Hua Wu, Yujin Tang,                   Yufeng Cui, Jinsheng Wang, Fan Zhang, Yueze Wang, Zhen
+     Yuke Zhu, Yunchu Zhang, Yunfan Jiang, Yunshuang Li, Yun-                  Li, Qiying Yu, et al. Emu3: Next-token prediction is all you
+     zhu Li, Yusuke Iwasawa, Yutaka Matsuo, Zehan Ma, Zhuo                     need. arXiv preprint arXiv:2409.18869, 2024. 3
+     Xu, Zichen Jeff Cui, Zichen Zhang, and Zipeng Lin. Open              [46] Yiqi Wang, Mrinal Verghese, and Jeff Schneider. Latent
+     x-embodiment: Robotic learning datasets and RT-X models                   policy steering with embodiment-agnostic pretrained world
+     : Open x-embodiment collaboration. In IEEE International                  models. arXiv preprint arXiv:2507.13340, 2025. 3
+     Conference on Robotics and Automation, ICRA 2024, Yoko-              [47] Chengyue Wu, Xiaokang Chen, Zhiyu Wu, Yiyang Ma,
+     hama, Japan, May 13-17, 2024, pages 6892–6903. IEEE,                      Xingchao Liu, Zizheng Pan, Wen Liu, Zhenda Xie, Xingkai
+     2024. 1                                                                   Yu, Chong Ruan, et al. Janus: Decoupling visual encoding
+[37] Oleh Rybkin, Karl Pertsch, Andrew Jaegle, Konstantinos G.                 for unified multimodal understanding and generation. In Pro-
+     Derpanis, and Kostas Daniilidis. Learning what you can                    ceedings of the Computer Vision and Pattern Recognition
+     do before doing anything. In International Conference on                  Conference, pages 12966–12977, 2025. 3
+     Learning Representations, 2019. 3                                    [48] Kun Wu, Chengkai Hou, Jiaming Liu, Zhengping Che, Xi-
+[38] Dominik Schmidt and Minqi Jiang. Learning to act without                  aozhu Ju, Zhuqin Yang, Meng Li, Yinuo Zhao, Zhiyuan
+
+
+                                                                     11
+     Xu, Guang Yang, et al. Robomind: Benchmark on multi-                       Chen, Jia Zeng, et al. X-vla: Soft-prompted transformer
+     embodiment intelligence normative data for robot manipula-                 as scalable cross-embodiment vision-language-action model.
+     tion. arXiv preprint arXiv:2412.13877, 2024. 6, 5                          arXiv preprint arXiv:2510.10274, 2025. 1, 3, 4, 6
+[49] Jinheng Xie, Zhenheng Yang, and Mike Zheng Shou. Show-                [61] Zhide Zhong, Haodong Yan, Junfeng Li, Xiangchen Liu, Xin
+     o2: Improved native unified multimodal models. arXiv                       Gong, Tianran Zhang, Wenxuan Song, Jiayi Chen, Xinhu
+     preprint arXiv:2506.15564, 2025. 3                                         Zheng, Hesheng Wang, et al. Flowvla: Visual chain of
+[50] Jiange Yang, Yansong Shi, Haoyi Zhu, Mingyu Liu, Kai-                      thought-based motion reasoning for vision-language-action
+     jing Ma, Yating Wang, Gangshan Wu, Tong He, and Limin                      models. arXiv preprint arXiv:2508.18269, 2025. 3
+     Wang. Como: Learning continuous latent motion from in-                [62] Siyuan Zhou, Yilun Du, Jiaben Chen, Yandong Li, Dit-Yan
+     ternet videos for scalable robot learning. arXiv preprint                  Yeung, and Chuang Gan. Robodreamer: Learning compo-
+     arXiv:2505.17006, 2025. 3                                                  sitional world models for robot imagination. In Interna-
+[51] Jiange Yang, Haoyi Zhu, Yating Wang, Gangshan Wu, Tong                     tional Conference on Machine Learning, pages 61885–61896.
+     He, and Limin Wang. Tra-moe: Learning trajectory prediction                PMLR, 2024. 1, 3
+     model from multiple domains for adaptive policy condition-            [63] Xin Zhou, Dingkang Liang, Sifan Tu, Xiwu Chen, Yikang
+     ing. In Proceedings of the Computer Vision and Pattern                     Ding, Dingyuan Zhang, Feiyang Tan, Hengshuang Zhao, and
+     Recognition Conference, pages 6960–6970, 2025. 3                           Xiang Bai. Hermes: A unified self-driving world model for
+[52] Ling Yang, Ye Tian, Bowen Li, Xinchen Zhang, Ke Shen,                      simultaneous 3d scene understanding and generation. arXiv
+     Yunhai Tong, and Mengdi Wang. Mmada: Multimodal large                      preprint arXiv:2501.14729, 2025. 3
+     diffusion language models. arXiv preprint arXiv:2505.15809,           [64] Chuning Zhu, Raymond Yu, Siyuan Feng, Benjamin Burch-
+     2025. 3                                                                    fiel, Paarth Shah, and Abhishek Gupta. Unified world models:
+[53] Sherry Yang, Yilun Du, Seyed Kamyar Seyed Ghasemipour,                     Coupling video and action diffusion for pretraining on large
+     Jonathan Tompson, Leslie Pack Kaelbling, Dale Schuurmans,                  robotic datasets. arXiv preprint arXiv:2504.02792, 2025. 1,
+     and Pieter Abbeel. Learning interactive real-world simulators.             3, 4
+     In The Twelfth International Conference on Learning Rep-              [65] Brianna Zitkovich, Tianhe Yu, Sichun Xu, Peng Xu, Ted Xiao,
+     resentations, ICLR 2024, Vienna, Austria, May 7-11, 2024.                  Fei Xia, Jialin Wu, Paul Wohlhart, Stefan Welker, Ayzaan
+     OpenReview.net, 2024. 1                                                    Wahid, et al. Rt-2: Vision-language-action models transfer
+[54] Junliang Ye, Zhengyi Wang, Ruowen Zhao, Shenghao                           web knowledge to robotic control. In Conference on Robot
+     Xie, and Jun Zhu. Shapellm-omni: A native multimodal                       Learning, pages 2165–2183. PMLR, 2023. 1
+     llm for 3d generation and understanding. arXiv preprint
+     arXiv:2506.01853, 2025. 3
+[55] Seonghyeon Ye, Joel Jang, Byeongguk Jeon, Se June Joo,
+     Jianwei Yang, Baolin Peng, Ajay Mandlekar, Reuben Tan,
+     Yu-Wei Chao, Bill Yuchen Lin, Lars Liden, Kimin Lee, Jian-
+     feng Gao, Luke Zettlemoyer, Dieter Fox, and Minjoon Seo.
+     Latent action pretraining from videos. In The Thirteenth In-
+     ternational Conference on Learning Representations, 2025.
+     3
+[56] Weirui Ye, Fangchen Liu, Zheng Ding, Yang Gao, Oleh Ry-
+     bkin, and Pieter Abbeel. Video2policy: Scaling up manip-
+     ulation tasks in simulation through internet videos. CoRR,
+     abs/2502.09886, 2025. 1
+[57] Chengbo Yuan, Rui Zhou, Mengzhen Liu, Yingdong Hu,
+     Shengjie Wang, Li Yi, Shanghang Zhang, Chuan Wen, and
+     Yang Gao. Motiontrans: Human VR data enable motion-
+     level learning for robotic manipulation policies. In Human
+     to Robot: Workshop on Sensorizing, Modeling, and Learning
+     from Humans, 2025. 3
+[58] Chuheng Zhang, Tim Pearce, Pushi Zhang, Kaixin Wang,
+     Xiaoyu Chen, Wei Shen, Li Zhao, and Jiang Bian. What
+     do latent action models actually learn? arXiv preprint
+     arXiv:2506.15691, 2025. 3
+[59] Tony Z. Zhao, Vikash Kumar, Sergey Levine, and Chelsea
+     Finn. Learning fine-grained bimanual manipulation with low-
+     cost hardware. In Robotics: Science and Systems XIX, Daegu,
+     Republic of Korea, July 10-14, 2023, 2023. 3
+[60] Jinliang Zheng, Jianxiong Li, Zhihao Wang, Dongxiu Liu,
+     Xirui Kang, Yuchun Feng, Yinan Zheng, Jiayin Zou, Yilun
+
+
+                                                                      12
+                               Motus: A Unified Latent Action World Model
+                                                    Supplementary Material
+7. Training and Inference of the Unified Model                          Algorithm 2 VGM
+                                                                        Require: o0t , ℓ, θ
+In this section, we analyze the training and inference proce-            1: ϵo , ϵa ∼ N (0, I)
+                                                                              Tτ
+dures of the unified model, from both theoretical and experi-            2: ot+1:t+k   ← ϵo
+mental perspectives.                                                          Tτ
+                                                                         3: at+1:t+k ← ϵa
+                                                                         4: for τ = Tτ . . . 1 do
+                                                                                                                 Tτ
+                                                                         5: vo , va = Modelθ (o0t , oτt+1:t+k , at+1:t+k , τ, Tτ , ℓ)
+                                                                              τ −1          τ
+                                                                         6: ot+1:t+k = ot+1:t+k + vo dτ
+7.1. Theorectical Analysis                                               7: end for
+                                                                         8: return o0t+1:t+k
+During each training iteration, given o0t:t+k and a0t:t+k , Mo-
+tus samples different timesteps τo , τa and noise ϵo , ϵa for
+them respectively, construct the interpolated trajectories
+oτt+1:t+k
+   o
+          , aτt+1:t+k
+               a
+                      based on rectified flow, and compute              World Model. To enable world model p(o0t+1:t+k |
+the loss between the predicted velocity field voθ , vaθ and its         o0t , a0t+1:t+k ), given o0t and a0t+1:t+k as conditions, we set
+ground truth vo , va obtained by path differentiation with t.           the starting timesteps for the observations and actions to Tτ
+                                                                        and 0 respectively, randomly sample ϵo ∼ N (0, I), then ap-
+                                                                        ply Alg. 3 to gradually infer o0t+1:t+k from ϵo , while keeping
+                                                                        a0t+1:t+k always clean.
+Algorithm 1 Training
+ 1: repeat                                                              Algorithm 3 World Model
+ 2:  o0t:t+k , a0t+1:t+k , ℓ ∼ Dexpert
+                                                                        Require: o0t , a0t+1:t+k , ℓ, θ
+ 3:  τo , τa ∼ Uniform({1, 2, . . . , Tτ })
+                                                                         1: ϵo ∼ N (0, I)
+ 4:  ϵo , ϵa ∼ N (0, I)                                                       Tτ
+                                                                         2: ot+1:t+k   ← ϵo
+ 5:  oτt+1:t+k
+        o
+                  = (1 − τo )o0t+1:t+k + τo ϵo
+       τa                                                                3: for τ = Tτ . . . 1 do
+ 6:  at+1:t+k = (1 − τa )a0t+1:t+k + τa ϵa
+                                τo                                       4: vo , va = Modelθ (o0t , oτt+1:t+k , a0t+1:t+k , τ, 0, ℓ)
+ 7: voθ , vaθ = Modelθ (o0t , ot+1:t+k , aτt+1:t+k
+                                            a
+                                                   , τo , τa , ℓ)             τ −1
+      θ            θ            0         2                              5: ot+1:t+k = oτt+1:t+k + vo dτ
+ 8: laction = ∥va − (ϵa − at+1:t+k )∥2
+      θ
+                                                                         6: end for
+ 9: lobs   = ∥voθ − (ϵo − o0t+1:t+k )∥22                                 7: return o0t+1:t+k
+      θ      θ         θ
+10: l = laction    + lobs
+11: θ ← θ − η∇θ lθ
+12: until converged
+                                                                        IDM. To enable IDM p(a0t+1:t+k | o0t:t+k ), given o0t:t+k as
+                                                                        conditions, we set the starting timesteps for the observations
+                                                                        and actions to 0 and Tτ respectively, randomly sample ϵa ∼
+                                                                        N (0, I), then apply Alg. 4 to gradually infer a0t+1:t+k from
+   During inference, Motus can switch between the follow-               ϵa , while keeping o0t:t+k always clean.
+ing five different modes.
+                                                                        Algorithm 4 IDM
+                                                                        Require: o0t:t+k , ℓ, θ
+                                                                         1: ϵa ∼ N (0, I)
+                                                                              Tτ
+                                                                         2: at+1:t+k   ← ϵa
+                                                                         3: for τ = Tτ . . . 1 do
+VGM. To enable VGM p(o0t+1:t+k | o0t , ℓ), given o0t and                 4: vo , va = Modelθ (o0t:t+k , aτt+1:t+k , 0, τ, ℓ)
+ℓ as conditions, we set the starting timesteps for both the                   τ −1
+                                                                         5: at+1:t+k = aτt+1:t+k + va dτ
+observations and actions to Tτ , randomly sample ϵa , ϵo ∼
+                                                                         6: end for
+N (0, I), then apply Alg. 2 to gradually infer o0t+1:t+k from
+                                                                         7: return a0t+1:t+k
+ϵo , while keeping aTt+1:t+k
+                      τ
+                             consistently noisy as ϵa .
+
+
+                                                                    1
+VLA. To enable VLA p(a0t+1:t+k | o0t , ℓ), given o0t and                Table 6. Generative Quality of Motus in World Model Mode.
+ℓ as conditions, we set the starting timesteps for both the             The metrics were evaluated on real-world robot data across two
+observations and actions to Tτ , randomly sample ϵa , ϵo ∼              robotic platform.
+N (0, I), then apply Alg. 5 to gradually infer a0t+1:t+k from
+                                                                           Platform      FID↓       FVD↓      SSIM↑    LPIPS↓   PSNR↑
+ϵa , while keeping oTt+1:t+k
+                      τ
+                             consistently noisy as ϵo .
+                                                                         Agilex-Aloha-2 9.4571  49.2848      0.88618 0.05449    26.1021
+                                                                            AC-One      12.9609 73.1325      0.84605 0.07280    24.0379
+Algorithm 5 VLA                                                               Avg.      11.209 61.20865      0.8661 0.063645    25.0700
+
+Require: o0t , ℓ, θ
+ 1: ϵo , ϵa ∼ N (0, I)
+      Tτ                                                                IDM. To validate the effectiveness of our model as an IDM,
+ 2: ot+1:t+k   ← ϵo
+      Tτ                                                                we trained two baseline IDMs for comparison: one based
+ 3: at+1:t+k ← ϵa
+                                                                        on a pretrained ResNet-18 backbone followed by an MLP
+ 4: for τ = Tτ . . . 1 do
+                             Tτ                                         layer, and another using DINOv2 features with an MLP head.
+ 5: vo , va = Modelθ (o0t , ot+1:t+k , aτt+1:t+k , Tτ , τ, ℓ)
+      τ −1
+                                                                        Both models were trained on the RobotWin 2.0 randomized
+                    τ
+ 6: at+1:t+k = at+1:t+k + va dτ                                         dataset using the Agilex-Aloha-2 robotic platform. Each
+ 7: end for                                                             model takes the current observation as input and predicts a
+ 8: return a0t+1:t+k                                                    sequence of future actions with an action chunk size of 16,
+                                                                        which is consistent with the configuration used by Motus
+                                                                        in RobotTwin. The training objective was to minimize the
+                                                                        Mean Squared Error (MSE) between predicted and ground-
+Video-Action Joint Prediction Model. To enable video-                   truth actions.
+action joint prediction model p(o0t+1:t+k , a0t+1:t+k | o0t , ℓ),
+                                                                            As shown in Table 7, when Motus performs in IDM mode,
+given ot and ℓ as conditions, we set the starting timesteps
+                                                                        it achieves a lower action MSE than the specifically trained
+for both the observations and actions to Tτ , randomly sam-
+                                                                        IDM baselines. This indicates that our model not only serves
+ple ϵa , ϵo ∼ N (0, I), then apply Alg. 2 to gradually infer
+                                                                        as an effective policy but also excels at inverse dynamics
+a0t+1:t+k from ϵa and o0t+1:t+k from ϵo .
+                                                                        modeling, even outperforming models explicitly trained for
+                                                                        that purpose.
+Algorithm 6 Video-Action Joint Prediction Model
+Require: o0t , ℓ, θ                                                     Table 7. Action MSE of IDM. The models are tested on 100
+ 1: ϵo , ϵa ∼ N (0, I)                                                  samples of RoboTwin 2.0 randomized data.
+      Tτ
+ 2: ot+1:t+k   ← ϵo
+      Tτ
+ 3: at+1:t+k   ← ϵa                                                                ResNet18+MLP      DINOv2+MLP       Motus
+ 4: for τ = Tτ . . . 1 do                                                               0.044              0.122       0.014
+ 5: vo , va = Modelθ (o0t , oτt+1:t+k , aτt+1:t+k , τ, τ, ℓ)
+      τ −1
+ 6: ot+1:t+k = oτt+1:t+k + vo dτ                                        VLA. As shown in Tab. 8, when Motus performs in the
+      τ −1
+ 7: at+1:t+k = aτt+1:t+k + va dτ                                        VLA mode, it also demonstrates competitive performance
+ 8: end for                                                             on RoboTwin 2.0 randomized data compared to the video-
+ 9: return o0t+1:t+k , a0t+1:t+k                                        action joint prediction mode.
+
+
+7.2. Experimental Results                                               Table 8. Average Success Rate on RoboTwin 2.0 Randomized
+VGM. As shown in Fig. 7 and Fig. 9, when Motus per-                     Data of VLA.
+forms in VGM mode, it shows high-quality visualization re-
+                                                                                         Motus (VLA)   Motus (Joint)
+sults across both Agilex-Aloha-2 and AC-One embodiments,
+demonstrating the strong video generation capabilities.                                     83.90            87.02
+
+
+
+World Model. As shown in Fig. 11, Fig. 10 and Tab. 6,
+when Motus performs in world model mode, it shows high-                 Video-Action Joint Prediction Model. As shown in
+quality video generation results across two embodiments on              Fig. 12, when Motus performs in the video-action joint pre-
+real-world robot data, demonstrating strong future prediction           diction model mode, it demonstrates strong capabilities in
+capabilities.                                                           generating both videos and precise actions simultaneously.
+
+
+                                                                    2
+                               Figure 7. Visualization of Motus’s VGM mode on Agilex-Aloha-2.
+
+8. More Experiments Results                                          π0     GR00T-N1    UniVLA     OpenVLA-OFT       X-VLA     Motus
+                                                                    85.2      90.6        94.0          94.5          97.6      97.6
+8.1. Overall Comparison on RoboTwin 2.0 Simula-
+      tion Data with More Baselines                                        Table 9. Evaluation on LIBERO-Long Benchmark
+
+Tab. 14 shows the evaluation results on RoboTwin 2.0 Simu-
+lation, presenting the performance of Motus and other base-        VLABench. VLAbench is an open-source benchmark for
+lines on all 50 tasks under both clean scenes and randomized       evaluating universal language-conditioned manipulation task
+scenes.                                                            learning, covering multiple dimensions such as manipulation
+                                                                   skills, vision understanding, semantic comprehension, com-
+                                                                   mon sense, and reasoning. A single Motus model was fine-
+8.2. Other Benchmarks
+                                                                   tuned on multiple tasks and subsequently evaluated based
+LIBERO-Long. LIBERO-Long is the long-horizon sub-                  on its success rate across 3 tasks on 2 tracks provided by
+set of the LIBERO benchmark, comprising 10 language-               VLAbench: In Distribution and Cross Category. The result
+conditioned manipulation tasks from LIBERO-100 that re-            is shown in Tab. 10. The evaluation result of π0.5 is sourced
+quire multi-stage decision making, diverse manipulation            from its official implementation.
+skills, and robust knowledge transfer across objects and
+scenes. Under the standard LIBERO-Long evaluation pro-
+                                                                   8.3. More Real-World Results
+tocol, our method achieves an average success score of             Fig. 8 illustrates the visualization of the Motus execution for
+97.6, matching the best reported performance of X-VLA              each task presented in Tab. 3. The detailed results containing
+and thereby reaching state-of-the-art results on this bench-       subtask breakdown of the real-world tasks on the AC-One
+mark.                                                              and Agilex-Aloha-2 platforms are presented in Tab. 15 and
+
+
+                                                               3
+    Model    Add Condiment   Select Toy     Select Fruit   Avg.
+                                                                                          Brew Coffee using Coffee Maker (AC-One)
+                        In Distribution
+    π0.5         0.56            0.3           0.42        0.43
+    Motus        0.63           0.47           0.33        0.48
+                        Cross Category
+                                                                                             Touch Instructed Keyboard (AC-One)
+
+    π0.5         0.06           0.24           0.36        0.22
+    Motus        0.14           0.40           0.20        0.25
+
+      Table 10. Evaluation of Success Rate on VLABench
+                                                                                          Grind Coffee Beans With Grinder (AC-One)
+
+
+
+            Component                  Configuration
+            Action Expert
+            Hidden Size                    1024
+                                                                                            Place Green Cube Into Plate (AC-One)
+            Layers                           30
+            Attention Heads                  24
+            Layer Norm Epsilon              1e-5
+            Activation Function            GELU
+            Understand Expert                                                            Pour Water from Kettle to Flowers (AC-One)
+
+
+            Hidden Size                     512
+            Layers                           30
+            Attention Heads                  24
+            Layer Norm Epsilon              1e-5                                        Get Water from Water Dispenser (Agilex-Aloha-2)
+
+            Activation Function            GELU
+            Latent Action VAE
+            λa (Action Alignment)            1.0
+            β (KL Regularization)         1 × 10−6
+                                                                                         Place Yellow Cube Into Plate (Agilex-Aloha-2)
+            Sampling Rate
+            Video Frames                   8 @ 5Hz
+            Action Chunk                  48 @ 30Hz
+            Flow Matching
+                                                                                             Put Bread into Oven (Agilex-Aloha-2)
+            Inference Steps                 10
+            Sampling Strategy          Logit Normal
+            Model Scale
+            VGM                             5.00B
+            VLM                             2.13B                                          Fold Bear Pattern Towel (Agilex-Aloha-2)
+
+            Act. Expert                    641.5M
+            Und. Expert                    253.5M
+            Total                            8B
+
+Table 11. Motus architecture hyperparameters and key configura-
+tion settings.
+                                                                      Figure 8. Demonstrations of Motus for real-world tasks execu-
+                                                                      tion featuring 2 robots and 9 tasks.
+Tab. 16. The number preceding each subtask indicates the
+score assigned to its successful completion. For the towel-           9.2. Datasets
+folding task, we evaluate each towel type four times. For
+the grab-cube task, we evaluate each cube type five times for         Tab. 12 shows the training data of Motus.
+both the in-domain and out-of-domain settings.
+                                                                      9.3. Training Configuration
+                                                                      Tab. 13 provides the detailed training configuration for the
+                                                                      three stages of Motus.
+9. Implementation Details
+9.1. Model Architecture
+Tab. 11 provides the key hyperparameter settings for the
+Motus model architecture.
+
+
+                                                                  4
+               Table 12. Detailed information about pre-training and fine-tuning datasets.
+
+Dataset                      Size         Embodiment          Data Level in the Pyramid
+Egodex [24]                  230,949      Human               Level 2: Egocentric Human Videos
+Agibot [1]                   728,209      Genie-1 Robot       Level 5: Multi-Robot Task Trajectory Data
+RDT [31]                     6,083        Aloha Robot         Level 5: Multi-Robot Task Trajectory Data
+RoboMind Franka [48]         9,589        Franka Robot        Level 5: Multi-Robot Task Trajectory Data
+RoboMind Aloha [48]          7,272        Aloha Robot         Level 5: Multi-Robot Task Trajectory Data
+RoboTwin [14]                27,500       Aloha Robot         Level 3: Synthetic Data
+Task-Agnostic Data [39]      1,000        Aloha Robot         Level 4: Task-Agnostic Data
+In-house Data                2,000        Aloha Robot         Level 6: Target-Robot Task Trajectory Data
+
+
+                       Table 13. Training Configuration across Three Stages.
+
+                          Stages            Stage 1        Stage 2      Stage 3
+                          Batch Size          256            256          256
+                          Learning Rate    8 × 10−5       5 × 10−5   1 ∼ 5 × 10−5
+                          Optimizer         AdamW          AdamW        AdamW
+                          Weight Decay        0.01           0.01        0.01
+                          GPU Hours          ~8000         ~10000        ~400
+
+
+
+
+                     Figure 9. Visualization of Motus’s VGM mode on AC-One.
+
+
+                                                      5
+                        Table 14. Evaluation on RoboTwin 2.0 Simulation (Clean vs Randomized, 50+ tasks).
+
+    Simulation Task             GO-1              π0.5            X-VLA        w/o Pretrain        Stage1           Motus
+                            Clean  Rand.     Clean    Rand.   Clean   Rand.   Clean    Rand.   Clean    Rand.   Clean   Rand.
+       Adjust Bottle        49%      62%     79%      83%     100%     99%     99%      97%     98%      94%     89%     93%
+   Beat Block Hammer         6%      10%     63%      50%      92%     88%     88%     90%      88%      82%     95%     88%
+   Blocks Ranking Rgb        7%      3%      43%      35%      83%     83%     92%      88%     97%     98%     99%      97%
+   Blocks Ranking Size       2%      2%       8%      14%      67%     74%     38%      50%     73%      68%    75%      63%
+    Click Alarmclock        95%      90%     97%      93%      99%     99%    100%      99%    100%     100%    100%    100%
+         Click Bell         98%      95%     75%      76%     100%    100%    100%     100%    100%     100%    100%    100%
+    Dump Bin Bigbin         57%      45%     30%      42%      79%     77%     94%      96%     98%      96%     95%     91%
+       Grab Roller          99%      99%     90%      89%     100%    100%    100%     100%    100%     100%    100%    100%
+     Handover Block         9%       12%     18%      19%      73%     37%     34%      15%     55%      55%     86%     73%
+      Handover Mic          12%       8%     28%      18%       0%      0%    98%       95%     80%      88%     78%     63%
+      Hanging Mug           0%        0%      3%       3%      23%     27%     14%      10%     37%      25%     38%     38%
+          Lift Pot          92%      92%      0%       0%      99%    100%     90%      87%     87%      84%     96%     99%
+      Move Can Pot          16%       4%     29%      27%      89%     86%     43%      53%     56%      65%     34%     74%
+   Move Pillbottle Pad       9%      11%     33%      29%      73%     71%     83%      83%     96%      90%     93%     96%
+ Move Playingcard Away      37%      24%     59%      67%      93%     98%     50%      47%     77%      84%    100%     96%
+    Move Stapler Pad         3%      4%      16%      18%      78%     73%     49%      37%     75%      68%    83%      85%
+       Open Laptop          65%      60%     19%      35%      93%    100%     89%      89%     91%      96%     95%     91%
+     Open Microwave         12%      14%     35%      37%      79%     71%     83%      82%     82%      84%     95%     91%
+   Pick Diverse Bottles     61%      56%      5%       3%      58%     36%     53%      62%     18%      18%     90%     91%
+    Pick Dual Bottles       81%      74%     10%       6%      47%     36%     58%      68%      7%      17%     96%     90%
+      Place A2b Left        33%      36%     62%      60%      48%     49%     78%      79%     93%      82%     88%     79%
+     Place A2b Right        31%      22%     62%      57%      36%     36%     86%      83%     94%      90%     91%     87%
+   Place Bread Basket       47%      52%     48%      56%      81%     71%     73%      83%     89%      87%     91%     94%
+   Place Bread Skillet       2%       1%     38%      46%      77%     67%     71%      71%     86%      87%     86%     83%
+   Place Burger Fries       88%      92%     66%      70%      94%     94%     95%      90%     97%      99%     98%     98%
+    Place Can Basket        29%      37%     19%      25%      49%     52%     46%      62%     66%      55%     81%     76%
+ Place Cans Plasticbox      68%      77%     40%      47%      97%     98%     96%      99%     97%     100%     98%     94%
+  Place Container Plate     73%      70%     71%      78%      97%     95%     97%     100%     98%      98%     98%     99%
+    Place Dual Shoes         6%      10%     12%       7%      79%     88%     78%      80%     94%      94%     93%     87%
+    Place Empty Cup         44%      39%     75%      86%     100%     98%     97%      97%     96%      97%     99%     98%
+        Place Fan            1%       0%     25%      36%      80%     75%     77%      85%     77%      85%     91%     87%
+    Place Mouse Pad         15%      10%     21%      26%      70%     70%     62%      68%     72%      69%     66%     68%
+   Place Object Basket      48%      49%     43%      36%      44%     39%     74%      75%     76%      80%     81%     87%
+   Place Object Scale       26%      27%     40%      49%      52%     74%     84%      83%     88%      93%     88%     85%
+   Place Object Stand       56%      63%     74%      65%      86%     88%     91%      93%     93%      96%     98%     97%
+   Place Phone Stand        30%      37%     49%      53%      88%     87%     80%      78%     76%      86%     87%     86%
+        Place Shoe          15%      13%     57%      61%      96%     95%     95%      92%    100%      99%     99%     97%
+       Press Stapler        66%      51%     80%      70%      92%     98%     97%      94%     96%      98%     93%     98%
+   Put Bottles Dustbin       7%       4%     12%       9%      74%     77%     36%      33%     34%      24%     81%     79%
+   Put Object Cabinet       60%      43%     24%      15%      46%     48%     84%      64%     97%      87%     88%     71%
+      Rotate Qrcode         22%       9%     47%      56%      34%     33%     80%      60%     91%      79%     89%     73%
+       Scan Object           1%      2%      42%      38%      14%     36%     42%      50%     56%     69%     67%      66%
+Shake Bottle Horizontally   97%      92%     96%     100%     100%    100%    100%      97%    100%      96%    100%     98%
+       Shake Bottle         97%      93%     91%     100%      99%    100%    100%      96%     99%      97%    100%     97%
+   Stack Blocks Three        1%       1%     15%      16%       6%     10%     71%      76%     99%      95%     91%     95%
+    Stack Blocks Two        12%      22%     48%      56%      92%     87%     96%      94%     99%      99%    100%     98%
+    Stack Bowls Three       4%        7%     33%      35%      76%     86%     90%      74%     86%      83%     79%     87%
+     Stack Bowls Two        51%      45%     78%      66%      96%     93%    98%       98%     97%      98%     98%     98%
+        Stamp Seal          19%      13%     36%      23%      76%     82%     80%      88%     93%      95%     93%     92%
+       Turn Switch          34%      30%      5%       6%      40%     61%     69%      60%     59%      64%     84%     78%
+      Average (%)           37.8    36.24    42.98   43.84    72.8    72.84    77.56   77.00    82.26   81.86   88.66   87.02
+
+
+
+
+                                                               6
+Table 15. Real-World Tasks on AC-One Platform with a Detailed
+Subtask Breakdown.
+
+    Subgoal                         π0.5     w/o Pretrain   Motus
+                            Fold Towel
+       Types: bear-pattern/blue-yellow/purple/red-blue/pink             Table 16. Real-World Tasks on Agilex-Aloha-2 Platform with a
+    0.0: Complete Failure            16          19           13        Detailed Subtask Breakdown.
+    0.2: Grab both sides              4           1           3
+    0.5: One fold complete            -           -            3
+                                                                          Subgoal                             π0.5    w/o Pretrain   Motus
+    0.8: Grab the right side          -           -           1
+    1.0: Two folds complete           -           -            -                                    Fold Towel
+    Partial Success Rate             4%          1%         14.5%              Types: bear-pattern/blue-yellow/purple/red-blue/pink
+                             Grab Cube                                    0.0: Complete Failure                 4         20            5
+                   Types: red/orange/green/yellow                         0.2: Grab both sides                 11          -            1
+                                                                          0.5: One fold complete                3          -           12
+    0.0: Complete Failure             7           8           -
+                                                                          0.8: Grab the right side              1          -            2
+    0.5: Grab cube                   3            -           -
+                                                                          1.0: Two folds complete               1          -            -
+    1.0: Put cube into plate         10          12          20
+                                                                          Partial Success Rate               27.5%        0%          39%
+    Partial Success Rate           57.5%        60%         100%
+                                                                                                     Grab Cube
+                           Grab Cube
+                                                                                           Types: red/orange/green/yellow
+          OOD setting: cube placed outside training space
+                                                                          0.0: Complete Failure                 2         8            -
+    0.0: Complete Failure             11         13           4
+                                                                          0.5: Grab cube                       1          8            -
+    0.5: Grab cube                     1          -           -
+                                                                          1.0: Put cube into plate             17         4           20
+    1.0: Put cube into plate           4          3          12
+                                                                          Partial Success Rate               87.5%       40%         100%
+    Partial Success Rate           28.125%     18.75%       75%
+                                                                                                   Grab Cube
+              Brew Coffee using Drip Coffee Machine
+                                                                                  OOD setting: cube placed outside training space
+    0.0: Complete Failure            10          10          2
+                                                                          0.0: Complete Failure                 5         13           11
+    0.2: Grab the blue cup            -           -          1
+                                                                          0.5: Grab cube                        -          -            -
+    0.5: Pour coffee grounds          -           -          -
+                                                                          1.0: Put cube into plate             11          3            5
+    0.8: Close the lid                -           -          5
+                                                                          Partial Success Rate               68.75%     18.75%       31.25%
+    1.0: Turn on the switch           -           -          2
+    Partial Success Rate             0%          0%         62%                                  Put Bread into Oven
+                  Get Water from Water Dispenser                          0.0: Complete Failure                5          10           5
+                                                                          0.2: Open the oven                    -          -            -
+    0.0: Complete Failure            4            9          4
+                                                                          0.4: Grab the bread                  1           -            -
+    0.4: Grab the orange cup         5            -          4
+                                                                          0.6: Put the bread into the oven      -          -           3
+    0.8: Fill the cup with water      -           1           -
+                                                                          0.8: Close the oven                  4           -           2
+    1.0: Put down the cup            1            -          2
+                                                                          1.0: Spin the button                  -          -            -
+    Partial Success Rate            30%          8%         36%
+                                                                          Partial Success Rate                36%         0%          34%
+                  Grind Coffee Beans with Grinder
+                                                                                         Pour Water from Kettle to Flowers
+    0.0: Complete Failure             9          10          -
+                                                                          0.0: Complete Failure                 2          4            3
+    0.3: Grab the metal cup           -           -          -
+                                                                          0.5: Grab the black cup              18         16           15
+    0.8: Pour the coffee beans        1           -          4
+                                                                          1.0: Pour water                       -          -            2
+    1.0: Press the button             -           -          6
+                                                                          Partial Success Rate                45%        40%         47.5%
+    Partial Success Rate             8%          0%         92%
+                                                                            Touch Keyboard with Hand for Multiple Choice Questions
+                 Pour Water from Kettle to Flowers
+                                                                          0.0: Complete Failure                 5          -            -
+    0.0: Complete Failure            18          18           4
+                                                                          0.5: Use the correct arm             1          6             8
+    0.5: Grab the black cup           2           2           6
+                                                                          1.0: Press the right key             14         14           12
+    1.0: Pour water                   -           -          10
+                                                                          Partial Success Rate               72.5%       85%          80%
+    Partial Success Rate             5%          5%         65%
+    Touch Keyboard with Hand for Multiple Choice Questions
+    0.0: Complete Failure            20           -            3
+    0.5: Use the correct arm          -           -            1
+    1.0: Press the right key          -          20           16
+    Partial Success Rate             0%         100%        82.5%
+
+
+
+
+                                                                    7
+    Pred.
+
+
+
+
+     GT
+
+
+
+
+                /home/user/   桌 /wm_vgm/wm_aloha/aloha_pred_5.png
+    Pred.
+
+
+
+
+     GT
+
+
+
+
+    Pred.
+
+
+
+
+                                                                                                /home/user/   桌 /wm_vgm/wm_aloha/aloha_pred_75.png
+
+
+
+     GT
+
+
+
+
+    Pred.
+
+
+
+
+     GT
+
+
+
+
+    Pred.
+
+
+
+
+     GT
+
+
+
+面
+                                                                                  桌 /wm_vgm/wm_aloha/aloha_pred_105.png
+            面
+                                                                    /home/user/
+
+
+
+
+       面
+                   Figure 10. Visualization of Motus’s World Model Mode on Agilex-Aloha-2 Dataset.
+                                                                                               8
+Pred.
+
+
+
+
+ GT
+
+
+
+
+Pred.
+
+
+
+
+ GT
+
+
+
+
+Pred.
+
+
+
+
+                                                                            /home/user/   桌 /wm_vgm/wm_acone/acone_pred_20.png
+                                                                                                                      /home/user/桌 /wm_vgm/wm_acone/acone_pred_20.png
+
+
+ GT
+
+
+
+
+                                                                                                        /home/user/   桌 /wm_vgm/wm_acone/acone_gt_20.png
+
+
+
+
+Pred.
+
+                                /home/user/   桌 /wm_vgm/wm_acone/acone_pred_30.png
+
+
+
+
+ GT
+
+
+
+
+Pred.
+
+
+
+
+ GT
+
+
+
+
+                面
+        面
+            面
+ 面
+                    Figure 11. Visualization of Motus’s World Model Mode on AC-One Dataset.
+                                                                               9
+Figure 12. Visualization of Motus’s Video-Action Joint Prediction Model mode during Real-World Inference.
+
+
+
+
+                                                   10
+

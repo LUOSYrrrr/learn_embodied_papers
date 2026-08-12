@@ -1,0 +1,41 @@
+TY  - CPAPER
+TI  - 4D Gaussian Splatting for Real-Time Dynamic Scene Rendering
+AU  - Wu, Guanjun
+AU  - Yi, Taoran
+AU  - Fang, Jiemin
+AU  - Xie, Lingxi
+AU  - Zhang, Xiaopeng
+AU  - Wei, Wei
+AU  - Liu, Wenyu
+AU  - Tian, Qi
+AU  - Wang, Xinggang
+PY  - 2024
+T2  - Proceedings of the IEEE/CVF Conference on Computer Vision and Pattern Recognition
+UR  - https://arxiv.org/abs/2310.08528
+L1  - file:///Users/siyuanluo/STUDY/paper/learn_embodied_papers/pdfs/world-model/real-to-sim/Wu%20%E7%AD%89%20-%202024%20-%204D%20Gaussian%20Splatting%20for%20Real-Time%20Dynamic%20Scene%20Rendering.pdf
+ER  -
+
+TY  - RPRT
+TI  - SimFoundry: Modular and Automated Scene Generation for Policy Learning and Evaluation
+AU  - Ranawaka, Nadun
+AU  - Wong, Josiah
+AU  - Pai, Wei-Lin
+AU  - Chu, Wei-Teng
+AU  - Dai, Tianyuan
+AU  - Moghani, Masoud
+AU  - Yin, Hang
+AU  - Jiang, Yunfan
+AU  - Durbano, Wesley
+AU  - Huynh, Brandon
+AU  - Fang, Yu
+AU  - Xu, Danfei
+AU  - Zhang, Ruohan
+AU  - Fei-Fei, Li
+AU  - Fan, Linxi
+AU  - Wen, Bowen
+AU  - Mandlekar, Ajay
+AU  - Zhu, Yuke
+PY  - 2026
+UR  - https://arxiv.org/abs/2606.28276
+L1  - file:///Users/siyuanluo/STUDY/paper/learn_embodied_papers/pdfs/world-model/real-to-sim/Ranawaka%20%E7%AD%89%20-%202026%20-%20SimFoundry%20Modular%20and%20Automated%20Scene%20Generation%20for%20Policy%20Learning%20and%20Evaluation.pdf
+ER  -

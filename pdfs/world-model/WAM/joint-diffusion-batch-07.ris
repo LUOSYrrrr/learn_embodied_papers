@@ -1,0 +1,76 @@
+TY  - CONF
+TI  - Prediction with Action: Visual Policy Learning via Joint Denoising Process
+AU  - Guo, Yanjiang
+AU  - Hu, Yucheng
+AU  - Zhang, Jianke
+AU  - Wang, Yen-Jen
+AU  - Chen, Xiaoyu
+AU  - Lu, Chaochao
+AU  - Chen, Jianyu
+PY  - 2024
+T2  - Advances in Neural Information Processing Systems
+UR  - https://arxiv.org/abs/2411.18179
+DO  - 10.48550/arXiv.2411.18179
+N1  - WAM route: Joint Diffusion. Verified on arXiv; comments identify NeurIPS 2024.
+L1  - file:///Users/siyuanluo/STUDY/paper/learn_embodied_papers/pdfs/world-model/WAM/Guo%20et%20al.%20-%202024%20-%20Prediction%20with%20Action%20Visual%20Policy%20Learning%20via%20Joint%20Denoising%20Process.pdf
+ER  -
+
+TY  - RPRT
+TI  - Unified World Models: Coupling Video and Action Diffusion for Pretraining on Large Robotic Datasets
+AU  - Zhu, Chuning
+AU  - Yu, Raymond
+AU  - Feng, Siyuan
+AU  - Burchfiel, Benjamin
+AU  - Shah, Paarth
+AU  - Gupta, Abhishek
+PY  - 2025
+UR  - https://arxiv.org/abs/2504.02792
+DO  - 10.48550/arXiv.2504.02792
+N1  - WAM route: Joint Diffusion. Verified arXiv v3 (23 May 2025); venue not asserted because arXiv metadata contains no venue.
+L1  - file:///Users/siyuanluo/STUDY/paper/learn_embodied_papers/pdfs/world-model/WAM/Zhu%20et%20al.%20-%202025%20-%20Unified%20World%20Models%20Coupling%20Video%20and%20Action%20Diffusion%20for%20Pretraining%20on%20Large%20Robotic%20Datasets.pdf
+ER  -
+
+TY  - RPRT
+TI  - Unified Video Action Model
+AU  - Li, Shuang
+AU  - Gao, Yihuai
+AU  - Sadigh, Dorsa
+AU  - Song, Shuran
+PY  - 2025
+UR  - https://arxiv.org/abs/2503.00200
+DO  - 10.48550/arXiv.2503.00200
+N1  - WAM route: Joint Diffusion. Verified arXiv v3 (24 Apr 2025); venue not asserted because arXiv metadata contains no venue.
+L1  - file:///Users/siyuanluo/STUDY/paper/learn_embodied_papers/pdfs/world-model/WAM/Li%20et%20al.%20-%202025%20-%20Unified%20Video%20Action%20Model.pdf
+ER  -
+
+TY  - RPRT
+TI  - World Action Models are Zero-shot Policies
+AU  - Ye, Seonghyeon
+AU  - Ge, Yunhao
+AU  - Zheng, Kaiyuan
+AU  - Gao, Shenyuan
+AU  - Yu, Sihyun
+AU  - Zhu, Yuke
+AU  - Fan, Linxi
+AU  - Jang, Joel
+PY  - 2026
+UR  - https://arxiv.org/abs/2602.15922
+DO  - 10.48550/arXiv.2602.15922
+N1  - WAM route: Joint Diffusion. Verified on arXiv, submitted 17 Feb 2026.
+L1  - file:///Users/siyuanluo/STUDY/paper/learn_embodied_papers/pdfs/world-model/WAM/Ye%20et%20al.%20-%202026%20-%20World%20Action%20Models%20are%20Zero-shot%20Policies.pdf
+ER  -
+
+TY  - RPRT
+TI  - Causal World Modeling for Robot Control
+AU  - Li, Lin
+AU  - Zhang, Qihang
+AU  - Luo, Yiming
+AU  - Yang, Shuai
+AU  - Wang, Ruilin
+AU  - Xu, Yinghao
+PY  - 2026
+UR  - https://arxiv.org/abs/2601.21998
+DO  - 10.48550/arXiv.2601.21998
+N1  - WAM route: Joint Diffusion; project name LingBot-VA. Verified arXiv v2 (22 Mar 2026).
+L1  - file:///Users/siyuanluo/STUDY/paper/learn_embodied_papers/pdfs/world-model/WAM/Li%20et%20al.%20-%202026%20-%20Causal%20World%20Modeling%20for%20Robot%20Control.pdf
+ER  -

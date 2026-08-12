@@ -1,17 +1,17 @@
 <!DOCTYPE html>
+
 <html lang="zh-CN">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Being-M0.7 · 人形机器人的隐空间世界-动作模型</title>
-  <link rel="stylesheet" href="../assets/css/style.css">
-  <script src="../assets/js/theme.js"></script>
-  <script src="../assets/js/interactive.js" defer></script>
-  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16/dist/katex.min.css">
-  <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16/dist/katex.min.js"></script>
-  <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16/dist/contrib/auto-render.min.js"
-          onload="renderMathInElement(document.body,{delimiters:[{left:'$$',right:'$$',display:true},{left:'$',right:'$',display:false}]})"></script>
-  <style>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Being-M0.7 · 人形机器人的隐空间世界-动作模型</title>
+<link href="../assets/css/style.css" rel="stylesheet"/>
+<script src="../assets/js/theme.js"></script>
+<script defer="" src="../assets/js/interactive.js"></script>
+<link href="https://cdn.jsdelivr.net/npm/katex@0.16/dist/katex.min.css" rel="stylesheet"/>
+<script defer="" src="https://cdn.jsdelivr.net/npm/katex@0.16/dist/katex.min.js"></script>
+<script defer="" onload="renderMathInElement(document.body,{delimiters:[{left:'$$',right:'$$',display:true},{left:'$',right:'$',display:false}]})" src="https://cdn.jsdelivr.net/npm/katex@0.16/dist/contrib/auto-render.min.js"></script>
+<style>
     .docs-layout { display: grid; grid-template-columns: 240px minmax(0, 1fr); max-width: 1400px; margin: 0 auto; }
     .sidebar { position: sticky; top: 60px; height: calc(100vh - 60px); overflow-y: auto; padding: 24px 16px; border-right: 1px solid var(--border); background: var(--bg); }
     .sidebar-title { font-family: var(--font-mono); font-size: 10px; color: var(--text3); letter-spacing: 0.08em; text-transform: uppercase; margin-bottom: 16px; padding-bottom: 8px; border-bottom: 1px solid var(--border); }
@@ -147,739 +147,615 @@
     }
   </style>
 </head><body>
-  <nav class="nav">
-    <a class="nav-logo" href="../index.html">Paper Notes</a>
-    <div class="nav-links">
-      <a href="../index.html">← 返回首页</a>
-      <a href="psi0.html">Ψ₀ 笔记</a>
-      <a href="motionwam.html">MotionWAM 笔记</a>
-    </div>
-  </nav>
-
-  <div class="docs-layout">
-    <aside class="sidebar">
-      <div class="sidebar-title">目录</div>
-      <ul class="sidebar-tree">
-        <li><a href="#overview" class="section-link">§01 总览 · 五问速答</a></li>
-        <li><a href="#formulation" class="section-link">§02 问题拆解 · 先验 WAM + 动作专家</a></li>
-        <li><a href="#data" class="section-link">§03 数据 · 万小时三流语料 ★</a></li>
-        <li><a href="#architecture" class="section-link">§04 架构 · MoT 视频-动作混合 ★</a></li>
-        <li><a href="#training" class="section-link">§05 训练 · 两阶段 flow matching</a></li>
-        <li><a href="#inference" class="section-link">§06 推理 · 双频闭环</a></li>
-        <li><a href="#experiments" class="section-link">§07 实验 · 4 任务真机</a></li>
-        <li><a href="#connections" class="section-link">§08 与已读论文的联系</a></li>
-      </ul>
-    </aside>
-
-    <main class="main-content">
-      <div class="paper-header">
-        <div class="paper-venue">research.beingbeyond.com/being-m07 · 2026-07-14 · BeingBeyond Team</div>
-        <div class="paper-title">Being-M0.7: A Latent World-Action Model for Humanoid Robots</div>
-        <div class="paper-authors">BeingBeyond Team（Junpeng Yue*, Boyuan Li*, Yuxuan Wang*, Zepeng Wang, ... Zongqing Lu†）</div>
-        <div class="paper-badges">
-          <span class="badge badge-green">Latent World-Action Model</span>
-          <span class="badge badge-blue">Mixture-of-Transformers</span>
-          <span class="badge badge-purple">隐空间预测 · 非像素</span>
-          <span class="badge badge-amber">10226h 人本语料</span>
-          <span class="badge">Unitree G1 · Linker Hand O6</span>
-        </div>
-      </div>
-
-      <!-- ============ §01 ============ -->
-      <div class="section" id="overview">
-        <div class="section-num">§ 01</div>
-        <h2>总览：不学"未来长什么样"，只学"未来会怎么变"</h2>
-
-        <div class="cn-read">
-          <div class="cn-label">这一节解决什么</div>
-          <p>
+<nav class="nav">
+<a class="nav-logo" href="../index.html">Paper Notes</a>
+<div class="nav-links">
+<a href="../index.html">← 返回首页</a>
+<a href="psi0.html">Ψ₀ 笔记</a>
+<a href="motionwam.html">MotionWAM 笔记</a>
+</div>
+</nav>
+<div class="docs-layout">
+<aside class="sidebar">
+<div class="sidebar-title">目录</div>
+<ul class="sidebar-tree">
+<li><a class="section-link" href="#overview">§01 总览 · 五问速答</a></li>
+<li><a class="section-link" href="#formulation">§02 问题拆解 · 先验 WAM + 动作专家</a></li>
+<li><a class="section-link" href="#data">§03 数据 · 万小时三流语料 ★</a></li>
+<li><a class="section-link" href="#architecture">§04 架构 · MoT 视频-动作混合 ★</a></li>
+<li><a class="section-link" href="#training">§05 训练 · 两阶段 flow matching</a></li>
+<li><a class="section-link" href="#inference">§06 推理 · 双频闭环</a></li>
+<li><a class="section-link" href="#experiments">§07 实验 · 4 任务真机</a></li>
+<li><a class="section-link" href="#connections">§08 与已读论文的联系</a></li>
+</ul>
+</aside>
+<main class="main-content">
+<div class="paper-header">
+<div class="paper-venue">research.beingbeyond.com/being-m07 · 2026-07-14 · BeingBeyond Team</div>
+<div class="paper-title">Being-M0.7: A Latent World-Action Model for Humanoid Robots</div>
+<div class="paper-authors">BeingBeyond Team（Junpeng Yue*, Boyuan Li*, Yuxuan Wang*, Zepeng Wang, ... Zongqing Lu†）</div>
+<div class="paper-badges">
+<span class="badge badge-green">Latent World-Action Model</span>
+<span class="badge badge-blue">Mixture-of-Transformers</span>
+<span class="badge badge-purple">隐空间预测 · 非像素</span>
+<span class="badge badge-amber">10226h 人本语料</span>
+<span class="badge">Unitree G1 · Linker Hand O6</span>
+</div>
+</div>
+<!-- ============ §01 ============ -->
+<div class="section" id="overview">
+<div class="section-num">§ 01</div>
+<h2>总览：不学"未来长什么样"，只学"未来会怎么变"</h2>
+<div class="cn-read">
+<div class="cn-label">这一节解决什么</div>
+<p>
             人形机器人做 loco-manipulation（边走边操作）时，要同时决定<strong>往哪走、身体怎么摆、手脚怎么协调、姿态怎么稳</strong>——这是个天生"时序 + 全身"的问题：好策略不能只看当前画面，还得推理未来场景会怎么变、身体会怎么动、任务进展到哪。但两条老路都卡住：<strong>真机演示数据太贵</strong>（人形遥操作比固定臂难得多），<strong>像素级未来预测又太烧算力</strong>（大量容量花在渲染画面细节上，而这些细节和控制几乎无关，还被自我运动的抖动污染）。Being-M0.7 的答案：造一个<strong>隐空间世界-动作模型（latent WAM）</strong>——不预测未来像素，而是预测<strong>未来的视觉隐状态（用 DINO 编码）+ 未来运动</strong>，在一个人和人形机器人<strong>共享的紧凑全身运动表示</strong>里建模。先在万小时人本视频+动作上学好这个"世界怎么演化"的先验，再用少量真机数据接一个轻量动作专家，把先验落地成可执行的全身指令。
           </p>
-        </div>
-
-        <h3>论文五问速答</h3>
-        <table class="kv-table">
-          <tr><td>① 背景：问题为什么难</td><td>
+</div>
+<h3>论文五问速答</h3>
+<table class="kv-table">
+<tr><td>① 背景：问题为什么难</td><td>
             人形 loco-manipulation 是<strong>时序 + 全身</strong>问题：要联合决定移动/朝向/手脚协调/姿态维持，好策略必须推理未来场景演化、身体运动和任务进展，而不只是当前观测（§1, p.2）。
           </td></tr>
-          <tr><td>② 站在什么工作上</td><td>
+<tr><td>② 站在什么工作上</td><td>
             视觉编码 = <strong>DINO</strong>（隐状态而非像素）；生成 = <strong>flow matching</strong>（Lipman）；骨干 = <strong>Mixture-of-Transformers（MoT）</strong>；动作专家 = <strong>future-conditioned DT</strong> 思路 + <strong>action chunking</strong>（ACT）；语言 = 冻结 <strong>DistilBERT</strong>；底层控制器 = <strong>SONIC</strong>（通用全身运动追踪）；数据接续团队自家的 <strong>Being-H0.5 / Being-M0.5</strong>。
           </td></tr>
-          <tr><td>③ 前人卡在哪</td><td>
+<tr><td>③ 前人卡在哪</td><td>
             三个具体缺陷（§1, p.2）：<strong>(a) 依赖昂贵真机数据</strong>——人形演示要同步 ego 视频+本体感知+可执行全身指令，遥操作难、安全和硬件受限；<strong>(b) 像素级未来预测昂贵且噪</strong>——容量花在与控制弱相关的外观细节上，人形任务里预测视觉轨迹还被快速自我运动/视角变化/身体引起的相机抖动污染；<strong>(c) 上下半身分离</strong>——多数流水线只强调上身操作或单独 locomotion，导致上下身协调弱，不适合自然全身控制。
           </td></tr>
-          <tr><td>④ 他们的 insight</td><td>
+<tr><td>④ 他们的 insight</td><td>
             别人要么"预测像素级未来"（贵且噪），要么"把人类视频当演示去模仿"（要重定向）；Being-M0.7 说：<strong>把人本视觉经验当作"关于未来场景和运动演化的预测性结构"，在隐空间学</strong>。三招对应三缺陷——(a) 用可扩展人本数据（ego 视频 + 视频-动作对 + 动作序列）替代昂贵遥操作；(b) 联合预测未来<strong>视觉隐状态 + 运动</strong>而非像素，把容量集中到控制相关的场景/运动动态；(c) 用人和人形<strong>共享的统一运动表示</strong>桥接形态鸿沟，让 locomotion 和 manipulation 在同一个表示里协调。
           </td></tr>
-          <tr><td>⑤ 最后效果</td><td>
+<tr><td>⑤ 最后效果</td><td>
             真机 Unitree G1、4 个挑战性全身任务。<strong>Table 1</strong>（水缸捞鱼 + 镜像取玩具）：Being-M0.7 总成功率 <strong>7/15</strong>，高于 Ψ₀（3/15）和 GR00T-N1.6（2/15）。定性上在<strong>状态预测、运动生成、locomotion、灵巧操作</strong>四类能力上都展示了协调的闭环全身控制。定位：<strong>据作者所知第一个用于人形控制的 latent world-action 模型</strong>。
           </td></tr>
-        </table>
-
-        <h3>数据集：三流语料 + 一份真机后训练数据</h3>
-        <table class="kv-table">
-          <tr><th>数据流</th><th>规模</th><th>是什么 / 监督什么</th><th>喂给哪个阶段</th></tr>
-          <tr>
-            <td>D_VM · 视频-动作对</td>
-            <td class="w">（占比见 Fig.3）</td>
-            <td>成对的第一视角视频 + 3D 动作——监督<strong>视觉与运动的联合分布</strong>（未来场景怎么变 ↔ 身体怎么动）。来源含 Nymeria、Ego-Exo4D、EgoVid-5M 等</td>
-            <td>阶段 1 · 先验预训练（主监督）</td>
-          </tr>
-          <tr>
-            <td>D_V · 纯视频</td>
-            <td class="w">Ego4D 35.94%</td>
-            <td>只有第一视角视频——约束视觉<strong>边缘分布</strong>，提供视觉上下文和场景演化。Ego4D 是最大单一来源</td>
-            <td>阶段 1（只算视觉 loss）</td>
-          </tr>
-          <tr>
-            <td>D_M · 纯动作</td>
-            <td class="w">AMASS / HumanML3D / MotionX / SnapMoGen 等</td>
-            <td>只有 3D 人体动作序列——约束运动<strong>边缘分布</strong>，即使没有视觉也教全身运动学与动力学结构</td>
-            <td>阶段 1（只算运动 loss + 几何正则）</td>
-          </tr>
-          <tr>
-            <td colspan="4" style="text-align:center; color:var(--text3);">三流合计 <strong>~10,226 小时</strong>（Fig.3；Internal 49.95% + Ego4D 35.94% + Xperience 7.6% + Nymeria 2.94% + Bones-SEED 2.82% + ...），8 个数据集</td>
-          </tr>
-          <tr>
-            <td>真机后训练数据</td>
-            <td class="w">4 任务各若干条</td>
-            <td>VR 全身遥操作采的 Unitree G1 轨迹：ego 图像 + 机器人运动 + 本体感知 + 指令（含手部开合 + SONIC 运动 token）。50Hz</td>
-            <td>阶段 2 · 动作专家后训练</td>
-          </tr>
-        </table>
-
-        <details class="en-quote">
-          <summary>展开原文 · 为什么叫 "latent" world-action model</summary>
-          <div class="quote-body">
-            <p>"the model performs visual-latent-level generation rather than pixel-level video generation. This ... biases the visual objective toward semantic state, object layout, and scene evolution instead of low-level pixel reconstruction, which is the reason we refer to our model as a latent world-action model."</p>
-            <div class="quote-cite">— §3.2, p.5</div>
-          </div>
-        </details>
-
-        <div class="callout blue">
-          <div class="callout-label">类比 · 下棋不用想清每颗棋子的木纹</div>
-          <p>
+</table>
+<h3>数据集：三流语料 + 一份真机后训练数据</h3>
+<table class="kv-table">
+<tr><th>数据流</th><th>规模</th><th>是什么 / 监督什么</th><th>喂给哪个阶段</th></tr>
+<tr>
+<td>D_VM · 视频-动作对</td>
+<td class="w">（占比见 Fig.3）</td>
+<td>成对的第一视角视频 + 3D 动作——监督<strong>视觉与运动的联合分布</strong>（未来场景怎么变 ↔ 身体怎么动）。来源含 Nymeria、Ego-Exo4D、EgoVid-5M 等</td>
+<td>阶段 1 · 先验预训练（主监督）</td>
+</tr>
+<tr>
+<td>D_V · 纯视频</td>
+<td class="w">Ego4D 35.94%</td>
+<td>只有第一视角视频——约束视觉<strong>边缘分布</strong>，提供视觉上下文和场景演化。Ego4D 是最大单一来源</td>
+<td>阶段 1（只算视觉 loss）</td>
+</tr>
+<tr>
+<td>D_M · 纯动作</td>
+<td class="w">AMASS / HumanML3D / MotionX / SnapMoGen 等</td>
+<td>只有 3D 人体动作序列——约束运动<strong>边缘分布</strong>，即使没有视觉也教全身运动学与动力学结构</td>
+<td>阶段 1（只算运动 loss + 几何正则）</td>
+</tr>
+<tr>
+<td colspan="4" style="text-align:center; color:var(--text3);">三流合计 <strong>~10,226 小时</strong>（Fig.3；Internal 49.95% + Ego4D 35.94% + Xperience 7.6% + Nymeria 2.94% + Bones-SEED 2.82% + ...），8 个数据集</td>
+</tr>
+<tr>
+<td>真机后训练数据</td>
+<td class="w">4 任务各若干条</td>
+<td>VR 全身遥操作采的 Unitree G1 轨迹：ego 图像 + 机器人运动 + 本体感知 + 指令（含手部开合 + SONIC 运动 token）。50Hz</td>
+<td>阶段 2 · 动作专家后训练</td>
+</tr>
+</table>
+<details class="en-quote">
+<summary>展开原文 · 为什么叫 "latent" world-action model</summary>
+<div class="quote-body">
+<p>"the model performs visual-latent-level generation rather than pixel-level video generation. This ... biases the visual objective toward semantic state, object layout, and scene evolution instead of low-level pixel reconstruction, which is the reason we refer to our model as a latent world-action model."</p>
+<div class="quote-cite">— §3.2, p.5</div>
+</div>
+</details>
+<div class="callout blue">
+<div class="callout-label">类比 · 下棋不用想清每颗棋子的木纹</div>
+<p>
             像素级世界模型像一个"必须在脑中渲染出未来每一帧高清画面"的棋手——大量脑力花在想象木纹和光影上，可这些对决策毫无用处，还容易被镜头晃动带偏。Being-M0.7 是"只在脑中推演局势走向（谁威胁谁、子力怎么流动）"的棋手——它预测的是<strong>语义级的场景状态和身体运动趋势</strong>（DINO 隐空间 + 紧凑运动向量），把算力全押在与"下一步该怎么动"直接相关的信息上。
           </p>
-        </div>
-
-        <div class="quiz"
-             data-correct="c"
-             data-explain="正确。§3.2（p.5）明确：所有帧用 DINO 编码成视觉隐状态 Z=E(V)，模型在隐空间做生成而非像素级视频生成——这降低了生成空间维度，把视觉目标偏向语义状态/物体布局/场景演化，而非低级像素重建。这正是'latent' world-action model 命名的由来，也直接回应了'像素级预测昂贵且噪'这一缺陷。"
-             data-explain-wrong="注意 'latent' 这个词的字面含义：模型预测的不是 RGB 像素，而是 DINO 编码的视觉隐状态。它省的正是渲染像素细节的算力。">
-          <div class="q-label">🧠 理解检查</div>
-          <div class="q-text">Being-M0.7 名字里的 "latent"（隐）指的是什么？</div>
-          <div class="q-options">
-            <button class="q-opt" data-k="a">动作用离散 latent token 表示</button>
-            <button class="q-opt" data-k="b">模型参数用低秩隐空间压缩</button>
-            <button class="q-opt" data-k="c">预测未来的 DINO 视觉隐状态而非 RGB 像素，把容量集中到语义/场景演化</button>
-            <button class="q-opt" data-k="d">用隐马尔可夫模型建模状态转移</button>
-          </div>
-          <div class="q-feedback"></div>
-        </div>
-      </div>
-
-      <!-- ============ §02 ============ -->
-      <div class="section" id="formulation">
-        <div class="section-num">§ 02</div>
-        <h2>问题拆解：一个"慢先验" + 一个"快动作专家"</h2>
-
-        <div class="cn-read">
-          <div class="cn-label">这一节解决什么</div>
-          <p>
+</div>
+<div class="quiz" data-correct="c" data-explain="正确。§3.2（p.5）明确：所有帧用 DINO 编码成视觉隐状态 Z=E(V)，模型在隐空间做生成而非像素级视频生成——这降低了生成空间维度，把视觉目标偏向语义状态/物体布局/场景演化，而非低级像素重建。这正是'latent' world-action model 命名的由来，也直接回应了'像素级预测昂贵且噪'这一缺陷。" data-explain-wrong="注意 'latent' 这个词的字面含义：模型预测的不是 RGB 像素，而是 DINO 编码的视觉隐状态。它省的正是渲染像素细节的算力。">
+<div class="q-label">🧠 理解检查</div>
+<div class="q-text">Being-M0.7 名字里的 "latent"（隐）指的是什么？</div>
+<div class="q-options">
+<button class="q-opt" data-k="a">动作用离散 latent token 表示</button>
+<button class="q-opt" data-k="b">模型参数用低秩隐空间压缩</button>
+<button class="q-opt" data-k="c">预测未来的 DINO 视觉隐状态而非 RGB 像素，把容量集中到语义/场景演化</button>
+<button class="q-opt" data-k="d">用隐马尔可夫模型建模状态转移</button>
+</div>
+<div class="q-feedback"></div>
+</div>
+</div>
+<!-- ============ §02 ============ -->
+<div class="section" id="formulation">
+<div class="section-num">§ 02</div>
+<h2>问题拆解：一个"慢先验" + 一个"快动作专家"</h2>
+<div class="cn-read">
+<div class="cn-label">这一节解决什么</div>
+<p>
             §01 说要"先学世界演化先验、再落地成动作"，这一节把它写成公式，回答<strong>模型到底建模什么概率、为什么拆成两块</strong>。核心是一个分解：<strong>先验世界-动作模型</strong>负责"未来场景 + 粗粒度运动计划"（低频、跨窗口复用），<strong>future-conditioned 动作专家</strong>负责"把粗计划细化成本体可执行指令"（高频、闭环）。这个"慢想 + 快做"的分层，正是让一次昂贵的世界推理能驱动多次低延迟控制更新的关键。
           </p>
-        </div>
-
-        <p>
+</div>
+<p>
           把时间窗切成<strong>上下文区间</strong> $\mathcal{C}=\{1,\dots,K\}$（已观测）和<strong>未来区间</strong> $\mathcal{Q}=\{K{+}1,\dots,T\}$（要预测）。$Z=\mathcal{E}(V)$ 是 ego 视频的视觉隐状态，$M$ 是紧凑全身运动序列，$I$ 是任务指令。先验世界-动作模型建模：
         </p>
-
-        <div class="math-block">
+<div class="math-block">
           $$P\big(Z_\mathcal{Q},\, M_\mathcal{Q} \mid Z_\mathcal{C},\, M_\mathcal{C},\, I\big)$$
           <span class="math-label">先验 WAM · p.5 · 给定已观测视觉+运动+指令，预测未来的视觉状态与粗粒度运动</span>
-        </div>
-        <div class="math-explain">
-          <div class="me-title">逐项拆解</div>
-          <dl>
-            <dt>$Z_\mathcal{Q}$</dt>
-            <dd>未来的<strong>视觉隐状态</strong>——"场景会怎么演化"（DINO 空间，不是像素）</dd>
-            <dt>$M_\mathcal{Q}$</dt>
-            <dd>未来的<strong>粗粒度运动计划</strong>——"身体大致该怎么动"。注意 M 是<em>运动级动作计划</em>，描述全身怎么动，但<strong>不指定本体特定的可执行指令</strong></dd>
-            <dt>$Z_\mathcal{C}, M_\mathcal{C}, I$</dt>
-            <dd>条件：已观测的视觉、运动历史 + 任务指令</dd>
-          </dl>
-        </div>
-
-        <p>
+</div>
+<div class="math-explain">
+<div class="me-title">逐项拆解</div>
+<dl>
+<dt>$Z_\mathcal{Q}$</dt>
+<dd>未来的<strong>视觉隐状态</strong>——"场景会怎么演化"（DINO 空间，不是像素）</dd>
+<dt>$M_\mathcal{Q}$</dt>
+<dd>未来的<strong>粗粒度运动计划</strong>——"身体大致该怎么动"。注意 M 是<em>运动级动作计划</em>，描述全身怎么动，但<strong>不指定本体特定的可执行指令</strong></dd>
+<dt>$Z_\mathcal{C}, M_\mathcal{C}, I$</dt>
+<dd>条件：已观测的视觉、运动历史 + 任务指令</dd>
+</dl>
+</div>
+<p>
           但粗运动计划 $M$ 不能直接驱动电机。引入 <span class="term" data-en="future-conditioned">future-conditioned</span> 动作专家：在动作查询时刻 $q$，给定机器人观测 $O_q$，把预测的未来上下文<strong>细化成可执行指令</strong> $\mathbf{a}_q$：
         </p>
-
-        <div class="math-block">
+<div class="math-block">
           $$P(Z_\mathcal{Q}, M_\mathcal{Q}, \mathbf{a}_q \mid Z_\mathcal{C}, M_\mathcal{C}, I, O_q) \approx \underbrace{P(\mathbf{a}_q \mid Z_\mathcal{Q}, M_\mathcal{Q}, O_q, I)}_{\text{动作专家（快）}} \; \underbrace{P(Z_\mathcal{Q}, M_\mathcal{Q} \mid Z_\mathcal{C}, M_\mathcal{C}, I)}_{\text{先验 WAM（慢）}}$$
           <span class="math-label">Eq. 1 · p.5 · 完整 latent world-action 模型 = 动作专家 × 先验 WAM</span>
-        </div>
-        <div class="math-explain">
-          <div class="me-title">逐项拆解</div>
-          <dl>
-            <dt>右边第二项（先验 WAM）</dt>
-            <dd>低频的"世界建模"：从历史推未来场景+粗运动。一次推理产出的表示可<strong>跨多个控制窗口复用</strong></dd>
-            <dt>右边第一项（动作专家）</dt>
-            <dd>高频的"动作生成"：以未来上下文 $(Z_\mathcal{Q}, M_\mathcal{Q})$ 和当前机器人观测 $O_q$ 为条件，出可执行动作 $\mathbf{a}_q$</dd>
-            <dt>$\approx$ 分解的意义</dt>
-            <dd>把<strong>低频世界建模</strong>与<strong>高频动作生成</strong>解耦——世界表示复用，动作以低延迟刷新。这是"慢想快做"能成立的数学依据</dd>
-          </dl>
-        </div>
-
-        <div class="callout purple">
-          <div class="callout-label">对应 VLA · 和 Ψ₀ / MotionWAM 的分层呼应</div>
-          <p>
+</div>
+<div class="math-explain">
+<div class="me-title">逐项拆解</div>
+<dl>
+<dt>右边第二项（先验 WAM）</dt>
+<dd>低频的"世界建模"：从历史推未来场景+粗运动。一次推理产出的表示可<strong>跨多个控制窗口复用</strong></dd>
+<dt>右边第一项（动作专家）</dt>
+<dd>高频的"动作生成"：以未来上下文 $(Z_\mathcal{Q}, M_\mathcal{Q})$ 和当前机器人观测 $O_q$ 为条件，出可执行动作 $\mathbf{a}_q$</dd>
+<dt>$\approx$ 分解的意义</dt>
+<dd>把<strong>低频世界建模</strong>与<strong>高频动作生成</strong>解耦——世界表示复用，动作以低延迟刷新。这是"慢想快做"能成立的数学依据</dd>
+</dl>
+</div>
+<div class="callout purple">
+<div class="callout-label">对应 VLA · 和 Ψ₀ / MotionWAM 的分层呼应</div>
+<p>
             这个"先验（慢）× 动作专家（快）"分解，和我们读过的几篇是同一家族的不同选择：<strong>Ψ₀</strong> 是"冻结 VLM（慢）+ MM-DiT expert（快）"，<strong>MotionWAM</strong> 是"ego 视频生成模型的去噪特征 condition 一个运动模型"。Being-M0.7 的独特点是：慢的那一半<strong>本身就是一个会预测未来的世界模型</strong>（预测 $Z_\mathcal{Q}, M_\mathcal{Q}$），而不只是一个感知编码器——所以它叫 world-<em>action</em> model，不只是 vision-language backbone。
           </p>
-        </div>
-
-        <div class="quiz"
-             data-correct="b"
-             data-explain="正确。Eq.1 的分解把低频世界建模（先验 WAM 预测未来场景+粗运动）与高频动作生成（动作专家细化成可执行指令）解耦。§3.1 明确：'allowing the future representation to be reused across multiple low-latency control updates'——一次昂贵的世界推理产出的未来表示，可以被多次低延迟的动作查询复用。这就是慢想快做能成立的原因。"
-             data-explain-wrong="想想为什么要拆两块：世界推理慢而贵，动作要快而频繁。分解让前者的结果被后者反复复用。">
-          <div class="q-label">🧠 理解检查</div>
-          <div class="q-text">Eq.1 把模型分解成"先验 WAM × 动作专家"，主要好处是？</div>
-          <div class="q-options">
-            <button class="q-opt" data-k="a">减少总参数量</button>
-            <button class="q-opt" data-k="b">低频世界推理的未来表示可被多次高频动作查询复用，实现"慢想快做"</button>
-            <button class="q-opt" data-k="c">让两个模块可以用不同的数据集分开训练</button>
-            <button class="q-opt" data-k="d">避免动作专家看到视觉信息，防止过拟合</button>
-          </div>
-          <div class="q-feedback"></div>
-        </div>
-      </div>
-
-      <!-- ============ §03 ============ -->
-      <div class="section" id="data">
-        <div class="section-num">§ 03</div>
-        <h2>数据：万小时三流语料 + 一个"人机通用"的身体</h2>
-
-        <div class="cn-read">
-          <div class="cn-label">这一节解决什么</div>
-          <p>
-            §02 的先验要从数据里学，但人形真机数据太贵——这一节讲 Being-M0.7 怎么绕开。两个支柱：<strong>① 三流混合语料</strong>：把"视频-动作对 / 纯视频 / 纯动作"三种数据拼成一口锅（>1 万小时），让机器人无关的便宜数据也能贡献"视觉上下文"和"运动学结构"；<strong>② 统一运动表示</strong>：把人和人形机器人的动作都压进<strong>头-根坐标系下、只保留头+两手+两脚的紧凑表示</strong>，跨越人机形态鸿沟。读完你会明白：为什么纯动作数据（没有任何视觉）也能帮机器人学控制。
+</div>
+<div class="quiz" data-correct="b" data-explain="正确。Eq.1 的分解把低频世界建模（先验 WAM 预测未来场景+粗运动）与高频动作生成（动作专家细化成可执行指令）解耦。§3.1 明确：'allowing the future representation to be reused across multiple low-latency control updates'——一次昂贵的世界推理产出的未来表示，可以被多次低延迟的动作查询复用。这就是慢想快做能成立的原因。" data-explain-wrong="想想为什么要拆两块：世界推理慢而贵，动作要快而频繁。分解让前者的结果被后者反复复用。">
+<div class="q-label">🧠 理解检查</div>
+<div class="q-text">Eq.1 把模型分解成"先验 WAM × 动作专家"，主要好处是？</div>
+<div class="q-options">
+<button class="q-opt" data-k="a">减少总参数量</button>
+<button class="q-opt" data-k="b">低频世界推理的未来表示可被多次高频动作查询复用，实现"慢想快做"</button>
+<button class="q-opt" data-k="c">让两个模块可以用不同的数据集分开训练</button>
+<button class="q-opt" data-k="d">避免动作专家看到视觉信息，防止过拟合</button>
+</div>
+<div class="q-feedback"></div>
+</div>
+</div>
+<!-- ============ §03 ============ -->
+<div class="section" id="data">
+<div class="section-num">§ 03</div>
+<h2>数据：万小时三流语料 + 一个"人机通用"的身体</h2>
+<div class="cn-read">
+<div class="cn-label">这一节解决什么</div>
+<p>
+            §02 的先验要从数据里学，但人形真机数据太贵——这一节讲 Being-M0.7 怎么绕开。两个支柱：<strong>① 三流混合语料</strong>：把"视频-动作对 / 纯视频 / 纯动作"三种数据拼成一口锅（&gt;1 万小时），让机器人无关的便宜数据也能贡献"视觉上下文"和"运动学结构"；<strong>② 统一运动表示</strong>：把人和人形机器人的动作都压进<strong>头-根坐标系下、只保留头+两手+两脚的紧凑表示</strong>，跨越人机形态鸿沟。读完你会明白：为什么纯动作数据（没有任何视觉）也能帮机器人学控制。
           </p>
-        </div>
-
-        <div class="fig-interactive panel-below">
-          <div class="fig-block">
-            <div class="hotspot-wrap" data-hotspot-group="fig3">
-              <img src="../assets/figures/being-m07/fig-3.png" alt="Figure 3: Being-M0.7 data recipe">
-              <div class="hotspot" data-id="ego4d" style="left:52%; top:60%;"
-                   data-title="Ego4D · 35.94%（最大公开来源）"
-                   data-body="Ego4D 第一视角视频——纯视觉流 D_V 的主力，约占总时长三分之一。提供海量真实家庭/工作场景的视觉上下文和场景演化，但没有配对动作。"></div>
-              <div class="hotspot" data-id="internal" style="left:78%; top:58%;"
-                   data-title="Internal Datasets · 49.95%（内部）"
-                   data-body="商业采购 + 内部数据，占近一半。规模是这套语料能上万小时的关键——但也意味着完整复现依赖团队自有资源（批判点之一）。"></div>
-              <div class="hotspot" data-id="xperience" style="left:73%; top:22%;"
-                   data-title="Xperience 7.6% · Nymeria 2.94% · Bones-SEED 2.82%"
-                   data-body="中等占比的视频-动作对来源（D_VM）。Nymeria 是大规模野外多模态 ego 动作数据集——这类'视频+动作同步'的对，是学习'场景演化 ↔ 身体运动'联合分布的核心燃料。"></div>
-              <div class="hotspot" data-id="motion" style="left:16%; top:58%;"
-                   data-title="3D Motion · 纯动作流 D_M"
-                   data-body="AMASS / HumanML3D / MotionX / SnapMoGen / LAFAN 等动作捕捉序列（图中 0.075% 那部分 + 更多）。没有视觉，但教全身运动学与动力学——这是'纯动作也能帮控制'的来源。"></div>
-              <div class="hotspot" data-id="egovision" style="left:22%; top:22%;"
-                   data-title="EgoCentric Vision · 视觉流"
-                   data-body="所有第一视角视频统一编码成 DINO 隐状态。注意视角对齐：训练用 ego 视频、部署用机器人头部相机，都是第一视角，视觉迁移 gap 最小。"></div>
-            </div>
-            <div class="fig-cap">
-              <span class="fig-num">Fig 3 · p.6</span>
+</div>
+<div class="fig-interactive panel-below">
+<div class="fig-block">
+<div class="hotspot-wrap" data-hotspot-group="fig3">
+<img alt="Figure 3: Being-M0.7 data recipe" src="../assets/figures/being-m07/fig-3.png"/>
+<div class="hotspot" data-body="Ego4D 第一视角视频——纯视觉流 D_V 的主力，约占总时长三分之一。提供海量真实家庭/工作场景的视觉上下文和场景演化，但没有配对动作。" data-id="ego4d" data-title="Ego4D · 35.94%（最大公开来源）" style="left:52%; top:60%;"></div>
+<div class="hotspot" data-body="商业采购 + 内部数据，占近一半。规模是这套语料能上万小时的关键——但也意味着完整复现依赖团队自有资源（批判点之一）。" data-id="internal" data-title="Internal Datasets · 49.95%（内部）" style="left:78%; top:58%;"></div>
+<div class="hotspot" data-body="中等占比的视频-动作对来源（D_VM）。Nymeria 是大规模野外多模态 ego 动作数据集——这类'视频+动作同步'的对，是学习'场景演化 ↔ 身体运动'联合分布的核心燃料。" data-id="xperience" data-title="Xperience 7.6% · Nymeria 2.94% · Bones-SEED 2.82%" style="left:73%; top:22%;"></div>
+<div class="hotspot" data-body="AMASS / HumanML3D / MotionX / SnapMoGen / LAFAN 等动作捕捉序列（图中 0.075% 那部分 + 更多）。没有视觉，但教全身运动学与动力学——这是'纯动作也能帮控制'的来源。" data-id="motion" data-title="3D Motion · 纯动作流 D_M" style="left:16%; top:58%;"></div>
+<div class="hotspot" data-body="所有第一视角视频统一编码成 DINO 隐状态。注意视角对齐：训练用 ego 视频、部署用机器人头部相机，都是第一视角，视觉迁移 gap 最小。" data-id="egovision" data-title="EgoCentric Vision · 视觉流" style="left:22%; top:22%;"></div>
+</div>
+<div class="fig-cap">
+<span class="fig-num">Fig 3 · p.6</span>
               Being-M0.7 data recipe. The pre-training corpus is sourced from external public datasets and commercially acquired datasets, filtered and reformatted into three supervision streams—D_VM, D_V, and D_M.
               <span class="fig-cn">~10,226 小时、8 个数据集，重整成三条监督流：视频-动作对（联合分布）、纯视频（视觉边缘）、纯动作（运动边缘）。</span>
-            </div>
-          </div>
-          <div class="hotspot-panel"></div>
-        </div>
-
-        <p>
+</div>
+</div>
+<div class="hotspot-panel"></div>
+</div>
+<p>
           三流的数学写法很干脆——过滤后的预训练集 $\mathcal{D} = \mathcal{D}_{VM} \cup \mathcal{D}_V \cup \mathcal{D}_M$：$\mathcal{D}_{VM}$ 监督视觉与运动的<strong>联合</strong>分布，$\mathcal{D}_V$ 和 $\mathcal{D}_M$ 分别约束视觉、运动的<strong>边缘</strong>分布。这样"机器人无关"的海量便宜数据也能给下游控制注入<strong>视觉上下文</strong> + <strong>运动学结构</strong>，把可用监督从千小时级的成对数据扩到万小时级。
         </p>
-
-        <h3>统一运动表示：头-根坐标 + 五点身体</h3>
-        <div class="module-grid">
-          <div class="module-card">
-            <div class="module-card-name">CHOICE 1 · HEAD-ROOT</div>
-            <div class="module-card-title">用"头"当根节点，不用骨盆</div>
-            <div class="module-card-desc">常规动作表示用骨盆当根；Being-M0.7 用<strong>头</strong>当根关节——因为头的位姿更贴合 ego 视觉流（相机就在头上）。每条序列还做规范化（去掉初始朝向、对齐到地面中心坐标系），压掉数据集特有的噪声，让跨源的运动统计更一致。</div>
-          </div>
-          <div class="module-card">
-            <div class="module-card-name">CHOICE 2 · 5-POINT BODY</div>
-            <div class="module-card-title">只留头 + 两手 + 两脚</div>
-            <div class="module-card-desc">不追求保留全身运动学细节，只保留<strong>头、双手、双脚</strong>这几个关键交互/接触线索。因为同一个紧凑表示<strong>人和人形机器人都能构造</strong>，它跨越了形态鸿沟——后训练时提供比"只给可执行指令"更丰富的监督，推理时还能暴露额外的运动级反馈路径。</div>
-          </div>
-        </div>
-
-        <details class="en-quote">
-          <summary>展开原文 · 统一运动表示的作用</summary>
-          <div class="quote-body">
-            <p>"Because the same representation can be constructed from both human motion and humanoid robot trajectories, it bridges the morphology gap between humans and robots ... it provides richer supervision than executable command labels alone, and during inference it exposes additional motion-level feedback about robot kinematics."</p>
-            <div class="quote-cite">— §3.2, p.6</div>
-          </div>
-        </details>
-
-        <div class="quiz"
-             data-correct="d"
-             data-explain="正确。§3.4（p.8）：纯动作训练即使没有视觉观测，也教会全身运动学结构与动力学；配对训练再把这个粗粒度动作表示对齐到场景演化。所以 robot-free 数据能贡献两样东西——视觉上下文（来自 D_V）和运动学结构（来自 D_M）——在机器人指令接地之前就先学好。这正是三流语料的设计意图。"
-             data-explain-wrong="想想 D_M（纯动作）里有什么、没有什么：有全身 3D 运动序列，没有视觉、没有机器人指令。它能教的是运动本身的规律。">
-          <div class="q-label">🧠 理解检查</div>
-          <div class="q-text">纯动作数据流 D_M（没有任何视觉、也没有机器人指令）对下游控制的贡献是？</div>
-          <div class="q-options">
-            <button class="q-opt" data-k="a">没有贡献，只是凑数据量</button>
-            <button class="q-opt" data-k="b">提供视觉场景演化的先验</button>
-            <button class="q-opt" data-k="c">直接提供可执行的机器人动作标签</button>
-            <button class="q-opt" data-k="d">教会全身运动学与动力学结构，即使没有视觉观测</button>
-          </div>
-          <div class="q-feedback"></div>
-        </div>
-      </div>
-
-      <!-- ============ §04 ============ -->
-      <div class="section" id="architecture">
-        <div class="section-num">§ 04</div>
-        <h2>架构：视频与运动"混合专家"，共享一层注意力</h2>
-
-        <div class="cn-read">
-          <div class="cn-label">这一节解决什么</div>
-          <p>
+<h3>统一运动表示：头-根坐标 + 五点身体</h3>
+<div class="module-grid">
+<div class="module-card">
+<div class="module-card-name">CHOICE 1 · HEAD-ROOT</div>
+<div class="module-card-title">用"头"当根节点，不用骨盆</div>
+<div class="module-card-desc">常规动作表示用骨盆当根；Being-M0.7 用<strong>头</strong>当根关节——因为头的位姿更贴合 ego 视觉流（相机就在头上）。每条序列还做规范化（去掉初始朝向、对齐到地面中心坐标系），压掉数据集特有的噪声，让跨源的运动统计更一致。</div>
+</div>
+<div class="module-card">
+<div class="module-card-name">CHOICE 2 · 5-POINT BODY</div>
+<div class="module-card-title">只留头 + 两手 + 两脚</div>
+<div class="module-card-desc">不追求保留全身运动学细节，只保留<strong>头、双手、双脚</strong>这几个关键交互/接触线索。因为同一个紧凑表示<strong>人和人形机器人都能构造</strong>，它跨越了形态鸿沟——后训练时提供比"只给可执行指令"更丰富的监督，推理时还能暴露额外的运动级反馈路径。</div>
+</div>
+</div>
+<details class="en-quote">
+<summary>展开原文 · 统一运动表示的作用</summary>
+<div class="quote-body">
+<p>"Because the same representation can be constructed from both human motion and humanoid robot trajectories, it bridges the morphology gap between humans and robots ... it provides richer supervision than executable command labels alone, and during inference it exposes additional motion-level feedback about robot kinematics."</p>
+<div class="quote-cite">— §3.2, p.6</div>
+</div>
+</details>
+<div class="quiz" data-correct="d" data-explain="正确。§3.4（p.8）：纯动作训练即使没有视觉观测，也教会全身运动学结构与动力学；配对训练再把这个粗粒度动作表示对齐到场景演化。所以 robot-free 数据能贡献两样东西——视觉上下文（来自 D_V）和运动学结构（来自 D_M）——在机器人指令接地之前就先学好。这正是三流语料的设计意图。" data-explain-wrong="想想 D_M（纯动作）里有什么、没有什么：有全身 3D 运动序列，没有视觉、没有机器人指令。它能教的是运动本身的规律。">
+<div class="q-label">🧠 理解检查</div>
+<div class="q-text">纯动作数据流 D_M（没有任何视觉、也没有机器人指令）对下游控制的贡献是？</div>
+<div class="q-options">
+<button class="q-opt" data-k="a">没有贡献，只是凑数据量</button>
+<button class="q-opt" data-k="b">提供视觉场景演化的先验</button>
+<button class="q-opt" data-k="c">直接提供可执行的机器人动作标签</button>
+<button class="q-opt" data-k="d">教会全身运动学与动力学结构，即使没有视觉观测</button>
+</div>
+<div class="q-feedback"></div>
+</div>
+</div>
+<!-- ============ §04 ============ -->
+<div class="section" id="architecture">
+<div class="section-num">§ 04</div>
+<h2>架构：视频与运动"混合专家"，共享一层注意力</h2>
+<div class="cn-read">
+<div class="cn-label">这一节解决什么</div>
+<p>
             §03 备好了三流数据，但一个模型怎么同时吃"视频-动作对 / 纯视频 / 纯动作"三种输入？答案是 <span class="term" data-en="Mixture-of-Transformers">MoT（Mixture-of-Transformers）</span>：视觉 token 和运动 token 各有自己的 LayerNorm / QKV / FFN（模态专属计算），但在每个 block 里<strong>共享一层多模态注意力</strong>——让每个视觉 token 能跨时间和运动 token 交换信息。哪种模态缺席，就只对在场的模态算 loss。这一节还要看清那个"单向连接"：动作专家只<strong>读</strong>先验的隐状态，不把动作信息<strong>回灌</strong>先验——保证先验的世界建模不被下游控制带偏。
           </p>
-        </div>
-
-        <div class="fig-interactive panel-below">
-          <div class="fig-block">
-            <div class="hotspot-wrap" data-hotspot-group="fig2">
-              <img src="../assets/figures/being-m07/fig-2.png" alt="Figure 2: Being-M0.7 training framework">
-              <div class="hotspot" data-id="recipe" style="left:14%; top:32%;"
-                   data-title="Multi-Modal Data Recipe（左上）"
-                   data-body="三流语料的示意：视频-动作对、纯视频、纯动作。对应 §03 的 D_VM / D_V / D_M——同一个 MoT 骨干按样本可用的模态选择性地施加监督。"></div>
-              <div class="hotspot" data-id="unified" style="left:14%; top:72%;"
-                   data-title="Unified Motion Space（左下）"
-                   data-body="人体网格 / 骨架 / 人形机器人——三者都投到同一个紧凑运动表示（头+两手+两脚，头-根坐标）。这是跨形态的桥。"></div>
-              <div class="hotspot" data-id="qkv" style="left:37%; top:63%;"
-                   data-title="QKV · 模态专属投影"
-                   data-body="视觉流和运动流各有独立的 QKV 投影 + LayerNorm + FFN。这是 MoT 的'专属'部分：每种模态保留自己的计算路径，不互相干扰参数。"></div>
-              <div class="hotspot" data-id="shared" style="left:47%; top:52%;"
-                   data-title="MultiModal Shared Attention · 核心"
-                   data-body="投影后的 Q/K/V 在一个共享注意力里合并：每个视觉 token 能跨时间和运动 token 交换信息。这是视觉↔运动融合发生的地方——'场景怎么变'和'身体怎么动'在这里互相看见。两流还各自 cross-attend 到指令特征。"></div>
-              <div class="hotspot" data-id="ffn" style="left:47%; top:33%;"
-                   data-title="FFN · 模态专属前馈"
-                   data-body="共享注意力之后，各模态又回到自己的 FFN。τ（flow 时间步）通过 modality-specific AdaLN 调制每条流的注意力/cross-attn/FFN。×N blocks 堆叠。"></div>
-              <div class="hotspot" data-id="loss" style="left:66%; top:12%;"
-                   data-title="L_image · L_motion · L_cmd"
-                   data-body="三个 flow matching 目标：视觉隐状态 L_image、运动 L_motion（先验的两个头）、可执行指令 L_cmd（动作专家的头）。每个样本只激活它拥有的模态对应的 loss。"></div>
-              <div class="hotspot" data-id="expert" style="left:85%; top:42%;"
-                   data-title="Action Exp. · 动作专家（右）"
-                   data-body="独立的一摞 block（×N），后训练时才接上。它 cross-attend 到先验的隐状态序列 H^θ(τ) + 当前机器人观测 O_q，输出可执行指令。注意它和先验之间是单向连接。"></div>
-              <div class="hotspot" data-id="oneway" style="left:71%; top:52%;"
-                   data-title="单向连接（箭头只朝右）"
-                   data-body="信息只从先验流向动作专家，动作信息不回灌先验。这样'动作预测建立在先验学到的表示之上，却不改变先验处理输入的方式'——保护世界建模能力不被下游控制污染。"></div>
-            </div>
-            <div class="fig-cap">
-              <span class="fig-num">Fig 2 · p.4</span>
+</div>
+<div class="fig-interactive panel-below">
+<div class="fig-block">
+<div class="hotspot-wrap" data-hotspot-group="fig2">
+<img alt="Figure 2: Being-M0.7 training framework" src="../assets/figures/being-m07/fig-2.png"/>
+<div class="hotspot" data-body="&lt;div class='hp-body'&gt;&lt;p&gt;&lt;strong&gt;这处在图里表示什么：&lt;/strong&gt;三流语料的示意：视频-动作对、纯视频、纯动作。对应 §03 的 D_VM / D_V / D_M——同一个 MoT 骨干按样本可用的模态选择性地施加监督。 它对应逐步导览中的“第 1 步：按模态嵌入”。&lt;/p&gt;&lt;p&gt;&lt;strong&gt;输入与实际操作：&lt;/strong&gt; 相机图像或视频，加上任务指令和机器人当前状态。它们还是原始观测，模型尚未把它们变成可用于预测或控制的特征。 视觉隐状态 z_t 和紧凑运动向量 m_t 各用独立的输入投影，映到 MoT 隐维。时序位置编码标注对齐的时间索引，模态类型编码区分视觉/运动。指令 I 用冻结 DistilBERT 编码成语言条件。&lt;/p&gt;&lt;p&gt;&lt;strong&gt;输出、前后关系与必要性：&lt;/strong&gt; 一组比原始输入更紧凑的内部特征；它不是最终动作或画面。这个结果会交给下一步“模态专属 QKV”继续处理。 图中下一环节是“第 2 步：模态专属 QKV”。 它把未经处理的原始问题变成后续模块可以计算的输入，是整条链路的起点。&lt;/p&gt;&lt;/div&gt;" data-id="recipe" data-title="Multi-Modal Data Recipe（左上）" style="left:14%; top:32%;"></div>
+<div class="hotspot" data-body="人体网格 / 骨架 / 人形机器人——三者都投到同一个紧凑运动表示（头+两手+两脚，头-根坐标）。这是跨形态的桥。" data-id="unified" data-title="Unified Motion Space（左下）" style="left:14%; top:72%;"></div>
+<div class="hotspot" data-body="&lt;div class='hp-body'&gt;&lt;p&gt;&lt;strong&gt;这处在图里表示什么：&lt;/strong&gt;视觉流和运动流各有独立的 QKV 投影 + LayerNorm + FFN。这是 MoT 的'专属'部分：每种模态保留自己的计算路径，不互相干扰参数。 它对应逐步导览中的“第 2 步：模态专属 QKV”。&lt;/p&gt;&lt;p&gt;&lt;strong&gt;输入与实际操作：&lt;/strong&gt; 来自上一步“按模态嵌入”的产物：一组比原始输入更紧凑的内部特征；它不是最终动作或画面。本步骤还会按论文设置读取当前条件、时间步或训练信号。 视觉 token 和运动 token 各过自己的 LayerNorm 和 QKV 投影——参数不共享，每种模态保留独立计算路径。&lt;/p&gt;&lt;p&gt;&lt;strong&gt;输出、前后关系与必要性：&lt;/strong&gt; 一组比原始输入更紧凑的内部特征；它不是最终动作或画面。这个结果会交给下一步“共享注意力融合”继续处理。 图中下一环节是“第 3 步：共享注意力融合”。 它承担上下两步之间的接口；缺少它，前一步产生的信息无法以正确格式或正确含义传到下一步。&lt;/p&gt;&lt;/div&gt;" data-id="qkv" data-title="QKV · 模态专属投影" style="left:37%; top:63%;"></div>
+<div class="hotspot" data-body="投影后的 Q/K/V 在一个共享注意力里合并：每个视觉 token 能跨时间和运动 token 交换信息。这是视觉↔运动融合发生的地方——'场景怎么变'和'身体怎么动'在这里互相看见。两流还各自 cross-attend 到指令特征。" data-id="shared" data-title="MultiModal Shared Attention · 核心" style="left:47%; top:52%;"></div>
+<div class="hotspot" data-body="&lt;div class='hp-body'&gt;&lt;p&gt;&lt;strong&gt;这处在图里表示什么：&lt;/strong&gt;共享注意力之后，各模态又回到自己的 FFN。τ（flow 时间步）通过 modality-specific AdaLN 调制每条流的注意力/cross-attn/FFN。×N blocks 堆叠。 它对应逐步导览中的“第 4 步：模态专属 FFN + τ 调制”。&lt;/p&gt;&lt;p&gt;&lt;strong&gt;输入与实际操作：&lt;/strong&gt; 来自上一步“共享注意力融合”的产物：一组比原始输入更紧凑的内部特征；它不是最终动作或画面。本步骤还会按论文设置读取当前条件、时间步或训练信号。 回到各自的 FFN。flow 时间步 τ 的正弦嵌入通过 modality-specific AdaLN 调制每条流。堆叠 ×N blocks（先验 30 层）。模态专属的输出投影分别产出视觉隐空间和连续运动空间的速度场。&lt;/p&gt;&lt;p&gt;&lt;strong&gt;输出、前后关系与必要性：&lt;/strong&gt; 经过本步骤处理、含义更明确的中间结果。这个结果会交给下一步“动作专家读出（后训练才接）”继续处理。 图中下一环节是“第 5 步：动作专家读出（后训练才接）”。 它承担上下两步之间的接口；缺少它，前一步产生的信息无法以正确格式或正确含义传到下一步。&lt;/p&gt;&lt;/div&gt;" data-id="ffn" data-title="FFN · 模态专属前馈" style="left:47%; top:33%;"></div>
+<div class="hotspot" data-body="三个 flow matching 目标：视觉隐状态 L_image、运动 L_motion（先验的两个头）、可执行指令 L_cmd（动作专家的头）。每个样本只激活它拥有的模态对应的 loss。" data-id="loss" data-title="L_image · L_motion · L_cmd" style="left:66%; top:12%;"></div>
+<div class="hotspot" data-body="&lt;div class='hp-body'&gt;&lt;p&gt;&lt;strong&gt;这处在图里表示什么：&lt;/strong&gt;独立的一摞 block（×N），后训练时才接上。它 cross-attend 到先验的隐状态序列 H^θ(τ) + 当前机器人观测 O_q，输出可执行指令。注意它和先验之间是单向连接。 它对应逐步导览中的“第 5 步：动作专家读出（后训练才接）”。&lt;/p&gt;&lt;p&gt;&lt;strong&gt;输入与实际操作：&lt;/strong&gt; 来自上一步“模态专属 FFN + τ 调制”的产物：经过本步骤处理、含义更明确的中间结果。本步骤还会按论文设置读取当前条件、时间步或训练信号。 动作专家（6 层）在每层 cross-attend 到先验对应层的隐状态 H^θ(τ) + 当前机器人观测 O_q，把粗运动计划细化成可执行指令。单向连接：只读先验，不回灌。&lt;/p&gt;&lt;p&gt;&lt;strong&gt;输出、前后关系与必要性：&lt;/strong&gt; 参数得到更新的模型，或能供下一轮训练使用的新监督信号。这是图中这条链路的最终产物，随后会进入真实执行、模型更新或指标评测。 图中下一环节是“后续执行或评测”。 前面的数据或分数本身不会自动改变模型；必须通过损失函数把误差信号变成参数更新。&lt;/p&gt;&lt;/div&gt;" data-id="expert" data-title="Action Exp. · 动作专家（右）" style="left:85%; top:42%;"></div>
+<div class="hotspot" data-body="信息只从先验流向动作专家，动作信息不回灌先验。这样'动作预测建立在先验学到的表示之上，却不改变先验处理输入的方式'——保护世界建模能力不被下游控制污染。" data-id="oneway" data-title="单向连接（箭头只朝右）" style="left:71%; top:52%;"></div>
+</div>
+<div class="fig-cap">
+<span class="fig-num">Fig 2 · p.4</span>
               Overview of Being-M0.7 Training Framework. Left: mixed-modality corpus + unified motion representation. Right: the video-motion MoT (Latent WAM) and the future-conditioned action expert.
               <span class="fig-cn">左：三流语料 + 统一运动空间；右：视频-运动 MoT 先验（Latent WAM，紫）+ 动作专家（Action Exp.，蓝），二者共享多模态注意力、单向连接。</span>
-            </div>
-          </div>
-          <div class="hotspot-panel"></div>
-        </div>
-
-        <div class="step-walker" data-hotspot-group="fig2">
-          <div class="sw-header">
-            <div class="sw-title">🪜 一条数据怎么流过 MoT</div>
-            <div class="sw-controls">
-              <button class="sw-btn prev">◀</button>
-              <span class="sw-counter">1 / 5</span>
-              <button class="sw-btn next">▶</button>
-            </div>
-          </div>
-          <div class="sw-progress">
-            <div class="sw-dot"></div><div class="sw-dot"></div><div class="sw-dot"></div><div class="sw-dot"></div><div class="sw-dot"></div>
-          </div>
-          <div class="sw-body">
-            <div class="sw-step active" data-hotspot="recipe">
-              <h4>第 1 步：按模态嵌入</h4>
-              <p>视觉隐状态 z_t 和紧凑运动向量 m_t 各用独立的输入投影，映到 MoT 隐维。时序位置编码标注对齐的时间索引，模态类型编码区分视觉/运动。指令 I 用冻结 DistilBERT 编码成语言条件。</p>
-            </div>
-            <div class="sw-step" data-hotspot="qkv">
-              <h4>第 2 步：模态专属 QKV</h4>
-              <p>视觉 token 和运动 token 各过自己的 LayerNorm 和 QKV 投影——参数不共享，每种模态保留独立计算路径。</p>
-            </div>
-            <div class="sw-step" data-hotspot="shared">
-              <h4>第 3 步：共享注意力融合</h4>
-              <p>两路投影出的 Q/K/V 合并进一个共享注意力：每个视觉 token 跨时间与运动 token 交换信息，同时两流都 cross-attend 到指令。前 K 帧是干净上下文，未来帧被加噪，用 chunk 注意力掩码——上下文只看历史，未来 token 互相都能看（non-causal），从而并行去噪整段未来 chunk。</p>
-            </div>
-            <div class="sw-step" data-hotspot="ffn">
-              <h4>第 4 步：模态专属 FFN + τ 调制</h4>
-              <p>回到各自的 FFN。flow 时间步 τ 的正弦嵌入通过 modality-specific AdaLN 调制每条流。堆叠 ×N blocks（先验 30 层）。模态专属的输出投影分别产出视觉隐空间和连续运动空间的速度场。</p>
-            </div>
-            <div class="sw-step" data-hotspot="expert">
-              <h4>第 5 步：动作专家读出（后训练才接）</h4>
-              <p>动作专家（6 层）在每层 cross-attend 到先验对应层的隐状态 H^θ(τ) + 当前机器人观测 O_q，把粗运动计划细化成可执行指令。单向连接：只读先验，不回灌。</p>
-            </div>
-          </div>
-        </div>
-
-        <div class="fig-interactive">
-          <div class="fig-block">
-            <div class="hotspot-wrap" data-hotspot-group="fig4">
-              <img src="../assets/figures/being-m07/fig-4.png" alt="Figure 4: shared multimodal attention detail">
-              <div class="hotspot" data-id="vm" style="left:16%; top:14%;"
-                   data-title="V / M · 视觉与运动流"
-                   data-body="V（视觉）和 M（运动）两路 hidden states 各做 Self Attention（各自 Q/K/V），这是 MoT 的模态专属部分。"></div>
-              <div class="hotspot" data-id="cross" style="left:33%; top:52%;"
-                   data-title="Cross Attention → 指令 I"
-                   data-body="两条流都 cross-attend 到指令特征 I（+ τ 通过 ⊕ 注入）。语言条件同时影响视觉和运动的生成。"></div>
-              <div class="hotspot" data-id="vmshared" style="left:33%; top:72%;"
-                   data-title="V-M Shared Attention"
-                   data-body="视觉和运动的 hidden states 在这里合并交互——'场景演化'与'身体运动'互相看见。×L_N 层堆叠。"></div>
-              <div class="hotspot" data-id="oq" style="left:60%; top:56%;"
-                   data-title="O_q · 注入动作专家的观测"
-                   data-body="先验的 hidden states 加上机器人观测 O_q，以 cross attention 形式注入动作专家。这就是 Eq.1 里'动作专家读先验'的具体接口。"></div>
-              <div class="hotspot" data-id="A" style="left:82%; top:22%;"
-                   data-title="A · Action Expert（×L_M）"
-                   data-body="动作专家 A 的 Q 去 attend 先验传来的 K/V。它比先验浅（6 层 vs 30 层），是'轻量'落地头。"></div>
-            </div>
-            <div class="fig-cap">
-              <span class="fig-num">Fig 4 · p.7</span>
+</div>
+</div>
+<div class="hotspot-panel"></div>
+</div>
+<div class="step-walker" data-hotspot-group="fig2">
+<div class="sw-header">
+<div class="sw-title">🪜 一条数据怎么流过 MoT</div>
+<div class="sw-controls">
+<button class="sw-btn prev">◀</button>
+<span class="sw-counter">1 / 5</span>
+<button class="sw-btn next">▶</button>
+</div>
+</div>
+<div class="sw-progress">
+<div class="sw-dot"></div><div class="sw-dot"></div><div class="sw-dot"></div><div class="sw-dot"></div><div class="sw-dot"></div>
+</div>
+<div class="sw-body">
+<div class="sw-step active" data-hotspot="recipe">
+<h4>第 1 步：按模态嵌入</h4>
+<p>视觉隐状态 z_t 和紧凑运动向量 m_t 各用独立的输入投影，映到 MoT 隐维。时序位置编码标注对齐的时间索引，模态类型编码区分视觉/运动。指令 I 用冻结 DistilBERT 编码成语言条件。</p><div class="step-beginner"><div class="sb-label">给第一次接触这个领域的读者</div><p><strong>输入是什么：</strong>相机图像或视频，加上任务指令和机器人当前状态。它们还是原始观测，模型尚未把它们变成可用于预测或控制的特征。</p><p><strong>这一步究竟做什么：</strong>视觉隐状态 z_t 和紧凑运动向量 m_t 各用独立的输入投影，映到 MoT 隐维。时序位置编码标注对齐的时间索引，模态类型编码区分视觉/运动。指令 I 用冻结 DistilBERT 编码成语言条件。</p><p><strong>输出到哪里：</strong>一组比原始输入更紧凑的内部特征；它不是最终动作或画面。这个结果会交给下一步“模态专属 QKV”继续处理。</p><p><strong>为什么不能省略：</strong>它把未经处理的原始问题变成后续模块可以计算的输入，是整条链路的起点。</p><div class="sb-terms"><strong>术语先翻译：</strong>encoder（编码器）：把原始输入压缩成模型内部可计算的特征。</div></div>
+</div>
+<div class="sw-step" data-hotspot="qkv">
+<h4>第 2 步：模态专属 QKV</h4>
+<p>视觉 token 和运动 token 各过自己的 LayerNorm 和 QKV 投影——参数不共享，每种模态保留独立计算路径。</p><div class="step-beginner"><div class="sb-label">给第一次接触这个领域的读者</div><p><strong>输入是什么：</strong>来自上一步“按模态嵌入”的产物：一组比原始输入更紧凑的内部特征；它不是最终动作或画面。本步骤还会按论文设置读取当前条件、时间步或训练信号。</p><p><strong>这一步究竟做什么：</strong>视觉 token 和运动 token 各过自己的 LayerNorm 和 QKV 投影——参数不共享，每种模态保留独立计算路径。</p><p><strong>输出到哪里：</strong>一组比原始输入更紧凑的内部特征；它不是最终动作或画面。这个结果会交给下一步“共享注意力融合”继续处理。</p><p><strong>为什么不能省略：</strong>它承担上下两步之间的接口；缺少它，前一步产生的信息无法以正确格式或正确含义传到下一步。</p><div class="sb-terms"><strong>术语先翻译：</strong>token：模型处理信息的基本小单元；在这里通常是一小段图像、语言、动作或其压缩向量；QKV：Transformer 注意力中的查询、键和值，用来决定每个信息单元应读取哪些其他信息。</div></div>
+</div>
+<div class="sw-step" data-hotspot="shared">
+<h4>第 3 步：共享注意力融合</h4>
+<p>两路投影出的 Q/K/V 合并进一个共享注意力：每个视觉 token 跨时间与运动 token 交换信息，同时两流都 cross-attend 到指令。前 K 帧是干净上下文，未来帧被加噪，用 chunk 注意力掩码——上下文只看历史，未来 token 互相都能看（non-causal），从而并行去噪整段未来 chunk。</p><div class="step-beginner"><div class="sb-label">给第一次接触这个领域的读者</div><p><strong>输入是什么：</strong>来自上一步“模态专属 QKV”的产物：一组比原始输入更紧凑的内部特征；它不是最终动作或画面。本步骤还会按论文设置读取当前条件、时间步或训练信号。</p><p><strong>这一步究竟做什么：</strong>两路投影出的 Q/K/V 合并进一个共享注意力：每个视觉 token 跨时间与运动 token 交换信息，同时两流都 cross-attend 到指令。前 K 帧是干净上下文，未来帧被加噪，用 chunk 注意力掩码——上下文只看历史，未来 token 互相都能看（non-causal），从而并行去噪整段未来 chunk。</p><p><strong>输出到哪里：</strong>一组比原始输入更紧凑的内部特征；它不是最终动作或画面。这个结果会交给下一步“模态专属 FFN + τ 调制”继续处理。</p><p><strong>为什么不能省略：</strong>它承担上下两步之间的接口；缺少它，前一步产生的信息无法以正确格式或正确含义传到下一步。</p><div class="sb-terms"><strong>术语先翻译：</strong>token：模型处理信息的基本小单元；在这里通常是一小段图像、语言、动作或其压缩向量；diffusion（扩散生成）：从随机噪声出发，经过多次去噪得到结构化动作或图像。</div></div>
+</div>
+<div class="sw-step" data-hotspot="ffn">
+<h4>第 4 步：模态专属 FFN + τ 调制</h4>
+<p>回到各自的 FFN。flow 时间步 τ 的正弦嵌入通过 modality-specific AdaLN 调制每条流。堆叠 ×N blocks（先验 30 层）。模态专属的输出投影分别产出视觉隐空间和连续运动空间的速度场。</p><div class="step-beginner"><div class="sb-label">给第一次接触这个领域的读者</div><p><strong>输入是什么：</strong>来自上一步“共享注意力融合”的产物：一组比原始输入更紧凑的内部特征；它不是最终动作或画面。本步骤还会按论文设置读取当前条件、时间步或训练信号。</p><p><strong>这一步究竟做什么：</strong>回到各自的 FFN。flow 时间步 τ 的正弦嵌入通过 modality-specific AdaLN 调制每条流。堆叠 ×N blocks（先验 30 层）。模态专属的输出投影分别产出视觉隐空间和连续运动空间的速度场。</p><p><strong>输出到哪里：</strong>经过本步骤处理、含义更明确的中间结果。这个结果会交给下一步“动作专家读出（后训练才接）”继续处理。</p><p><strong>为什么不能省略：</strong>它承担上下两步之间的接口；缺少它，前一步产生的信息无法以正确格式或正确含义传到下一步。</p><div class="sb-terms"><strong>术语先翻译：</strong>latent（隐表示）：模型内部压缩后的数字特征，人看不见，但比原始图像或动作更便于计算；flow matching（流匹配）：学习一条连续‘移动路线’，把随机噪声逐渐搬运成合理动作或视频。</div></div>
+</div>
+<div class="sw-step" data-hotspot="expert">
+<h4>第 5 步：动作专家读出（后训练才接）</h4>
+<p>动作专家（6 层）在每层 cross-attend 到先验对应层的隐状态 H^θ(τ) + 当前机器人观测 O_q，把粗运动计划细化成可执行指令。单向连接：只读先验，不回灌。</p><div class="step-beginner"><div class="sb-label">给第一次接触这个领域的读者</div><p><strong>输入是什么：</strong>来自上一步“模态专属 FFN + τ 调制”的产物：经过本步骤处理、含义更明确的中间结果。本步骤还会按论文设置读取当前条件、时间步或训练信号。</p><p><strong>这一步究竟做什么：</strong>动作专家（6 层）在每层 cross-attend 到先验对应层的隐状态 H^θ(τ) + 当前机器人观测 O_q，把粗运动计划细化成可执行指令。单向连接：只读先验，不回灌。</p><p><strong>输出到哪里：</strong>参数得到更新的模型，或能供下一轮训练使用的新监督信号。这是图中这条链路的最终产物，随后会进入真实执行、模型更新或指标评测。</p><p><strong>为什么不能省略：</strong>前面的数据或分数本身不会自动改变模型；必须通过损失函数把误差信号变成参数更新。</p></div>
+</div>
+</div>
+</div>
+<div class="fig-interactive">
+<div class="fig-block">
+<div class="hotspot-wrap" data-hotspot-group="fig4">
+<img alt="Figure 4: shared multimodal attention detail" src="../assets/figures/being-m07/fig-4.png"/>
+<div class="hotspot" data-body="V（视觉）和 M（运动）两路 hidden states 各做 Self Attention（各自 Q/K/V），这是 MoT 的模态专属部分。" data-id="vm" data-title="V / M · 视觉与运动流" style="left:16%; top:14%;"></div>
+<div class="hotspot" data-body="两条流都 cross-attend 到指令特征 I（+ τ 通过 ⊕ 注入）。语言条件同时影响视觉和运动的生成。" data-id="cross" data-title="Cross Attention → 指令 I" style="left:33%; top:52%;"></div>
+<div class="hotspot" data-body="视觉和运动的 hidden states 在这里合并交互——'场景演化'与'身体运动'互相看见。×L_N 层堆叠。" data-id="vmshared" data-title="V-M Shared Attention" style="left:33%; top:72%;"></div>
+<div class="hotspot" data-body="先验的 hidden states 加上机器人观测 O_q，以 cross attention 形式注入动作专家。这就是 Eq.1 里'动作专家读先验'的具体接口。" data-id="oq" data-title="O_q · 注入动作专家的观测" style="left:60%; top:56%;"></div>
+<div class="hotspot" data-body="动作专家 A 的 Q 去 attend 先验传来的 K/V。它比先验浅（6 层 vs 30 层），是'轻量'落地头。" data-id="A" data-title="A · Action Expert（×L_M）" style="left:82%; top:22%;"></div>
+</div>
+<div class="fig-cap">
+<span class="fig-num">Fig 4 · p.7</span>
               The details of the shared multimodal attention: V, M, I, A denote hidden states of vision, motion, instruction, action. τ is the flow matching timestep; hidden states are injected into the action expert as cross attention along with O_q.
               <span class="fig-cn">V/M 各自 self-attention → cross-attend 指令 I → V-M 共享注意力；先验 hidden states + O_q 注入动作专家 A。</span>
-            </div>
-          </div>
-          <div class="hotspot-panel"></div>
-        </div>
-
-        <div class="callout amber">
-          <div class="callout-label">注意 · MoT 让"混合模态"训练成为可能</div>
-          <p>
+</div>
+</div>
+<div class="hotspot-panel"></div>
+</div>
+<div class="callout amber">
+<div class="callout-label">注意 · MoT 让"混合模态"训练成为可能</div>
+<p>
             MoT 的模态专属分支是"三流语料能一锅烩"的技术前提：视频-动作对激活全部路径，纯视频只走视觉路径+算 L_image，纯动作只走运动路径+算 L_motion。<strong>正因为每种模态有独立参数，缺席的模态不会污染在场模态的学习</strong>——这把可用监督从千小时成对数据扩到万小时混合语料，同时保留跨模态交互（当两种模态都在场时）。
           </p>
-        </div>
-
-        <div class="quiz"
-             data-correct="b"
-             data-explain="正确。§3.3（p.6）：动作专家与先验之间是 one-way connection——动作专家接收先验的中间表示，但没有动作信息传回先验。这样'动作预测建立在先验学到的表示之上，却不改变先验处理输入的方式'。目的和 Ψ₀ 冻结 VLM 类似：保护预训练学到的世界建模/表征能力，不被小规模真机后训练带偏。"
-             data-explain-wrong="看 Fig.2/Fig.4 的箭头方向：信息从先验（左/紫）流向动作专家（右/蓝），没有反向箭头。这是刻意的保护设计。">
-          <div class="q-label">🧠 理解检查</div>
-          <div class="q-text">动作专家和先验 WAM 之间是"单向连接"，这样设计的目的是？</div>
-          <div class="q-options">
-            <button class="q-opt" data-k="a">节省显存，避免双向梯度</button>
-            <button class="q-opt" data-k="b">动作预测建立在先验表示之上，但不改变先验处理输入的方式，保护世界建模能力</button>
-            <button class="q-opt" data-k="c">让动作专家可以独立于先验单独部署</button>
-            <button class="q-opt" data-k="d">强制动作专家只用当前观测，忽略未来预测</button>
-          </div>
-          <div class="q-feedback"></div>
-        </div>
-      </div>
-
-      <!-- ============ §05 ============ -->
-      <div class="section" id="training">
-        <div class="section-num">§ 05</div>
-        <h2>训练：先学"世界怎么变"，再学"机器人怎么做"</h2>
-
-        <div class="cn-read">
-          <div class="cn-label">这一节解决什么</div>
-          <p>
+</div>
+<div class="quiz" data-correct="b" data-explain="正确。§3.3（p.6）：动作专家与先验之间是 one-way connection——动作专家接收先验的中间表示，但没有动作信息传回先验。这样'动作预测建立在先验学到的表示之上，却不改变先验处理输入的方式'。目的和 Ψ₀ 冻结 VLM 类似：保护预训练学到的世界建模/表征能力，不被小规模真机后训练带偏。" data-explain-wrong="看 Fig.2/Fig.4 的箭头方向：信息从先验（左/紫）流向动作专家（右/蓝），没有反向箭头。这是刻意的保护设计。">
+<div class="q-label">🧠 理解检查</div>
+<div class="q-text">动作专家和先验 WAM 之间是"单向连接"，这样设计的目的是？</div>
+<div class="q-options">
+<button class="q-opt" data-k="a">节省显存，避免双向梯度</button>
+<button class="q-opt" data-k="b">动作预测建立在先验表示之上，但不改变先验处理输入的方式，保护世界建模能力</button>
+<button class="q-opt" data-k="c">让动作专家可以独立于先验单独部署</button>
+<button class="q-opt" data-k="d">强制动作专家只用当前观测，忽略未来预测</button>
+</div>
+<div class="q-feedback"></div>
+</div>
+</div>
+<!-- ============ §05 ============ -->
+<div class="section" id="training">
+<div class="section-num">§ 05</div>
+<h2>训练：先学"世界怎么变"，再学"机器人怎么做"</h2>
+<div class="cn-read">
+<div class="cn-label">这一节解决什么</div>
+<p>
             §04 搭好了 MoT，这一节看它怎么被训出来。两阶段：<strong>阶段 1 预训练</strong>——在三流语料上用统一的 flow matching 目标学"先验世界-动作模型"；<strong>阶段 2 后训练</strong>——冻结/继续训先验、接上动作专家，在真机轨迹上学"把粗计划变成可执行指令"。关键设计：后训练时机器人轨迹<strong>不只给动作监督，还继续给视觉和运动目标</strong>——这样接地的同时不忘记预训练学到的世界动态。
           </p>
-        </div>
-
-        <h3>统一的 flow matching 目标</h3>
-        <p>
+</div>
+<h3>统一的 flow matching 目标</h3>
+<p>
           对每个可观测的未来 token $x_0$（可以是视觉隐 token 或运动 token），采高斯噪声 $\epsilon$ 和 flow 时间步 $\tau\sim\mathcal{U}(0,1)$，沿直线概率路径监督速度场——先给直觉：<strong>flow matching 就像教模型"从噪声这一点，指向真实数据的方向该怎么走"</strong>：
         </p>
-        <div class="math-block">
+<div class="math-block">
           $$x_\tau = (1-\tau)x_0 + \tau\epsilon, \qquad u^\star = \epsilon - x_0$$
           <span class="math-label">p.8 · 线性插值路径 + 目标速度（指向噪声方向）</span>
-        </div>
-        <div class="math-block">
+</div><div class="math-explain"><div class="me-title">线性 Flow Matching 路径</div><dl><dt>$x_0$</dt><dd>真实视频或运动样本，位于数据端。</dd><dt>$\epsilon$</dt><dd>标准高斯噪声，位于噪声端；这里的时间方向写成数据到噪声。</dd><dt>$x_\tau$</dt><dd>两端的线性插值；随机采样 $\tau$ 就能现场构造任意路径位置。</dd><dt>$u^\star=\epsilon-x_0$</dt><dd>直线路径的恒定目标速度。推理时按相反方向积分，便可从噪声生成数据。</dd></dl></div>
+<div class="math-block">
           $$\mathcal{L}_V = \frac{1}{|\Omega_V|}\sum_{t\in\Omega_V}\big\| u_\theta^V(z_{\tau,t}, \tau, I, Z_\mathcal{C}) - u_t^{V\star}\big\|_2^2, \quad
           \mathcal{L}_M = \frac{1}{|\Omega_M|}\sum_{t\in\Omega_M}\big\| u_\theta^M(m_{\tau,t}, \tau, I, M_\mathcal{C}) - u_t^{M\star}\big\|_2^2$$
           <span class="math-label">p.8 · 视觉 flow loss 与运动 flow loss（各自只在有效 token 上求和）</span>
-        </div>
-        <div class="math-explain">
-          <div class="me-title">逐项拆解</div>
-          <dl>
-            <dt>$x_\tau=(1-\tau)x_0+\tau\epsilon$</dt>
-            <dd>把真实未来 token $x_0$ 和噪声 $\epsilon$ 线性混合。$\tau{=}0$ 是真数据，$\tau{=}1$ 是纯噪声</dd>
-            <dt>$u^\star=\epsilon-x_0$</dt>
-            <dd>目标速度场——从数据指向噪声的方向（Being-M0.7 的符号约定，推理时反向积分）</dd>
-            <dt>$u_\theta^V, u_\theta^M$</dt>
-            <dd>模型对视觉/运动分别预测的速度场，条件是加噪 token、$\tau$、指令 $I$ 和各自的上下文</dd>
-            <dt>$\Omega_V, \Omega_M$</dt>
-            <dd><strong>有效 token 集合</strong>——只对当前样本"拥有的模态"求和。配对样本两项都算，纯视频只算 $\mathcal{L}_V$，纯动作只算 $\mathcal{L}_M$</dd>
-          </dl>
-        </div>
-
-        <p>
+</div>
+<div class="math-explain">
+<div class="me-title">逐项拆解</div>
+<dl>
+<dt>$x_\tau=(1-\tau)x_0+\tau\epsilon$</dt>
+<dd>把真实未来 token $x_0$ 和噪声 $\epsilon$ 线性混合。$\tau{=}0$ 是真数据，$\tau{=}1$ 是纯噪声</dd>
+<dt>$u^\star=\epsilon-x_0$</dt>
+<dd>目标速度场——从数据指向噪声的方向（Being-M0.7 的符号约定，推理时反向积分）</dd>
+<dt>$u_\theta^V, u_\theta^M$</dt>
+<dd>模型对视觉/运动分别预测的速度场，条件是加噪 token、$\tau$、指令 $I$ 和各自的上下文</dd>
+<dt>$\Omega_V, \Omega_M$</dt>
+<dd><strong>有效 token 集合</strong>——只对当前样本"拥有的模态"求和。配对样本两项都算，纯视频只算 $\mathcal{L}_V$，纯动作只算 $\mathcal{L}_M$</dd>
+</dl>
+</div>
+<p>
           有运动目标时，额外加<strong>几何感知正则</strong> $\mathcal{L}_{\text{geom}} = \lambda_{\text{traj}}\mathcal{L}_{\text{traj}} + \lambda_{\text{local-vel}}\mathcal{L}_{\text{local-vel}}$——约束全局头/根轨迹的物理一致性 + 局部末端执行器（双手双脚）的逐帧速度平滑（附录 A.3）。预训练总目标按三流分别激活对应项：
         </p>
-        <div class="math-block">
+<div class="math-block">
           $$\min_\theta\; \mathbb{E}_{s\sim\mathcal{D}_{VM}}[\mathcal{L}_V + \mathcal{L}_M + \mathcal{L}_{\text{geom}}] + \mathbb{E}_{s\sim\mathcal{D}_V}[\mathcal{L}_V] + \mathbb{E}_{s\sim\mathcal{D}_M}[\mathcal{L}_M + \mathcal{L}_{\text{geom}}]$$
           <span class="math-label">p.8 · 预训练总目标：三流各激活自己拥有的模态项</span>
-        </div>
-
-        <h3>阶段 2：动作专家后训练</h3>
-        <p>
+</div><div class="math-explain"><div class="me-title">三种数据为什么能放进一个目标</div><dl><dt>$\mathcal D_{VM}$</dt><dd>同时有视频与运动的数据，联合激活视觉、运动和几何对齐三项监督。</dd><dt>$\mathcal D_V$</dt><dd>只有视频的数据，只训练视觉生成分支，不能凭空施加运动标签。</dd><dt>$\mathcal D_M$</dt><dd>只有运动的数据，训练运动流和几何约束，不要求不存在的 RGB 目标。</dd><dt>$\mathcal L_{geom}$</dt><dd>把身体/物体运动置于一致几何坐标中，是跨人类与机器人数据共享表示的桥。</dd></dl></div>
+<h3>阶段 2：动作专家后训练</h3>
+<p>
           从机器人里程计 + 关节状态用正运动学构造机器人运动序列 $M$（<strong>和人类动作用同一套表示</strong>）。后训练时采一个视频-运动窗口，选动作查询时刻 $q$，先验用<strong>和预训练相同的视觉+运动 flow loss</strong> 继续训练——这些额外信号"保住并接地预训练的视频-运动动态"，而动作专家学本体特定指令。动作专家用 action chunking（一次预测 $H_a{=}20$ 步、0.4 秒），loss：
         </p>
-        <div class="math-block">
+<div class="math-block">
           $$\mathcal{L}_A(\theta,\phi) = \mathbb{E}\Big[\big\| u_\phi^a(\tilde{\mathbf{a}}_\tau, \tau, H^\theta(\tau), o_q) - (\epsilon_a - \mathbf{a}_q)\big\|_2^2\Big]$$
           <span class="math-label">p.9 · 动作专家 flow matching loss（条件含先验隐状态 H^θ 与机器人观测 o_q）</span>
-        </div>
-        <div class="math-block">
+</div><div class="math-explain"><div class="me-title">动作专家如何读取世界先验</div><dl><dt>$\mathbf a_q$ 与 $\epsilon_a$</dt><dd>目标机器人动作块与高斯噪声，二者构成动作 flow 的两端。</dd><dt>$\tilde{\mathbf a}_\tau$</dt><dd>动作在随机时间 $\tau$ 的带噪中间状态。</dd><dt>$H^\theta(\tau)$</dt><dd>冻结或慢更新的世界/运动先验隐状态，给动作专家提供长程语义计划。</dd><dt>$o_q$</dt><dd>当前机器人观测，负责把通用先验落到具体本体和现场状态。</dd></dl></div>
+<div class="math-block">
           $$\min_{\theta,\phi}\; \mathcal{L}_V(\theta) + \mathcal{L}_M(\theta) + \lambda_a\mathcal{L}_A(\theta,\phi)$$
           <span class="math-label">p.9 · 后训练总目标：先验的视觉+运动 loss 继续在，动作 loss 加权 λ_a</span>
-        </div>
-        <div class="math-explain">
-          <div class="me-title">逐项拆解</div>
-          <dl>
-            <dt>$H^\theta(\tau)$</dt>
-            <dd>先验在去噪步 $\tau$ 抽出的<strong>隐状态</strong>（多层）——动作专家条件在它上面，拿到"未来场景+粗运动"的上下文</dd>
-            <dt>$o_q$</dt>
-            <dd>当前机器人观测：ego 图像（同一个冻结 DINO 编码）+ 本体感知（关节位置/速度/重力方向）+ 归一化执行进度</dd>
-            <dt>$\mathcal{L}_V(\theta)+\mathcal{L}_M(\theta)$ 仍在</dt>
-            <dd><strong>关键</strong>：后训练<strong>不只</strong>训动作。继续用真机数据的视觉/运动目标，让先验的世界动态被"接地"而非遗忘——回应了 §01 缺陷 (c) 的协调性</dd>
-            <dt>$\lambda_a$</dt>
-            <dd>动作监督的权重</dd>
-          </dl>
-        </div>
-
-        <div class="quiz"
-             data-correct="c"
-             data-explain="正确。§3.4（p.8-9）：后训练时机器人轨迹不只提供可执行动作监督，还提供视觉和运动目标（L_V + L_M 继续在总目标里）。原文：'These additional training signals preserve and ground the pretrained video-motion dynamics while the action expert learns embodiment-specific commands.'——一边接地一边不遗忘世界动态。"
-             data-explain-wrong="看后训练总目标 min L_V + L_M + λ_a·L_A：三项都在。如果只留 L_A，先验学到的世界动态会在小数据后训练里被冲掉。">
-          <div class="q-label">🧠 理解检查</div>
-          <div class="q-text">阶段 2 后训练时，为什么机器人轨迹除了动作监督，还要继续算视觉 L_V 和运动 L_M？</div>
-          <div class="q-options">
-            <button class="q-opt" data-k="a">因为真机数据太少，需要凑够 loss 项</button>
-            <button class="q-opt" data-k="b">为了让动作专家也能生成视频</button>
-            <button class="q-opt" data-k="c">在接地到机器人的同时，保住预训练学到的视频-运动世界动态，不遗忘</button>
-            <button class="q-opt" data-k="d">因为动作专家需要视觉 loss 才能收敛</button>
-          </div>
-          <div class="q-feedback"></div>
-        </div>
-      </div>
-
-      <!-- ============ §06 ============ -->
-      <div class="section" id="inference">
-        <div class="section-num">§ 06</div>
-        <h2>推理：先验低频出计划，动作专家高频出指令</h2>
-
-        <div class="cn-read">
-          <div class="cn-label">这一节解决什么</div>
-          <p>
-            §02 的"慢想快做"分解，这一节兑现成部署时的<strong>双频闭环</strong>。先验世界-动作模型<strong>低频</strong>跑（每 3.5 秒刷新一次未来视频-运动计划），它的中间隐状态被转成 KV cache 缓存起来；动作专家<strong>高频</strong>跑（每 0.4 秒查询一次，<0.01 秒/次），复用缓存的先验上下文，只吸收最新机器人观测做闭环修正。一次先验 rollout ≈ 喂 9 次动作查询。
+</div>
+<div class="math-explain">
+<div class="me-title">逐项拆解</div>
+<dl>
+<dt>$H^\theta(\tau)$</dt>
+<dd>先验在去噪步 $\tau$ 抽出的<strong>隐状态</strong>（多层）——动作专家条件在它上面，拿到"未来场景+粗运动"的上下文</dd>
+<dt>$o_q$</dt>
+<dd>当前机器人观测：ego 图像（同一个冻结 DINO 编码）+ 本体感知（关节位置/速度/重力方向）+ 归一化执行进度</dd>
+<dt>$\mathcal{L}_V(\theta)+\mathcal{L}_M(\theta)$ 仍在</dt>
+<dd><strong>关键</strong>：后训练<strong>不只</strong>训动作。继续用真机数据的视觉/运动目标，让先验的世界动态被"接地"而非遗忘——回应了 §01 缺陷 (c) 的协调性</dd>
+<dt>$\lambda_a$</dt>
+<dd>动作监督的权重</dd>
+</dl>
+</div>
+<div class="quiz" data-correct="c" data-explain="正确。§3.4（p.8-9）：后训练时机器人轨迹不只提供可执行动作监督，还提供视觉和运动目标（L_V + L_M 继续在总目标里）。原文：'These additional training signals preserve and ground the pretrained video-motion dynamics while the action expert learns embodiment-specific commands.'——一边接地一边不遗忘世界动态。" data-explain-wrong="看后训练总目标 min L_V + L_M + λ_a·L_A：三项都在。如果只留 L_A，先验学到的世界动态会在小数据后训练里被冲掉。">
+<div class="q-label">🧠 理解检查</div>
+<div class="q-text">阶段 2 后训练时，为什么机器人轨迹除了动作监督，还要继续算视觉 L_V 和运动 L_M？</div>
+<div class="q-options">
+<button class="q-opt" data-k="a">因为真机数据太少，需要凑够 loss 项</button>
+<button class="q-opt" data-k="b">为了让动作专家也能生成视频</button>
+<button class="q-opt" data-k="c">在接地到机器人的同时，保住预训练学到的视频-运动世界动态，不遗忘</button>
+<button class="q-opt" data-k="d">因为动作专家需要视觉 loss 才能收敛</button>
+</div>
+<div class="q-feedback"></div>
+</div>
+</div>
+<!-- ============ §06 ============ -->
+<div class="section" id="inference">
+<div class="section-num">§ 06</div>
+<h2>推理：先验低频出计划，动作专家高频出指令</h2>
+<div class="cn-read">
+<div class="cn-label">这一节解决什么</div>
+<p>
+            §02 的"慢想快做"分解，这一节兑现成部署时的<strong>双频闭环</strong>。先验世界-动作模型<strong>低频</strong>跑（每 3.5 秒刷新一次未来视频-运动计划），它的中间隐状态被转成 KV cache 缓存起来；动作专家<strong>高频</strong>跑（每 0.4 秒查询一次，&lt;0.01 秒/次），复用缓存的先验上下文，只吸收最新机器人观测做闭环修正。一次先验 rollout ≈ 喂 9 次动作查询。
           </p>
-        </div>
-
-        <p>
+</div>
+<p>
           除了图像和本体感知的常规反馈，<strong>统一运动表示还额外开了一条"运动级反馈"通道</strong>：最新的机器人运动学可以和预测的粗全身计划对比、并在缓存刷新前融合进去——让动作专家能对身体和末端执行器的偏差做出反应，不必只靠视觉反馈。动作专家在去噪步 $n$ 更新动作样本：
         </p>
-        <div class="math-block">
+<div class="math-block">
           $$\hat{u}^n = u_\phi^a\big(\mathbf{a}^{n-1}, \tau_n, H_n^\theta, O_{\text{cur}}\big), \qquad \mathbf{a}^n = \mathbf{a}^{n-1} - \hat{u}^n\Delta\tau_n$$
           <span class="math-label">p.9 · 动作专家去噪更新（复用缓存先验上下文 H_n^θ + 当前观测 O_cur）</span>
-        </div>
-        <div class="math-explain">
-          <div class="me-title">逐项拆解</div>
-          <dl>
-            <dt>$H_n^\theta$</dt>
-            <dd>缓存的先验上下文（去噪步 $n$ 对应）——<strong>低频产出、被高频复用</strong>的那份"未来计划"</dd>
-            <dt>$O_{\text{cur}}$</dt>
-            <dd>当前机器人观测——每次动作查询都用最新的，保证闭环响应性</dd>
-            <dt>$\mathbf{a}^n = \mathbf{a}^{n-1} - \hat{u}^n\Delta\tau_n$</dt>
-            <dd>沿预测速度场反向积分一步。$N{=}10$ 步 flow matching 后输出可执行 chunk $\mathbf{a}^N=(a_l,\dots,a_{l+H_a-1})$，$H_a{=}20$</dd>
-          </dl>
-        </div>
-
-        <div class="callout blue">
-          <div class="callout-label">数字 · 双频节奏</div>
-          <p>
-            先验上下文每 <strong>3.5 秒</strong>刷新一次，动作专家每 <strong>0.4 秒</strong>查询一次——所以<strong>一次先验 rollout 大约喂 9 次动作查询</strong>。单次动作查询 <0.01 秒，指令由底层控制器（SONIC）以 <strong>50Hz</strong> 执行。视频/运动序列在 5Hz 表示，机器人指令 50Hz。这套"低频规划 + 低延迟动作生成"正是 Eq.1 分解在工程上的落地。
+</div>
+<div class="math-explain">
+<div class="me-title">逐项拆解</div>
+<dl>
+<dt>$H_n^\theta$</dt>
+<dd>缓存的先验上下文（去噪步 $n$ 对应）——<strong>低频产出、被高频复用</strong>的那份"未来计划"</dd>
+<dt>$O_{\text{cur}}$</dt>
+<dd>当前机器人观测——每次动作查询都用最新的，保证闭环响应性</dd>
+<dt>$\mathbf{a}^n = \mathbf{a}^{n-1} - \hat{u}^n\Delta\tau_n$</dt>
+<dd>沿预测速度场反向积分一步。$N{=}10$ 步 flow matching 后输出可执行 chunk $\mathbf{a}^N=(a_l,\dots,a_{l+H_a-1})$，$H_a{=}20$</dd>
+</dl>
+</div>
+<div class="callout blue">
+<div class="callout-label">数字 · 双频节奏</div>
+<p>
+            先验上下文每 <strong>3.5 秒</strong>刷新一次，动作专家每 <strong>0.4 秒</strong>查询一次——所以<strong>一次先验 rollout 大约喂 9 次动作查询</strong>。单次动作查询 &lt;0.01 秒，指令由底层控制器（SONIC）以 <strong>50Hz</strong> 执行。视频/运动序列在 5Hz 表示，机器人指令 50Hz。这套"低频规划 + 低延迟动作生成"正是 Eq.1 分解在工程上的落地。
           </p>
-        </div>
-
-        <table class="kv-table">
-          <tr><th>组件</th><th>频率 / 数字</th><th>说明</th></tr>
-          <tr><td>先验世界-动作模型</td><td class="w">每 3.5s 刷新</td><td>出未来视频-运动计划，隐状态转成 KV cache</td></tr>
-          <tr><td>动作专家查询</td><td class="w">每 0.4s · &lt;0.01s/次</td><td>复用缓存 + 最新观测，闭环修正</td></tr>
-          <tr><td>底层控制器（SONIC）</td><td class="w">50Hz</td><td>执行动作专家出的通用控制 token + 手部开合</td></tr>
-          <tr><td>flow matching 步数</td><td class="w">N=10</td><td>先验和动作专家都用 10 步去噪</td></tr>
-          <tr><td>动作 chunk</td><td class="w">H_a=20 · 0.4s</td><td>一次预测 20 步 ≈ 0.4 秒动作视野</td></tr>
-        </table>
-
-        <div class="quiz"
-             data-correct="a"
-             data-explain="正确。§3.4 Inference（p.9）+ 附录 A.5：先验上下文每 3.5 秒刷新，动作专家每 0.4 秒查询，所以一次先验 rollout 被约 9 次动作查询复用。这正是 Eq.1 分解的工程意义——昂贵的低频世界推理被摊薄到多次廉价的高频动作生成上。"
-             data-explain-wrong="算一下：3.5s ÷ 0.4s ≈ 9。先验规划刷新一次，动作专家能用它查询约 9 次。">
-          <div class="q-label">🧠 理解检查</div>
-          <div class="q-text">部署时，一次先验世界模型的 rollout 大约驱动多少次动作专家查询？</div>
-          <div class="q-options">
-            <button class="q-opt" data-k="a">约 9 次（先验 3.5s 刷新 ÷ 动作 0.4s 查询）</button>
-            <button class="q-opt" data-k="b">1 次——一一对应</button>
-            <button class="q-opt" data-k="c">50 次——和控制频率一致</button>
-            <button class="q-opt" data-k="d">20 次——等于 chunk 长度</button>
-          </div>
-          <div class="q-feedback"></div>
-        </div>
-      </div>
-
-      <!-- ============ §07 ============ -->
-      <div class="section" id="experiments">
-        <div class="section-num">§ 07</div>
-        <h2>实验：4 个全身任务，考四种互补能力</h2>
-
-        <div class="cn-read">
-          <div class="cn-label">这一节解决什么</div>
-          <p>
+</div>
+<table class="kv-table">
+<tr><th>组件</th><th>频率 / 数字</th><th>说明</th></tr>
+<tr><td>先验世界-动作模型</td><td class="w">每 3.5s 刷新</td><td>出未来视频-运动计划，隐状态转成 KV cache</td></tr>
+<tr><td>动作专家查询</td><td class="w">每 0.4s · &lt;0.01s/次</td><td>复用缓存 + 最新观测，闭环修正</td></tr>
+<tr><td>底层控制器（SONIC）</td><td class="w">50Hz</td><td>执行动作专家出的通用控制 token + 手部开合</td></tr>
+<tr><td>flow matching 步数</td><td class="w">N=10</td><td>先验和动作专家都用 10 步去噪</td></tr>
+<tr><td>动作 chunk</td><td class="w">H_a=20 · 0.4s</td><td>一次预测 20 步 ≈ 0.4 秒动作视野</td></tr>
+</table>
+<div class="quiz" data-correct="a" data-explain="正确。§3.4 Inference（p.9）+ 附录 A.5：先验上下文每 3.5 秒刷新，动作专家每 0.4 秒查询，所以一次先验 rollout 被约 9 次动作查询复用。这正是 Eq.1 分解的工程意义——昂贵的低频世界推理被摊薄到多次廉价的高频动作生成上。" data-explain-wrong="算一下：3.5s ÷ 0.4s ≈ 9。先验规划刷新一次，动作专家能用它查询约 9 次。">
+<div class="q-label">🧠 理解检查</div>
+<div class="q-text">部署时，一次先验世界模型的 rollout 大约驱动多少次动作专家查询？</div>
+<div class="q-options">
+<button class="q-opt" data-k="a">约 9 次（先验 3.5s 刷新 ÷ 动作 0.4s 查询）</button>
+<button class="q-opt" data-k="b">1 次——一一对应</button>
+<button class="q-opt" data-k="c">50 次——和控制频率一致</button>
+<button class="q-opt" data-k="d">20 次——等于 chunk 长度</button>
+</div>
+<div class="q-feedback"></div>
+</div>
+</div>
+<!-- ============ §07 ============ -->
+<div class="section" id="experiments">
+<div class="section-num">§ 07</div>
+<h2>实验：4 个全身任务，考四种互补能力</h2>
+<div class="cn-read">
+<div class="cn-label">这一节解决什么</div>
+<p>
             方法讲完，验收"latent WAM + 统一运动表示"到底能不能撑起协调的全身控制。真机 Unitree G1，四个任务<strong>刻意各考一种能力</strong>：镜像取玩具（部分可观测下的视觉推理）、水缸捞鱼（不确定物体动态下的工具使用）、桌面整理（长程多阶段）、避障搬篮（协调 locomotion + 负载操作）。硬件：双 7-DoF 臂 + Linker Hand O6 灵巧手 + 头部 RealSense D435i，策略在外部 RTX 4090 上推理、ZMQ 闭环下发。数据用 VR 全身遥操作采（PICO 头显 + 双踝 tracker + 手柄，XRoboToolkit 估 SMPL 位姿，SONIC 转 29-DoF 全身指令 @50Hz）。
           </p>
-        </div>
-
-        <div class="fig-interactive panel-below">
-          <div class="fig-block">
-            <div class="hotspot-wrap" data-hotspot-group="fig5">
-              <img src="../assets/figures/being-m07/fig-5.png" alt="Figure 5: data collection system">
-              <div class="hotspot" data-id="vr" style="left:20%; top:45%;"
-                   data-title="操作员 · PICO 头显 + 双踝 tracker + 手柄"
-                   data-body="VR 全身遥操作：头显给头部位姿+视角，双踝 tracker 给下身，手柄给手部。XRoboToolkit 实时从 VR 设备流估计操作员 SMPL 全身位姿。"></div>
-              <div class="hotspot" data-id="gmt" style="left:47%; top:45%;"
-                   data-title="GMT · 人类动作 → 机器人 PD 目标"
-                   data-body="估计出的人体位姿经通用运动追踪器转成稳定的 29-DoF 全身控制指令，在 Unitree G1 上 50Hz 执行。SONIC 是这里的运动追踪底座。"></div>
-              <div class="hotspot" data-id="datasets" style="left:82%; top:45%;"
-                   data-title="Real Robot Datasets · 四模态同步"
-                   data-body="遥操作时同步录：ego 图像、机器人运动（SONIC token）、本体感知、指令（含手部开合）。这就是阶段 2 后训练用的真机数据。"></div>
-            </div>
-            <div class="fig-cap">
-              <span class="fig-num">Fig 5 · p.10</span>
+</div>
+<div class="fig-interactive panel-below">
+<div class="fig-block">
+<div class="hotspot-wrap" data-hotspot-group="fig5">
+<img alt="Figure 5: data collection system" src="../assets/figures/being-m07/fig-5.png"/>
+<div class="hotspot" data-body="VR 全身遥操作：头显给头部位姿+视角，双踝 tracker 给下身，手柄给手部。XRoboToolkit 实时从 VR 设备流估计操作员 SMPL 全身位姿。" data-id="vr" data-title="操作员 · PICO 头显 + 双踝 tracker + 手柄" style="left:20%; top:45%;"></div>
+<div class="hotspot" data-body="估计出的人体位姿经通用运动追踪器转成稳定的 29-DoF 全身控制指令，在 Unitree G1 上 50Hz 执行。SONIC 是这里的运动追踪底座。" data-id="gmt" data-title="GMT · 人类动作 → 机器人 PD 目标" style="left:47%; top:45%;"></div>
+<div class="hotspot" data-body="遥操作时同步录：ego 图像、机器人运动（SONIC token）、本体感知、指令（含手部开合）。这就是阶段 2 后训练用的真机数据。" data-id="datasets" data-title="Real Robot Datasets · 四模态同步" style="left:82%; top:45%;"></div>
+</div>
+<div class="fig-cap">
+<span class="fig-num">Fig 5 · p.10</span>
               Overview of the data collection system. An operator uses VR-based teleoperation to generate motion commands, while a pretrained whole-body motion tracker controls the humanoid to collect synchronized real-world trajectories.
               <span class="fig-cn">VR 遥操作数据采集：操作员全身动作 → GMT → G1 PD 目标，同步录 ego 图像 / 机器人运动 / 本体感知 / 指令四路。</span>
-            </div>
-          </div>
-          <div class="hotspot-panel"></div>
-        </div>
-
-        <h3>定量结果（Table 1 · 25 次试验/格）</h3>
-        <table class="kv-table">
-          <tr><th>方法</th><th>Mirror (Near)</th><th>Mirror (Far)</th><th>Fish</th><th>Overall</th></tr>
-          <tr><td>GR00T-N1.6</td><td class="w">1/5</td><td class="w">0/5</td><td class="w">1/5</td><td class="bad">2/15</td></tr>
-          <tr><td>Ψ₀</td><td class="w">0/5</td><td class="w">1/5</td><td class="w">2/5</td><td class="w">3/15</td></tr>
-          <tr><td><strong>Being-M0.7</strong></td><td class="win">3/5</td><td class="w">1/5</td><td class="win">3/5</td><td class="win">7/15</td></tr>
-        </table>
-        <p>
+</div>
+</div>
+<div class="hotspot-panel"></div>
+</div>
+<h3>定量结果（Table 1 · 25 次试验/格）</h3>
+<table class="kv-table">
+<tr><th>方法</th><th>Mirror (Near)</th><th>Mirror (Far)</th><th>Fish</th><th>Overall</th></tr>
+<tr><td>GR00T-N1.6</td><td class="w">1/5</td><td class="w">0/5</td><td class="w">1/5</td><td class="bad">2/15</td></tr>
+<tr><td>Ψ₀</td><td class="w">0/5</td><td class="w">1/5</td><td class="w">2/5</td><td class="w">3/15</td></tr>
+<tr><td><strong>Being-M0.7</strong></td><td class="win">3/5</td><td class="w">1/5</td><td class="win">3/5</td><td class="win">7/15</td></tr>
+</table>
+<p>
           两个数字点：<strong>镜像取玩具</strong>——玩具从机器人视角初始不可见，必须从镜面反射<strong>推断位置</strong>再全身接近抓取，Being-M0.7 总体 4/10 vs GR00T/Ψ₀ 各 1/10，考的是部分可观测下的视觉推理 + 全身协调；<strong>水缸捞鱼</strong>——只评操作阶段，用手持网兜在水里捞玩具鱼，Being-M0.7 3/5 领先，考水致视觉畸变下的工具使用。
         </p>
-
-        <div class="fig-interactive panel-below">
-          <div class="fig-block">
-            <div class="hotspot-wrap" data-hotspot-group="fig6">
-              <img src="../assets/figures/being-m07/fig-6.png" alt="Figure 6: representative real-world case studies">
-            </div>
-            <div class="fig-cap">
-              <span class="fig-num">Fig 6 · p.11</span>
+<div class="fig-interactive panel-below">
+<div class="fig-block">
+<div class="hotspot-wrap" data-hotspot-group="fig6">
+<img alt="Figure 6: representative real-world case studies" src="../assets/figures/being-m07/fig-6.png"/>
+</div>
+<div class="fig-cap">
+<span class="fig-num">Fig 6 · p.11</span>
               Representative real-world case studies: (a) Mirror Toy Grasping — reasoning under partial observability, (b) Water-Tank Fish Scooping — tool use under uncertain dynamics, (c) Tabletop Organization — long-horizon multi-stage, (d) Obstacle-Avoidance Basket Carrying — coordinated locomotion + load-aware manipulation.
               <span class="fig-cn">四个任务各考一种能力：镜面推理取玩具、水缸捞鱼、桌面长程整理、避障搬篮——共同展示感知/推理/locomotion/灵巧操作的协调闭环。</span>
-            </div>
-          </div>
-        </div>
-
-        <div class="callout amber">
-          <div class="callout-label">诚实读数 · 这是"potential"不是"solved"</div>
-          <p>
+</div>
+</div>
+</div>
+<div class="callout amber">
+<div class="callout-label">诚实读数 · 这是"potential"不是"solved"</div>
+<p>
             7/15 的绝对成功率不高——结论页自己说的是"demonstrate the <strong>potential</strong> of latent world-action modeling"。项目性质是<strong>技术报告/项目页</strong>（非同行评审论文），4 个任务、25 试验/格、没有大规模消融表。作者列的 future work 也很直白：更 sophisticated 的后训练、扩大真机后训练数据、提升分布漂移下的鲁棒性、扩到更多任务/环境/本体。<strong>把它当"latent WAM 路线可行性的早期验证"读，而不是一个成熟 SOTA。</strong>
-          </p>
-        </div>
-
-        <div class="quiz"
-             data-correct="b"
-             data-explain="正确。§4.2（p.10）：镜像取玩具任务中，玩具从机器人视角初始不可见（partial observability），机器人必须先从镜子里的反射推断出隐藏玩具的位置，再全身接近并抓取。这考的是'部分可观测下的视觉推理 + 全身定位与操作'——正好检验先验世界模型'推理未观测状态'的能力。"
-             data-explain-wrong="任务名'Mirror'是关键：玩具藏起来了，机器人只能看到镜中反射，得推断真实位置。">
-          <div class="q-label">🧠 理解检查</div>
-          <div class="q-text">镜像取玩具（Mirror Toy Grasping）任务专门考验什么能力？</div>
-          <div class="q-options">
-            <button class="q-opt" data-k="a">高速动态平衡</button>
-            <button class="q-opt" data-k="b">部分可观测下的视觉推理——从镜面反射推断隐藏物体位置，再全身接近抓取</button>
-            <button class="q-opt" data-k="c">水下畸变环境的工具使用</button>
-            <button class="q-opt" data-k="d">长程多阶段任务规划</button>
-          </div>
-          <div class="q-feedback"></div>
-        </div>
-      </div>
-
-      <!-- ============ §08 ============ -->
-      <div class="section" id="connections">
-        <div class="section-num">§ 08</div>
-        <h2>与已读论文的联系 + 批判</h2>
-
-        <div class="cn-read">
-          <div class="cn-label">这一节解决什么</div>
-          <p>
+</p>
+</div>
+<div class="quiz" data-correct="b" data-explain="正确。§4.2（p.10）：镜像取玩具任务中，玩具从机器人视角初始不可见（partial observability），机器人必须先从镜子里的反射推断出隐藏玩具的位置，再全身接近并抓取。这考的是'部分可观测下的视觉推理 + 全身定位与操作'——正好检验先验世界模型'推理未观测状态'的能力。" data-explain-wrong="任务名'Mirror'是关键：玩具藏起来了，机器人只能看到镜中反射，得推断真实位置。">
+<div class="q-label">🧠 理解检查</div>
+<div class="q-text">镜像取玩具（Mirror Toy Grasping）任务专门考验什么能力？</div>
+<div class="q-options">
+<button class="q-opt" data-k="a">高速动态平衡</button>
+<button class="q-opt" data-k="b">部分可观测下的视觉推理——从镜面反射推断隐藏物体位置，再全身接近抓取</button>
+<button class="q-opt" data-k="c">水下畸变环境的工具使用</button>
+<button class="q-opt" data-k="d">长程多阶段任务规划</button>
+</div>
+<div class="q-feedback"></div>
+</div>
+</div>
+<!-- ============ §08 ============ -->
+<div class="section" id="connections">
+<div class="section-num">§ 08</div>
+<h2>与已读论文的联系 + 批判</h2>
+<div class="cn-read">
+<div class="cn-label">这一节解决什么</div>
+<p>
             Being-M0.7 几乎是我们最近这批笔记的"交汇点"：它的 Related Work 直接点名了 <strong>Ψ₀</strong>、<strong>MotionWAM</strong>、<strong>GR00T N1</strong>、<strong>SONIC</strong>、<strong>WholeBodyVLA</strong>，还接续团队自家的 <strong>Being-H0.5 / Being-M0.5</strong>。把它放回地图，能看清"人形 loco-manipulation"这一年的几条主线怎么分岔。
           </p>
-        </div>
-
-        <h3>三篇同题对照：人类经验的三种用法（再更新一版）</h3>
-        <table class="kv-table">
-          <tr><th>维度</th><th>Ψ₀</th><th>WAM-TTT</th><th>Being-M0.7（本篇）</th></tr>
-          <tr><td>人类数据用在</td><td>预训练（学任务先验）</td><td>部署时（写快权重记忆）</td><td>预训练（学<strong>世界演化先验</strong>）</td></tr>
-          <tr><td>预训练学什么</td><td>动作先验 + 视觉表征</td><td>（不预训练，直接用 LDA）</td><td><strong>未来视觉隐状态 + 未来运动</strong>（会预测的世界模型）</td></tr>
-          <tr><td>慢的那一半是</td><td>冻结 VLM（感知编码器）</td><td>冻结 WAM</td><td><strong>会预测未来的 latent WAM</strong></td></tr>
-          <tr><td>下身控制</td><td>8 维指令 → AMO RL</td><td>（桌面任务，无 locomotion）</td><td>统一运动表示 → SONIC 全身追踪</td></tr>
-          <tr><td>核心卖点</td><td>解耦人/机数据不混训</td><td>零标注部署时 steering</td><td>隐空间世界模型 + 人机统一运动表示</td></tr>
-        </table>
-
-        <div class="callout purple">
-          <div class="callout-label">对应已读 · 谱系位置</div>
-          <p>
-            <strong>vs MotionWAM</strong>（我们读过的"实时人形 WAM"）：两者都把 loco-manipulation 当世界-动作建模，但 MotionWAM 是"ego 视频生成模型的去噪特征 condition 运动模型"（视频侧偏生成），Being-M0.7 强调"<strong>不构造闭环像素预测</strong>，而是预训练一个先验 latent WAM 让下游全身策略复用其组织好的时序运动信息"（§2, p.4 明确对比）。<strong>vs SONIC / Humanoid-GPT</strong>（tracking 层）：SONIC 在这里是底层控制器（动作专家出的 token 交给 SONIC 执行）——又一次印证"VLA/WAM 策略（10Hz）→ 运动接口 → 大规模 tracker（50Hz）"的三层图景。<strong>vs Ψ₀</strong>：同是人形 loco-manip、都用 ego 人类视频、都是分层"慢+快"，但 Ψ₀ 的慢半是感知编码器（VLM），Being-M0.7 的慢半是<strong>会预测未来的世界模型</strong>——这是 world-<em>action</em> model 和 vision-language backbone 的本质区别。
+</div>
+<h3>三篇同题对照：人类经验的三种用法（再更新一版）</h3>
+<table class="kv-table">
+<tr><th>维度</th><th>Ψ₀</th><th>WAM-TTT</th><th>Being-M0.7（本篇）</th></tr>
+<tr><td>人类数据用在</td><td>预训练（学任务先验）</td><td>部署时（写快权重记忆）</td><td>预训练（学<strong>世界演化先验</strong>）</td></tr>
+<tr><td>预训练学什么</td><td>动作先验 + 视觉表征</td><td>（不预训练，直接用 LDA）</td><td><strong>未来视觉隐状态 + 未来运动</strong>（会预测的世界模型）</td></tr>
+<tr><td>慢的那一半是</td><td>冻结 VLM（感知编码器）</td><td>冻结 WAM</td><td><strong>会预测未来的 latent WAM</strong></td></tr>
+<tr><td>下身控制</td><td>8 维指令 → AMO RL</td><td>（桌面任务，无 locomotion）</td><td>统一运动表示 → SONIC 全身追踪</td></tr>
+<tr><td>核心卖点</td><td>解耦人/机数据不混训</td><td>零标注部署时 steering</td><td>隐空间世界模型 + 人机统一运动表示</td></tr>
+</table>
+<div class="callout purple">
+<div class="callout-label">对应已读 · 谱系位置</div>
+<p>
+<strong>vs MotionWAM</strong>（我们读过的"实时人形 WAM"）：两者都把 loco-manipulation 当世界-动作建模，但 MotionWAM 是"ego 视频生成模型的去噪特征 condition 运动模型"（视频侧偏生成），Being-M0.7 强调"<strong>不构造闭环像素预测</strong>，而是预训练一个先验 latent WAM 让下游全身策略复用其组织好的时序运动信息"（§2, p.4 明确对比）。<strong>vs SONIC / Humanoid-GPT</strong>（tracking 层）：SONIC 在这里是底层控制器（动作专家出的 token 交给 SONIC 执行）——又一次印证"VLA/WAM 策略（10Hz）→ 运动接口 → 大规模 tracker（50Hz）"的三层图景。<strong>vs Ψ₀</strong>：同是人形 loco-manip、都用 ego 人类视频、都是分层"慢+快"，但 Ψ₀ 的慢半是感知编码器（VLM），Being-M0.7 的慢半是<strong>会预测未来的世界模型</strong>——这是 world-<em>action</em> model 和 vision-language backbone 的本质区别。
           </p>
-        </div>
-
-        <h3>批判与保留</h3>
-        <div class="callout red">
-          <div class="callout-label">四条保留意见</div>
-          <p>
-            <strong>① 成熟度：技术报告，不是评审论文</strong>——4 任务、25 试验/格、7/15 绝对成功率、无系统消融表。无法从中读出"隐空间 vs 像素级""统一运动表示有没有用""三流各贡献多少"——这些关键设计都缺对照实验支撑（对比 Ψ₀ 的 Table I、WAM-TTT 的五个消融，本篇证据链弱不少）。<br>
-            <strong>② 数据生态封闭</strong>：近半语料是 Internal/商业采购，底层控制器 SONIC、遥操作 XRoboToolkit、前作 Being-H0.5/M0.5 全是自家生态，第三方复现门槛高。<br>
-            <strong>③ 基线"客场作战"</strong>：GR00T-N1.6、Ψ₀ 都不是为"G1 + Linker Hand O6 + 这 4 个任务"设计的，动作空间是适配出来的——领先幅度要打折读（和 Ψ₀/WAM-TTT 同样的问题）。<br>
-            <strong>④ 下身能力被 SONIC 封顶</strong>：动作专家出的是 SONIC 的通用控制 token，凡 SONIC 做不了的全身动作，Being-M0.7 也做不了——这是"复用成熟 tracker"的便利与代价（同 Ψ₀ 的 AMO 依赖）。
+</div>
+<h3>批判与保留</h3>
+<div class="callout red">
+<div class="callout-label">四条保留意见</div>
+<p>
+<strong>① 成熟度：技术报告，不是评审论文</strong>——4 任务、25 试验/格、7/15 绝对成功率、无系统消融表。无法从中读出"隐空间 vs 像素级""统一运动表示有没有用""三流各贡献多少"——这些关键设计都缺对照实验支撑（对比 Ψ₀ 的 Table I、WAM-TTT 的五个消融，本篇证据链弱不少）。<br/>
+<strong>② 数据生态封闭</strong>：近半语料是 Internal/商业采购，底层控制器 SONIC、遥操作 XRoboToolkit、前作 Being-H0.5/M0.5 全是自家生态，第三方复现门槛高。<br/>
+<strong>③ 基线"客场作战"</strong>：GR00T-N1.6、Ψ₀ 都不是为"G1 + Linker Hand O6 + 这 4 个任务"设计的，动作空间是适配出来的——领先幅度要打折读（和 Ψ₀/WAM-TTT 同样的问题）。<br/>
+<strong>④ 下身能力被 SONIC 封顶</strong>：动作专家出的是 SONIC 的通用控制 token，凡 SONIC 做不了的全身动作，Being-M0.7 也做不了——这是"复用成熟 tracker"的便利与代价（同 Ψ₀ 的 AMO 依赖）。
           </p>
-        </div>
-
-        <div class="callout">
-          <div class="callout-label">带走的三句话</div>
-          <p>
-            ① <strong>世界模型不必预测像素</strong>——预测 DINO 隐状态 + 运动，把容量押在语义级场景/运动动态上，省算力又抗自我运动噪声。<br>
-            ② <strong>一个人机通用的紧凑身体（头+两手+两脚，头-根坐标）</strong>能同时：桥接形态鸿沟、让纯动作数据贡献运动学、在推理时开一条运动级反馈通道。<br>
+</div>
+<div class="callout">
+<div class="callout-label">带走的三句话</div>
+<p>
+            ① <strong>世界模型不必预测像素</strong>——预测 DINO 隐状态 + 运动，把容量押在语义级场景/运动动态上，省算力又抗自我运动噪声。<br/>
+            ② <strong>一个人机通用的紧凑身体（头+两手+两脚，头-根坐标）</strong>能同时：桥接形态鸿沟、让纯动作数据贡献运动学、在推理时开一条运动级反馈通道。<br/>
             ③ <strong>"慢先验 × 快动作专家"是这批人形 VLA/WAM 的共同骨架</strong>——Being-M0.7 的独特处是慢半本身是个会预测未来的 latent world-action model，不只是感知编码器。
           </p>
-        </div>
-
-        <div class="quiz"
-             data-correct="c"
-             data-explain="正确。§2（p.4）明确区分：MotionWAM 用 ego 视频生成模型的中间去噪特征去 condition 一个运动模型（偏视频生成侧）；Being-M0.7 的目标不同——'we instead pre-train a prior latent world-action model, so that the downstream whole-body control policy can make use of temporally organized motion information'，不构造闭环像素预测，而是预训练一个可复用的先验隐空间世界模型。二者都属 WAM 家族但落点不同。"
-             data-explain-wrong="两者都是 WAM，区别在'先验怎么用'：MotionWAM 用视频生成的去噪特征做条件，Being-M0.7 预训练一个可复用的 latent 先验、避免像素级闭环预测。">
-          <div class="q-label">🧠 理解检查</div>
-          <div class="q-text">Being-M0.7 和 MotionWAM 同属 WAM 家族，它强调的关键区别是？</div>
-          <div class="q-options">
-            <button class="q-opt" data-k="a">Being-M0.7 不用 flow matching，MotionWAM 用</button>
-            <button class="q-opt" data-k="b">Being-M0.7 只做 locomotion，MotionWAM 只做 manipulation</button>
-            <button class="q-opt" data-k="c">Being-M0.7 预训练一个可复用的先验 latent 世界模型、避免闭环像素预测，MotionWAM 用视频生成模型的去噪特征做条件</button>
-            <button class="q-opt" data-k="d">Being-M0.7 不用人类视频，MotionWAM 用</button>
-          </div>
-          <div class="q-feedback"></div>
-        </div>
-      </div>
-
-      <footer class="footer" style="padding:40px; text-align:center; color:var(--text3); font-size:13px;">
-        <a href="../index.html">← 返回首页</a>
-        &nbsp;·&nbsp;
+</div>
+<div class="quiz" data-correct="c" data-explain="正确。§2（p.4）明确区分：MotionWAM 用 ego 视频生成模型的中间去噪特征去 condition 一个运动模型（偏视频生成侧）；Being-M0.7 的目标不同——'we instead pre-train a prior latent world-action model, so that the downstream whole-body control policy can make use of temporally organized motion information'，不构造闭环像素预测，而是预训练一个可复用的先验隐空间世界模型。二者都属 WAM 家族但落点不同。" data-explain-wrong="两者都是 WAM，区别在'先验怎么用'：MotionWAM 用视频生成的去噪特征做条件，Being-M0.7 预训练一个可复用的 latent 先验、避免像素级闭环预测。">
+<div class="q-label">🧠 理解检查</div>
+<div class="q-text">Being-M0.7 和 MotionWAM 同属 WAM 家族，它强调的关键区别是？</div>
+<div class="q-options">
+<button class="q-opt" data-k="a">Being-M0.7 不用 flow matching，MotionWAM 用</button>
+<button class="q-opt" data-k="b">Being-M0.7 只做 locomotion，MotionWAM 只做 manipulation</button>
+<button class="q-opt" data-k="c">Being-M0.7 预训练一个可复用的先验 latent 世界模型、避免闭环像素预测，MotionWAM 用视频生成模型的去噪特征做条件</button>
+<button class="q-opt" data-k="d">Being-M0.7 不用人类视频，MotionWAM 用</button>
+</div>
+<div class="q-feedback"></div>
+</div>
+</div>
+<footer class="footer" style="padding:40px; text-align:center; color:var(--text3); font-size:13px;">
+<a href="../index.html">← 返回首页</a>
+         · 
         <a href="https://research.beingbeyond.com/being-m07" target="_blank">项目页 ↗</a>
-      </footer>
-    </main>
-  </div>
+</footer>
+</main>
+</div>
 </body>
 </html>

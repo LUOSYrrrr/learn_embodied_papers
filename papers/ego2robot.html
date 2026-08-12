@@ -1,17 +1,17 @@
 <!DOCTYPE html>
+
 <html lang="zh-CN">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Ego2Robot · 从第一视角人类数据合成机器人数据（重点：三级质检）</title>
-  <link rel="stylesheet" href="../assets/css/style.css">
-  <script src="../assets/js/theme.js"></script>
-  <script src="../assets/js/interactive.js" defer></script>
-  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16/dist/katex.min.css">
-  <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16/dist/katex.min.js"></script>
-  <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16/dist/contrib/auto-render.min.js"
-          onload="renderMathInElement(document.body,{delimiters:[{left:'$$',right:'$$',display:true},{left:'$',right:'$',display:false}]})"></script>
-  <style>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Ego2Robot · 从第一视角人类数据合成机器人数据（重点：三级质检）</title>
+<link href="../assets/css/style.css" rel="stylesheet"/>
+<script src="../assets/js/theme.js"></script>
+<script defer="" src="../assets/js/interactive.js"></script>
+<link href="https://cdn.jsdelivr.net/npm/katex@0.16/dist/katex.min.css" rel="stylesheet"/>
+<script defer="" src="https://cdn.jsdelivr.net/npm/katex@0.16/dist/katex.min.js"></script>
+<script defer="" onload="renderMathInElement(document.body,{delimiters:[{left:'$$',right:'$$',display:true},{left:'$',right:'$',display:false}]})" src="https://cdn.jsdelivr.net/npm/katex@0.16/dist/contrib/auto-render.min.js"></script>
+<style>
     .docs-layout { display: grid; grid-template-columns: 240px minmax(0, 1fr); max-width: 1400px; margin: 0 auto; }
     .sidebar { position: sticky; top: 60px; height: calc(100vh - 60px); overflow-y: auto; padding: 24px 16px; border-right: 1px solid var(--border); background: var(--bg); }
     .sidebar-title { font-family: var(--font-mono); font-size: 10px; color: var(--text3); letter-spacing: 0.08em; text-transform: uppercase; margin-bottom: 16px; padding-bottom: 8px; border-bottom: 1px solid var(--border); }
@@ -142,240 +142,203 @@
     }
   </style>
 </head><body>
-  <nav class="nav">
-    <a class="nav-logo" href="../index.html">Paper Notes</a>
-    <div class="nav-links">
-      <a href="../index.html">← 返回首页</a>
-      <a href="bagelvla.html">BagelVLA 笔记</a>
-      <a href="openvla.html">OpenVLA 笔记</a>
-    </div>
-  </nav>
-
-  <div class="docs-layout">
-    <aside class="sidebar">
-      <div class="sidebar-title">目录</div>
-      <ul class="sidebar-tree">
-        <li><a class="section-link" href="#overview">§01 总览 · 论文五问</a></li>
-        <li><a class="section-link" href="#pipeline">§02 Pipeline · 两路径三阶段</a></li>
-        <li><a class="section-link" href="#curation">§03 三级质检 ★重点</a></li>
-        <li><a class="section-link" href="#upstream">§04 上游"隐形"质检</a></li>
-        <li><a class="section-link" href="#exp">§05 效果</a></li>
-        <li><a class="section-link" href="#connections">§06 与具身 / 数据合成的联系</a></li>
-      </ul>
-    </aside>
-
-    <main class="main-content">
-      <div class="paper-header">
-        <div class="paper-venue">// 数据合成 · Ego→Robot · 人大 + Qwen(阿里) + 上科大 + BIGAI · 2026-08 (arXiv:2608.02580v1)</div>
-        <h1 class="paper-title">Ego2Robot: Scalable Robot Data Synthesis from Egocentric Human Data</h1>
-        <div class="paper-authors">Ye Wang, Pei Lin, Xiong-Hui Chen, Haoqi Yuan … Qin Jin · AIM3 Lab (RUC) &amp; Qwen Team (Alibaba) &amp; ShanghaiTech &amp; BIGAI</div>
-        <div class="paper-badges">
-          <span class="badge badge-green">数据合成 Pipeline</span>
-          <span class="badge badge-blue">Ego→Robot 重定向+渲染</span>
-          <span class="badge badge-amber">18,561 小时 · 15 形态</span>
-          <span class="badge badge-purple">三级质检</span>
-          <span class="badge">VLA 预训练</span>
-        </div>
-      </div>
-
-      <!-- ============ §01 总览 ============ -->
-      <div class="section" id="overview">
-        <div class="section-num">§ 01</div>
-        <h2>总览 · 论文五问</h2>
-
-        <div class="cn-read">
-          <div class="cn-label">这一节解决什么</div>
-          <p>2 分钟建立全局：Ego2Robot 是一条把<strong>第一视角人类操作视频</strong>批量转成<strong>机器人训练数据</strong>的流水线——重定向手部动作、把画面里的人手换成机器人臂、再做<strong>多级质检</strong>。产出 18,561 小时 / 15 种机器人形态，是目前最大的 ego-to-robot 数据集。你关注的"数据质检怎么做"是 <a href="#curation">§03</a> 的重点，这里先把它放进全局。</p>
-        </div>
-
-        <table class="kv-table">
-          <tr><td>① 背景</td><td>VLA 泛化受限于机器人演示数据的<strong>规模和多样性</strong>；真机遥操作贵、受硬件限制、交互多样性低。第一视角人类视频海量、场景/任务丰富，但<strong>人-机器人本体差距大</strong>，不能直接用。</td></tr>
-          <tr><td>② 基于什么</td><td>站在 <strong>retarget-and-render</strong>（把手部运动重定向到机器人运动学 + 视觉上把人手替换成机器人臂）这条路线上；工具链：<span class="term" data-en="hand pose">WiLoR + DynHaMR</span>（手姿估计）、<strong>SAM 3</strong>（臂分割）、<strong>ProPainter</strong>（去手 inpainting）、<strong>MuJoCo</strong>（IK）、<strong>Qwen3.5</strong>（VLM 质检 + 长视频子任务切分）；评测扩展 <strong>RoboTwin 2.0</strong>。</td></tr>
-          <tr><td>③ 前人缺陷</td><td>retarget-and-render 以前只在<strong>小规模 / 单任务</strong>验证，没人知道大规模 ego2robot 合成数据能否当 VLA 预训练数据、真提升 OOD 泛化。而且现有评测把视觉/场景/本体/语义多种扰动<strong>混成一个 OOD 分数</strong>，没法归因是哪种泛化在起作用。</td></tr>
-          <tr><td>④ 核心 insight</td><td>尽管本体不同，第一视角操作视频里含<strong>可迁移的交互规律</strong>，只要对齐得当就能补机器人数据。把它 scale 到 18,561h / 15 形态，并用<strong>解耦评测</strong>（视觉/场景/本体/语义四轴分开）证明：收益主要来自<strong>不变性 + 跨分布鲁棒性</strong>，而不是单纯增加轨迹覆盖。</td></tr>
-          <tr><td>⑤ 效果</td><td>18,561h（最大 ego-to-robot 数据集，约 <strong>9.6× 放大</strong>）。Ego2R + Robot <strong>1:1 co-training</strong> 在 7 列里 5 列领先：RoboTwin Randomized <strong>53.5%（+2.6</strong> vs robot-only），Clean 保持 68.1%。<strong>视觉扰动收益最大</strong>（背景 +4、光照 +8、机器人配色 +6）。真机 ARX ACone 5 个长程任务验证。</td></tr>
-        </table>
-
-        <h3>数据源（"能力从哪来"）</h3>
-        <p>四个第一视角数据源，处理前约 1,940 小时标注 ego 数据，跨 15 形态渲染后放大到 18,561 小时：</p>
-        <table class="kv-table">
-          <tr><th>数据源</th><th>时长</th><th>说明 · 帧率下采样（对齐机器人速度）</th></tr>
-          <tr><td>ANT</td><td class="w">7h</td><td>团队自采 pick-and-place，<strong>带手姿标注</strong> · 降到 60%（≈1.7× 慢）</td></tr>
-          <tr><td>EgoDex</td><td class="w">732h</td><td>标注 ego 数据 · 降到 60%（≈1.7× 慢）</td></tr>
-          <tr><td>ViTRA</td><td class="w">249h</td><td>降到 25%（≈4× 慢，人手动作最快）</td></tr>
-          <tr><td>EgoVerse</td><td class="w">954h</td><td>降到 45%（≈2.2× 慢）</td></tr>
-        </table>
-        <div class="callout amber">
-          <div class="callout-label">为什么要下采样帧率</div>
-          <p>第一视角<strong>人手操作速度远快于机器人遥操作</strong>。若直接用会让合成动作太快、机器人学不动。所以按来源分别把帧率下采样（相当于放慢动作），把速度分布对齐到机器人数据。这本身也是一种"对齐"，不是质检，但和数据质量直接相关。</p>
-        </div>
-
-        <div class="callout blue">
-          <div class="callout-label">和你其它笔记的联系</div>
-          <p>Ego2Robot 和 <a href="../papers/openhlm.html">OpenHLM</a> 里的 <strong>HuMI</strong>（可穿戴无机器人采集）、<a href="../papers/vlk.html">VLK</a>（重建场景合成运动学）是同一个大主题的三条路：<strong>怎么把便宜的人类/合成数据变成机器人能用的训练数据</strong>。Ego2Robot 押的是"重定向+视觉替换 + 大规模质检"，护城河在 pipeline 和质检，不在模型。</p>
-        </div>
-      </div>
-
-      <!-- ============ §02 Pipeline ============ -->
-      <div class="section" id="pipeline">
-        <div class="section-num">§ 02</div>
-        <h2>Pipeline · 两路径三阶段</h2>
-
-        <div class="cn-read">
-          <div class="cn-label">这一节解决什么</div>
-          <p>上一节说"重定向 + 视觉替换 + 质检"三件事，这一节把它铺成一条完整流水线：<strong>两条输入路径</strong>（有没有手姿标注）汇合后，走 <strong>动作对齐 → 视觉对齐 → 质检</strong> 三阶段。看懂这条链，§03 的质检才知道"在哪一步、筛掉什么"。</p>
-        </div>
-
-        <!-- Fig 1 -->
-        <div class="fig-interactive panel-below">
-          <div class="fig-block">
-            <div class="hotspot-wrap" data-hotspot-group="fig1">
-              <img src="../assets/figures/ego2robot/fig-1.png" alt="Figure 1: Ego2Robot pipeline">
-              <div class="hotspot" data-id="patha" style="left:16%; top:7%;"
-                   data-title="Path A · 有手姿标注的 ego 数据集"
-                   data-body="ANT / EgoDex / ViTRA / EgoVerse，已带手部姿态标注（~1,940h）。直接进入重定向，不需要先估手姿。"></div>
-              <div class="hotspot" data-id="pathb" style="left:73%; top:7%;"
-                   data-title="Path B · 纯视频（无手姿）"
-                   data-body="in-the-wild 视频没有手姿标注。先用 WiLoR 逐帧重建 + DynHaMR 时序优化估出手姿；长视频再用 Qwen3.5 切成带自然语言描述的子任务，然后并入统一流水线。"></div>
-              <div class="hotspot" data-id="s1" style="left:19%; top:40%;"
-                   data-title="① Hand Pose Est.（仅 Path B）"
-                   data-body="Path B 专属：把纯视频估出 21 个手关键点。Path A 已有标注，跳过这步。"></div>
-              <div class="hotspot" data-id="s2" style="left:31%; top:40%;"
-                   data-title="② Retarget + Smooth · 动作对齐"
-                   data-body="21 手关键点 → 平行夹爪 EEF 轨迹（虚拟指尖 = 0.7·食指 + 0.3·中指；TCP、开口宽度、抓取朝向都由手部几何算出）。再用 Savitzky-Golay + SLERP 平滑去高频抖动。"></div>
-              <div class="hotspot" data-id="s3" style="left:44%; top:40%;"
-                   data-title="③ Arm Segmentation · 视觉对齐起点"
-                   data-body="用 SAM 3 逐帧分割出人的手臂区域，得到时序一致的 mask，供下一步去手用。"></div>
-              <div class="hotspot" data-id="s4" style="left:56%; top:40%;"
-                   data-title="④ Hand Removal · 去手 inpainting"
-                   data-body="ProPainter 按 mask 做时序一致的视频 inpainting，把人手抹掉、补出背景——为贴机器人腾出画面。"></div>
-              <div class="hotspot" data-id="s5" style="left:68%; top:40%;"
-                   data-title="⑤ Base Search + IK · 机器人放哪"
-                   data-body="ego 视频没有机器人底座参照，必须搜一个 base 位姿让整条轨迹对目标形态运动学可行：网格搜索候选，逐关键帧解 IK，取可行率最高的。15 种形态各搜各的。"></div>
-              <div class="hotspot" data-id="s6" style="left:81%; top:40%;"
-                   data-title="⑥ Depth Composite · 深度合成"
-                   data-body="从原相机视角渲染机器人，按深度排序合成进 inpaint 后的场景（机器人比场景近且落在 mask 内才盖上去），得到逼真的机器人操作视频。"></div>
-              <div class="hotspot" data-id="qc" style="left:44%; top:52%;"
-                   data-title="+ Quality Curation · 三级质检 ★"
-                   data-body="流水线尾部的三级质检：L1 帧级（pipeline 内部）· L2 统计级 · L3 VLM 一致性。这是本篇重点，详见 §03。"></div>
-            </div>
-            <div class="fig-cap">
-              <span class="fig-num">Fig 1 · p.2</span>
+<nav class="nav">
+<a class="nav-logo" href="../index.html">Paper Notes</a>
+<div class="nav-links">
+<a href="../index.html">← 返回首页</a>
+<a href="bagelvla.html">BagelVLA 笔记</a>
+<a href="openvla.html">OpenVLA 笔记</a>
+</div>
+</nav>
+<div class="docs-layout">
+<aside class="sidebar">
+<div class="sidebar-title">目录</div>
+<ul class="sidebar-tree">
+<li><a class="section-link" href="#overview">§01 总览 · 论文五问</a></li>
+<li><a class="section-link" href="#pipeline">§02 Pipeline · 两路径三阶段</a></li>
+<li><a class="section-link" href="#curation">§03 三级质检 ★重点</a></li>
+<li><a class="section-link" href="#upstream">§04 上游"隐形"质检</a></li>
+<li><a class="section-link" href="#exp">§05 效果</a></li>
+<li><a class="section-link" href="#connections">§06 与具身 / 数据合成的联系</a></li>
+</ul>
+</aside>
+<main class="main-content">
+<div class="paper-header">
+<div class="paper-venue">// 数据合成 · Ego→Robot · 人大 + Qwen(阿里) + 上科大 + BIGAI · 2026-08 (arXiv:2608.02580v1)</div>
+<h1 class="paper-title">Ego2Robot: Scalable Robot Data Synthesis from Egocentric Human Data</h1>
+<div class="paper-authors">Ye Wang, Pei Lin, Xiong-Hui Chen, Haoqi Yuan … Qin Jin · AIM3 Lab (RUC) &amp; Qwen Team (Alibaba) &amp; ShanghaiTech &amp; BIGAI</div>
+<div class="paper-badges">
+<span class="badge badge-green">数据合成 Pipeline</span>
+<span class="badge badge-blue">Ego→Robot 重定向+渲染</span>
+<span class="badge badge-amber">18,561 小时 · 15 形态</span>
+<span class="badge badge-purple">三级质检</span>
+<span class="badge">VLA 预训练</span>
+</div>
+</div>
+<!-- ============ §01 总览 ============ -->
+<div class="section" id="overview">
+<div class="section-num">§ 01</div>
+<h2>总览 · 论文五问</h2>
+<div class="cn-read">
+<div class="cn-label">这一节解决什么</div>
+<p>2 分钟建立全局：Ego2Robot 是一条把<strong>第一视角人类操作视频</strong>批量转成<strong>机器人训练数据</strong>的流水线——重定向手部动作、把画面里的人手换成机器人臂、再做<strong>多级质检</strong>。产出 18,561 小时 / 15 种机器人形态，是目前最大的 ego-to-robot 数据集。你关注的"数据质检怎么做"是 <a href="#curation">§03</a> 的重点，这里先把它放进全局。</p>
+</div>
+<table class="kv-table">
+<tr><td>① 背景</td><td>VLA 泛化受限于机器人演示数据的<strong>规模和多样性</strong>；真机遥操作贵、受硬件限制、交互多样性低。第一视角人类视频海量、场景/任务丰富，但<strong>人-机器人本体差距大</strong>，不能直接用。</td></tr>
+<tr><td>② 基于什么</td><td>站在 <strong>retarget-and-render</strong>（把手部运动重定向到机器人运动学 + 视觉上把人手替换成机器人臂）这条路线上；工具链：<span class="term" data-en="hand pose">WiLoR + DynHaMR</span>（手姿估计）、<strong>SAM 3</strong>（臂分割）、<strong>ProPainter</strong>（去手 inpainting）、<strong>MuJoCo</strong>（IK）、<strong>Qwen3.5</strong>（VLM 质检 + 长视频子任务切分）；评测扩展 <strong>RoboTwin 2.0</strong>。</td></tr>
+<tr><td>③ 前人缺陷</td><td>retarget-and-render 以前只在<strong>小规模 / 单任务</strong>验证，没人知道大规模 ego2robot 合成数据能否当 VLA 预训练数据、真提升 OOD 泛化。而且现有评测把视觉/场景/本体/语义多种扰动<strong>混成一个 OOD 分数</strong>，没法归因是哪种泛化在起作用。</td></tr>
+<tr><td>④ 核心 insight</td><td>尽管本体不同，第一视角操作视频里含<strong>可迁移的交互规律</strong>，只要对齐得当就能补机器人数据。把它 scale 到 18,561h / 15 形态，并用<strong>解耦评测</strong>（视觉/场景/本体/语义四轴分开）证明：收益主要来自<strong>不变性 + 跨分布鲁棒性</strong>，而不是单纯增加轨迹覆盖。</td></tr>
+<tr><td>⑤ 效果</td><td>18,561h（最大 ego-to-robot 数据集，约 <strong>9.6× 放大</strong>）。Ego2R + Robot <strong>1:1 co-training</strong> 在 7 列里 5 列领先：RoboTwin Randomized <strong>53.5%（+2.6</strong> vs robot-only），Clean 保持 68.1%。<strong>视觉扰动收益最大</strong>（背景 +4、光照 +8、机器人配色 +6）。真机 ARX ACone 5 个长程任务验证。</td></tr>
+</table>
+<h3>数据源（"能力从哪来"）</h3>
+<p>四个第一视角数据源，处理前约 1,940 小时标注 ego 数据，跨 15 形态渲染后放大到 18,561 小时：</p>
+<table class="kv-table">
+<tr><th>数据源</th><th>时长</th><th>说明 · 帧率下采样（对齐机器人速度）</th></tr>
+<tr><td>ANT</td><td class="w">7h</td><td>团队自采 pick-and-place，<strong>带手姿标注</strong> · 降到 60%（≈1.7× 慢）</td></tr>
+<tr><td>EgoDex</td><td class="w">732h</td><td>标注 ego 数据 · 降到 60%（≈1.7× 慢）</td></tr>
+<tr><td>ViTRA</td><td class="w">249h</td><td>降到 25%（≈4× 慢，人手动作最快）</td></tr>
+<tr><td>EgoVerse</td><td class="w">954h</td><td>降到 45%（≈2.2× 慢）</td></tr>
+</table>
+<div class="callout amber">
+<div class="callout-label">为什么要下采样帧率</div>
+<p>第一视角<strong>人手操作速度远快于机器人遥操作</strong>。若直接用会让合成动作太快、机器人学不动。所以按来源分别把帧率下采样（相当于放慢动作），把速度分布对齐到机器人数据。这本身也是一种"对齐"，不是质检，但和数据质量直接相关。</p>
+</div>
+<div class="callout blue">
+<div class="callout-label">和你其它笔记的联系</div>
+<p>Ego2Robot 和 <a href="../papers/openhlm.html">OpenHLM</a> 里的 <strong>HuMI</strong>（可穿戴无机器人采集）、<a href="../papers/vlk.html">VLK</a>（重建场景合成运动学）是同一个大主题的三条路：<strong>怎么把便宜的人类/合成数据变成机器人能用的训练数据</strong>。Ego2Robot 押的是"重定向+视觉替换 + 大规模质检"，护城河在 pipeline 和质检，不在模型。</p>
+</div>
+</div>
+<!-- ============ §02 Pipeline ============ -->
+<div class="section" id="pipeline">
+<div class="section-num">§ 02</div>
+<h2>Pipeline · 两路径三阶段</h2>
+<div class="cn-read">
+<div class="cn-label">这一节解决什么</div>
+<p>上一节说"重定向 + 视觉替换 + 质检"三件事，这一节把它铺成一条完整流水线：<strong>两条输入路径</strong>（有没有手姿标注）汇合后，走 <strong>动作对齐 → 视觉对齐 → 质检</strong> 三阶段。看懂这条链，§03 的质检才知道"在哪一步、筛掉什么"。</p>
+</div>
+<!-- Fig 1 -->
+<div class="fig-interactive panel-below">
+<div class="fig-block">
+<div class="hotspot-wrap" data-hotspot-group="fig1">
+<img alt="Figure 1: Ego2Robot pipeline" src="../assets/figures/ego2robot/fig-1.png"/>
+<div class="hotspot" data-body="ANT / EgoDex / ViTRA / EgoVerse，已带手部姿态标注（~1,940h）。直接进入重定向，不需要先估手姿。" data-id="patha" data-title="Path A · 有手姿标注的 ego 数据集" style="left:16%; top:7%;"></div>
+<div class="hotspot" data-body="in-the-wild 视频没有手姿标注。先用 WiLoR 逐帧重建 + DynHaMR 时序优化估出手姿；长视频再用 Qwen3.5 切成带自然语言描述的子任务，然后并入统一流水线。" data-id="pathb" data-title="Path B · 纯视频（无手姿）" style="left:73%; top:7%;"></div>
+<div class="hotspot" data-body="&lt;div class='hp-body'&gt;&lt;p&gt;&lt;strong&gt;这处在图里表示什么：&lt;/strong&gt;Path B 专属：把纯视频估出 21 个手关键点。Path A 已有标注，跳过这步。 它对应逐步导览中的“第 1 步 · 估手姿（Path B）”。&lt;/p&gt;&lt;p&gt;&lt;strong&gt;输入与实际操作：&lt;/strong&gt; 相机图像或视频，加上任务指令和机器人当前状态。它们还是原始观测，模型尚未把它们变成可用于预测或控制的特征。 纯视频先估出 21 个手关键点；Path A 已有标注直接跳过。&lt;/p&gt;&lt;p&gt;&lt;strong&gt;输出、前后关系与必要性：&lt;/strong&gt; 经过本步骤处理、含义更明确的中间结果。这个结果会交给下一步“· 重定向 + 平滑”继续处理。 图中下一环节是“第 2 步 · 重定向 + 平滑”。 它把未经处理的原始问题变成后续模块可以计算的输入，是整条链路的起点。&lt;/p&gt;&lt;/div&gt;" data-id="s1" data-title="① Hand Pose Est.（仅 Path B）" style="left:19%; top:40%;"></div>
+<div class="hotspot" data-body="21 手关键点 → 平行夹爪 EEF 轨迹（虚拟指尖 = 0.7·食指 + 0.3·中指；TCP、开口宽度、抓取朝向都由手部几何算出）。再用 Savitzky-Golay + SLERP 平滑去高频抖动。" data-id="s2" data-title="② Retarget + Smooth · 动作对齐" style="left:31%; top:40%;"></div>
+<div class="hotspot" data-body="&lt;div class='hp-body'&gt;&lt;p&gt;&lt;strong&gt;这处在图里表示什么：&lt;/strong&gt;用 SAM 3 逐帧分割出人的手臂区域，得到时序一致的 mask，供下一步去手用。 它对应逐步导览中的“第 3 步 · 臂分割”。&lt;/p&gt;&lt;p&gt;&lt;strong&gt;输入与实际操作：&lt;/strong&gt; 来自上一步“· 重定向 + 平滑”的产物：一个或多个候选未来、动作或轨迹，以及必要的中间状态。本步骤还会按论文设置读取当前条件、时间步或训练信号。 SAM 3 分出人臂 mask，时序一致，供去手用。&lt;/p&gt;&lt;p&gt;&lt;strong&gt;输出、前后关系与必要性：&lt;/strong&gt; 经过本步骤处理、含义更明确的中间结果。这个结果会交给下一步“· 去手”继续处理。 图中下一环节是“第 4 步 · 去手”。 它承担上下两步之间的接口；缺少它，前一步产生的信息无法以正确格式或正确含义传到下一步。&lt;/p&gt;&lt;/div&gt;" data-id="s3" data-title="③ Arm Segmentation · 视觉对齐起点" style="left:44%; top:40%;"></div>
+<div class="hotspot" data-body="&lt;div class='hp-body'&gt;&lt;p&gt;&lt;strong&gt;这处在图里表示什么：&lt;/strong&gt;ProPainter 按 mask 做时序一致的视频 inpainting，把人手抹掉、补出背景——为贴机器人腾出画面。 它对应逐步导览中的“第 4 步 · 去手”。&lt;/p&gt;&lt;p&gt;&lt;strong&gt;输入与实际操作：&lt;/strong&gt; 来自上一步“· 臂分割”的产物：经过本步骤处理、含义更明确的中间结果。本步骤还会按论文设置读取当前条件、时间步或训练信号。 ProPainter 按 mask inpaint 抹掉人手、补背景。&lt;/p&gt;&lt;p&gt;&lt;strong&gt;输出、前后关系与必要性：&lt;/strong&gt; 经过本步骤处理、含义更明确的中间结果。这个结果会交给下一步“· base 搜索 + IK”继续处理。 图中下一环节是“第 5 步 · base 搜索 + IK”。 它承担上下两步之间的接口；缺少它，前一步产生的信息无法以正确格式或正确含义传到下一步。&lt;/p&gt;&lt;/div&gt;" data-id="s4" data-title="④ Hand Removal · 去手 inpainting" style="left:56%; top:40%;"></div>
+<div class="hotspot" data-body="&lt;div class='hp-body'&gt;&lt;p&gt;&lt;strong&gt;这处在图里表示什么：&lt;/strong&gt;ego 视频没有机器人底座参照，必须搜一个 base 位姿让整条轨迹对目标形态运动学可行：网格搜索候选，逐关键帧解 IK，取可行率最高的。15 种形态各搜各的。 它对应逐步导览中的“第 5 步 · base 搜索 + IK”。&lt;/p&gt;&lt;p&gt;&lt;strong&gt;输入与实际操作：&lt;/strong&gt; 来自上一步“· 去手”的产物：经过本步骤处理、含义更明确的中间结果。本步骤还会按论文设置读取当前条件、时间步或训练信号。 搜一个机器人底座位姿让轨迹运动学可行，逐形态各搜各的。这一步天然会淘汰&quot;够不到 / 解不出 IK&quot;的轨迹。&lt;/p&gt;&lt;p&gt;&lt;strong&gt;输出、前后关系与必要性：&lt;/strong&gt; 可发送给机器人控制器的动作，以及执行后重新观测到的真实状态。这个结果会交给下一步“· 深度合成”继续处理。 图中下一环节是“第 6 步 · 深度合成”。 它承担上下两步之间的接口；缺少它，前一步产生的信息无法以正确格式或正确含义传到下一步。&lt;/p&gt;&lt;/div&gt;" data-id="s5" data-title="⑤ Base Search + IK · 机器人放哪" style="left:68%; top:40%;"></div>
+<div class="hotspot" data-body="&lt;div class='hp-body'&gt;&lt;p&gt;&lt;strong&gt;这处在图里表示什么：&lt;/strong&gt;从原相机视角渲染机器人，按深度排序合成进 inpaint 后的场景（机器人比场景近且落在 mask 内才盖上去），得到逼真的机器人操作视频。 它对应逐步导览中的“第 6 步 · 深度合成”。&lt;/p&gt;&lt;p&gt;&lt;strong&gt;输入与实际操作：&lt;/strong&gt; 来自上一步“· base 搜索 + IK”的产物：可发送给机器人控制器的动作，以及执行后重新观测到的真实状态。本步骤还会按论文设置读取当前条件、时间步或训练信号。 渲染机器人、按深度合成进场景，得到成品视频。之后进入三级质检（§03）。&lt;/p&gt;&lt;p&gt;&lt;strong&gt;输出、前后关系与必要性：&lt;/strong&gt; 经过本步骤处理、含义更明确的中间结果。这是图中这条链路的最终产物，随后会进入真实执行、模型更新或指标评测。 图中下一环节是“后续执行或评测”。 它把前面得到的内部结果落实为可执行动作、可训练模型或可解释指标，完成从方法到结果的最后一步。&lt;/p&gt;&lt;/div&gt;" data-id="s6" data-title="⑥ Depth Composite · 深度合成" style="left:81%; top:40%;"></div>
+<div class="hotspot" data-body="流水线尾部的三级质检：L1 帧级（pipeline 内部）· L2 统计级 · L3 VLM 一致性。这是本篇重点，详见 §03。" data-id="qc" data-title="+ Quality Curation · 三级质检 ★" style="left:44%; top:52%;"></div>
+</div>
+<div class="fig-cap">
+<span class="fig-num">Fig 1 · p.2</span>
               Ego2Robot pipeline. Converting egocentric video into 18,561h robot training data across 15 morphologies through action alignment, visual alignment, and quality curation.
               <span class="fig-cn">上：两条输入路径（Path A 有手姿 / Path B 纯视频）。中：六阶段流水线（估手姿→重定向平滑→臂分割→去手→base 搜索+IK→深度合成）。尾部叠加三级质检。下：18,561 小时合成数据。</span>
-            </div>
-          </div>
-          <div class="hotspot-panel"></div>
-        </div>
-
-        <div class="step-walker" data-hotspot-group="fig1">
-          <div class="sw-header">
-            <div class="sw-title">🪜 跟着一段视频走一遍流水线</div>
-            <div class="sw-controls">
-              <button class="sw-btn prev">◀</button>
-              <span class="sw-counter">1 / 6</span>
-              <button class="sw-btn next">▶</button>
-            </div>
-          </div>
-          <div class="sw-progress">
-            <div class="sw-dot"></div><div class="sw-dot"></div><div class="sw-dot"></div>
-            <div class="sw-dot"></div><div class="sw-dot"></div><div class="sw-dot"></div>
-          </div>
-          <div class="sw-body">
-            <div class="sw-step active" data-hotspot="s1"><h4>第 1 步 · 估手姿（Path B）</h4><p>纯视频先估出 21 个手关键点；Path A 已有标注直接跳过。</p></div>
-            <div class="sw-step" data-hotspot="s2"><h4>第 2 步 · 重定向 + 平滑</h4><p>手关键点 → 夹爪 EEF 轨迹（虚拟指尖 + TCP + 抓取朝向），Savitzky-Golay + SLERP 去抖。动作速度按来源下采样对齐机器人。</p></div>
-            <div class="sw-step" data-hotspot="s3"><h4>第 3 步 · 臂分割</h4><p>SAM 3 分出人臂 mask，时序一致，供去手用。</p></div>
-            <div class="sw-step" data-hotspot="s4"><h4>第 4 步 · 去手</h4><p>ProPainter 按 mask inpaint 抹掉人手、补背景。</p></div>
-            <div class="sw-step" data-hotspot="s5"><h4>第 5 步 · base 搜索 + IK</h4><p>搜一个机器人底座位姿让轨迹运动学可行，逐形态各搜各的。这一步天然会淘汰"够不到 / 解不出 IK"的轨迹。</p></div>
-            <div class="sw-step" data-hotspot="s6"><h4>第 6 步 · 深度合成</h4><p>渲染机器人、按深度合成进场景，得到成品视频。之后进入三级质检（§03）。</p></div>
-          </div>
-        </div>
-
-        <div class="callout">
-          <div class="callout-label">一个统一各来源的小设计 · Camera-frame EEF</div>
-          <p>ego 视频相机位姿五花八门，world-frame 动作需要逐视频标定。Ego2Robot 用<strong>相机坐标系下的相对 EEF 动作</strong>表示末端位移——天然统一了不同相机设置和机器人形态的数据，不用逐条标定。</p>
-        </div>
-      </div>
-
-      <!-- ============ §03 三级质检（重点） ============ -->
-      <div class="section" id="curation">
-        <div class="section-num">§ 03</div>
-        <h2>三级质检 · L1 帧级 → L2 统计级 → L3 VLM 一致性 ★重点</h2>
-
-        <div class="cn-read">
-          <div class="cn-label">这一节解决什么（你要的核心）</div>
-          <p>合成数据最大的风险是<strong>"看起来像、其实是垃圾"</strong>——IK 崩了、机器人穿模、动作瞬跳、或者渲染出来根本没在做那个任务。Ego2Robot 用<strong>三道由细到粗的漏斗</strong>把这些筛掉：<strong>L1 逐帧</strong>查物理合法性、<strong>L2 逐轨迹</strong>查统计异常、<strong>L3 逐 episode</strong> 用 VLM 查"语义上做没做对"。粒度从帧 → 轨迹 → episode 逐级放大。</p>
-        </div>
-
-        <div class="callout blue">
-          <div class="callout-label">先建直觉 · 三级漏斗</div>
-          <p><strong>L1</strong> 像质检流水线上的<strong>单件合格检测</strong>（这一帧物理上成立吗）；<strong>L2</strong> 像<strong>批次统计抽检</strong>（这条轨迹的数值分布正常吗、有没有突跳）；<strong>L3</strong> 像<strong>人工终检</strong>（整段视频语义上真在做那个任务吗）——只不过"人工"换成了 Qwen3.5。前两级筛物理/统计，第三级筛语义。</p>
-        </div>
-
-        <h3>L1（Pipeline-internal）· 逐帧物理合法性</h3>
-        <p>在流水线处理时就打标：一帧<strong>有效</strong>当且仅当同时满足四个条件，任一不满足即无效——</p>
-        <table class="kv-table">
-          <tr><th>#</th><th>有效条件（全部满足才算有效帧）</th></tr>
-          <tr><td>i</td><td>检测到手（hand detected）</td></tr>
-          <tr><td>ii</td><td>IK 跟踪误差 <strong>&lt; 0.05 m</strong>（机器人真能跟上这个目标位姿）</td></tr>
-          <tr><td>iii</td><td>渲染出的机器人<strong>可见</strong>（&gt; 0 像素，没被完全遮挡/出画）</td></tr>
-          <tr><td>iv</td><td><strong>无自碰撞</strong>（MuJoCo contact check）</td></tr>
-        </table>
-        <p>另外两条额外失效规则（专治双臂穿模和"机器人糊满屏"）：</p>
-        <div class="module-grid">
-          <div class="module-card">
-            <div class="module-card-name">额外失效 · 1</div>
-            <div class="module-card-title">双臂交叉接触 &gt; 1</div>
-            <div class="module-card-desc">bimanual cross-arm contacts &gt; 1 → 判无效。双臂互相穿插/打架的帧，物理上不合理。</div>
-          </div>
-          <div class="module-card">
-            <div class="module-card-name">额外失效 · 2</div>
-            <div class="module-card-title">机器人 mask &gt; 70% 画面</div>
-            <div class="module-card-desc">机器人占了超过 70% 画面 → 判无效。通常是渲染贴太近/穿模，画面被机器人糊满，没法用。</div>
-          </div>
-        </div>
-        <div class="callout amber">
-          <div class="callout-label">L1 的点睛之笔 · Stability Erosion（稳定性腐蚀）</div>
-          <p>夹在两段无效区间之间的<strong>短有效段</strong>（长度 &lt; ⌊0.3 × fps⌋ 帧）会被<strong>腐蚀成无效</strong>。<br><br>
+</div>
+</div>
+<div class="hotspot-panel"></div>
+</div>
+<div class="step-walker" data-hotspot-group="fig1">
+<div class="sw-header">
+<div class="sw-title">🪜 跟着一段视频走一遍流水线</div>
+<div class="sw-controls">
+<button class="sw-btn prev">◀</button>
+<span class="sw-counter">1 / 6</span>
+<button class="sw-btn next">▶</button>
+</div>
+</div>
+<div class="sw-progress">
+<div class="sw-dot"></div><div class="sw-dot"></div><div class="sw-dot"></div>
+<div class="sw-dot"></div><div class="sw-dot"></div><div class="sw-dot"></div>
+</div>
+<div class="sw-body">
+<div class="sw-step active" data-hotspot="s1"><h4>第 1 步 · 估手姿（Path B）</h4><p>纯视频先估出 21 个手关键点；Path A 已有标注直接跳过。</p><div class="step-beginner"><div class="sb-label">给第一次接触这个领域的读者</div><p><strong>输入是什么：</strong>相机图像或视频，加上任务指令和机器人当前状态。它们还是原始观测，模型尚未把它们变成可用于预测或控制的特征。</p><p><strong>这一步究竟做什么：</strong>本步骤执行“· 估手姿（Path B）”。具体来说，纯视频先估出 21 个手关键点；Path A 已有标注直接跳过。 这里处理的只是整条链路中的一个接口：把上一步的结果整理成下一步能够正确读取和继续计算的形式。</p><p><strong>输出到哪里：</strong>经过本步骤处理、含义更明确的中间结果。这个结果会交给下一步“· 重定向 + 平滑”继续处理。</p><p><strong>为什么不能省略：</strong>它把未经处理的原始问题变成后续模块可以计算的输入，是整条链路的起点。</p></div></div>
+<div class="sw-step" data-hotspot="s2"><h4>第 2 步 · 重定向 + 平滑</h4><p>手关键点 → 夹爪 EEF 轨迹（虚拟指尖 + TCP + 抓取朝向），Savitzky-Golay + SLERP 去抖。动作速度按来源下采样对齐机器人。</p><div class="step-beginner"><div class="sb-label">给第一次接触这个领域的读者</div><p><strong>输入是什么：</strong>来自上一步“· 估手姿（Path B）”的产物：经过本步骤处理、含义更明确的中间结果。本步骤还会按论文设置读取当前条件、时间步或训练信号。</p><p><strong>这一步究竟做什么：</strong>手关键点 → 夹爪 EEF 轨迹（虚拟指尖 + TCP + 抓取朝向），Savitzky-Golay + SLERP 去抖。动作速度按来源下采样对齐机器人。</p><p><strong>输出到哪里：</strong>一个或多个候选未来、动作或轨迹，以及必要的中间状态。这个结果会交给下一步“· 臂分割”继续处理。</p><p><strong>为什么不能省略：</strong>它承担上下两步之间的接口；缺少它，前一步产生的信息无法以正确格式或正确含义传到下一步。</p></div></div>
+<div class="sw-step" data-hotspot="s3"><h4>第 3 步 · 臂分割</h4><p>SAM 3 分出人臂 mask，时序一致，供去手用。</p><div class="step-beginner"><div class="sb-label">给第一次接触这个领域的读者</div><p><strong>输入是什么：</strong>来自上一步“· 重定向 + 平滑”的产物：一个或多个候选未来、动作或轨迹，以及必要的中间状态。本步骤还会按论文设置读取当前条件、时间步或训练信号。</p><p><strong>这一步究竟做什么：</strong>本步骤执行“· 臂分割”。具体来说，SAM 3 分出人臂 mask，时序一致，供去手用。 这里处理的只是整条链路中的一个接口：把上一步的结果整理成下一步能够正确读取和继续计算的形式。</p><p><strong>输出到哪里：</strong>经过本步骤处理、含义更明确的中间结果。这个结果会交给下一步“· 去手”继续处理。</p><p><strong>为什么不能省略：</strong>它承担上下两步之间的接口；缺少它，前一步产生的信息无法以正确格式或正确含义传到下一步。</p><div class="sb-terms"><strong>术语先翻译：</strong>mask（掩码）：故意隐藏一部分输入，让模型只根据可见信息预测被隐藏部分。</div></div></div>
+<div class="sw-step" data-hotspot="s4"><h4>第 4 步 · 去手</h4><p>ProPainter 按 mask inpaint 抹掉人手、补背景。</p><div class="step-beginner"><div class="sb-label">给第一次接触这个领域的读者</div><p><strong>输入是什么：</strong>来自上一步“· 臂分割”的产物：经过本步骤处理、含义更明确的中间结果。本步骤还会按论文设置读取当前条件、时间步或训练信号。</p><p><strong>这一步究竟做什么：</strong>本步骤执行“· 去手”。具体来说，ProPainter 按 mask inpaint 抹掉人手、补背景。 这里处理的只是整条链路中的一个接口：把上一步的结果整理成下一步能够正确读取和继续计算的形式。</p><p><strong>输出到哪里：</strong>经过本步骤处理、含义更明确的中间结果。这个结果会交给下一步“· base 搜索 + IK”继续处理。</p><p><strong>为什么不能省略：</strong>它承担上下两步之间的接口；缺少它，前一步产生的信息无法以正确格式或正确含义传到下一步。</p><div class="sb-terms"><strong>术语先翻译：</strong>mask（掩码）：故意隐藏一部分输入，让模型只根据可见信息预测被隐藏部分。</div></div></div>
+<div class="sw-step" data-hotspot="s5"><h4>第 5 步 · base 搜索 + IK</h4><p>搜一个机器人底座位姿让轨迹运动学可行，逐形态各搜各的。这一步天然会淘汰"够不到 / 解不出 IK"的轨迹。</p><div class="step-beginner"><div class="sb-label">给第一次接触这个领域的读者</div><p><strong>输入是什么：</strong>来自上一步“· 去手”的产物：经过本步骤处理、含义更明确的中间结果。本步骤还会按论文设置读取当前条件、时间步或训练信号。</p><p><strong>这一步究竟做什么：</strong>搜一个机器人底座位姿让轨迹运动学可行，逐形态各搜各的。这一步天然会淘汰"够不到 / 解不出 IK"的轨迹。</p><p><strong>输出到哪里：</strong>可发送给机器人控制器的动作，以及执行后重新观测到的真实状态。这个结果会交给下一步“· 深度合成”继续处理。</p><p><strong>为什么不能省略：</strong>它承担上下两步之间的接口；缺少它，前一步产生的信息无法以正确格式或正确含义传到下一步。</p><div class="sb-terms"><strong>术语先翻译：</strong>IK（逆运动学）：已知机械臂末端要到哪里，反求每个关节应该转多少。</div></div></div>
+<div class="sw-step" data-hotspot="s6"><h4>第 6 步 · 深度合成</h4><p>渲染机器人、按深度合成进场景，得到成品视频。之后进入三级质检（§03）。</p><div class="step-beginner"><div class="sb-label">给第一次接触这个领域的读者</div><p><strong>输入是什么：</strong>来自上一步“· base 搜索 + IK”的产物：可发送给机器人控制器的动作，以及执行后重新观测到的真实状态。本步骤还会按论文设置读取当前条件、时间步或训练信号。</p><p><strong>这一步究竟做什么：</strong>本步骤执行“· 深度合成”。具体来说，渲染机器人、按深度合成进场景，得到成品视频。之后进入三级质检（§03）。 这里处理的只是整条链路中的一个接口：把上一步的结果整理成下一步能够正确读取和继续计算的形式。</p><p><strong>输出到哪里：</strong>经过本步骤处理、含义更明确的中间结果。这是图中这条链路的最终产物，随后会进入真实执行、模型更新或指标评测。</p><p><strong>为什么不能省略：</strong>它把前面得到的内部结果落实为可执行动作、可训练模型或可解释指标，完成从方法到结果的最后一步。</p></div></div>
+</div>
+</div>
+<div class="callout">
+<div class="callout-label">一个统一各来源的小设计 · Camera-frame EEF</div>
+<p>ego 视频相机位姿五花八门，world-frame 动作需要逐视频标定。Ego2Robot 用<strong>相机坐标系下的相对 EEF 动作</strong>表示末端位移——天然统一了不同相机设置和机器人形态的数据，不用逐条标定。</p>
+</div>
+</div>
+<!-- ============ §03 三级质检（重点） ============ -->
+<div class="section" id="curation">
+<div class="section-num">§ 03</div>
+<h2>三级质检 · L1 帧级 → L2 统计级 → L3 VLM 一致性 ★重点</h2>
+<div class="cn-read">
+<div class="cn-label">这一节解决什么（你要的核心）</div>
+<p>合成数据最大的风险是<strong>"看起来像、其实是垃圾"</strong>——IK 崩了、机器人穿模、动作瞬跳、或者渲染出来根本没在做那个任务。Ego2Robot 用<strong>三道由细到粗的漏斗</strong>把这些筛掉：<strong>L1 逐帧</strong>查物理合法性、<strong>L2 逐轨迹</strong>查统计异常、<strong>L3 逐 episode</strong> 用 VLM 查"语义上做没做对"。粒度从帧 → 轨迹 → episode 逐级放大。</p>
+</div>
+<div class="callout blue">
+<div class="callout-label">先建直觉 · 三级漏斗</div>
+<p><strong>L1</strong> 像质检流水线上的<strong>单件合格检测</strong>（这一帧物理上成立吗）；<strong>L2</strong> 像<strong>批次统计抽检</strong>（这条轨迹的数值分布正常吗、有没有突跳）；<strong>L3</strong> 像<strong>人工终检</strong>（整段视频语义上真在做那个任务吗）——只不过"人工"换成了 Qwen3.5。前两级筛物理/统计，第三级筛语义。</p>
+</div>
+<h3>L1（Pipeline-internal）· 逐帧物理合法性</h3>
+<p>在流水线处理时就打标：一帧<strong>有效</strong>当且仅当同时满足四个条件，任一不满足即无效——</p>
+<table class="kv-table">
+<tr><th>#</th><th>有效条件（全部满足才算有效帧）</th></tr>
+<tr><td>i</td><td>检测到手（hand detected）</td></tr>
+<tr><td>ii</td><td>IK 跟踪误差 <strong>&lt; 0.05 m</strong>（机器人真能跟上这个目标位姿）</td></tr>
+<tr><td>iii</td><td>渲染出的机器人<strong>可见</strong>（&gt; 0 像素，没被完全遮挡/出画）</td></tr>
+<tr><td>iv</td><td><strong>无自碰撞</strong>（MuJoCo contact check）</td></tr>
+</table>
+<p>另外两条额外失效规则（专治双臂穿模和"机器人糊满屏"）：</p>
+<div class="module-grid">
+<div class="module-card">
+<div class="module-card-name">额外失效 · 1</div>
+<div class="module-card-title">双臂交叉接触 &gt; 1</div>
+<div class="module-card-desc">bimanual cross-arm contacts &gt; 1 → 判无效。双臂互相穿插/打架的帧，物理上不合理。</div>
+</div>
+<div class="module-card">
+<div class="module-card-name">额外失效 · 2</div>
+<div class="module-card-title">机器人 mask &gt; 70% 画面</div>
+<div class="module-card-desc">机器人占了超过 70% 画面 → 判无效。通常是渲染贴太近/穿模，画面被机器人糊满，没法用。</div>
+</div>
+</div>
+<div class="callout amber">
+<div class="callout-label">L1 的点睛之笔 · Stability Erosion（稳定性腐蚀）</div>
+<p>夹在两段无效区间之间的<strong>短有效段</strong>（长度 &lt; ⌊0.3 × fps⌋ 帧）会被<strong>腐蚀成无效</strong>。<br/><br/>
           直觉：如果一小撮"有效帧"孤零零地卡在两坨无效帧中间，它们大概率是抖动/误判造成的假有效——留着会让轨迹在有效/无效之间反复横跳、切出一堆碎片。干脆一起标无效，保证留下的是<strong>连续、干净</strong>的有效段。这是形态学里的"腐蚀"操作搬到时间轴上。</p>
-        </div>
-
-        <h3>L2（Statistical）· 逐轨迹统计异常</h3>
-        <p>L1 之后，再上两个<strong>事后统计滤波</strong>（都排除已被 L1 判无效的帧再算）：</p>
-
-        <div class="callout">
-          <div class="callout-label">滤波 (i) · Q1/Q99 分位数滤波</div>
-          <p>对<strong>每个动作维度</strong>，按数据集算出 Q1（1% 分位）和 Q99（99% 分位）。落在下面区间之外的帧被标记：</p>
-        </div>
-        <div class="math-block">
+</div>
+<h3>L2（Statistical）· 逐轨迹统计异常</h3>
+<p>L1 之后，再上两个<strong>事后统计滤波</strong>（都排除已被 L1 判无效的帧再算）：</p>
+<div class="callout">
+<div class="callout-label">滤波 (i) · Q1/Q99 分位数滤波</div>
+<p>对<strong>每个动作维度</strong>，按数据集算出 Q1（1% 分位）和 Q99（99% 分位）。落在下面区间之外的帧被标记：</p>
+</div>
+<div class="math-block">
           $$\left[\,Q_1 - 3\,(Q_{99}-Q_1),\quad Q_{99} + 3\,(Q_{99}-Q_1)\,\right]$$
           <span class="math-label">L2-(i) · 每动作维度的合法区间（超出即 flag）</span>
-        </div>
-        <div class="math-explain">
-          <div class="me-title">逐项拆解</div>
-          <dl>
-            <dt>$Q_1,\ Q_{99}$</dt>
-            <dd>该动作维度在<strong>整个数据集</strong>上的 1% 和 99% 分位数（算之前先剔掉 L1 已无效的帧，避免被垃圾污染统计）</dd>
-            <dt>$Q_{99}-Q_1$</dt>
-            <dd>1%–99% 分位区间宽度（一种鲁棒的"量程"，比标准差抗离群点）</dd>
-            <dt>$\times 3$ 向两侧外扩</dt>
-            <dd>在这个量程外再各放宽 3 倍才判异常——<strong>宽容边界</strong>，只砍掉真正离谱的极端值（如重定向爆出的巨大动作），不误伤正常的大动作</dd>
-          </dl>
-        </div>
-        <div class="callout">
-          <div class="callout-label">滤波 (ii) · 突变滤波（sudden-change）</div>
-          <p>对每一步，在 state/action 轨迹上算 <strong>residual（残差）、acceleration（加速度）、jerk（加加速度）</strong>；任一超过<strong>该维度的分布阈值</strong>就标记。专治重定向/IK 造成的瞬间跳变——加速度和 jerk 对"不连续"最敏感。</p>
-        </div>
-        <div class="callout red">
-          <div class="callout-label">两级过滤后的 episode 级裁决 · 60% 规则</div>
-          <p>L1 + L2 都跑完后，统计每条 episode 的<strong>总无效帧占比</strong>：<strong>超过 60% 就整条 episode 丢弃</strong>。<br><br>
+</div>
+<div class="math-explain">
+<div class="me-title">逐项拆解</div>
+<dl>
+<dt>$Q_1,\ Q_{99}$</dt>
+<dd>该动作维度在<strong>整个数据集</strong>上的 1% 和 99% 分位数（算之前先剔掉 L1 已无效的帧，避免被垃圾污染统计）</dd>
+<dt>$Q_{99}-Q_1$</dt>
+<dd>1%–99% 分位区间宽度（一种鲁棒的"量程"，比标准差抗离群点）</dd>
+<dt>$\times 3$ 向两侧外扩</dt>
+<dd>在这个量程外再各放宽 3 倍才判异常——<strong>宽容边界</strong>，只砍掉真正离谱的极端值（如重定向爆出的巨大动作），不误伤正常的大动作</dd>
+</dl>
+</div>
+<div class="callout">
+<div class="callout-label">滤波 (ii) · 突变滤波（sudden-change）</div>
+<p>对每一步，在 state/action 轨迹上算 <strong>residual（残差）、acceleration（加速度）、jerk（加加速度）</strong>；任一超过<strong>该维度的分布阈值</strong>就标记。专治重定向/IK 造成的瞬间跳变——加速度和 jerk 对"不连续"最敏感。</p>
+</div>
+<div class="callout red">
+<div class="callout-label">两级过滤后的 episode 级裁决 · 60% 规则</div>
+<p>L1 + L2 都跑完后，统计每条 episode 的<strong>总无效帧占比</strong>：<strong>超过 60% 就整条 episode 丢弃</strong>。<br/><br/>
           逻辑：零星坏帧可以靠后续插值/容忍，但如果一条轨迹超过六成的帧都有问题，这条数据已经"烂到根"了——修不如弃，留着只会污染训练。</p>
-        </div>
-
-        <h3>L3（VLM Consistency）· 逐 episode 语义终检</h3>
-        <p>前两级只管物理和数值，管不了"机器人到底有没有在做那个任务"。L3 用 <strong>Qwen3.5</strong> 审每条合成视频：按 <strong>4 fps</strong> 采样 + 子任务文字描述一起喂给 VLM，让它判断动作和描述是否语义一致。<strong>判为不一致的 episode 丢弃。</strong></p>
-        <p>prompt 的设计很讲究——既要抓真错，又不能被"合成数据的正常特征"误伤。原文 prompt：</p>
-        <div class="code-block"><code>You are evaluating whether a manipulation video matches its text description.
+</div>
+<h3>L3（VLM Consistency）· 逐 episode 语义终检</h3>
+<p>前两级只管物理和数值，管不了"机器人到底有没有在做那个任务"。L3 用 <strong>Qwen3.5</strong> 审每条合成视频：按 <strong>4 fps</strong> 采样 + 子任务文字描述一起喂给 VLM，让它判断动作和描述是否语义一致。<strong>判为不一致的 episode 丢弃。</strong></p>
+<p>prompt 的设计很讲究——既要抓真错，又不能被"合成数据的正常特征"误伤。原文 prompt：</p>
+<div class="code-block"><code>You are evaluating whether a manipulation video matches its text description.
 This is a ROBOT manipulation dataset. "Hand" refers to the robot's gripper/end-effector.
 Many tasks use FAKE or SIMULATED objects as stand-ins for real objects. This is EXPECTED.
 
@@ -388,86 +351,74 @@ Be tolerant of: fake/toy objects, minor appearance variations,
   small spatial deviations, different grasping approaches.
 
 Respond in JSON: {"is_consistent": true/false, "confidence": 0.0-1.0, "reasoning": "..."}</code></div>
-        <div class="callout amber">
-          <div class="callout-label">prompt 里三个关键防误伤设计</div>
-          <p><strong>①「Hand = 机器人夹爪」</strong>：不然 VLM 会疑惑"视频里怎么没有人手"。<br>
-          <strong>②「假/仿真物体是 EXPECTED」</strong>：合成数据里大量用玩具/替身物体，不提醒的话 VLM 会因为"这不是真苹果"而误判不一致。<br>
-          <strong>③ 明确区分「该 flag 的重大不匹配」vs「该容忍的小差异」</strong>：重大 = 动作类型错 / 物体类别错 / 目标位置错 / 执行失败；容忍 = 玩具物体、外观差异、小空间偏差、不同抓法。<br>
+<div class="callout amber">
+<div class="callout-label">prompt 里三个关键防误伤设计</div>
+<p><strong>①「Hand = 机器人夹爪」</strong>：不然 VLM 会疑惑"视频里怎么没有人手"。<br/>
+<strong>②「假/仿真物体是 EXPECTED」</strong>：合成数据里大量用玩具/替身物体，不提醒的话 VLM 会因为"这不是真苹果"而误判不一致。<br/>
+<strong>③ 明确区分「该 flag 的重大不匹配」vs「该容忍的小差异」</strong>：重大 = 动作类型错 / 物体类别错 / 目标位置错 / 执行失败；容忍 = 玩具物体、外观差异、小空间偏差、不同抓法。<br/>
           —— 本质是把"合成数据的固有噪声"从"真正的语义错误"里摘出去，让 VLM 只抓后者。</p>
-        </div>
-
-        <div class="quiz"
-             data-correct="c"
-             data-explain="正确。L3 的 prompt 特意声明'假/仿真物体是 EXPECTED'，是因为合成数据大量用玩具/替身物体；不提醒的话 VLM 会把'这不是真物体'当成语义不一致而误杀大量本来合格的 episode。"
-             data-explain-wrong="再想想：合成数据里用玩具/替身物体是常态。如果不告诉 VLM 这是预期的，它会因为'物体看起来是假的'而判不一致，误伤大量合格数据。">
-          <div class="q-label">🧠 理解检查</div>
-          <div class="q-text">L3 的 VLM prompt 为什么特意强调"FAKE/SIMULATED objects … is EXPECTED"？</div>
-          <div class="q-options">
-            <button class="q-opt" data-k="a">为了让 VLM 生成更长的 reasoning</button>
-            <button class="q-opt" data-k="b">因为真实物体版权受限</button>
-            <button class="q-opt" data-k="c">合成数据常用玩具/替身物体，不声明会让 VLM 把"物体是假的"误判成语义不一致，误杀合格数据</button>
-            <button class="q-opt" data-k="d">因为 Qwen3.5 不认识真实物体</button>
-          </div>
-          <div class="q-feedback"></div>
-        </div>
-
-        <div class="callout purple">
-          <div class="callout-label">小结 · 三级质检的分工</div>
-          <p><strong>L1 帧级</strong>（物理：IK/可见/自碰撞/穿模 + 稳定性腐蚀）→ <strong>L2 轨迹级</strong>（统计：分位数外扩 + 突变，超 60% 弃 episode）→ <strong>L3 episode 级</strong>（语义：VLM 审"做没做对"）。粒度从帧到 episode 逐级放大，物理→统计→语义逐级抽象。这套"多级、由细到粗、物理+统计+VLM 混合"的质检，是合成数据能当预训练数据用的关键前提。</p>
-        </div>
-      </div>
-
-      <!-- ============ §04 上游隐形质检 ============ -->
-      <div class="section" id="upstream">
-        <div class="section-num">§ 04</div>
-        <h2>上游"隐形"质检 · 流水线里顺手筛掉的坏数据</h2>
-
-        <div class="cn-read">
-          <div class="cn-label">这一节解决什么</div>
-          <p>§03 是<strong>显式命名</strong>的三级质检。但其实流水线的每一步都在<strong>顺手筛数据</strong>——这些没挂"质检"的名，却实实在在决定了数据质量。补齐这条链，才知道一条轨迹要过多少道关。</p>
-        </div>
-
-        <table class="kv-table">
-          <tr><th>在哪一步</th><th>顺手筛掉了什么 · 怎么筛</th></tr>
-          <tr><td>手姿 / mask</td><td>mask 之外的像素直接丢弃，只保留手/臂区域参与后续处理</td></tr>
-          <tr><td>时序平滑</td><td>速度跳变滤波：逐帧算 $v_t=\lVert p_t-p_{t-1}\rVert$，超阈值的帧用<strong>邻居插值替换</strong>；旋转速度用 floor 10.0/fps rad/frame。<strong>迭代 2 轮</strong>，把重定向/检测抖动压平。</td></tr>
-          <tr><td>base 搜索 + IK</td><td>候选底座<strong>距 base &lt; 0.08 m 的直接丢弃</strong>；其余按 IK 可行率打分（100 次迭代、$10^{-5}$ 阈值）+ reach 惩罚，取最优。够不到 / 解不出 IK 的轨迹在这步天然被淘汰。</td></tr>
-        </table>
-
-        <div class="callout blue">
-          <div class="callout-label">连起来看 · 一条轨迹要过多少关</div>
-          <p>手姿/mask 过滤 → 速度跳变插值（2 轮）→ base 可行性筛选 → <strong>L1 帧级</strong> → <strong>L2 统计级</strong> → <strong>L3 VLM 语义级</strong>。前三是"边处理边筛"的隐形质检，后三是显式三级质检。合成数据能不能当预训练数据，靠的就是这一整条<strong>层层设卡</strong>。</p>
-        </div>
-      </div>
-
-      <!-- ============ §05 效果（占位） ============ -->
-      <div class="section" id="exp">
-        <div class="section-num">§ 05</div>
-        <h2>效果</h2>
-        <div class="cn-read">
-          <div class="cn-label">这一节将讲</div>
-          <p>解耦评测（视觉/场景/本体/语义四轴）下的结果：Ego2R+Robot 1:1 co-training 领先、视觉扰动收益最大（背景 +4 / 光照 +8 / 配色 +6）、真机 5 长程任务验证；以及形态数量 scaling、混合比例（1:3 / 3:1 / 1:1）消融。<em>（待读 §5–§6 后展开）</em></p>
-        </div>
-      </div>
-
-      <!-- ============ §06 联系（占位） ============ -->
-      <div class="section" id="connections">
-        <div class="section-num">§ 06</div>
-        <h2>与具身 / 数据合成的联系</h2>
-        <div class="cn-read">
-          <div class="cn-label">这一节将讲</div>
-          <p>和 HuMI（<a href="../papers/openhlm.html">OpenHLM</a> 里的可穿戴采集）、<a href="../papers/vlk.html">VLK</a>（合成运动学）、RoviAug/Mirage（robot-to-robot 视觉桥接）的路线对比；"重定向+渲染+质检"这条 ego2robot 路线的护城河与局限（仅平行夹爪、丢弃灵巧手指关节等）。<em>（待展开）</em></p>
-        </div>
-      </div>
-
-      <footer class="footer" style="padding:40px; text-align:center; color:var(--text3); font-size:13px;">
-        <a href="../index.html">← 返回首页</a>
-        &nbsp;·&nbsp;
+</div>
+<div class="quiz" data-correct="c" data-explain="正确。L3 的 prompt 特意声明'假/仿真物体是 EXPECTED'，是因为合成数据大量用玩具/替身物体；不提醒的话 VLM 会把'这不是真物体'当成语义不一致而误杀大量本来合格的 episode。" data-explain-wrong="再想想：合成数据里用玩具/替身物体是常态。如果不告诉 VLM 这是预期的，它会因为'物体看起来是假的'而判不一致，误伤大量合格数据。">
+<div class="q-label">🧠 理解检查</div>
+<div class="q-text">L3 的 VLM prompt 为什么特意强调"FAKE/SIMULATED objects … is EXPECTED"？</div>
+<div class="q-options">
+<button class="q-opt" data-k="a">为了让 VLM 生成更长的 reasoning</button>
+<button class="q-opt" data-k="b">因为真实物体版权受限</button>
+<button class="q-opt" data-k="c">合成数据常用玩具/替身物体，不声明会让 VLM 把"物体是假的"误判成语义不一致，误杀合格数据</button>
+<button class="q-opt" data-k="d">因为 Qwen3.5 不认识真实物体</button>
+</div>
+<div class="q-feedback"></div>
+</div>
+<div class="callout purple">
+<div class="callout-label">小结 · 三级质检的分工</div>
+<p><strong>L1 帧级</strong>（物理：IK/可见/自碰撞/穿模 + 稳定性腐蚀）→ <strong>L2 轨迹级</strong>（统计：分位数外扩 + 突变，超 60% 弃 episode）→ <strong>L3 episode 级</strong>（语义：VLM 审"做没做对"）。粒度从帧到 episode 逐级放大，物理→统计→语义逐级抽象。这套"多级、由细到粗、物理+统计+VLM 混合"的质检，是合成数据能当预训练数据用的关键前提。</p>
+</div>
+</div>
+<!-- ============ §04 上游隐形质检 ============ -->
+<div class="section" id="upstream">
+<div class="section-num">§ 04</div>
+<h2>上游"隐形"质检 · 流水线里顺手筛掉的坏数据</h2>
+<div class="cn-read">
+<div class="cn-label">这一节解决什么</div>
+<p>§03 是<strong>显式命名</strong>的三级质检。但其实流水线的每一步都在<strong>顺手筛数据</strong>——这些没挂"质检"的名，却实实在在决定了数据质量。补齐这条链，才知道一条轨迹要过多少道关。</p>
+</div>
+<table class="kv-table">
+<tr><th>在哪一步</th><th>顺手筛掉了什么 · 怎么筛</th></tr>
+<tr><td>手姿 / mask</td><td>mask 之外的像素直接丢弃，只保留手/臂区域参与后续处理</td></tr>
+<tr><td>时序平滑</td><td>速度跳变滤波：逐帧算 $v_t=\lVert p_t-p_{t-1}\rVert$，超阈值的帧用<strong>邻居插值替换</strong>；旋转速度用 floor 10.0/fps rad/frame。<strong>迭代 2 轮</strong>，把重定向/检测抖动压平。</td></tr>
+<tr><td>base 搜索 + IK</td><td>候选底座<strong>距 base &lt; 0.08 m 的直接丢弃</strong>；其余按 IK 可行率打分（100 次迭代、$10^{-5}$ 阈值）+ reach 惩罚，取最优。够不到 / 解不出 IK 的轨迹在这步天然被淘汰。</td></tr>
+</table>
+<div class="callout blue">
+<div class="callout-label">连起来看 · 一条轨迹要过多少关</div>
+<p>手姿/mask 过滤 → 速度跳变插值（2 轮）→ base 可行性筛选 → <strong>L1 帧级</strong> → <strong>L2 统计级</strong> → <strong>L3 VLM 语义级</strong>。前三是"边处理边筛"的隐形质检，后三是显式三级质检。合成数据能不能当预训练数据，靠的就是这一整条<strong>层层设卡</strong>。</p>
+</div>
+</div>
+<!-- ============ §05 效果（占位） ============ -->
+<div class="section" id="exp">
+<div class="section-num">§ 05</div>
+<h2>效果</h2>
+<div class="cn-read">
+<div class="cn-label">这一节将讲</div>
+<p>解耦评测（视觉/场景/本体/语义四轴）下的结果：Ego2R+Robot 1:1 co-training 领先、视觉扰动收益最大（背景 +4 / 光照 +8 / 配色 +6）、真机 5 长程任务验证；以及形态数量 scaling、混合比例（1:3 / 3:1 / 1:1）消融。<em>（待读 §5–§6 后展开）</em></p>
+</div>
+</div>
+<!-- ============ §06 联系（占位） ============ -->
+<div class="section" id="connections">
+<div class="section-num">§ 06</div>
+<h2>与具身 / 数据合成的联系</h2>
+<div class="cn-read">
+<div class="cn-label">这一节将讲</div>
+<p>和 HuMI（<a href="../papers/openhlm.html">OpenHLM</a> 里的可穿戴采集）、<a href="../papers/vlk.html">VLK</a>（合成运动学）、RoviAug/Mirage（robot-to-robot 视觉桥接）的路线对比；"重定向+渲染+质检"这条 ego2robot 路线的护城河与局限（仅平行夹爪、丢弃灵巧手指关节等）。<em>（待展开）</em></p>
+</div>
+</div>
+<footer class="footer" style="padding:40px; text-align:center; color:var(--text3); font-size:13px;">
+<a href="../index.html">← 返回首页</a>
+         · 
         <a href="https://arxiv.org/abs/2608.02580" target="_blank">arXiv:2608.02580</a>
-        &nbsp;·&nbsp;
+         · 
         <a href="https://www-ye.github.io/ego2robot_blog/" target="_blank">项目页 ↗</a>
-      </footer>
-    </main>
-  </div>
+</footer>
+</main>
+</div>
 </body>
 </html>

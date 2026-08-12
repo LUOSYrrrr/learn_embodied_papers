@@ -1,0 +1,105 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>VAE · Auto-Encoding Variational Bayes 精读</title>
+  <link rel="stylesheet" href="../../assets/css/style.css">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16/dist/katex.min.css">
+  <script src="../../assets/js/theme.js"></script>
+  <script src="../../assets/js/interactive.js" defer></script>
+  <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16/dist/katex.min.js"></script>
+  <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16/dist/contrib/auto-render.min.js" onload="renderMathInElement(document.body,{delimiters:[{left:'$$',right:'$$',display:true},{left:'$',right:'$',display:false}]})"></script>
+  <style>@media (max-width:900px){.docs-sidebar-left{display:none!important;}}</style>
+</head>
+<body>
+  <nav class="nav">
+    <a class="nav-logo" href="../../index.html">Paper Notes</a>
+    <div class="nav-links"><a href="../wam-roadmap.html#foundation">← WAM 路线</a><a href="../../pdfs/generation/Kingma%20and%20Welling%20-%202013%20-%20Auto-Encoding%20Variational%20Bayes.pdf" target="_blank">📄 PDF</a></div>
+  </nav>
+  <div class="page">
+    <div class="docs-layout">
+      <aside class="docs-sidebar-left">
+        <div class="ds-title">VAE · 2013</div>
+        <a class="ds-leaf-top" href="#tldr">§1 核心问题</a>
+        <a class="ds-leaf-top" href="#graph">§2 两个模型</a>
+        <a class="ds-leaf-top" href="#elbo">§3 ELBO</a>
+        <a class="ds-leaf-top" href="#reparam">§4 重参数化</a>
+        <a class="ds-leaf-top" href="#algorithm">§5 AEVB 算法</a>
+        <a class="ds-leaf-top" href="#evidence">§6 实验与边界</a>
+        <a class="ds-leaf-top" href="#wam">§7 通向 LDM / WAM</a>
+      </aside>
+      <main class="docs-content">
+        <div class="docs-breadcrumb"><a href="../../index.html">paper-notes</a><span class="sep">/</span>生成模型地基<span class="sep">/</span>VAE</div>
+        <h1>Auto-Encoding Variational Bayes</h1>
+        <p style="color:var(--text3);font-family:var(--font-mono);font-size:12px;margin-top:-12px;">Diederik P. Kingma, Max Welling · arXiv:1312.6114 · 2013（v11, 2022）· Zotero QXNNLJAW</p>
+
+        <div class="cn-read"><div class="cn-label">先纠正一个常见简写</div><p>这篇论文的主贡献不是“发明一个带瓶颈的自编码器”，而是给连续潜变量模型提供一套<strong>可扩展、低方差、端到端可微</strong>的变分学习方法：SGVB 估计器与 AEVB 算法。VAE 是论文 §3 给出的代表性实例。</p></div>
+
+        <h2 id="tldr">§1 它真正解决什么</h2>
+        <div class="callout"><div class="callout-label">一句话</div><p>当真实后验 $p_\theta(z\mid x)$ 难以计算时，用一个可学习的近似后验 $q_\phi(z\mid x)$ 代替；再通过重参数化，把“对随机变量采样”改写为“对固定噪声做可微变换”，从而同时训练推断网络与生成模型。</p></div>
+        <div class="module-grid">
+          <div class="module-card"><div class="module-card-name">GENERATIVE</div><div class="module-card-title">$p_\theta(x,z)$</div><div class="module-card-desc">描述潜变量怎样产生观测；解码器属于这一侧。</div></div>
+          <div class="module-card"><div class="module-card-name">INFERENCE</div><div class="module-card-title">$q_\phi(z\mid x)$</div><div class="module-card-desc">摊销推断：一次前向计算就给出每个样本的近似后验。</div></div>
+          <div class="module-card"><div class="module-card-name">OBJECTIVE</div><div class="module-card-title">ELBO</div><div class="module-card-desc">以可计算下界替代难算的边缘似然。</div></div>
+          <div class="module-card"><div class="module-card-name">GRADIENT</div><div class="module-card-title">$z=g_\phi(\epsilon,x)$</div><div class="module-card-desc">把随机性移到无参数噪声 $\epsilon$，梯度可穿过样本。</div></div>
+        </div>
+        <details class="en-quote"><summary>展开原文 · Abstract</summary><div class="quote-body"><p>“posterior inference can be made especially efficient by fitting an approximate inference model”</p><div class="quote-cite">— Abstract, p.1</div></div></details>
+
+        <h2 id="graph">§2 一张图里的两个方向</h2>
+        <div class="fig-interactive panel-below">
+          <div class="fig-block">
+            <div class="hotspot-wrap" data-hotspot-group="vae-graph">
+              <img src="../../assets/figures/vae/fig-1.png" alt="VAE directed graphical model">
+              <div class="hotspot" data-id="latent" style="left:49%;top:17%;" data-title="潜变量 z" data-body="真实世界里不可直接观察。生成模型先从先验取 z，再由 z 产生 x。"></div>
+              <div class="hotspot" data-id="observed" style="left:49%;top:39%;" data-title="观测 x" data-body="灰色节点表示已观察数据；训练时 x 同时进入推断网络，并作为重建目标。"></div>
+              <div class="hotspot" data-id="encoder" style="left:41%;top:29%;" data-title="虚线：qφ(z|x)" data-body="识别/编码模型近似难算的真实后验。它不是生成方向，而是训练时的推断捷径。"></div>
+              <div class="hotspot" data-id="decoder" style="left:55%;top:29%;" data-title="实线：pθ(x|z)" data-body="生成方向。给定潜变量 z，解码器定义观测 x 的条件分布。"></div>
+            </div>
+            <div class="fig-cap"><span class="fig-num">Fig 1 · p.2</span> 实线是生成模型，虚线是变分近似。<span class="fig-cn">VAE 的关键不是对称网络外形，而是这两个概率方向在 ELBO 中被联合训练。</span></div>
+          </div>
+          <div class="hotspot-panel"></div>
+        </div>
+
+        <h2 id="elbo">§3 ELBO：把难算的似然拆成两项</h2>
+        <div class="math-block">$$\log p_\theta(x)=D_{KL}\!\left(q_\phi(z\mid x)\|p_\theta(z\mid x)\right)+\mathcal L(\theta,\phi;x)$$<span class="math-label">Eq. 1 · p.3</span></div>
+        <div class="math-explain"><div class="me-title">为什么它是下界</div><dl><dt>$D_{KL}\ge 0$</dt><dd>近似后验与真实后验的差距永远非负。</dd><dt>$\mathcal L$</dt><dd>因此不会超过 $\log p_\theta(x)$；最大化它会同时提高数据似然并逼近后验。</dd><dt>难点</dt><dd>真实后验仍不可算，但优化下界不要求显式知道它。</dd></dl></div>
+        <div class="math-block">$$\mathcal L=\underbrace{\mathbb E_{q_\phi(z\mid x)}[\log p_\theta(x\mid z)]}_{\text{重建 / 数据项}}-\underbrace{D_{KL}(q_\phi(z\mid x)\|p_\theta(z))}_{\text{后验贴近先验}}$$<span class="math-label">Eq. 3 · p.3 · 常用 ELBO 形式</span></div>
+        <div class="math-explain"><div class="me-title">不要只记“重建 + KL”</div><dl><dt>重建项</dt><dd>要求潜变量保留足以解释当前样本的信息。</dd><dt>KL 项</dt><dd>让不同样本的后验可由统一先验覆盖，生成时才能直接从先验采样。</dd><dt>权衡</dt><dd>KL 太强会丢信息，太弱会形成难采样的碎片化潜空间；原论文没有解决后来的 posterior collapse 等全部问题。</dd></dl></div>
+
+        <h2 id="reparam">§4 重参数化：为什么采样仍能反传</h2>
+        <div class="cn-read"><div class="cn-label">最重要的技巧</div><p>直接写 $z\sim q_\phi(z\mid x)$ 时，随机采样节点挡住对 $\phi$ 的普通反向传播。论文把同一随机变量写成确定函数 $g_\phi$ 与外部噪声 $\epsilon$ 的组合。</p></div>
+        <div class="math-block">$$z=\mu_\phi(x)+\sigma_\phi(x)\odot\epsilon,\qquad \epsilon\sim\mathcal N(0,I)$$<span class="math-label">§2.4 · Gaussian reparameterization</span></div>
+        <div class="math-explain"><div class="me-title">梯度走哪条路</div><dl><dt>$\epsilon$</dt><dd>与参数无关的随机源；每个 batch 可重新采样。</dd><dt>$\mu_\phi,\sigma_\phi$</dt><dd>编码器输出，可被自动微分。</dd><dt>$z$</dt><dd>对 $\phi$ 成为确定、可微的函数；Monte Carlo 估计可直接用 SGD 优化。</dd></dl></div>
+
+        <h2 id="algorithm">§5 AEVB：一次 minibatch 里发生什么</h2>
+        <div class="step-walker" data-hotspot-group="vae-graph">
+          <div class="sw-header"><div class="sw-title">AEVB 四步训练循环</div><div class="sw-controls"><button class="sw-btn prev">←</button><span class="sw-counter"></span><button class="sw-btn next">→</button></div></div>
+          <div class="sw-progress"><span class="sw-dot"></span><span class="sw-dot"></span><span class="sw-dot"></span><span class="sw-dot"></span></div>
+          <div class="sw-body">
+            <div class="sw-step" data-hotspot="observed"><h4>1. 取 minibatch 观测 $x$</h4><p>不再为每个数据点单独运行迭代推断；这是“amortized inference”带来的规模优势。</p></div>
+            <div class="sw-step" data-hotspot="encoder"><h4>2. 编码近似后验</h4><p>网络给出 $\mu_\phi(x)$ 与 $\log\sigma_\phi^2(x)$，定义高斯 $q_\phi(z\mid x)$。</p></div>
+            <div class="sw-step" data-hotspot="latent"><h4>3. 重参数化采样</h4><p>采无参数噪声 $\epsilon$，构造 $z=\mu+\sigma\odot\epsilon$。</p></div>
+            <div class="sw-step" data-hotspot="decoder"><h4>4. 估计 ELBO 并更新 $\theta,\phi$</h4><p>解码得到 $p_\theta(x\mid z)$；重建项与 KL 项共同反传，一次更新两套参数。</p></div>
+          </div>
+        </div>
+        <div class="quiz" data-correct="b" data-explain="重参数化把随机性隔离到与参数无关的 ε，让 z 对编码器参数成为可微函数。" data-explain-wrong="它没有删除随机性，也没有把后验改成确定向量；关键是随机源与参数分离。"><div class="q-label">理解检查</div><div class="q-text">重参数化真正解决的是什么？</div><div class="q-options"><button class="q-opt" data-k="a">让解码器不再需要概率分布</button><button class="q-opt" data-k="b">让 Monte Carlo 样本对编码器参数可反传</button><button class="q-opt" data-k="c">保证 ELBO 等于真实似然</button><button class="q-opt" data-k="d">消除潜变量随机性</button></div><div class="q-feedback"></div></div>
+
+        <h2 id="evidence">§6 原论文证据与边界</h2>
+        <div class="module-grid">
+          <div class="module-card"><div class="module-card-name">BASELINES</div><div class="module-card-title">Wake-Sleep / MCEM</div><div class="module-card-desc">AEVB 在论文实验中更快优化下界，并能联合训练推断与生成网络。</div></div>
+          <div class="module-card"><div class="module-card-name">DATA</div><div class="module-card-title">MNIST / Frey Face</div><div class="module-card-desc">原始证据规模很小；现代大模型中的作用来自方法可扩展性，而非当年生成质量。</div></div>
+          <div class="module-card"><div class="module-card-name">LATENT</div><div class="module-card-title">连续高斯</div><div class="module-card-desc">论文的简洁闭式 KL 依赖分布选择；离散潜变量需要其他估计器或松弛。</div></div>
+          <div class="module-card"><div class="module-card-name">LIMIT</div><div class="module-card-title">不是无损压缩器</div><div class="module-card-desc">似然目标、解码分布与 KL 权衡会带来模糊、失真或 posterior collapse。</div></div>
+        </div>
+
+        <h2 id="wam">§7 为什么 WAM 路线要先读 VAE</h2>
+        <div class="cn-read"><div class="cn-label">从潜变量推断到视频 latent</div><p>LDM、视频 DiT 与许多生成式 WAM 并不在原始 RGB 上直接扩散，而是先用编码器把图像/视频压到低维 latent，再对 latent 去噪。VAE 提供了“可训练编码分布 + 可采样连续潜空间 + 解码回观测”的基础语法。</p></div>
+        <table class="kv-table"><tr><td>VAE 里的 $x$</td><td>单个图像/数据点</td></tr><tr><td>Video VAE 里的 $x$</td><td>时空视频块；编码器/解码器通常带时序下采样</td></tr><tr><td>WAM 里的条件</td><td>历史观测、语言、机器人状态与动作</td></tr><tr><td>仍未解决</td><td>latent 是否保留接触、几何和可执行动作所需信息</td></tr></table>
+        <div class="callout red"><div class="callout-label">路线判断</div><p>VAE 只负责建立可学习潜空间，<strong>不负责学习未来动力学</strong>。真正的 WAM 还要在 latent 上建模时间、干预与动作—后果关系。</p></div>
+        <div class="callout blue"><div class="callout-label">下一篇</div><p><a href="latent-diffusion.html">Latent Diffusion</a> 把 DDPM 的去噪过程搬进自编码器潜空间，直接连接 VAE 与后面的 Video DiT / WAM。</p></div>
+      </main>
+    </div>
+  </div>
+</body>
+</html>

@@ -1,0 +1,1385 @@
+                                             villa-X: Enhancing Latent Action Modeling
+                                             in Vision-Language-Action Models
+                                             Xiaoyu Chen2*† , Hangxing Wei3*† , Pushi Zhang1* , Chuheng Zhang1* , Kaixin Wang1* , Yanjiang Guo2 ,
+                                             Rushuai Yang4† , Yucen Wang5† , Xinquan Xiao2† , Li Zhao1*‡ , Jianyu Chen2 , and Jiang Bian1
+                                             1 Microsoft Research, 2 Tsinghua University, 3 Wuhan University, 4 Hong Kong University of Science and
+
+                                             Technology, 5 Nanjing University
+
+
+                                             Vision-Language-Action (VLA) models have emerged as a popular paradigm for learning robot
+                                             manipulation policies that can follow language instructions and generalize to novel scenarios.
+                                             Recent works have begun to explore the incorporation of latent actions, abstract representations
+
+
+
+
+arXiv:2507.23682v3 [cs.RO] 25 Sep 2025
+                                             of motion between two frames, into VLA pre-training. In this paper, we introduce villa-X, a
+                                             novel Vision-Language-Latent-Action (ViLLA) framework that advances latent action model-
+                                             ing for learning generalizable robot manipulation policies. Our approach improves both how
+                                             latent actions are learned and how they are incorporated into VLA pre-training. We demonstrate that
+                                             villa-X can generate latent action plans in a zero-shot fashion, even for unseen embodiments and
+                                             open-vocabulary symbolic understanding. This capability enables villa-X to achieve superior
+                                             performance across diverse simulation tasks in SIMPLER and on two real-world robotic setups
+                                             involving both gripper and dexterous hand manipulation. These results establish villa-X as
+                                             a principled and scalable paradigm for learning generalizable robot manipulation policies. We
+                                             believe it provides a strong foundation for future research.
+
+                                             Keywords: Latent Action, Vision-Language-Action Model
+                                                                                                     code:       https://github.com/microsoft/villa-x
+                                                                                                     site:       https://aka.ms/villa-x
+
+
+
+                                         1     Introduction
+                                         Latent action learning has emerged as a promising approach for the pretraining of vision-language-action
+                                         (VLA) models [4, 10, 12, 29, 31, 35, 50, 70], enabling learning from both robot data and human video
+                                         data [1, 10, 50, 68]. At the core of these methods is a Latent Action Model (LAM), which is designed
+                                         to capture the motion semantics between successive frames into compact latent tokens. These tokens,
+                                         referred to as latent actions, serve as pseudo-action labels, enriching robot policy training by enabling
+                                         imitation learning on abundant, action-free data.
+                                         While promising, the central challenge still lies in improving how latent actions can enhance robot policy
+                                         learning. This motivates our investigation into two pivotal questions: how to better learn latent actions,
+                                         and how to more effectively integrate them into VLA pre-training? In this paper, we introduce villa-X,
+                                         a novel Vision-Language-Latent-Action (ViLLA) framework that advances both key aspects of latent
+                                         action modeling. For the latent action learning component, existing latent action models [1, 10, 50, 68]
+                                         typically compress latent actions based on visual signals, as shown in Figure 1 (a). However, while visual
+                                         changes generally align with robot physical dynamics, certain motions, such as end-effector rotations or
+                                         gripper movements, are subtle in pixel changes but critical for control. Vision-based models often pay
+                                         less attention to these motions, a limitation also noted in recent work [9]. As a result, the learned latent
+                                         actions remain physically ungrounded, hindering effective knowledge transfer. To address this, we
+                                         move beyond purely visual signals by leveraging structural cues for physical grounding. Specifically, we
+                                         integrate a proprioceptive Forward Dynamics Model (proprio FDM) as an auxiliary decoder within our
+                                         Latent Action Model (LAM), as shown in Figure 1 (b). This module predicts future robot proprioceptive
+                                         states and actions by including embodiment context as inputs to help distinguish heterogeneous data.
+                                         As a result, the latent actions become better grounded by focusing on visual changes that align with
+                                         the agent’s physical dynamics. This makes the latent action a more effective bridge between vision and
+                                         control, ultimately improving knowledge transfer. This framework is general and can be extended to
+                                         other cues like end-effector keypoint detection or human hand pose estimation, which we leave for
+
+
+                                         * Equal contribution.   † Interns at Microsoft Research.   ‡ Project lead.                                     1
+                           villa-X : A Vision-Language-Latent-Action Model
+
+
+
+
+Figure 1: (a) A standard Latent Action Model (LAM) learns a latent action zt primarily through visual
+reconstruction, predicting a future frame ôt+K from the current frame ot and latent action zt . (b) Our
+proposed model enhances this by adding a proprio-FDM. This auxiliary module predicts future robot
+states q̂t+1:t+K and actions ât:t+K −1 conditioned on an embodiment context ce , enabling the latent actions
+to be better grounded in physical dynamics.
+
+
+future work. To better leverage learned latent actions, we introduce a novel integration strategy for VLA
+pre-training. villa-X models latent and robot actions within a joint diffusion framework composed of
+two components: a latent action expert (ACT-latent) and a robot action expert (ACT-robot) as shown
+in Figure 2. Within this framework, an attention mechanism conditions robot action generation on
+latent actions generation. Compared to existing methods, this framework facilitates a more effective and
+structured transfer of information.
+We conduct comprehensive evaluations of villa-X across diverse environments. Our experiments yield
+two key findings. First, extensive ablation studies confirm that our proposed improvements to the
+latent action model and policy architecture outperform existing methods. Second, we show that by
+scaled pre-training, the latent action expert effectively plans for the future, and generalizes zero-shot to
+unseen embodiments and open-vocabulary symbolic icons. Collectively, villa-X achieves state-of-the-
+art performance in various tasks including numerous simulation tasks in SIMPLER and two real-world
+setups featuring various robotic platforms with both gripper and dexterous hand manipulators. This
+establishes a robust foundation for future research in the field. In summary, our main contributions are
+as follows:
+    • We improve latent action learning by introducing an extra proprio FDM, which grounds latent
+      actions in physical dynamics by aligning with underlying robot states and actions.
+    • We propose to jointly learn a latent action expert and a robot action expert through joint diffusion
+      in the policy model, conditioning robot action prediction on latent actions to fully exploit their
+      potential.
+    • Through scaled pretraining, our latent action expert develops strong zero-shot generalization
+      capabilities. This enables the effective transfer of knowledge across diverse simulated environments
+      and real-world robotic tasks, leading to superior performance.
+
+
+2    Related Work
+Vision-Language-Action Models Vision-Language-Action (VLA) models [4, 10, 12, 29, 31, 35, 50, 70]
+leverage pre-trained vision-language models (VLMs) to generate robot actions using visual and language
+cues. They either directly repurpose VLMs for action prediction [10, 29, 35, 68] or use action experts
+to map VLM outputs to robot actions [4, 31, 50]. While training on large-scale datasets like Open X-
+Embodiment [12] enhance the generalization ability of VLAs, cross-embodiment generalization remains
+challenging due to diverse robot setups and configurations. Utilizing unlabeled trajectory data with
+pseudo-labels such as latent actions [10, 68], language sub-goals [47], or visual sub-goals [70] supports
+overcoming these challenges. Our method advances the latent action framework by enhancing both the
+modeling of latent actions and their integration into VLA pre-training.
+
+
+
+
+                                                                                                         2
+                           villa-X : A Vision-Language-Latent-Action Model
+
+
+
+
+Figure 2: Architecture of ACT: A hierarchical policy that predicts latent action plans and conditions
+robot action generation on them, incorporating embodiment context and attention masking.
+
+
+Modeling Latent Actions for VLA Pretraining Recent exploration into latent actions began with
+LAPO [59] and Genie [6], which primarily focused on the video game domain. Dynamo [14] adopted a
+similar architecture, using inverse and forward dynamics models to shape state representations.
+For robotic learning, methods have started to incorporate latent actions into VLA pretraining [1, 7, 9, 10,
+38, 50, 66, 68]. LAPA [68] proposes to learn from videos, and trains its latent actions and Vision-Language
+Model (VLM) using either human or robot video data. Concurrently, IGOR [9] learns latent actions from
+a mixture of human and robot videos, marking the first successful transfer of latent actions between
+humans and robots. Moto-GPT [10] co-fine-tunes both latent and robot action labels. GR00T [50] treats
+latent actions as a distinct embodiment, while Go-1 [1] generates robot actions conditioned on discrete
+latent tokens. UniVLA [7] proposes a two-stage training pipeline to learn task-centric latent actions. More
+recent works like Liang et al. [38], Yang et al. [66] explore the continuous latent actions. [69] provides the
+analysis on the learned latent actions, while LAOM [49] uses supervision to learn latent actions that are
+robust to distractors in MuJoCo environments. By contrast, our approach jointly models latent and robot
+actions through a joint diffusion process, conditioning robot action generation on latent actions for more
+effective and structured information transfer. Our method improves upon prior work in several key
+aspects: it offers tighter integration than LAPA [68] and GR00T [50]; it incorporates immediate visual
+context, unlike Moto-GPT [10]; and it avoids teacher-forcing inconsistencies seen in Go-1 [1]. These
+advantages collectively contribute to more robust reasoning at test time.
+
+
+3     Method
+Our method, villa-X, learns a physically grounded latent action space and uses it to train a VLA policy.
+The framework has two components:
+
+    (i) Latent Action Model (LAM) infers latent actions from a pair of observations, aligning these latent
+        actions with robot dynamics via additional proprioceptive supervision.
+    (ii) ACTor Module (ACT) builds on a pre-trained vision-language backbone and jointly models
+         sequences of latent and robot actions for improved planning and control.
+Training proceeds in three stages: (i) LAM pretraining on diverse datasets, (ii) ACT pretraining with
+joint latent–robot modeling, and (iii) embodiment-specific finetuning.
+
+3.1    Latent Action Model (LAM)
+Latent actions provide a compact intermediate representation, enabling the use of abundant human
+videos and improving cross-embodiment generalization [10, 68]. Prior works typically learn a quantized
+codebook of latent actions via two modules: an Inverse Dynamics Model (IDM) and a visual Forward
+Dynamics Model (FDM). The IDM predicts a latent token zt from a frame pair (ot , ot+K ), while the FDM
+reconstructs the future observation ôt+K from (ot , zt ):
+
+                                zt = IDM(ot , ot+K ),   ôt+K = FDM(ot , zt ).                             (1)
+
+
+
+                                                                                                          3
+                               villa-X : A Vision-Language-Latent-Action Model
+
+
+This objective ensures consistency in visual change but ignores physical dynamics, producing latents
+that are insufficiently grounded when robot states are available.
+
+Proprioceptive Grounding. To address this, we introduce an additional proprioceptive Forward Dynamics
+Model (proprio-FDM) that predicts both future robot states and actions K steps ahead, given the current
+state qt and latent zt :
+                              (q̂t+1 , ..., q̂t+K , ât+1 , ..., ât+K ) = proprio-FDM(qt , zt , ce ),                  (2)
+where ce denotes an embodiment context described below. Optimizing visual and proprioceptive fore-
+casting jointly encourages latent tokens to emphasize physical dynamics alongside visual changes.
+
+Disambiguating Heterogeneous Embodiments. Large-scale datasets mix embodiments with different
+morphologies and control frequencies. Naively conditioning the proprio-FDM on (qt , zt ) risks encoding
+embodiment-specific features into latents. We introduce a context vector ce comprising:
+                                        ce = f (dataset ID, control frequency),                                         (3)
+where dataset IDs are mapped to learnable embeddings, and frequencies are encoded using sinusoidal
+features passed through an MLP. These embeddings, concatenated with qt , allow proprio-FDM to
+separate embodiment-specific dynamics while preserving latent action consistency across datasets.
+
+The full LAM thus optimizes image reconstruction loss, proprioceptive prediction loss, and vector-
+quantization commitments jointly. For human video lacking proprio labels, the proprio term is omitted.
+Finally, we adopt the continuous vector from the VQ codebook center as our latent actions. We refer
+readers to Appendix A for further implementation details.
+In summary, our LAM extends prior latent action models beyond compressing only visual changes to
+jointly modeling physical state transitions. While this work leverages robot proprioception for grounding,
+the framework is generic: alternative structural cues like end-effector keypoint detection or human hand
+pose estimation could replace low-level states, which we leave for future exploration.
+
+3.2    Actor Module (ACT)
+Our ACT module extends traditional vision-language-action (VLA) approaches by explicitly modeling
+                      K
+both latent actions (zt:t +(n−1)K = ( zt , zt+K ..., zt+(n−1)K )) and robot actions (at:t+m−1 = ( at , at+1 , ..., at+m−1 ))
+with a joint diffusion process. We factorize the policy into two conditional distributions:
+
+                                K                                                    K
+                                                                                                                  
+                π ( at:t+m−1 , zt:t +(n−1)K | ot , l, qt , ce ) = πrobot at:t+m−1 | zt:t+(n−1)K , ot , l, qt , ce
+                                                                  |                   {z                          }
+                                                                                  ACT-robot
+                                                                           K
+                                                                                                                       (4)
+                                                                · πlatent zt:t+(n−1)K | ot , l .
+                                                                  |              {z              }
+                                                                             ACT-latent
+where ot is the observation, l the language instruction, qt the proprioceptive state, and ce the embodiment
+context. Additionally, the low-level policy can optionally incorporate wrist camera input if available.
+This explicit modeling and factorization improves upon prior methods, such as LAPA [68], which rely
+on latent actions only through pre-trained weight initialization. By contrast, our method treats latent
+actions as a distinct mid-level representation that bridges high-level vision and language prompts with
+low-level robot actions, and allow for allowing more effective and structured information transfer from
+latent actions to robot actions.
+
+Architecture.     ACT (Figure 2) comprises three experts with a blockwise causal attention mask:
+   • VLM: Encodes the visual-language inputs into high-level features.
+   • ACT-latent: Latent action expert that predicts latent action tokens for mid-level planning, condi-
+     tioning on VLM features.
+   • ACT-robot: Robot action expert that produces the low-level action chunk, conditioning on VLM
+     features, predicted latents and additional control-specific inputs including proprioceptive states
+     and embodiment context.
+
+
+                                                                                                                       4
+                           villa-X : A Vision-Language-Latent-Action Model
+
+
+Attention Masking Strategies. A key aspect of ACT is how we maintain a robust dependence on the
+latent tokens without letting the policy learn trivial shortcuts. Inspired by Moto [10] and RDT [41], we
+adopted the stochastic Masking strategy. During training, we stochastically mask the attention from
+robot actions to latent actions. In 50% of the cases, all robot-to-latent attention are masked; otherwise, 50%
+of the latent tokens are randomly masked. This can prevent the robot-action branch from overly relying
+on latent actions and leading to improved robustness. We found this design crucial in practice.
+
+Joint Diffusion Modeling. For implementation, villa-X models the joint distribution of the future
+robot actions at:t+m−1 and latent actions zt:t       K
+                                                       +(n−1)K using a conditional flow matching framework. For
+notational simplicity, we group these actions into a single variable xt and denote the conditioning inputs
+(ot , l, qt , ce ) as Ot . The objective is to train a network vθτ that minimizes the flow matching loss:
+                                                                                                      2
+                            Lτ (θ ) = E p( xt |Ot ), q( xtτ | xt ) vθτ ( xtτ , Ot ) − u( xtτ | xt )         (5)
+
+where τ ∈ [0, 1] denotes flow matching timestep. In practice, we first sample random noise ϵ ∼ N (0, I )
+to create a noisy target xtτ = τxt + (1 − τ )ϵ. The network vθτ ( xtτ , Ot ) is then trained to predicted the
+denoising vector field u( xtτ | xt ) = ϵ − xt . During training, we sample τ from beta distributions. Notably,
+the explicit factorization in Eq. 4 is achieved by block-wise causal attention.
+
+
+4     Experiments
+In this section, we aim to answer the following questions through experiments:
+    • Does our improved LAM learn higher-quality latent actions?
+    • Can the actor module effectively leverage the pre-trained latent actions?
+    • By scaling pre-training, can the latent actor module effectively plans for the future and generalize
+      zero-shot to unseen embodiments and open-vocabulary concepts in symbolic icons?
+    • How does villa-X compare to existing VLA baselines in both simulated benchmarks and real-world
+      robot tasks?
+
+4.1    Does our improved LAM learn higher-quality latent actions?
+In this subsection, we evaluate whether our improved latent action modeling enhances the quality of the
+learned latent actions. The key component of our LAM is the incorporation of the proprio FDM module. To
+assess its impact, we compare our model (denoted w/pp) to a variant without the proprio FDM module
+(denoted wo/pp).
+Probing First, a core expectation for latent actions is that
+they should carry information useful for predicting low-level
+robot actions. To test this, we conduct a probing experiment.
+Specifically, after training the latent action models, we freeze
+them and train a simple 3-layer MLP to predict the corre-
+sponding robot actions for each latent action. Probing is
+conducted on the LIBERO dataset [39], which is not used
+for training latent action models. We train the MLP on the
+training split of LIBERO and evaluate it using the L1 loss on
+the validation split.
+We are interested in how closely the predicted actions match
+the ground truth. In LIBERO, the robot action space has
+eight dimensions: three for position, four for rotation, and
+                                                                Figure 3: Probing experiment results.
+one for the gripper. Rather than averaging the error across
+dimensions, we focus on the maximum L1 error across all
+action dimensions, as we want to avoid large deviations in any single aspect of the action. For each
+model variant (w/pp and wo/pp), we compute the number of validation samples whose maximum L1
+error falls below a threshold. By sweeping this threshold, we count how many samples fall within each
+error bin. A better model should yield more samples with low errors.
+
+
+                                                                                                           5
+                          villa-X : A Vision-Language-Latent-Action Model
+
+
+Table 1: Evaluation results on SIMPLER for different variants of our villa-X(top group) and alternative
+approaches for incorporating latent actions (bottom group). “Ours” refers to the w/pp described in the
+main text.
+
+                           Google robot                                WidowX robot
+ Method
+                   Pick    Move     Drawer      Avg.    Carrot     Eggplant     Spoon     Cube     Avg.
+ Ours              81.7    55.4       38.4      58.5     24.2        71.7        48.3      19.2    40.8
+ wo/pp             77.0    52.7       42.6      57.4     22.5        57.5        43.3      5.9     32.3
+ wo/LAM            42.1    24.6       38.4      35.0     25.8        60.8        36.7      9.2     33.1
+ LAPA-style        64.7    28.8       38.0      43.8      0.8         0.0         2.5      0.8      1.0
+ Go-1-style        29.0    38.0       31.3      32.8      5.8        50.8         1.7      1.0     14.8
+
+
+For each error bin, we compute the difference in the number of samples between the w/pp and wo/pp
+variants and present the results in Figure 3. The w/pp variant produces more samples with smaller errors,
+while the wo/pp variant has more samples in the high-error bins. This demonstrates the effectiveness
+of the proprio FDM module in capturing information from the robot actions. We further visualize
+the learned latent actions, and perform more ablations on LAM. Please refer to Appendix D for more
+details.
+Policy Pre-training Next, we compare how the latent actions generated by different variants of LAM
+(w/pp and wo/pp) influence policy pre-training. Unlike the main experiments, we pretrain models in this
+section on a mixture of 10% Fractal [5] data, 10% Bridge V2 [17] data, and 100% Something-Something
+V2 [19] data, to reduce computation cost while remaining a setting where limited robot data are available
+for training the VLA model. The resulting policies are evaluated in the SIMPLER environment [32], a
+simulation benchmark explicitly designed to mitigate the gap between simulated and real-world robotic
+environments. It comprises two platforms: the Google robot with three manipulation tasks and the
+WidowX robot with four. We evaluate our method on the visual matching setting. The results are
+summarized in Table 1. We observe that w/pp clearly outperforms wo/pp, demonstrating the effectiveness
+of incorporating the proprio FDM module. Additionally, we include a baseline that does not use latent
+actions (denoted wo/LAM) and is trained solely to predict robot actions. The performance of wo/LAM is
+significantly worse, indicating that pre-training with latent actions is essential.
+
+4.2   Can the actor module effectively leverage the pre-trained latent actions?
+Given high-quality latent actions produced by the pre-trained LAM, we investigate whether our design
+can effectively leverage them to pre-train robot control policies. We compare our approach against two
+recent methods that also utilize latent actions, albeit in different ways: LAPA [68] and GO-1 [1].
+To isolate the effect of how latent actions are incorporated, we implement LAPA-style and GO-1-style
+models based on our architecture for a fair comparison. For the LAPA-style model, we follow a two-stage
+pre-training protocol: we first train the VLM to predict latent actions, then replace the latent action
+prediction head with a robot action prediction head and continue training on data with robot action labels.
+For the GO-1-style model, we implement a separate latent planner that autoregressively predicts latent
+actions. The robot action prediction component remains largely unchanged as in our main design.
+Following the experiment setup in the previous subsection, we train all models on the same dataset
+mixture and then evaluate the resulting policies in the SIMPLER environment [32]. The results are shown
+in Table 1. Compared to other two approaches, our method achieves significantly higher performance,
+validating the effectiveness of our design for incorporating latent actions into VLA pre-training. More
+ablation studies on policy designs can be found in Appendix F.
+
+4.3   Zero-shot Generalization for Latent Actor Module
+To evaluate the zero-shot generalization capabilities of ACT-latent in planning, we conducted a real-
+world visualization experiment focused on its ability to handle new embodiments and understand
+
+
+                                                                                                       6
+                          villa-X : A Vision-Language-Latent-Action Model
+
+
+
+
+Figure 4: Visualization of zero-shot latent plans on an unseen embodiment. Each pair of images shows
+the starting frame (left) and the ending frame (right), with the instruction displayed above.
+
+
+novel open-vocabulary symbols. For embodiment generalization, we used a Realman robot arm, a new
+embodiment never seen during training. To assess open-vocabulary generalization, we designed a set of
+symbol cards, testing the model’s ability to comprehend concepts typically absent from standard robotics
+datasets.
+The evaluation process is as follows: given a starting image and a language instruction (e.g., “touch the
+corn”), ACT-latent first generates a sequence of latent actions. Then a separately trained world model is
+used to render this sequence into a video, allowing us to verify the effectiveness of the plan.
+As shown in Figure 4, the rendered trajectories confirm that the model successfully generates latent plans
+that follow the commands. These results highlight two key capabilities of our approach:
+   • Embodiment Generalization: ACT-latent successfully identifies and controls this unseen robot arm,
+     indicating that its learned knowledge is embodiment-agnostic and readily transferable to the new
+     robotic platform.
+   • Open-Vocabulary Understanding: The model’s ability to interact correctly with symbol concepts
+     reveals that villa-X retains the general-purpose vision-language capabilities of the original Vision-
+     Language Model (VLM) after pre-training.
+More visualizations can be found in Appendix E. To evaluate how effectively villa-X uses this knowl-
+edge, we measure its success rates on a variety of control tasks in the following sections.
+
+4.4   Evaluating villa-X in Simulation
+Baselines and Experimental Setup We use the SIMPLER benchmark as described above. In this section,
+we compare against several categories of prior work:
+   • Vision-Language-Action (VLA) models: RT-1-X [12], Octo-base [52], OpenVLA [29], RoboVLMs [34],
+     π0 [4], π0 -FAST [54], OpenVLA-OFT [30], which learn policies solely from mixed robot datasets.
+   • Joint policy learning and world modeling method: GR00T-N1.5 [51], which aligns the model with
+     target future embeddings.
+   • Visual trace methods: TraceVLA [71], Magma [67], which learn planning on the extract visual traces
+     from videos.
+   • Latent-Action based methods: MoTo [10] and LAPA [68], which additionally exploit unlabelled
+     videos by inferring latent actions.
+Except where noted (∗), all models follow a two-stage pretraining–finetuning protocol, including a
+general pretraining phase on large-scale mixed data, followed by finetuning on a dataset of specific
+embodiment. We also include an ablation (Ours w/o latent) that removes our latent-action expert while
+keeping all other components unchanged. Baseline scores are cited from their original publications or
+other relevant literature, while missing entries are marked as N/A.
+
+
+
+                                                                                                      7
+                             villa-X : A Vision-Language-Latent-Action Model
+
+
+Table 2: Comparison on SIMPLER of villa-X and existing methods. Methods marked with ∗ are evalu-
+ated directly after pretraining, whereas other methods are evaluated after post-training on corresponding
+dataset.
+
+                               Google Robot                                WidowX Robot
+ Method
+                      Pick     Move    Drawer     Avg.       Carrot    Eggplant    Spoon     Cube    Avg..
+ RT-1-X ∗             56.7      31.7    59.7      49.4        4.2         0.0        0.0     0.0       1.1
+ Octo-base ∗          17.0       4.2    22.7      14.6         8.3       43.1       12.5     0.0      16.0
+ OpenVLA ∗            16.3      46.2    35.6      32.7         0.0        4.1        0.0     0.0       1.0
+ RoboVLMs ∗           72.7      66.3    26.8      55.3        25.0        0.0       20.8     8.3      13.5
+ RoboVLMs             77.3      61.7    43.5      60.8        20.8       79.2       45.8      4.2     37.5
+ π0                   72.7      65.3    38.3      58.7         0.0       62.5       29.1     16.6     27.1
+ π0 -FAST             75.3      67.5    42.9      61.9        21.9       66.6       29.1     10.8     32.1
+ OpenVLA-OFT          72.3      69.6    47.2      63.0         4.2       N/A        12.5      8.3     N/A
+ GR00T-N1.5           69.3      68.7    35.8      57.9        54.3       61.3       75.3     57.0     62.0
+ TraceVLA             45.0      63.8    63.1      57.3        16.6       65.0       12.5     16.6     27.7
+ Magma                75.0      53.0    58.9      62.3        29.2       91.7       37.5     20.8     44.8
+ MoTo                 74.0      60.4    43.1      59.2        N/A        N/A        N/A      N/A      N/A
+ LAPA                 N/A       N/A     N/A       N/A         45.8       58.3       70.8     54.2     57.3
+ Ours w/o latent      56.3      25.8    27.3      36.5        31.3       74.6       61.7     28.3     49.0
+ Ours                 98.7      75.0    59.3      77.7        46.3       64.6       77.9     61.3     62.5
+
+
+Experimental Results Table 2 summarizes the success rates on both platforms. Our full model achieves
+the highest score on average success rate on the Google robot (77.7%) and the WidowX robot (62.5%).
+This improvement over VLA methods, which cannot exploit unlabelled video, demonstrates the benefit
+of incorporating human videos into policy learning. Moreover, our approach outperforms other video
+learning and latent-action methods, indicating that our specific mechanism for leveraging video data is
+more effective. Finally, the gap between our full model and the “villa-X w/o latent” ablation confirms
+that the latent-action expert is essential for achieving these gains.
+
+4.5   Evaluating villa-X on Real-world Robots
+To assess real-world generalization, we deploy villa-X on two platforms: a Realman arm with a gripper
+and an XArm with a 12-DoF XHand as shown in Figure 5.
+
+Realman robot arm with gripper We use a 6-DoF Realman RM 75 with a 1-DoF Inspire gripper, fine-
+tuning and evaluating on five tasks: Pick-in (pick the block into a bowl), Pick-out (pick the block out of a
+bowl), Stack (stack the block onto another block), Unstack (unstack the block from another block), and
+Push (push the block to a given location). The fine-tuning set contains 375 teleoperated trajectories (75
+per task); the object layout and table are fixed, while object positions vary.
+We conduct two sets of evaluation: In task evaluation, we remain the table setup the same as data
+collection; in generalization evaluation, we change the color of the block and table cover. For each task,
+we conduct 10 trials with distinct object positions; positions and lighting are identical across policies. As
+shown in Table 4, villa-X outperforms all baselines in both settings.
+
+Xarm robot arm with Xhand dexterous hand On the dexterous-hand platform, we use the Xhand, a
+12-DoF dexterous hand with five flexible fingers, mounted on a 7-DoF Xarm robot arm. Fine-tuning is
+performed on the Xhand Dataset [25], which comprises 4,000 trajectories spanning 13 task categories.
+Since no dexterous-hand data were used during pretraining, this evaluation can test embodiment transfer
+ability. We select five representative tasks—pick-and-place, cube stacking, cup upright placement, water
+pouring and ball flicking. The results are summarized in Table 3 for (i) seen tasks, where objects are
+randomly replaced or additional distractors are added, and (ii) unseen tasks, which use unseen objects or
+
+
+
+                                                                                                         8
+                             villa-X : A Vision-Language-Latent-Action Model
+
+
+
+
+Figure 5: Real-world robot evaluation platforms: (top) Realman robot arm platform with a gripper and
+(bottom) Xarm robot arm with Xhand dexterous hand. Platform setups are shown on the left, with
+corresponding evaluation tasks on the right.
+
+              Table 3: Evaluation on Xarm robot arm of villa-X and existing methods.
+
+                    Pick & Place         Stack Cube            Place Cup Upright        Pour Water        Flick Ball
+ Method
+                   seen      unseen   seen         unseen      seen       unseen    seen     unseen     seen       unseen
+ GR-1               56         40        15           5         0            0        0        0         40          10
+ GR00T              44         28        20           0        20            0        0        0         30           0
+ Ours w/o latent    72         60        70          40        40           30       40        10        50          30
+ Ours               84         68        75          50        60           30       60        30        50          40
+
+             Table 4: Evaluation on Realman robot arm of villa-X and existing methods.
+
+ Method            Pick in    Pick out    Push       Stack      Unstack     Change block color      Change table cover
+ GR00T               30          70           10          10        60             50                         30
+ Ours w/o latent     40          80           30          60         70            40                         30
+ Ours                30         100           50          50        100            60                         60
+
+
+backgrounds. The performances are evaluated under 50 runs for pick and place, 20 runs for stack cube
+and 10 runs for others. Table 3 demonstrates that our method outperforms existing baselines.
+
+
+5   Conclusion, Limitations, and Future Works
+In this paper, we presented villa-X, a novel Visual-Language-Latent-Action (ViLLA) framework that
+improves both the learning of latent actions and their incorporation into VLA pre-training. Our exper-
+iments demonstrate that our enhanced Latent Action Model learns higher-quality latent actions, and
+our improved policy model more effectively leverages these learned latents. The learned latent action
+expert can even generalize zero-shot to an unseen embodiment, showing strong generalization ability.
+Overall, our method exhibits superior performance in both simulated environments and real-world
+robotic tasks. One limitation is that the proposed latent expert, although effective at future planning
+through both visual and proprioceptive state planning, is not fully explored in this work. For example,
+future research could learn a critic with prior knowledge from foundation vision-language models,
+allowing multiple samples from the latent expert and rejecting planned trajectories that do not follow
+the language instruction. We leave this aspect as future work to further improve the capability of the
+ViLLA framework.
+
+
+
+
+                                                                                                                          9
+                             villa-X : A Vision-Language-Latent-Action Model
+
+
+References
+ [1] AgiBot-World-Contributors, Bu, Q., Cai, J., Chen, L., Cui, X., Ding, Y., Feng, S., Gao, S., He, X.,
+     Huang, X., Jiang, S., Jiang, Y., Jing, C., Li, H., Li, J., Liu, C., Liu, Y., Lu, Y., Luo, J., Luo, P., Mu, Y.,
+     Niu, Y., Pan, Y., Pang, J., Qiao, Y., Ren, G., Ruan, C., Shan, J., Shen, Y., Shi, C., Shi, M., Shi, M., Sima,
+     C., Song, J., Wang, H., Wang, W., Wei, D., Xie, C., Xu, G., Yan, J., Yang, C., Yang, L., Yang, S., Yao,
+     M., Zeng, J., Zhang, C., Zhang, Q., Zhao, B., Zhao, C., Zhao, J., and Zhu, J. Agibot world colosseo:
+     A large-scale manipulation platform for scalable and intelligent embodied systems. arXiv preprint
+     arXiv: 2503.06669, 2025.
+ [2] Belkhale, S., Cui, Y., and Sadigh, D. Hydra: Hybrid robot actions for imitation learning. arxiv, 2023.
+ [3] Beyer, L., Steiner, A., Pinto, A. S., Kolesnikov, A., Wang, X., Salz, D., Neumann, M., Alabdulmohsin,
+     I., Tschannen, M., Bugliarello, E., Unterthiner, T., Keysers, D., Koppula, S., Liu, F., Grycner, A.,
+     Gritsenko, A., Houlsby, N., Kumar, M., Rong, K., Eisenschlos, J., Kabra, R., Bauer, M., Bošnjak, M.,
+     Chen, X., Minderer, M., Voigtlaender, P., Bica, I., Balazevic, I., Puigcerver, J., Papalampidi, P., Henaff,
+     O., Xiong, X., Soricut, R., Harmsen, J., and Zhai, X. Paligemma: A versatile 3b vlm for transfer, 2024.
+     URL https://arxiv.org/abs/2407.07726.
+ [4] Black, K., Brown, N., Driess, D., Esmail, A., Equi, M., Finn, C., Fusai, N., Groom, L., Hausman, K.,
+     Ichter, B., Jakubczak, S., Jones, T., Ke, L., Levine, S., Li-Bell, A., Mothukuri, M., Nair, S., Pertsch, K.,
+     Shi, L. X., Tanner, J., Vuong, Q., Walling, A., Wang, H., and Zhilinsky, U. π0 : A vision-language-
+     action flow model for general robot control. arXiv preprint arXiv: 2410.24164, 2024.
+ [5] Brohan, A., Brown, N., Carbajal, J., Chebotar, Y., Dabis, J., Finn, C., Gopalakrishnan, K., Hausman,
+     K., Herzog, A., Hsu, J., Ibarz, J., Ichter, B., Irpan, A., Jackson, T., Jesmonth, S., Joshi, N. J., Julian, R. C.,
+     Kalashnikov, D., Kuang, Y., Leal, I., Lee, K.-H., Levine, S., Lu, Y., Malla, U., Manjunath, D., Mordatch,
+     I., Nachum, O., Parada, C., Peralta, J., Perez, E., Pertsch, K., Quiambao, J., Rao, K., Ryoo, M., Salazar,
+     G., Sanketi, P. R., Sayed, K., Singh, J., Sontakke, S., Stone, A., Tan, C., Tran, H., Vanhoucke, V., Vega,
+     S., Vuong, Q., Xia, F., Xiao, T., Xu, P., Xu, S., Yu, T., and Zitkovich, B. Rt-1: Robotics transformer for
+     real-world control at scale. Robotics: Science and Systems, 2022. doi: 10.48550/arXiv.2212.06817.
+ [6] Bruce, J., Dennis, M. D., Edwards, A., Parker-Holder, J., Shi, Y., Hughes, E., Lai, M., Mavalankar,
+     A., Steigerwald, R., Apps, C., et al. Genie: Generative interactive environments. In Forty-first
+     International Conference on Machine Learning, 2024.
+ [7] Bu, Q., Yang, Y., Cai, J., Gao, S., Ren, G., Yao, M., Luo, P., and Li, H. Univla: Learning to act
+     anywhere with task-centric latent actions, 2025. URL https://arxiv.org/abs/2505.06111.
+ [8] Chen, L. Y., Adebola, S., and Goldberg, K. Berkeley UR5 demonstration dataset. https://sites.
+     google.com/view/berkeley-ur5/home.
+ [9] Chen, X., Guo, J., He, T., Zhang, C., Zhang, P., Yang, D. C., Zhao, L., and Bian, J. Igor: Image-goal
+     representations are the atomic control units for foundation models in embodied ai. arXiv preprint
+     arXiv:2411.00785, 2024.
+[10] Chen, Y., Ge, Y., Li, Y., Ge, Y., Ding, M., Shan, Y., and Liu, X. Moto: Latent motion token as the
+     bridging language for robot manipulation. arXiv preprint arXiv: 2412.04445, 2024.
+[11] Chi, C., Xu, Z., Feng, S., Cousineau, E., Du, Y., Burchfiel, B., Tedrake, R., and Song, S. Diffusion
+     policy: Visuomotor policy learning via action diffusion. The International Journal of Robotics Research,
+     pp. 02783649241273668, 2023.
+[12] Collaboration, O. X.-E., O’Neill, A., Rehman, A., Maddukuri, A., Gupta, A., Padalkar, A., Lee, A.,
+     Pooley, A., Gupta, A., Mandlekar, A., Jain, A., Tung, A., Bewley, A., Herzog, A., Irpan, A., Khazatsky,
+     A., Rai, A., Gupta, A., Wang, A., Kolobov, A., Singh, A., Garg, A., Kembhavi, A., Xie, A., Brohan,
+     A., Raffin, A., Sharma, A., Yavary, A., Jain, A., Balakrishna, A., Wahid, A., Burgess-Limerick, B.,
+     Kim, B., Schölkopf, B., Wulfe, B., Ichter, B., Lu, C., Xu, C., Le, C., Finn, C., Wang, C., Xu, C., Chi,
+     C., Huang, C., Chan, C., Agia, C., Pan, C., Fu, C., Devin, C., Xu, D., Morton, D., Driess, D., Chen,
+     D., Pathak, D., Shah, D., Büchler, D., Jayaraman, D., Kalashnikov, D., Sadigh, D., Johns, E., Foster,
+     E., Liu, F., Ceola, F., Xia, F., Zhao, F., Frujeri, F. V., Stulp, F., Zhou, G., Sukhatme, G. S., Salhotra, G.,
+     Yan, G., Feng, G., Schiavi, G., Berseth, G., Kahn, G., Yang, G., Wang, G., Su, H., Fang, H.-S., Shi,
+     H., Bao, H., Amor, H. B., Christensen, H. I., Furuta, H., Walke, H., Fang, H., Ha, H., Mordatch, I.,
+
+
+                                                                                                                 10
+                            villa-X : A Vision-Language-Latent-Action Model
+
+
+     Radosavovic, I., Leal, I., Liang, J., Abou-Chakra, J., Kim, J., Drake, J., Peters, J., Schneider, J., Hsu, J.,
+     Bohg, J., Bingham, J., Wu, J., Gao, J., Hu, J., Wu, J., Wu, J., Sun, J., Luo, J., Gu, J., Tan, J., Oh, J., Wu,
+     J., Lu, J., Yang, J., Malik, J., Silvério, J., Hejna, J., Booher, J., Tompson, J., Yang, J., Salvador, J., Lim,
+     J. J., Han, J., Wang, K., Rao, K., Pertsch, K., Hausman, K., Go, K., Gopalakrishnan, K., Goldberg, K.,
+     Byrne, K., Oslund, K., Kawaharazuka, K., Black, K., Lin, K., Zhang, K., Ehsani, K., Lekkala, K., Ellis,
+     K., Rana, K., Srinivasan, K., Fang, K., Singh, K. P., Zeng, K.-H., Hatch, K., Hsu, K., Itti, L., Chen, L. Y.,
+     Pinto, L., Fei-Fei, L., Tan, L., Fan, L. J., Ott, L., Lee, L., Weihs, L., Chen, M., Lepert, M., Memmel, M.,
+     Tomizuka, M., Itkina, M., Castro, M. G., Spero, M., Du, M., Ahn, M., Yip, M. C., Zhang, M., Ding,
+     M., Heo, M., Srirama, M. K., Sharma, M., Kim, M. J., Kanazawa, N., Hansen, N., Heess, N., Joshi,
+     N. J., Suenderhauf, N., Liu, N., Palo, N. D., Shafiullah, N. M. M., Mees, O., Kroemer, O., Bastani,
+     O., Sanketi, P. R., Miller, P. T., Yin, P., Wohlhart, P., Xu, P., Fagan, P. D., Mitrano, P., Sermanet, P.,
+     Abbeel, P., Sundaresan, P., Chen, Q., Vuong, Q., Rafailov, R., Tian, R., Doshi, R., Mart’in-Mart’in, R.,
+     Baijal, R., Scalise, R., Hendrix, R., Lin, R., Qian, R., Zhang, R., Mendonca, R., Shah, R., Hoque, R.,
+     Julian, R., Bustamante, S., Kirmani, S., Levine, S., Lin, S., Moore, S., Bahl, S., Dass, S., Sonawani, S.,
+     Song, S., Xu, S., Haldar, S., Karamcheti, S., Adebola, S., Guist, S., Nasiriany, S., Schaal, S., Welker,
+     S., Tian, S., Ramamoorthy, S., Dasari, S., Belkhale, S., Park, S., Nair, S., Mirchandani, S., Osa, T.,
+     Gupta, T., Harada, T., Matsushima, T., Xiao, T., Kollar, T., Yu, T., Ding, T., Davchev, T., Zhao, T. Z.,
+     Armstrong, T., Darrell, T., Chung, T., Jain, V., Vanhoucke, V., Zhan, W., Zhou, W., Burgard, W., Chen,
+     X., Chen, X., Wang, X., Zhu, X., Geng, X., Liu, X., Liangwei, X., Li, X., Pang, Y., Lu, Y., Ma, Y. J., Kim,
+     Y., Chebotar, Y., Zhou, Y., Zhu, Y., Wu, Y., Xu, Y., Wang, Y., Bisk, Y., Dou, Y., Cho, Y., Lee, Y., Cui, Y.,
+     Cao, Y., Wu, Y.-H., Tang, Y., Zhu, Y., Zhang, Y., Jiang, Y., Li, Y., Li, Y., Iwasawa, Y., Matsuo, Y., Ma, Z.,
+     Xu, Z., Cui, Z. J., Zhang, Z., Fu, Z., and Lin, Z. Open X-Embodiment: Robotic learning datasets and
+     RT-X models. https://arxiv.org/abs/2310.08864, 2023.
+[13] Cui, Z. J., Wang, Y., Shafiullah, N. M. M., and Pinto, L. From play to policy: Conditional behavior
+     generation from uncurated robot data. arXiv preprint arXiv:2210.10047, 2022.
+[14] Cui, Z. J., Pan, H., Iyer, A., Haldar, S., and Pinto, L. Dynamo: In-domain dynamics pretraining
+     for visuo-motor control. In Globersons, A., Mackey, L., Belgrave, D., Fan, A., Paquet, U., Tom-
+     czak, J. M., and Zhang, C. (eds.), Advances in Neural Information Processing Systems 38: Annual
+     Conference on Neural Information Processing Systems 2024, NeurIPS 2024, Vancouver, BC, Canada,
+     December 10 - 15, 2024, 2024. URL http://papers.nips.cc/paper_files/paper/2024/hash/
+     3b8db54b629e00537b59cbc6612026d7-Abstract-Conference.html.
+[15] Damen, D., Doughty, H., Farinella, G. M., Fidler, S., Furnari, A., Kazakos, E., Moltisanti, D., Munro,
+     J., Perrett, T., Price, W., et al. The epic-kitchens dataset: Collection, challenges and baselines. IEEE
+     Transactions on Pattern Analysis and Machine Intelligence, 43(11):4125–4141, 2020.
+[16] Dass, S., Yapeter, J., Zhang, J., Zhang, J., Pertsch, K., Nikolaidis, S., and Lim, J. J. CLVR jaco play
+     dataset, 2023. URL https://github.com/clvrai/clvr_jaco_play_dataset.
+[17] Ebert, F., Yang, Y., Schmeckpeper, K., Bucher, B., Georgakis, G., Daniilidis, K., Finn, C., and Levine,
+     S. Bridge data: Boosting generalization of robotic skills with cross-domain datasets. arXiv preprint
+     arXiv:2109.13396, 2021.
+[18] Fang, H.-S., Fang, H., Tang, Z., Liu, J., Wang, J., Zhu, H., and Lu, C. Rh20t: A robotic dataset for
+     learning diverse skills in one-shot. In RSS 2023 Workshop on Learning for Task and Motion Planning,
+     2023.
+
+[19] Goyal, R., Ebrahimi Kahou, S., Michalski, V., Materzynska, J., Westphal, S., Kim, H., Haenel, V.,
+     Fruend, I., Yianilos, P., Mueller-Freitag, M., Hoppe, F., Thurau, C., Bax, I., and Memisevic, R. The
+     ”something something” video database for learning and evaluating visual common sense. In
+     Proceedings of the IEEE International Conference on Computer Vision (ICCV), Oct 2017.
+[20] Goyal, R., Kahou, S. E., Michalski, V., Materzyńska, J., Westphal, S., Kim, H., Haenel, V., Fruend, I.,
+     Yianilos, P., Mueller-Freitag, M., Hoppe, F., Thurau, C., Bax, I., and Memisevic, R. The ”something
+     something” video database for learning and evaluating visual common sense, 2017. URL https:
+     //arxiv.org/abs/1706.04261.
+[21] Grauman, K., Westbury, A., Byrne, E., Chavis, Z., Furnari, A., Girdhar, R., Hamburger, J., Jiang, H.,
+     Liu, M., Liu, X., Martin, M., Nagarajan, T., Radosavovic, I., Ramakrishnan, S. K., Ryan, F., Sharma, J.,
+
+
+                                                                                                               11
+                            villa-X : A Vision-Language-Latent-Action Model
+
+
+     Wray, M., Xu, M., Xu, E. Z., Zhao, C., Bansal, S., Batra, D., Cartillier, V., Crane, S., Do, T., Doulaty, M.,
+     Erapalli, A., Feichtenhofer, C., Fragomeni, A., Fu, Q., Fuegen, C., Gebreselasie, A., Gonzalez, C.,
+     Hillis, J., Huang, X., Huang, Y., Jia, W., Khoo, W., Kolar, J., Kottur, S., Kumar, A., Landini, F., Li, C.,
+     Li, Y., Li, Z., Mangalam, K., Modhugu, R., Munro, J., Murrell, T., Nishiyasu, T., Price, W., Puentes,
+     P. R., Ramazanova, M., Sari, L., Somasundaram, K., Southerland, A., Sugano, Y., Tao, R., Vo, M.,
+     Wang, Y., Wu, X., Yagi, T., Zhu, Y., Arbelaez, P., Crandall, D., Damen, D., Farinella, G. M., Ghanem,
+     B., Ithapu, V. K., Jawahar, C. V., Joo, H., Kitani, K., Li, H., Newcombe, R., Oliva, A., Park, H. S., Rehg,
+     J. M., Sato, Y., Shi, J., Shou, M. Z., Torralba, A., Torresani, L., Yan, M., and Malik, J. Ego4d: Around
+     the World in 3,000 Hours of Egocentric Video. In IEEE/CVF Computer Vision and Pattern Recognition
+     (CVPR), 2022.
+
+[22] Grauman, K., Westbury, A., Byrne, E., Chavis, Z., Furnari, A., Girdhar, R., Hamburger, J., Jiang, H.,
+     Liu, M., Liu, X., et al. Ego4d: Around the world in 3,000 hours of egocentric video. In Proceedings of
+     the IEEE/CVF Conference on Computer Vision and Pattern Recognition, pp. 18995–19012, 2022.
+[23] He, K., Zhang, X., Ren, S., and Sun, J. Deep residual learning for image recognition, 2015. URL
+     https://arxiv.org/abs/1512.03385.
+
+[24] Heo, M., Lee, Y., Lee, D., and Lim, J. J. Furniturebench: Reproducible real-world benchmark for
+     long-horizon complex manipulation. In Robotics: Science and Systems, 2023.
+[25] Hu, Y., Guo, Y., Wang, P., Chen, X., Wang, Y.-J., Zhang, J., Sreenath, K., Lu, C., and Chen, J. Video
+     prediction policy: A generalist robot policy with predictive visual representations. arXiv preprint
+     arXiv:2412.14803, 2024.
+[26] Jang, E., Irpan, A., Khansari, M., Kappler, D., Ebert, F., Lynch, C., Levine, S., and Finn, C. Bc-z:
+     Zero-shot task generalization with robotic imitation learning. In Conference on Robot Learning, pp.
+     991–1002. PMLR, 2022.
+[27] Kalashnikov, D., Irpan, A., Pastor, P., Ibarz, J., Herzog, A., Jang, E., Quillen, D., Holly, E., Kalakrish-
+     nan, M., Vanhoucke, V., et al. Qt-opt: Scalable deep reinforcement learning for vision-based robotic
+     manipulation. In CoRL, pp. 651–673, 2018.
+[28] Khazatsky, A., Pertsch, K., Nair, S., Balakrishna, A., Dasari, S., Karamcheti, S., Nasiriany, S., Srirama,
+     M. K., Chen, L. Y., Ellis, K., Fagan, P. D., Hejna, J., Itkina, M., Lepert, M., Ma, Y. J., Miller, P. T., Wu,
+     J., Belkhale, S., Dass, S., Ha, H., Jain, A., Lee, A., Lee, Y., Memmel, M., Park, S., Radosavovic, I.,
+     Wang, K., Zhan, A., Black, K., Chi, C., Hatch, K. B., Lin, S., Lu, J., Mercat, J., Rehman, A., Sanketi,
+     P. R., Sharma, A., Simpson, C., Vuong, Q., Walke, H. R., Wulfe, B., Xiao, T., Yang, J. H., Yavary, A.,
+     Zhao, T. Z., Agia, C., Baijal, R., Castro, M. G., Chen, D., Chen, Q., Chung, T., Drake, J., Foster, E. P.,
+     Gao, J., Herrera, D. A., Heo, M., Hsu, K., Hu, J., Jackson, D., Le, C., Li, Y., Lin, K., Lin, R., Ma, Z.,
+     Maddukuri, A., Mirchandani, S., Morton, D., Nguyen, T., O’Neill, A., Scalise, R., Seale, D., Son, V.,
+     Tian, S., Tran, E., Wang, A. E., Wu, Y., Xie, A., Yang, J., Yin, P., Zhang, Y., Bastani, O., Berseth, G.,
+     Bohg, J., Goldberg, K., Gupta, A., Gupta, A., Jayaraman, D., Lim, J. J., Malik, J., Martı́n-Martı́n, R.,
+     Ramamoorthy, S., Sadigh, D., Song, S., Wu, J., Yip, M. C., Zhu, Y., Kollar, T., Levine, S., and Finn, C.
+     Droid: A large-scale in-the-wild robot manipulation dataset. 2024.
+[29] Kim, M. J., Pertsch, K., Karamcheti, S., Xiao, T., Balakrishna, A., Nair, S., Rafailov, R., Foster, E.,
+     Lam, G., Sanketi, P., et al. Openvla: An open-source vision-language-action model. arXiv preprint
+     arXiv:2406.09246, 2024.
+
+[30] Kim, M. J., Finn, C., and Liang, P. Fine-tuning vision-language-action models: Optimizing speed
+     and success. arXiv preprint arXiv:2502.19645, 2025.
+[31] Li, Q., Liang, Y., Wang, Z., Luo, L., Chen, X., Liao, M., Wei, F., Deng, Y., Xu, S., Zhang, Y., et al.
+     Cogact: A foundational vision-language-action model for synergizing cognition and action in
+     robotic manipulation. arXiv preprint arXiv:2411.19650, 2024.
+[32] Li, X., Hsu, K., Gu, J., Mees, O., Pertsch, K., Walke, H. R., Fu, C., Lunawat, I., Sieh, I., Kirmani, S.,
+     Levine, S., Wu, J., Finn, C., Su, H., Vuong, Q., and Xiao, T. Evaluating real-world robot manipulation
+     policies in simulation. In Agrawal, P., Kroemer, O., and Burgard, W. (eds.), Conference on Robot
+     Learning, 6-9 November 2024, Munich, Germany, volume 270 of Proceedings of Machine Learning Research,
+     pp. 3705–3728. PMLR, 2024. URL https://proceedings.mlr.press/v270/li25c.html.
+
+
+                                                                                                            12
+                            villa-X : A Vision-Language-Latent-Action Model
+
+
+[33] Li, X., Hsu, K., Gu, J., Pertsch, K., Mees, O., Walke, H. R., Fu, C., Lunawat, I., Sieh, I., Kirmani, S.,
+     Levine, S., Wu, J., Finn, C., Su, H., Vuong, Q., and Xiao, T. Evaluating real-world robot manipulation
+     policies in simulation. arXiv preprint arXiv:2405.05941, 2024.
+[34] Li, X., Li, P., Liu, M., Wang, D., Liu, J., Kang, B., Ma, X., Kong, T., Zhang, H., and Liu, H. Towards
+     generalist robot policies: What matters in building vision-language-action models. arXiv preprint
+     arXiv:2412.14058, 2024.
+[35] Li, X., Liu, M., Zhang, H., Yu, C., Xu, J., Wu, H., Cheang, C., Jing, Y., Zhang, W., Liu, H., Li, H., and
+     Kong, T. Vision-language foundation models as effective robot imitators. In The Twelfth International
+     Conference on Learning Representations, ICLR 2024, Vienna, Austria, May 7-11, 2024. OpenReview.net,
+     2024. URL https://openreview.net/forum?id=lFYj0oibGR.
+[36] Li, Y., Liu, M., and Rehg, J. M. In the eye of beholder: Joint learning of gaze and actions in first
+     person video. In Proceedings of the European conference on computer vision (ECCV), pp. 619–635, 2018.
+[37] Li, Y., Cao, Z., Liang, A., Liang, B., Chen, L., Zhao, H., and Feng, C. Egocentric prediction of action
+     target in 3d. In Proceedings of the IEEE/CVF Conference on Computer Vision and Pattern Recognition
+     (CVPR), June 2022.
+[38] Liang, A., Czempin, P., Hong, M., Zhou, Y., Biyik, E., and Tu, S. Clam: Continuous latent action
+     models for robot learning from unlabeled demonstrations. arXiv preprint arXiv:2505.04999, 2025.
+[39] Liu, B., Zhu, Y., Gao, C., Feng, Y., Liu, Q., Zhu, Y., and Stone, P. Libero: Benchmarking knowledge
+     transfer for lifelong robot learning. arXiv preprint arXiv:2306.03310, 2023.
+[40] Liu, H., Nasiriany, S., Zhang, L., Bao, Z., and Zhu, Y. Robot learning on the job: Human-in-the-loop
+     autonomy and learning during deployment. In Robotics: Science and Systems (RSS), 2023.
+[41] Liu, S., Wu, L., Li, B., Tan, H., Chen, H., Wang, Z., Xu, K., Su, H., and Zhu, J. Rdt-1b: a diffusion
+     foundation model for bimanual manipulation. arXiv preprint arXiv: 2410.07864, 2024.
+[42] Liu, Y., Liu, Y., Jiang, C., Lyu, K., Wan, W., Shen, H., Liang, B., Fu, Z., Wang, H., and Yi, L. Hoi4d: A
+     4d egocentric dataset for category-level human-object interaction. In Proceedings of the IEEE/CVF
+     Conference on Computer Vision and Pattern Recognition (CVPR), pp. 21013–21022, June 2022.
+[43] Luo, J., Xu, C., Liu, F., Tan, L., Lin, Z., Wu, J., Abbeel, P., and Levine, S. Fmb: a functional
+     manipulation benchmark for generalizable robotic learning. arXiv preprint arXiv:2401.08553, 2024.
+[44] Lynch, C., Wahid, A., Tompson, J., Ding, T., Betker, J., Baruch, R., Armstrong, T., and Florence, P.
+     Interactive language: Talking to robots in real time. IEEE Robotics and Automation Letters, 2023.
+[45] Mees, O., Borja-Diaz, J., and Burgard, W. Grounding language with visual affordances over
+     unstructured data. In Proceedings of the IEEE International Conference on Robotics and Automation
+     (ICRA), London, UK, 2023.
+[46] Mendonca, R., Bahl, S., and Pathak, D. Structured world models from human videos. CoRL, 2023.
+[47] Mu, Y., Zhang, Q., Hu, M., Wang, W., Ding, M., Jin, J., Wang, B., Dai, J., Qiao, Y., and Luo, P.
+     Embodiedgpt: Vision-language pre-training via embodied chain of thought. Advances in Neural
+     Information Processing Systems, 36:25081–25094, 2023.
+[48] Nasiriany, S., Gao, T., Mandlekar, A., and Zhu, Y. Learning and retrieval from prior data for
+     skill-based imitation learning. In Conference on Robot Learning (CoRL), 2022.
+[49] Nikulin, A., Zisman, I., Tarasov, D., Lyubaykin, N., Polubarov, A., Kiselev, I., and Kurenkov,
+     V. Latent action learning requires supervision in the presence of distractors, 2025. URL https:
+     //arxiv.org/abs/2502.00379.
+[50] NVIDIA, :, Bjorck, J., Castañeda, F., Cherniadev, N., Da, X., Ding, R., Fan, L. J., Fang, Y., Fox, D.,
+     Hu, F., Huang, S., Jang, J., Jiang, Z., Kautz, J., Kundalia, K., Lao, L., Li, Z., Lin, Z., Lin, K., Liu, G.,
+     Llontop, E., Magne, L., Mandlekar, A., Narayan, A., Nasiriany, S., Reed, S., Tan, Y. L., Wang, G.,
+     Wang, Z., Wang, J., Wang, Q., Xiang, J., Xie, Y., Xu, Y., Xu, Z., Ye, S., Yu, Z., Zhang, A., Zhang, H.,
+     Zhao, Y., Zheng, R., and Zhu, Y. Gr00t n1: An open foundation model for generalist humanoid
+     robots. arXiv preprint arXiv: 2503.14734, 2025.
+
+
+                                                                                                           13
+                            villa-X : A Vision-Language-Latent-Action Model
+
+
+[51] NVIDIA, :, Bjorck, J., Castañeda, F., Cherniadev, N., Da, X., Ding, R., Fan, L. J., Fang, Y., Fox, D.,
+     Hu, F., Huang, S., Jang, J., Jiang, Z., Kautz, J., Kundalia, K., Lao, L., Li, Z., Lin, Z., Lin, K., Liu, G.,
+     Llontop, E., Magne, L., Mandlekar, A., Narayan, A., Nasiriany, S., Reed, S., Tan, Y. L., Wang, G.,
+     Wang, Z., Wang, J., Wang, Q., Xiang, J., Xie, Y., Xu, Y., Xu, Z., Ye, S., Yu, Z., Zhang, A., Zhang, H.,
+     Zhao, Y., Zheng, R., and Zhu, Y. Gr00t n1: An open foundation model for generalist humanoid
+     robots, 2025. URL https://arxiv.org/abs/2503.14734.
+[52] Octo Model Team, Ghosh, D., Walke, H., Pertsch, K., Black, K., Mees, O., Dasari, S., Hejna, J., Xu,
+     C., Luo, J., Kreiman, T., Tan, Y., Chen, L. Y., Sanketi, P., Vuong, Q., Xiao, T., Sadigh, D., Finn, C.,
+     and Levine, S. Octo: An open-source generalist robot policy. In Proceedings of Robotics: Science and
+     Systems, Delft, Netherlands, 2024.
+[53] Pei, B., Huang, Y., Xu, J., Chen, G., He, Y., Yang, L., Wang, Y., Xie, W., Qiao, Y., Wu, F., and Wang, L.
+     Modeling fine-grained hand-object dynamics for egocentric video representation learning, 2025.
+     URL https://arxiv.org/abs/2503.00986.
+[54] Pertsch, K., Stachowicz, K., Ichter, B., Driess, D., Nair, S., Vuong, Q., Mees, O., Finn, C., and Levine, S.
+     Fast: Efficient action tokenization for vision-language-action models. arXiv preprint arXiv:2501.09747,
+     2025.
+[55] Qu, D., Song, H., Chen, Q., Yao, Y., Ye, X., Ding, Y., Wang, Z., Gu, J., Zhao, B., Wang, D., and
+     Li, X. Spatialvla: Exploring spatial representations for visual-language-action model, 2025. URL
+     https://arxiv.org/abs/2501.15830.
+[56] Quere, G., Hagengruber, A., Iskandar, M., Bustamante, S., Leidner, D., Stulp, F., and Vogel, J. Shared
+     Control Templates for Assistive Robotics. In 2020 IEEE International Conference on Robotics and
+     Automation (ICRA), pp. 7, Paris, France, 2020.
+[57] Ren, A. Z. open-pi-zero: Re-implementation of π0 vision–language–action model, 2025. URL
+     https://github.com/allenzren/open-pi-zero.
+[58] Rosete-Beas, E., Mees, O., Kalweit, G., Boedecker, J., and Burgard, W. Latent plans for task agnostic
+     offline reinforcement learning. In Proceedings of the 6th Conference on Robot Learning (CoRL), 2022.
+[59] Schmidt, D. and Jiang, M. Learning to act without actions. arXiv preprint arXiv:2312.10812, 2023.
+[60] Shafiullah, N. M. M., Rai, A., Etukuru, H., Liu, Y., Misra, I., Chintala, S., and Pinto, L. On bringing
+     robots home, 2023.
+[61] Walke, H., Black, K., Lee, A., Kim, M. J., Du, M., Zheng, C., Zhao, T., Hansen-Estruch, P., Vuong, Q.,
+     He, A., Myers, V., Fang, K., Finn, C., and Levine, S. Bridgedata v2: A dataset for robot learning at
+     scale. In Conference on Robot Learning (CoRL), 2023.
+[62] Wang, J., Zhang, Q., Chao, Y.-W., Wen, B., Guo, X., and Xiang, Y. Ho-cap: A capture system
+     and dataset for 3d reconstruction and pose tracking of hand-object interaction, 2024. URL https:
+     //arxiv.org/abs/2406.06843.
+[63] Wang, L., Chen, X., Zhao, J., and He, K. Scaling proprioceptive-visual learning with heterogeneous
+     pre-trained transformers. In Globerson, A., Mackey, L., Belgrave, D., Fan, A., Paquet, U., Tomczak,
+     J., and Zhang, C. (eds.), Advances in Neural Information Processing Systems, volume 37, pp. 124420–
+     124450. Curran Associates, Inc., 2024. URL https://proceedings.neurips.cc/paper_files/
+     paper/2024/file/e0f393e7980a24fd12fa6f15adfa25fb-Paper-Conference.pdf.
+[64] Wang, X., Kwon, T., Rad, M., Pan, B., Chakraborty, I., Andrist, S., Bohus, D., Feniello, A., Tekin, B.,
+     Frujeri, F. V., Joshi, N., and Pollefeys, M. Holoassist: an egocentric human interaction dataset for
+     interactive ai assistants in the real world. In Proceedings of the IEEE/CVF International Conference on
+     Computer Vision (ICCV), pp. 20270–20281, October 2023.
+[65] Xu, M., Dai, W., Liu, C., Gao, X., Lin, W., Qi, G.-J., and Xiong, H. Spatial-temporal transformer
+     networks for traffic flow forecasting. arXiv preprint arXiv: 2001.02908, 2020.
+[66] Yang, J., Shi, Y., Zhu, H., Liu, M., Ma, K., Wang, Y., Wu, G., He, T., and Wang, L. Como: Learning
+     continuous latent motion from internet videos for scalable robot learning, 2025. URL https:
+     //arxiv.org/abs/2505.17006.
+
+
+                                                                                                           14
+                            villa-X : A Vision-Language-Latent-Action Model
+
+
+[67] Yang, J., Tan, R., Wu, Q., Zheng, R., Peng, B., Liang, Y., Gu, Y., Cai, M., Ye, S., Jang, J., et al. Magma:
+     A foundation model for multimodal ai agents. In Proceedings of the Computer Vision and Pattern
+     Recognition Conference, pp. 14203–14214, 2025.
+[68] Ye, S., Jang, J., Jeon, B., Joo, S., Yang, J., Peng, B., Mandlekar, A., Tan, R., Chao, Y.-W., Lin, B. Y.,
+     Liden, L., Lee, K., Gao, J., Zettlemoyer, L., Fox, D., and Seo, M. Latent action pretraining from
+     videos. arXiv preprint arXiv: 2410.11758, 2024.
+[69] Zhang, C., Pearce, T., Zhang, P., Wang, K., Chen, X., Shen, W., Zhao, L., and Bian, J. What do latent
+     action models actually learn?, 2025. URL https://arxiv.org/abs/2506.15691.
+
+[70] Zhao, Q., Lu, Y., Kim, M. J., Fu, Z., Zhang, Z., Wu, Y., Li, Z., Ma, Q., Han, S., Finn, C., Handa, A.,
+     Liu, M.-Y., Xiang, D., Wetzstein, G., and Lin, T.-Y. Cot-vla: Visual chain-of-thought reasoning for
+     vision-language-action models. arXiv preprint arXiv: 2503.22020, 2025.
+[71] Zheng, R., Liang, Y., Huang, S., Gao, J., Daumé III, H., Kolobov, A., Huang, F., and Yang, J. Tracevla:
+     Visual trace prompting enhances spatial-temporal awareness for generalist robotic policies. arXiv
+     preprint arXiv:2412.10345, 2024.
+
+
+
+
+                                                                                                          15
+                           villa-X : A Vision-Language-Latent-Action Model
+
+
+A      Additional Implementation Details for LAM
+In this appendix, we provide extended information on the architecture, training protocols, and inference
+behavior for our Latent Action Model (LAM).
+
+A.1     Architecture Overview
+Our LAM comprises four main modules:
+    (i) Spatial–Temporal Transformer (ST-Transformer) Inverse Dynamics Model (IDM): Takes a video
+        clip (by default, 8 × 224 × 224) as input. We employ patch embedding with a patch size of 14 and
+        stack 12 ST-blocks [65], each with a hidden dimension of 768 and 32 attention heads.
+ (ii) Vector Quantization (VQ) Module: Maps the continuous IDM outputs to discrete latent tokens,
+      each associated with a codebook entry. We set the codebook size to 32. While the model inter-
+      nally uses discrete token indices during training, the continuous codebook centers are used in
+      downstream modules.
+ (iii) Image Reconstruction Forward Dynamics Model (FDM): A 12-layer Vision Transformer (ViT)-base
+       network that takes the current frame ot and a latent action zt to predict ôt+K .
+ (iv) Proprioceptive Forward Dynamics Model (proprio-FDM): A 2-layer MLP with dual output heads
+      to predict future robot states q̂t+i and low-level robot actions ât+i . This module takes the current
+      robot state qt , the latent zt , and an embodiment context vector ce .
+Rather than predicting a single latent action per pair of frames, the ST-Transformer-based IDM processes
+a sequence of TLAM frames, resulting in TLAM − 1 latent tokens. We use TLAM = 8. By reconstructing
+future frames with the FDM and future states/actions with the proprio-FDM, the model learns a latent
+representation that is both visually and physically grounded.
+
+A.2     Training Details
+We train our LAM on a combination of human egocentric data (e.g., Ego4D [21]) and robot trajectories
+(e.g., OpenX [12]). Samples lacking low-level robot annotations (e.g., human videos) exclude the proprio-
+FDM branch, using only the visual FDM objective.
+
+Hyperparameters. We use a batch size of 512 and a learning rate of 1.5 × 10−4 , with a 2000-step linear
+warmup. Training lasts approximately 4 days on 128 NVIDIA A100 GPUs. Both the visual FDM and
+proprio-FDM share the same weighting in the overall loss. Throughout training, each latent token is
+discretized via the VQ module but is represented by its continuous codebook center in subsequent
+network components.
+
+A.3     Inference Behavior and Diagnostics
+During inference, only the IDM is required to extract latent tokens from consecutive frames. The
+FDM and proprio-FDM are typically retained for diagnostic and visualization purposes, allowing us to
+examine whether the learned latent tokens accurately capture future frame content, robot states, and
+actions. This reconstruction-based analysis aids in understanding and debugging the physical grounding
+of the latent representation.
+
+
+B      Additional Implementation Details for Actor Module
+Our VLA model comprises three components. First, the vision–language encoder is based on PaliGemma
+[3], a 3B-parameter VLM pretrained with 224 × 224 images and 128-token text inputs. Second and
+third, the latent-action expert and the robot-action expert are each implemented as 18-layer Transformer
+networks, mirroring PaliGemma’s design, with a hidden dimension of 1,024 and 8 attention heads. For
+the latent action sequence, we select a sequence length of N = 6, and for the robot actions, we select a
+sequence length of M = 4.
+
+
+
+
+                                                                                                       16
+                          villa-X : A Vision-Language-Latent-Action Model
+
+
+We extend our policy head with a variant of HPT [63], assigning each embodiment its own pair of state-
+and action-projection layers while sharing all other parameters. Visual features from the wrist camera are
+extracted by a pretrained ResNet-18 [23] and fused into the main model via a shared cross-attention head
+that maps the ResNet features into 16 tokens. During training, wrist-view inputs are randomly masked
+50% of the time. We also observed that the latent-action representation can be overly exploited by the
+robot-action expert, so we regularize this with two complementary dropout schemes. First, we add a 50%
+attention-weight dropout on the latent-action stream. For the remaining tokens, we randomly mask 50%
+latent action tokens. This combined masking strategy encourages the model to learn robust, generalizable
+policy that will balance the predicted latent actions as well as the input image and instruction. During
+training, we sample τ from different beta distributions for latent actions and robot actions, which biases
+the timesteps for latent actions towards the noisier regime. Each expert contains approximately 300
+M parameters and is trained from scratch. We train all components jointly using a learning rate of
+5e − 5 with a 200-step linear warmup. We clip gradients to a maximum norm of 1.0 to ensure stable
+optimization. The pretraining takes 4 days on 64 NVIDIA A100 GPUs.
+
+
+C     Dataset
+C.1    Data Mixture
+We curated a data mixture by combining both robot data and action-free human videos for our pretraining
+phase. For robot data, we draw primarily from OpenX [12] mixture and AgiBot [1]. For OpenX dataset,
+our base data mixture is created primarily based on [29, 52]. In total, we use 1.6M trajectories with
+223.5M frames of robot data. For human videos, we use a mixture of Ego4D [21], EgoPAT3D [37], EGTEA
+Gaze+ [36], EPIC-KITCHENS [15], HO-Cap [62], HOI4D [42], HoloAssist [64], RH20T [18], Something
+Something V2 [20]. Altogether, this yields 3.6M clips of human videos. During LAM pretraining,
+we exclusively utilize the primary third-person camera view. For policy pretraining, we optionally
+incorporate the wrist-mounted view (when available), applying a 50% dropout. A full breakdown of our
+data mixture is listed in Table 5.
+
+C.2    Data Preprocessing
+For data cleaning, we adopt EgoHOD [53], a curated subset of Ego4D [21], and further filter the videos
+based on visual quality to ensure high-quality inputs for training. For both robot data and human videos,
+we apply random adjustments to brightness, contrast, saturation, and hue as data augmentation. In the
+case of robot data, we represent both proprioceptive states and actions using euler angles.
+
+
+D     LAM visualization and More Ablations
+D.1    Image Pairs with Similar Latent Actions
+Figure 6 visualizes image pairs sharing the same latent action, demonstrating that these pairs correspond
+to similar underlying robot behaviors.
+The results demonstrate that similar latent actions represent the similar robot behaviors and low-level
+actions, in regardless of which embodiment (including human and different robots) is executing such
+action. This results support that villa-X learns cross-embodiment prior knowledge for manipulations
+with latent actions.
+
+D.2 Transfer Video Demonstrations into Robot Actions through LAM and Proprio
+    FDM
+To further demonstrate the transfer ability of our LAM, we extract latent actions from videos of task
+demonstrations, map them to robot actions using the proprio FDM, and execute the resulting robot
+actions in the SIMPLER simulator.
+The results are presented in Figure 7 and Figure 8. In each figure, the top row shows the video demonstra-
+tions used by LAM to extract latent actions, while the bottom row displays the corresponding SIMPLER
+simulation results, where real actions decoded from the latent actions using proprioceptive FDM are
+
+
+                                                                                                    17
+                           villa-X : A Vision-Language-Latent-Action Model
+
+
+
+                                          Dataset                   Mix Ratio (%)
+                                  RT-1 Robot Action [5]                  9.70
+                                  AgiBot World Beta [1]                  20.0
+                                        Kuka [27]                        1.97
+                                     Bridge [17, 61]                    5.47
+                                    Taco Play [45, 58]                   0.76
+                                      Jaco Play [16]                     0.12
+                                Berkely Autolab UR5 [8]                  0.31
+                                   Language Table [44]                   0.11
+                               Stanford Hydra Dataset [2]                1.61
+                             NYU Franka Play Dataset [13]                0.22
+                              Furniture Bench Dataset [24]               0.63
+                                Austin Sailor Dataset [48]               0.57
+                                Austin Sirius Dataset [40]               0.45
+                                        BC-Z [26]                        3.47
+                            DLR EDAN Shared Control [56]                 0.01
+                                    CMU Stretch [46]                     0.04
+                                    FMB Dataset [43]                     0.73
+                                       DobbE [60]                        0.37
+                                       DROID [28]                        3.46
+                                     Ego4D [22, 53]                     21.46
+                                     EgoPAT3D [37]                       0.94
+                                   EGTEA Gaze+ [36]                      0.89
+                                  EPIC-KITCHENS [15]                     6.95
+                                      HO-Cap [62]                        0.63
+                                       HOI4D [42]                        1.99
+                                     HoloAssist [64]                     4.77
+                                       RH20T [18]                        5.56
+                             Something-Something V2 [19]                 6.82
+
+                 Table 5: Our training data mixture used during the pretraining phase.
+
+
+executed. Specifically, Figure 7 illustrates robot-to-robot transfer, and Figure 8 illustrates human-to-robot
+transfer. The simulated motions closely reproduce the original demonstrations, indicating that latent
+actions learned by villa-X are both aligned with and grounded in the robot’s actions.
+
+D.3    More Ablations on LAM
+To validate the contribution of the embodiment context in our proprio-FDM, we further conducted an
+ablation study comparing our full method (”Ours”) against a version without the context (”Ours w/o
+context”). Both models were trained on 10
+(1) Performance on validation dataset: We measured the reconstruction loss of visual FDM and proprio
+FDM on the validation set:
+
+                       Method                 Visual FDM loss (↓)   Proprio FDM loss (↓)
+                       Ours w/o context              0.068                 0.078
+                       Ours                          0.057                 0.070
+                       Relative improvement         16.2%                  10.3%
+
+                         Table 6: Performance comparison on the validation set.
+
+(2) Zero-Shot Generalization to a Novel Embodiment: We evaluated the model on our dataset collected
+on our Realman robot arm dataset (from Section 4.4), an embodiment completely unseen during training.
+We then conducted the action probing experiment described in Section 4.1 by inferring latent actions
+with IDM and training a new MLP to predict robot actions from the latent actions.
+The results from both experiments demonstrate that the embodiment context improves performance and
+
+
+                                                                                                        18
+                               villa-X : A Vision-Language-Latent-Action Model
+
+
+
+
+         Grasp Things                    Pick Things Up                   Move Left                      Move Right
+                        Figure 6: Visualization of image pairs with similar latent actions.
+
+    Method                  Probing loss (↓)    Probing loss (xyz) (↓)   Probing loss (rot) (↓)   Probing loss (gripper) (↓)
+    Ours w/o context             0.165                    0.0675                0.00861                     0.928
+    Ours                         0.152                    0.0574                0.00619                     0.873
+    Relative improvement         7.9%                     15.0%                 28.1%                       5.9%
+
+                           Table 7: Zero-shot generalization to an unseen embodiment.
+
+
+aids generalization to novel embodiments. We hypothesize that while the visual FDM provides general
+transferability by aligning latent actions with visual changes, the proprio-FDM grounds these latent
+actions in robot physical dynamics. However, due to data heterogeneity (e.g., different action definitions
+/ controllers, as discussed previously), the model requires the embodiment context to disambiguate
+different embodiments and learn a more consistent, grounded latent action space.
+
+
+E      Latent Action Expert Visualization
+In this experiment, we demonstrate the performance of the latent expert by passing its prediction through
+the image reconstruction FDM that takes the latent action as inputs and predicts the future observations,
+which forms a simulated environment for the iteratively executing the latent expert.
+Starting from a single initial image, the latent expert and image reconstruction FDM jointly generate
+different behaviors in videos that follow diverse instructions using only latent actions. We experiment
+with initial images from RT-1 and Bridge dataset, and show the image clips of generated videos in
+Figure 9 and Figure 10 with different language instructions. The results show that the latent expert
+properly follows the language instructions for task solving, where the latent expert properly recognizes
+the target objects and predict latent actions that move towards the target object.
+
+
+F      More Ablations on policy model
+We primarily conducted ablation studies on two main components: (1) the attention mask and (2) the
+embodiment context. Our experiments follow the same setting as Table 1 in the main paper. The ablation
+results below show that both the attention mask and embodiment context are effective in improving
+performance on two robot platforms: Google Robot and WidowX Robot.
+
+
+
+
+                                                                                                                         19
+                          villa-X : A Vision-Language-Latent-Action Model
+
+
+
+
+                                             Original Video
+
+
+
+
+                                            SIMPLER Rollout
+
+
+
+
+                                             Original Video
+
+
+
+
+                                            SIMPLER Rollout
+
+Figure 7: Transfer robot video demonstrations into robot actions through LAM and proprio FDM in
+SIMPLER simulator. Upper: the SIMPLER rollout closely reproduce the motion of moving downwards,
+Bottom: the SIMPLER rollout closely reproduce the motion of moving right.
+
+
+G     Simulation Evaluation Details
+G.1    SIMPLER Benchmark
+We evaluate on all eight SIMPLER [33] tasks in the visual matching setting, which include two robot
+platforms: Google Robot and WidowX.
+For Google Robot, the tasks are: (1) pick coke can (including horizontal, vertical and standing can
+configurations); (2) move an object near a target object; (3) open / close top, middle or bottom drawer;
+and (4) place apple in a closed drawer, which includes two subtasks: first open top drawer, and then
+place the apple into the top drawer. On the widowX setup, the tasks consist of: (1) put a carrot on the
+plate; (2) put an eggplant on the basket; (3) put a spoon on the towel; (4) stack a green cube on a yellow
+one.
+We follow the standard evaluation protocol to test by randomizing both configurations of the environ-
+ments. For the Google Robot tasks, we execute 300 trials of “Pick Coke Can”, 240 of “Move Near”, 216 of
+“Open/Close Drawer”, and 108 of “Place Apple in Closed Drawer”. For each WidowX task, we use 24
+unique configurations. To ensure statistical significance, we test each configuration 10 times, yielding
+240 rollouts per task. Reported results (Table 2) are the average success rates across these trials. Please
+
+
+                                                                                                     20
+                          villa-X : A Vision-Language-Latent-Action Model
+
+
+Table 8: Ablation study results for the policy model. The first columns (Pick, Move, Drawer, Place) refer
+to the Google Robot, and the last columns (Carrot, Eggplant, Spoon, Cube) refer to the WidowX Robot.
+All numbers are success rates (%).
+
+  Method               Pick    Move    Drawer       Avg.     Carrot     Eggplant   Spoon    Cube    Avg.
+  Ours                 81.7     55.4       38.4     58.5      24.2        71.7      48.3     19.2   40.8
+  Ours w/o mask        80.3     30.6       48.8     53.2      18.3        52.5      38.3     26.7   34.0
+  Ours w/o context     86.6     21.3       39.3     49.1      28.3        67.5      25.8     32.5   38.5
+
+
+refer to SIMPLER [33] for more details.
+For a fair comparison, we adopt the published performance metrics for RT-1-X [12], Octo-base [52],
+OpenVLA [29], RoboVLMs [34], MoTo [10], and LAPA [68] directly from their respective papers. In
+the case of GR00T [51], we use the official pretrained checkpoint and performe fine-tuning on the
+RT-1/Bridge dataset following the authors’ published guidelines accordingly.
+
+
+H     LIBERO Benchmark
+The LIBERO benchmark [39] evaluates knowledge transfer in multitask and lifelong robot learning
+problems for robotic manipulation, consisting of four task suites: LIBERO-Spatial evaluates the model’s
+performance under novel layouts with the same task and object types, LIBERO-Goal evaluates the
+model’s performance under novel tasks with the same object types and layouts, LIBERO-Object evalu-
+ates the model’s performance under novel object types with the same tasks and layouts, LIBERO-Long
+evaluates the model’s performance under diverse set of objects, layouts and backgrounds. Each task
+suite contains 10 tasks with 50 human demonstrations per task for fine-tuning.
+
+Baselines and Experimental Setup We compare with the following existing models: Diffusion Pol-
+icy [11] trained from scratch, Octo [52], OpenVLA [29], π0 [4], π0 FAST [54], TraceVLA [71] and Spa-
+tialVLA [55]. For π0 , we use the open source version [57] and the same training set as our model. All
+models follow a two-stage pretraining-finetuning protocol. We finetune villa-X and villa-X w/o
+latent on the demonstration data of the each task suite separately, and test on the LIBERO simulator for
+10 tasks and 20 trials per task on each task suite.
+
+Experimental Results Table 9 summarizes the success rates on each task suite of LIBERO. Our model
+achieves better performance than existing methods in all the four task suites. Also, our model with latent
+action achieves higher performance on all the four task suites and average performance, confirming that
+the proposed latent action expert improves the manipulation performance.
+
+            Table 9: Evaluation on 4 LIBERO task suites of villa-X and existing methods.
+
+           Method                         Spatial   Object      Goal      Long     Average
+           Diffusion Policy [11]           78.3       92.5       68.3      50.5      72.4
+           Octo-base [52]                  78.9       85.7       84.6      51.1      75.1
+           OpenVLA [29]                    84.7       88.4       79.2      53.7      76.5
+           π0 (reimplement [57])           88.0       88.5       87.0      61.0      81.1
+           π0 -FAST [54]                   96.4       96.8       88.6      60.2      85.5
+           TraceVLA [71]                   84.6       85.2       75.1      54.1      74.8
+           SpatialVLA [55]                 88.2       89.9       78.6      55.5      78.1
+           Ours w/o latent                 86.0       86.5       85.0      70.0      81.9
+           Ours                            97.5       97.0       91.5      74.5      90.1
+
+
+
+
+                                                                                                      21
+                            villa-X : A Vision-Language-Latent-Action Model
+
+
+I      Real-world Robot Platforms Evaluation Details
+I.1     Realman robot arm
+The Realman robot arm setup is shown in Figure 5 (upper). We mount the gripper for Inspire Robot to
+the Realman RM75 robot arm. We use two camera views, including a primary view camera with the
+same view point as the images (used to demonstrate different tasks) shown in Figure 5 (upper) and a
+wrist camera. For fine-tuning of our models, we reinitialize the linear state encoder, action encoder, and
+action decoder, and tune the full parameters (except for the vision encoder). We fine-tune all the models
+for 60k gradient steps.
+We collect data on the following five tasks with their task instructions:
+      • Put-in: “Pick the green block from the table into the blue bowl”
+      • Put-out: “Pick the green block from the blue bowl onto the table”
+      • Push: “Push the green block to position X” where “X” indicates the nine positions written on the
+        table.
+      • Stack: “Stack the wooden block onto the green block”
+      • Unstack: “Unstack the wooden block from the green block”
+We collect 375 trajectories (75 trajectories for each task) for fine-tuning. The trajectories are collected at
+10Hz. We post-process these trajectories to remove static frames with zero action, resulting in 120 steps
+on average in one trajectory.
+We evaluate the fine-tuned model on seven groups with 10 trials for each group. The first five groups
+contain the tasks the same as data collection. The last two groups are designed to evaluate the general-
+ization ability of the models. For the “change block color” group, we repeat the previous five tasks but
+change the green block into blue and red ones. For the “change table cover” group, we change the table
+cover from red to brown and blue ones.
+The visualization example of each task for our model can be found in Figure 11.
+
+I.2     XHand dexterous hand
+The Xhand setup is shown in Figure 5 (lower). The 12-dof Xhand is mounted on a 7-dof XArm robot arm.
+There are two camera views, including a main 3-rd view camera, and a wrist camera. During fine-tuning,
+we reinitialize linear encoder and decoder modules for both state and action to accommodate the hand’s
+higher dimensionality.
+We use the dataset collected in [25] as our finetuning dataset, which comprises roughly 4,000 trajectories
+spanning 13 task categories and over 50 unique objects. For evaluation, we focus on five representative
+XHand tasks as depicted in Figure 5, namely pick-and-place, cube stacking, upright cup placement,
+water pouring, and ball flicking. Each task is assessed under “seen” and “unseen” conditions: in the seen
+setting, the same objects and backgrounds encountered during training are used, albeit with randomized
+tabletop positions and optional distractors; in the unseen setting, either the target objects or the scene
+background (or both) were never encountered during finetuning, totaling more than 20 novel objects.
+During evaluation, we conducted 50 evaluation runs for the pick-and-place task, 20 runs for cube
+stacking, and 10 runs for each of the remaining tasks. The visualization example of each task can be
+found in Figure 12 and Figure 13.
+
+
+
+
+                                                                                                         22
+                        villa-X : A Vision-Language-Latent-Action Model
+
+
+
+
+                                          Original Video
+
+
+
+
+                                        SIMPLER Rollout
+
+
+
+
+                                          Original Video
+
+
+
+
+                                        SIMPLER Rollout
+
+
+
+
+                                          Original Video
+
+
+
+
+                                         SIMPLER Rollout
+
+Figure 8: Transfer human video demonstrations into robot actions through LAM and proprio FDM in
+SIMPLER simulator. Upper: the SIMPLER rollout closely reproduce the motion of moving right; Middle:
+the SIMPLER rollout closely reproduce the motion of moving forward and backward; Bottom: the
+SIMPLER rollout closely reproduce the motion of moving right.
+
+
+                                                                                              23
+                            villa-X : A Vision-Language-Latent-Action Model
+
+
+
+
+                                                   Move the cone to the left side
+
+
+
+
+            Initial Frame
+
+
+                                                  Move the cone to the upper side
+
+
+
+
+                                                          Pick up the pot
+
+
+
+
+            Initial Frame
+
+
+                                                       Pick up the red object
+
+
+
+
+                                                 Move the blue spoon into the bowl
+
+
+
+
+            Initial Frame
+
+
+                                                         Pick up the spoon
+
+
+
+Figure 9: Generated image sequence jointly by the latent expert and the world model via latent actions,
+following different instructions from the same initial image (Part I).
+
+
+
+
+                                                                                                  24
+                            villa-X : A Vision-Language-Latent-Action Model
+
+
+
+
+                                                        Open bottom drawer
+
+
+
+
+            Initial Frame
+
+
+                                                         Open middle drawer
+
+
+
+
+                                                         Close middle drawer
+
+
+
+
+            Initial Frame
+
+
+                                                 Pick pesi can from the middle drawer
+
+
+
+
+                                                          Close top drawer
+
+
+
+
+            Initial Frame
+
+
+                                                 Pick brown chip bag from top drawer
+
+
+
+Figure 10: Generated image sequence jointly by the latent expert and the world model via latent actions,
+following different instructions from the same initial image (Part II).
+
+
+
+
+                                                                                                   25
+villa-X : A Vision-Language-Latent-Action Model
+
+
+
+
+ Pick the green block from the table into the blue bowl
+
+
+
+
+ Pick the green block from the blue bowl onto the table
+
+
+
+
+           Push the green block to position X
+
+
+
+
+     Stack the wooden block onto the green block
+
+
+
+
+    Unstack the wooden block from the green block
+
+
+
+
+Figure 11: Realman evaluation trajectory examples.
+
+
+
+
+                                                          26
+  villa-X : A Vision-Language-Latent-Action Model
+
+
+
+
+Figure 12: Xhand evaluation trajectory examples (part I).
+
+
+
+
+                                                            27
+   villa-X : A Vision-Language-Latent-Action Model
+
+
+
+
+Figure 13: Xhand evaluation trajectory examples (part II).
+
+
+
+
+                                                             28
+

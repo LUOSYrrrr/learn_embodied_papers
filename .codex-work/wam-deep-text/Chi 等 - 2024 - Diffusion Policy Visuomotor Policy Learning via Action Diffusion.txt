@@ -1,0 +1,1337 @@
+                                                                                                                                                                     .
+
+                                         Diffusion Policy: Visuomotor Policy
+                                         Learning via Action Diffusion
+                                         Cheng Chi∗ 1 , Zhenjia Xu∗ 1 , Siyuan Feng2 , Eric Cousineau2 , Yilun Du3 , Benjamin Burchfiel2 ,
+                                         Russ Tedrake 2,3 , Shuran Song1,4
+
+
+
+                                         Abstract
+                                         This paper introduces Diffusion Policy, a new way of generating robot behavior by representing a robot’s visuomotor
+                                         policy as a conditional denoising diffusion process. We benchmark Diffusion Policy across 15 different tasks from 4
+                                         different robot manipulation benchmarks and find that it consistently outperforms existing state-of-the-art robot learning
+                                         methods with an average improvement of 46.9%. Diffusion Policy learns the gradient of the action-distribution score
+                                         function and iteratively optimizes with respect to this gradient field during inference via a series of stochastic Langevin
+                                         dynamics steps. We find that the diffusion formulation yields powerful advantages when used for robot policies, including
+
+
+
+
+arXiv:2303.04137v5 [cs.RO] 14 Mar 2024
+                                         gracefully handling multimodal action distributions, being suitable for high-dimensional action spaces, and exhibiting
+                                         impressive training stability. To fully unlock the potential of diffusion models for visuomotor policy learning on physical
+                                         robots, this paper presents a set of key technical contributions including the incorporation of receding horizon control,
+                                         visual conditioning, and the time-series diffusion transformer. We hope this work will help motivate a new generation of
+                                         policy learning techniques that are able to leverage the powerful generative modeling capabilities of diffusion models.
+                                         Code, data, and training details is available diffusion-policy.cs.columbia.edu
+
+
+                                         Keywords
+                                         Imitation learning, visuomotor policy, manipulation
+
+
+
+                                                                        Action
+                                                                     Representation
+
+
+
+                                                                                                                                              Diffusion Policy
+                                                                  Scalar (Regression)    Implicit Policy
+                                                Explicit Policy
+
+
+
+                                                                  Mixture of Gaussians                                                                            iter
+
+
+
+
+                                                                      Categorical
+
+
+                                                      (a) Explicit Policy                              (b) Implicit Policy                                       (c) Diffusion Policy
+
+                                         Figure 1. Policy Representations. a) Explicit policy with different types of action representations. b) Implicit policy learns an
+                                         energy function conditioned on both action and observation and optimizes for actions that minimize the energy landscape c)
+                                                                    p(a) into actions via a learned gradient field. This formulation provides stable training, allows the learned
+                                         Diffusion policy refines noise
+                                         policy to accurately model multimodal action distributions, and accommodates high-dimensional action sequences.
+
+                                         1   Introduction                                                                    generates behavior via a “conditional denoising diffusion
+                                                                                                                             process Ho et al. (2020) on robot action space”, Diffusion
+                                         Policy learning from demonstration, in its simplest form, can
+                                                                                                                             Policy. In this formulation, instead of directly outputting
+                                         be formulated as the supervised regression task of learning to
+                                                                                                                             an action, the policy infers the action-score gradient,
+                                         map observations to actions. In practice however, the unique
+                                                                                                                             conditioned on visual observations, for K denoising
+                                         nature of predicting robot actions — such as the existence
+                                                                                                                             iterations (Fig. 1 c). This formulation allows robot policies
+                                         of multimodal distributions, sequential correlation, and the
+                                                                                                                             to inherit several key properties from diffusion models –
+                                         requirement of high precision — makes this task distinct and
+                                                                                                                             significantly improving performance.
+                                         challenging compared to other supervised learning problems.
+                                            Prior work attempts to address this challenge by
+                                         exploring different action representations (Fig 1 a) – using                            • Expressing multimodal action distributions. By
+                                         mixtures of Gaussians Mandlekar et al. (2021), categorical                                learning the gradient of the action score function
+                                         representations of quantized actions Shafiullah et al. (2022),                            Song and Ermon (2019) and performing Stochastic
+                                         or by switching the the policy representation (Fig 1 b) – from                            Langevin Dynamics sampling on this gradient field,
+                                         explicit to implicit to better capture multi-modal distributions                          Diffusion policy can express arbitrary normalizable
+                                         Florence et al. (2021); Wu et al. (2020).                                                 distributions Neal et al. (2011), which includes mul-
+                                            In this work, we seek to address this challenge by                                     timodal action distributions, a well-known challenge
+                                         introducing a new form of robot visuomotor policy that                                    for policy learning.
+2
+
+
+    • High-dimensional output space. As demonstrated by           providing strong evidence of the effectiveness of Diffusion
+      their impressive image generation results, diffusion        Policy. We also provide detailed analysis to carefully
+      models have shown excellent scalability to high-            examine the characteristics of the proposed algorithm and
+      dimension output spaces. This property allows the           the impacts of the key design decisions.
+      policy to jointly infer a sequence of future actions           This work is an extended version of the conference paper
+      instead of single-step actions, which is critical for       Chi et al. (2023). We expand the content of this paper in the
+      encouraging temporal action consistency and avoiding        following ways:
+      myopic planning.
+                                                                        • Include a new discussion section on the connections
+    • Stable training. Training energy-based policies often               between diffusion policy and control theory. See Sec.
+      requires negative sampling to estimate an intractable               4.5.
+      normalization constant, which is known to cause
+      training instability Du et al. (2020); Florence et al.            • Include additional ablation studies in simulation on
+      (2021). Diffusion Policy bypasses this requirement                  alternative network architecture design and different
+      by learning the gradient of the energy function and                 pretraining and finetuning paradigms, Sec. 5.4.
+      thereby achieves stable training while maintaining
+      distributional expressivity.                                      • Extend the real-world experimental results with three
+                                                                          bimanual manipulation tasks including Egg Beater,
+   Our primary contribution is to bring the above                         Mat Unrolling, and Shirt Folding in Sec. 7.
+advantages to the field of robotics and demonstrate their
+effectiveness on complex real-world robot manipulation               The code, data, and training details are publicly available
+tasks. To successfully employ diffusion models for                for reproducing our results diffusion-policy.cs.
+visuomotor policy learning, we present the following              columbia.edu.
+technical contributions that enhance the performance of
+Diffusion Policy and unlock its full potential on physical
+robots:                                                           2     Diffusion Policy Formulation
+    • Closed-loop action sequences. We combine the                We formulate visuomotor robot policies as Denoising
+      policy’s capability to predict high-dimensional action      Diffusion Probabilistic Models (DDPMs) Ho et al. (2020).
+      sequences with receding-horizon control to achieve          Crucially, Diffusion policies are able to express complex
+      robust execution. This design allows the policy to          multimodal action distributions and possess stable training
+      continuously re-plan its action in a closed-loop manner     behavior – requiring little task-specific hyperparameter
+      while maintaining temporal action consistency –             tuning. The following sections describe DDPMs in more
+      achieving a balance between long-horizon planning           detail and explain how they may be adapted to represent
+      and responsiveness.                                         visuomotor policies.
+
+    • Visual conditioning. We introduce a vision-                 2.1     Denoising Diffusion Probabilistic Models
+      conditioned diffusion policy, where the visual
+      observations are treated as conditioning instead of a       DDPMs are a class of generative model where the output
+      part of the joint data distribution. In this formulation,   generation is modeled as a denoising process, often called
+      the policy extracts the visual representation once          Stochastic Langevin Dynamics Welling and Teh (2011).
+      regardless of the denoising iterations, which                  Starting from xK sampled from Gaussian noise, the DDPM
+      drastically reduces the computation and enables             performs K iterations of denoising to produce a series
+      real-time action inference.                                 of intermediate actions with decreasing levels of noise,
+                                                                  xk , xk−1 ...x0 , until a desired noise-free output x0 is formed.
+    • Time-series diffusion transformer. We propose               The process follows the equation
+      a new transformer-based diffusion network that
+                                                                               xk−1 = α(xk − γεθ (xk , k) + N 0, σ 2 I ),
+                                                                                                                       
+      minimizes the over-smoothing effects of typical                                                                           (1)
+      CNN-based models and achieves state-of-the-art              where εθ is the noise prediction network with parameters
+      performance on tasks that require high-frequency                                                                    θ
+                                                                  that will be optimized through learning and N 0, σ 2 I is
+      action changes and velocity control.                        Gaussian noise added at each iteration.
+   We systematically evaluate Diffusion Policy across 15             The above equation 1 may also be interpreted as a single
+tasks from 4 different benchmarks Florence et al. (2021);         noisy gradient descent step:
+Gupta et al. (2019); Mandlekar et al. (2021); Shafiullah                                 x′ = x − γ∇E(x),                      (2)
+et al. (2022) under the behavior cloning formulation.
+The evaluation includes both simulated and real-world             where the noise prediction network εθ (x, k) effectively
+environments, 2DoF to 6DoF actions, single- and multi-task        predicts the gradient field ∇E(x), and γ is the learning rate.
+benchmarks, and fully- and under-actuated systems, with              The choice of α, γ, σ as functions of iteration step k, also
+rigid and fluid objects, using demonstration data collected       called noise schedule, can be interpreted as learning rate
+by single and multiple users.                                     scheduling in gradient decent process. An α slightly smaller
+   Empirically, we find consistent performance boost across       than 1 has been shown to improve stability Ho et al. (2020).
+all benchmarks with an average improvement of 46.9%,              Details about noise schedule will be discussed in Sec 3.3.
+Diffusion Policy                                                                                                                                                                                            3
+
+
+ Input: Image Observation Sequence     Observation Ot           Ot+4                                                       ∇E(At)                                            ∇E(At)
+                                                                                                                             …                                              …
+                             Robot       ot-2 ot-1 ot                 ot+4                                                     Conv1D                             Cross Attention
+                                                                                                                    a
+                                                                                                         Linear
+                             Pose
+                                                                                                                         a⋅x+b
+
+
+                                                                                       Observation Ot                                        Observation Ot
+                                             Diffusion Policy                                                       b          Conv1D                             k
+                                                                                                                                                                            Action Emb
+                                Ot
+                                                                                                                        x: Action Emb   ×K                                                                 ×K
+
+                                                                                                                                                                                         Cross Attention
+                                                                                                                                                                  Obs Emb
+                                                  at at+1 at+2 at+3                                                 a          Conv1D
+
+                                                                                                         Linear           a⋅x+b
+                                              Action Sequence At                                                    b
+                                                                                                                                                                  A Emb
+                                                                                                                               Conv1D
+                                              Prediction Horizon Tp
+                                                                              At+4       k
+                                                                                                          FiLM       x: Action Emb                                          Action Emb
+                                                                                                        conditioning         Conv1D
+         AtK         A3t         A0t                                  at+4
+                                                                                                                             At                                           At
+      Output: Action Sequence          a) Diffusion Policy General Formulation                                    b) CNN-based                                c) Transformer-based
+
+Figure 2. Diffusion Policy Overview a) General formulation. At time step t , the policy takes the latest To steps of observation
+data Ot as input and outputs Ta steps of actions At . b) In the CNN-based Diffusion Policy, FiLM (Feature-wise Linear Modulation)
+Perez et al. (2018) conditioning of the observation feature Ot is applied to every convolution layer, channel-wise. Starting from AtK
+drawn from Gaussian noise, the output of noise-prediction network εθ is subtracted, repeating K times to get At0 , the denoised
+action sequence. c) In the Transformer-based Vaswani et al. (2017) Diffusion Policy, the embedding of observation Ot is passed
+into a multi-head cross-attention layer of each transformer decoder block. Each action embedding is constrained to only attend to
+itself and previous action embeddings (causal attention) using the attention mask illustrated.
+
+
+2.2    DDPM Training                                                             Visual observation conditioning: We use a DDPM to
+The training process starts by randomly drawing unmodified                    approximate the conditional distribution p(At |Ot ) instead of
+examples, x0 , from the dataset. For each sample, we                          the joint distribution p(At , Ot ) used in Janner et al. (2022a)
+randomly select a denoising iteration k and then sample a                     for planning. This formulation allows the model to predict
+random noise ε k with appropriate variance for iteration k.                   actions conditioned on observations without the cost of
+The noise prediction network is asked to predict the noise                    inferring future states, speeding up the diffusion process and
+from the data sample with noise added.                                        improving the accuracy of generated actions. To capture the
+                                                                              conditional distribution p(At |Ot ), we modify Eq 1 to:
+                L = MSE(ε k , εθ (x0 + ε k , k))                        (3)
+                                                                                      Atk−1 = α(Atk − γεθ (Ot , Atk , k) + N 0, σ 2 I )
+                                                                                                                                     
+   As shown in Ho et al. (2020), minimizing the loss function                                                                              (4)
+in Eq 3 also minimizes the variational lower bound of the
+                                                                              The training loss is modified from Eq 3 to:
+KL-divergence between the data distribution p(x0 ) and the
+distribution of samples drawn from the DDPM q(x0 ) using                                                    L = MSE(ε k , εθ (Ot , At0 + ε k , k))                                                         (5)
+Eq 1.
+                                                                                 The exclusion of observation features Ot from the output
+2.3    Diffusion for Visuomotor Policy Learning                               of the denoising process significantly improves inference
+While DDPMs are typically used for image generation (x                        speed and better accommodates real-time control. It also
+is an image), we use a DDPM to learn robot visuomotor                         helps to make end-to-end training of the vision encoder
+policies. This requires two major modifications in the                        feasible. Details about the visual encoder are described in
+formulation: 1. changing the output x to represent robot                      Sec. 3.2.
+actions. 2. making the denoising processes conditioned on
+input observation Ot . The following paragraphs discuss each                  3      Key Design Decisions
+of the modifications, and Fig. 2 shows an overview.
+   Closed-loop action-sequence prediction: An effective                       In this section, we describe key design decisions for
+action formulation should encourage temporal consistency                      Diffusion Policy as well as its concrete implementation of
+and smoothness in long-horizon planning while allowing                        εθ with neural network architectures.
+prompt reactions to unexpected observations. To accomplish
+this goal, we commit to the action-sequence prediction                        3.1     Network Architecture Options
+produced by a diffusion model for a fixed duration before                     The first design decision is the choice of neural network
+replanning. Concretely, at time step t the policy takes the                   architectures for εθ . In this work, we examine two common
+latest To steps of observation data Ot as input and predicts                  network architecture types, convolutional neural networks
+Tp steps of actions, of which Ta steps of actions are executed                (CNNs) Ronneberger et al. (2015) and Transformers
+on the robot without re-planning. Here, we define To as                       Vaswani et al. (2017), and compare their performance
+the observation horizon, Tp as the action prediction horizon                  and training characteristics. Note that the choice of noise
+and Ta as the action execution horizon. This encourages                       prediction network εθ is independent of visual encoders,
+temporal action consistency while remaining responsive.                       which will be described in Sec. 3.2.
+More details about the effects of Ta are discussed in Sec 4.3.                   CNN-based Diffusion Policy We adopt the 1D temporal
+Our formulation also allows receding horizon control Mayne                    CNN from Janner et al. (2022b) with a few modifications:
+and Michalska (1988) to futher improve action smoothness                      First, we only model the conditional distribution p(At |Ot )
+by warm-starting the next inference setup with previous                       by conditioning the action generation process on observation
+action sequence prediction.                                                   features Ot with Feature-wise Linear Modulation (FiLM)
+4
+
+
+Perez et al. (2018) as well as denoising iteration k, shown          3.3    Noise Schedule
+in Fig 2 (b). Second, we only predict the action trajectory          The noise schedule, defined by σ , α, γ and the additive
+instead of the concatenated observation action trajectory.           Gaussian Noise ε k as functions of k, has been actively
+Third, we removed inpainting-based goal state conditioning           studied Ho et al. (2020); Nichol and Dhariwal (2021).
+due to incompatibility with our framework utilizing a                The underlying noise schedule controls the extent to
+receding prediction horizon. However, goal conditioning is           which diffusion policy captures high and low-frequency
+still possible with the same FiLM conditioning method used           characteristics of action signals. In our control tasks, we
+for observations.                                                    empirically found that the Square Cosine Schedule proposed
+   In practice, we found the CNN-based backbone to work              in iDDPM Nichol and Dhariwal (2021) works best for our
+well on most tasks out of the box without the need for much          tasks.
+hyperparameter tuning. However, it performs poorly when
+the desired action sequence changes quickly and sharply              3.4    Accelerating Inference for Real-time
+through time (such as velocity command action space), likely                Control
+due to the inductive bias of temporal convolutions to prefer
+                                                                     We use the diffusion process as the policy for robots; hence,
+low-frequency signals Tancik et al. (2020).
+                                                                     it is critical to have a fast inference speed for closed-loop
+   Time-series diffusion transformer To reduce the over-             real-time control. The Denoising Diffusion Implicit Models
+smoothing effect in CNN models Tancik et al. (2020), we              (DDIM) approach Song et al. (2021) decouples the number
+introduce a novel transformer-based DDPM which adopts                of denoising iterations in training and inference, thereby
+the transformer architecture from minGPT Shafiullah et al.           allowing the algorithm to use fewer iterations for inference
+(2022) for action prediction. Actions with noise Atk are             to speed up the process. In our real-world experiments,
+passed in as input tokens for the transformer decoder                using DDIM with 100 training iterations and 10 inference
+blocks, with the sinusoidal embedding for diffusion iteration        iterations enables 0.1s inference latency on a Nvidia 3080
+k prepended as the first token. The observation Ot is                GPU.
+transformed into observation embedding sequence by a
+shared MLP, which is then passed into the transformer
+decoder stack as input features. The “gradient” εθ (Ot , At k , k)
+                                                                     4     Intriguing Properties of Diffusion Policy
+is predicted by each corresponding output token of the               In this section, we provide some insights and intuitions about
+decoder stack.                                                       diffusion policy and its advantages over other forms of policy
+   In our state-based experiments, most of the best-                 representations.
+performing policies are achieved with the transformer
+backbone, especially when the task complexity and rate of            4.1    Model Multi-Modal Action Distributions
+action change are high. However, we found the transformer            The challenge of modeling multi-modal distribution in
+to be more sensitive to hyperparameters. The difficulty of           human demonstrations has been widely discussed in
+transformer training Liu et al. (2020) is not unique to              behavior cloning literature Florence et al. (2021); Shafiullah
+Diffusion Policy and could potentially be resolved in the            et al. (2022); Mandlekar et al. (2021). Diffusion Policy’s
+future with improved transformer training techniques or              ability to express multimodal distributions naturally and
+increased data scale.                                                precisely is one of its key advantages.
+   Recommendations. In general, we recommend starting                   Intuitively, multi-modality in action generation for
+with the CNN-based diffusion policy implementation as the            diffusion policy arises from two sources – an underlying
+first attempt at a new task. If performance is low due to task       stochastic sampling procedure and a stochastic initialization.
+complexity or high-rate action changes, then the Time-series         In Stochastic Langevin Dynamics, an initial sample AtK is
+Diffusion Transformer formulation can be used to potentially         drawn from standard Gaussian at the beginning of each
+improve performance at the cost of additional tuning.                sampling process, which helps specify different possible
+                                                                     convergence basins for the final action prediction At0 . This
+                                                                     action is then further stochastically optimized, with added
+                                                                     Gaussian perturbations across a large number of iterations,
+3.2    Visual Encoder                                                which enables individual action samples to converge and
+The visual encoder maps the raw image sequence into                  move between different multi-modal action basins. Fig. 3,
+a latent embedding Ot and is trained end-to-end with                 shows an example of the Diffusion Policy’s multimodal
+the diffusion policy. Different camera views use separate            behavior in a planar pushing task (Push T, introduced below)
+encoders, and images in each timestep are encoded                    without explicit demonstration for the tested scenario.
+independently and then concatenated to form Ot . We used a
+standard ResNet-18 (without pretraining) as the encoder with         4.2    Synergy with Position Control
+the following modifications: 1) Replace the global average           We find that Diffusion Policy with a position-control
+pooling with a spatial softmax pooling to maintain spatial           action space consistently outperforms Diffusion Policy with
+information Mandlekar et al. (2021). 2) Replace BatchNorm            velocity control, as shown in Fig 4. This surprising result
+with GroupNorm Wu and He (2018) for stable training.                 stands in contrast to the majority of recent behavior cloning
+This is important when the normalization layer is used in            work that generally relies on velocity control Mandlekar
+conjunction with Exponential Moving Average He et al.                et al. (2021); Shafiullah et al. (2022); Zhang et al. (2018);
+(2020) (commonly used in DDPMs).                                     Florence et al. (2019); Mandlekar et al. (2020b,a). We
+Diffusion Policy                                                                                                                                                                                                                                                                                                             5
+
+
+                                                                                                                                                                          • Temporal action consistency: Take Fig 3 as an example.
+                                                                                                                                                                            To push the T block into the target from the bottom, the
+                                                                                                                                                                            policy can go around the T block from either left or right.
+                                                                                                                                                                            However, suppose each action in the sequence is predicted
+                                                                                                                                                                            as independent multimodal distributions (as done in BC-
+ Diffusion Policy                                                           LSTM-GMM                                       BET                                  IBC         RNN and BET). In that case, consecutive actions could be
+                                                                                                                                                                            drawn from different modes, resulting in jittery actions that
+Figure 3. Multimodal behavior. At the given state, the                                                                                                                      alternate between the two valid trajectories.
+end-effector (blue) can either go left or right to push the block.
+Diffusion Policy learns both modes and commits to only one
+mode within each rollout. In contrast, both LSTM-GMM                                                                                                                      • Robustness to idle actions: Idle actions occur when
+Mandlekar et al. (2021) and IBC Florence et al. (2021) are                                                                                                                  a demonstration is paused and results in sequences of
+biased toward one mode, while BET Shafiullah et al. (2022) fails                                                                                                            identical positional actions or near-zero velocity actions.
+to commit to a single mode due to its lack of temporal action                                                                                                               It is common during teleoperation and is sometimes
+consistency. Actions generated by rolling out 40 steps for the                                                                                                              required for tasks like liquid pouring. However, single-
+best-performing checkpoint.                                                                                                                                                 step policies can easily overfit to this pausing behavior.
+                                                                                                                                                                            For example, BC-RNN and IBC often get stuck in real-
+speculate that there are two primary reasons for this                                                                                                                       world experiments when the idle actions are not explicitly
+discrepancy: First, action multimodality is more pronounced                                                                                                                 removed from training.
+in position-control mode than it is when using velocity
+control. Because Diffusion Policy better expresses action
+multimodality than existing approaches, we speculate that                                                                                                                                                                               % G X M S R  , S V M ^ S R                   0 E X I R G ]  6 S F Y W X R I W W
+it is inherently less affected by this drawback than existing                                                                                                                                                         
+                                                                                                                                                                                                                     
+
+
+
+                                                                                                                                                                       6 I P E X M Z I  4 I V J  ' L E R K I
+methods. Furthermore, position control suffers less than
+velocity control from compounding error effects and is thus                                                                                                                                                          
+more suitable for action-sequence prediction (as discussed in                                                                                                                                                        
+the following section). As a result, Diffusion Policy is both                                                                                                                                                        
+less affected by the primary drawbacks of position control                                                                                                                                                           
+and is better able to exploit position control’s advantages.                                                                                                                                                         
+                                                                                                                                                                                                                                                                
+                                                                                         : I P S G M X ]  Z W  4 S W M X M S R E P  ' S R X V S P                                                                             % G X M S R  , S V M ^ S R   W X I T W                 0 E X I R G ]   W X I T W 
+                                                                                                                                                                                                                                                                    4 Y W L 8  7 U Y E V I
+                                                                             0 7 8 1  + 1 1
+
+
+
+
+       6 I P E X M Z I  7 Y G G I W W  6 E X I  ' L E R K I
+                                                                         & ) 8                                                                                        Figure 5. Diffusion Policy Ablation Study. Change
+                                                                             ( M J J Y W M S R 4 S P M G ]  '                                                            (difference) in success rate relative to the maximum for each
+                                                                         ( M J J Y W M S R 4 S P M G ]  8                                                            task is shown on the Y-axis. Left: trade-off between temporal
+                                                                                                                                                                      consistency and responsiveness when selecting the action
+                                                                                                                                                                          horizon. Right: Diffusion Policy with position control is robust
+                                                                                                                                                                      against latency. Latency is defined as the number of steps
+                                                                                                                                                                          between the last frame of observations to the first action that
+                                                                                                                                                                      can be executed.
+                                                                                 7 U Y E V I                                              / M X G L I R  T 
+                                                                                                                                                                          4.4                                               Training Stability
+Figure 4. Velocity v.s. Position Control. The performance
+difference when switching from velocity to position control.                                                                                                              While IBC, in theory, should possess similar advantages
+While both BCRNN and BET performance decrease, Diffusion                                                                                                                  as diffusion policies. However, achieving reliable and high-
+Policy is able to leverage the advantage of position and improve                                                                                                          performance results from IBC in practice is challenging
+its performance.
+                                                                                                                                                                          due to IBC’s inherent training instability Ta et al.
+                                                                                                                                                                          (2022). Fig 6 shows training error spikes and unstable
+4.3                                                      Benefits of Action-Sequence Prediction                                                                           evaluation performance throughout the training process,
+Sequence prediction is often avoided in most policy learning                                                                                                              making hyperparameter turning critical and checkpoint
+methods due to the difficulties in effectively sampling from                                                                                                              selection difficult. As a result, Florence et al. (2021)
+high-dimensional output spaces. For example, IBC would                                                                                                                    evaluate every checkpoint and report results for the best-
+struggle in effectively sampling high-dimensional action                                                                                                                  performing checkpoint. In a real-world setting, this workflow
+space with a non-smooth energy landscape. Similarly, BC-                                                                                                                  necessitates the evaluation of many policies on hardware to
+RNN and BET would have difficulty specifying the number                                                                                                                   select a final policy. Here, we discuss why Diffusion Policy
+of modes that exist in the action distribution (needed for                                                                                                                appears significantly more stable to train.
+GMM or k-means steps).                                                                                                                                                       An implicit policy represents the action distribution using
+   In contrast, DDPM scales well with output dimensions                                                                                                                   an Energy-Based Model (EBM):
+without sacrificing the expressiveness of the model, as                                                                                                                                                                                                                e−Eθ (o,a)
+demonstrated in many image generation applications.                                                                                                                                                                                                    pθ (a|o) =                                                           (6)
+                                                                                                                                                                                                                                                                        Z(o, θ )
+Leveraging this capability, Diffusion Policy represents action
+in the form of a high-dimensional action sequence, which                                                                                                                  where Z(o, θ ) is an intractable normalization constant (with
+naturally addresses the following issues:                                                                                                                                 respect to a).
+     6
+
+
+        To train the EBM for implicit policy, an InfoNCE-style                                                                                                                                    In particular, when the prediction horizon is one time
+     loss function is used, which equates to the negative log-                                                                                                                                 step, Tp = 1, it can be seen that the optimal denoiser which
+     likelihood of Eq 6:                                                                                                                                                                       minimizes
+
+                                                                                                                                       e−Eθ (o,a)                                                            L = MSE(ε k , εθ (st , −Kst + ε k , k))        (9)
+                                                      Lin f oNCE = − log(                                   Nneg −E (o,e                                                     j
+                                                                                                                                                                               )         (7)
+                                                                                              e−Eθ (o,a) + ∑ j=1 e θ a)
+                                                                                                                                                                                               is given by
+                                           Nneg                                                                                                                                                                                     1
+                                      a j } j=1
+     where a set of negative samples {e         are used to estimate                                                                                                                                               εθ (s, a, k) =      [a + Ks],
+                                                                                                                                                                                                                                    σk
+     the intractable normalization constant Z(o, θ ). In practice,
+     the inaccuracy of negative sampling is known to cause                                                                                                                                     where σk is the variance on denoising iteration k.
+     training instability for EBMs Du et al. (2020); Ta et al.                                                                                                                                 Furthermore, at inference time, the DDIM sampling will
+     (2022).                                                                                                                                                                                   converge to the global minima at a = −Ks.
+        Diffusion Policy and DDPMs sidestep the issue of                                                                                                                                          Trajectory prediction (Tp > 1) follows naturally. In order
+     estimating Z(a, θ ) altogether by modeling the score                                                                                                                                      to predict at+t ′ as a function of st , the optimal denoiser will
+                                                                                                                                                                                                                                ′
+     function Song and Ermon (2019) of the same action                                                                                                                                         produce at+t ′ = −K(A − BK)t st ; all terms involving wt are
+     distribution in Eq 6:                                                                                                                                                                     zero in expectation. This shows that in order to perfectly
+                                                                                                                                                                                               clone a behavior that depends on the state, the learner
+                  ∇a log p(a|o) = −∇a Eθ (a, o) − ∇a log Z(o, θ ) ≈ −εθ (a, o)                                                                                                                 must implicitly learn a (task-relevant) dynamics model
+                                                  |     {z     }
+                                                                                                                                                   =0
+                                                                                                                                                                                               Subramanian and Mahajan (2019); Zhang et al. (2020).
+                                                              (8)                                                                                                                              Note that if either the plant or the policy is nonlinear, then
+     where the noise-prediction network εθ (a, o) is approximat-                                                                                                                               predicting future actions could become significantly more
+     ing the negative of the score function ∇a log p(a|o) Liu                                                                                                                                  challenging and once again involve multimodal predictions.
+     et al. (2022), which is independent of the normalization
+     constant Z(o, θ ). As a result, neither the inference (Eq 4)                                                                                                                              5     Evaluation
+     nor training (Eq 5) process of Diffusion Policy involves
+     evaluating Z(o, θ ), thus making Diffusion Policy training                                                                                                                                We systematically evaluate Diffusion Policy on 15 tasks
+     more stable.                                                                                                                                                                              from 4 benchmarks Florence et al. (2021); Gupta et al.
+                                                                                                                                                                                               (2019); Mandlekar et al. (2021); Shafiullah et al. (2022).
+                                                                6 I E P  4 Y W L 8  - Q K                                                              7 M Q  4 Y W L 8  7 X E X I         This evaluation suite includes both simulated and real
+                                                                                                                                       
+                                                                                                                                                                                               environments, single and multiple task benchmarks, fully
+
+
+
+
+ 8 V E M R  % G X M S R  4 V I H  1 7 )
+                                                                                                                                                                                       actuated and under-actuated systems, and rigid and
+
+
+                                                                                                          7 Y G G I W W  6 E X I
+                                                                                                                                                                                       fluid objects. We found Diffusion Policy to consistently
+                                                                                                                                                                                               outperform the prior state-of-the-art on all of the tested
+                                                                                                                                  
+                                                                                                                                                                                               benchmarks, with an average success-rate improvement of
+                                                                                                                                                                                       46.9%. In the following sections, we provide an overview of
+                                                                                                                                                                                         each task, our evaluation methodology on that task, and our
+                                                                                                                                                                               key takeaways.
+                                                                        ) T S G L                                                                                 ) T S G L
+                                                                                           ( M J J Y W M S R  4 S P M G ]                               - & '
+                                                                                                                                                                                               5.1    Simulation Environments and datasets
+     Figure 6. Training Stability. Left: IBC fails to infer training
+     actions with increasing accuracy despite smoothly decreasing                                                                                                                              Robomimic Mandlekar et al. (2021) is a large-scale
+     training loss for energy function. Right: IBC’s evaluation success                                                                                                                        robotic manipulation benchmark designed to study imitation
+     rate oscillates, making checkpoint selection difficult (evaluated                                                                                                                         learning and offline RL. The benchmark consists of 5 tasks
+     using policy rollouts in simulation).                                                                                                                                                     with a proficient human (PH) teleoperated demonstration
+                                                                                                                                                                                               dataset for each and mixed proficient/non-proficient human
+                                                                                                                                                                                               (MH) demonstration datasets for 4 of the tasks (9 variants
+     4.5                                              Connections to Control Theory                                                                                                            in total). For each variant, we report results for both state-
+                                                                                                                                                                                               and image-based observations. Properties for each task are
+     Diffusion Policy has a simple limiting behavior when the
+                                                                                                                                                                                               summarized in Tab 3.
+     tasks are very simple; this potentially allows us to bring
+                                                                                                                                                                                                  Push-T adapted from IBC Florence et al. (2021), requires
+     to bear some rigorous understanding from control theory.
+                                                                                                                                                                                               pushing a T-shaped block (gray) to a fixed target (red)
+     Consider the case where we have a linear dynamical system,
+                                                                                                                                                                                               with a circular end-effector (blue)s. Variation is added by
+     in standard state-space form, that we wish to control:
+                                                                                                                                                                                               random initial conditions for T block and end-effector. The
+                                                          st+1 = Ast + Bat + wt ,                                                            wt ∼ N (0, Σw ).                                  task requires exploiting complex and contact-rich object
+                                                                                                                                                                                               dynamics to push the T block precisely, using point contacts.
+     Now imagine we obtain demonstrations (rollouts) from a                                                                                                                                    There are two variants: one with RGB image observations
+     linear feedback policy: at = −Kst . This policy could be                                                                                                                                  and another with 9 2D keypoints obtained from the ground-
+     obtained, for instance, by solving a linear optimal control                                                                                                                               truth pose of the T block, both with proprioception for end-
+     problem like the Linear Quadratic Regulator. Imitating this                                                                                                                               effector location.
+     policy does not need the modeling power of diffusion, but                                                                                                                                    Multimodal Block Pushing adapted from BET Shafiullah
+     as a sanity check, we can see that Diffusion Policy does the                                                                                                                              et al. (2022), this task tests the policy’s ability to model
+     right thing.                                                                                                                                                                              multimodal action distributions by pushing two blocks
+Diffusion Policy                                                                                                                               7
+
+
+
+
+                                   Lift                   Can               Square               Transport            ToolHang Push-T
+                             ph           mh         ph         mh     ph         mh            ph      mh               ph      ph
+      LSTM-GMM 1.00/0.96 1.00/0.93 1.00/0.91 1.00/0.81 0.95/0.73 0.86/0.59 0.76/0.47 0.62/0.20 0.67/0.31 0.67/0.61
+            IBC 0.79/0.41 0.15/0.02 0.00/0.00 0.01/0.01 0.00/0.00 0.00/0.00 0.00/0.00 0.00/0.00 0.00/0.00 0.90/0.84
+            BET 1.00/0.96 1.00/0.99 1.00/0.89 1.00/0.90 0.76/0.52 0.68/0.43 0.38/0.14 0.21/0.06 0.58/0.20 0.79/0.70
+ DiffusionPolicy-C 1.00/0.98 1.00/0.97 1.00/0.96 1.00/0.96 1.00/0.93 0.97/0.82 0.94/0.82 0.68/0.46 0.50/0.30 0.95/0.91
+ DiffusionPolicy-T 1.00/1.00 1.00/1.00 1.00/1.00 1.00/0.94 1.00/0.89 0.95/0.81 1.00/0.84 0.62/0.35 1.00/0.87 0.95/0.79
+Table 1. Behavior Cloning Benchmark (State Policy) We present success rates with different checkpoint selection methods in
+the format of (max performance) / (average of last 10 checkpoints), with each averaged across 3 training seeds and 50 different
+environment initial conditions (150 in total). LSTM-GMM corresponds to BC-RNN in RoboMimicMandlekar et al. (2021), which we
+reproduced and obtained slightly better results than the original paper. Our results show that Diffusion Policy significantly improves
+state-of-the-art performance across the board.
+
+                                   Lift                   Can               Square               Transport           ToolHang Push-T
+                             ph           mh        ph          mh     ph         mh            ph      mh              ph      ph
+     LSTM-GMM 1.00/0.96 1.00/0.95 1.00/0.88 0.98/0.90 0.82/0.59 0.64/0.38 0.88/0.62 0.44/0.24                         0.68/0.49    0.69/0.54
+               IBC 0.94/0.73 0.39/0.05 0.08/0.01 0.00/0.00 0.03/0.00 0.00/0.00 0.00/0.00 0.00/0.00                    0.00/0.00    0.75/0.64
+ DiffusionPolicy-C 1.00/1.00 1.00/1.00 1.00/0.97 1.00/0.96 0.98/0.92 0.98/0.84 1.00/0.93 0.89/0.69                    0.95/0.73    0.91/0.84
+ DiffusionPolicy-T 1.00/1.00 1.00/0.99 1.00/0.98 1.00/0.98 1.00/0.90 0.94/0.80 0.98/0.81 0.73/0.50                    0.76/0.47    0.78/0.66
+Table 2. Behavior Cloning Benchmark (Visual Policy) Performance are reported in the same format as in Tab 1. LSTM-GMM
+numbers were reproduced to get a complete evaluation in addition to the best checkpoint performance reported. Diffusion Policy
+shows consistent performance improvement, especially for complex tasks like Transport and ToolHang.
+
+
+
+    Task      # Rob # Obj ActD #PH #MH Steps Img? HiPrec              be modeled by a single function mapping from observation
+                             Simulation Benchmark                     to action.
+                                                                         Franka Kitchen is a popular environment for evaluating
+    Lift       1      1        7     200   300     400    Yes   No
+                                                                      the ability of IL and Offline-RL methods to learn multiple
+   Can         1      1        7     200   300     400    Yes   No
+  Square       1      1        7     200   300     400    Yes   Yes   long-horizon tasks. Proposed in Relay Policy Learning
+ Transport     2      3       14     200   300     700    Yes   No    Gupta et al. (2019), the Franka Kitchen environment
+ ToolHang      1      2        7     200    0      700    Yes   Yes   contains 7 objects for interaction and comes with a
+  Push-T       1      1       2      200       0   300    Yes   Yes
+                                                                      human demonstration dataset of 566 demonstrations, each
+                                                                      completing 4 tasks in arbitrary order. The goal is to
+ BlockPush     1      2       2       0        0   350    No    No    execute as many demonstrated tasks as possible, regardless
+  Kitchen      1      7       9      656       0   280    No    No    of order, showcasing both short-horizon and long-horizon
+                             Realworld Benchmark                      multimodality.
+  Push-T       1       1      2      136       0   600    Yes   Yes
+6DoF Pour      1    liquid    6       90       0   600    Yes   No    5.2     Evaluation Methodology
+Peri Spread    1    liquid    6       90       0   600    Yes   No    We present the best-performing for each baseline
+ Mug Flip      1       1      7      250       0   600    Yes   No
+                                                                      method on each benchmark from all possible sources –
+Table 3. Tasks Summary. # Rob: number of robots, #Obj:                our reproduced result (LSTM-GMM) or original number
+number of objects, ActD: action dimension, PH:
+                                                                      reported in the paper (BET, IBC). We report results from the
+proficient-human demonstration, MH: multi-human
+demonstration, Steps: max number of rollout steps, HiPrec:            average of the last 10 checkpoints (saved every 50 epochs)
+whether the task has a high precision requirement. BlockPush          across 3 training seeds and 50 environment initializations
+uses 1000 episodes of scripted demonstrations.                        * (an average of 1500 experiments in total). The metric for
+                                                                      most tasks is success rate, except for the Push-T task, which
+into two squares in any order. The demonstration data is              uses target area coverage. In addition, we report the average
+generated by a scripted oracle with access to groundtruth
+state info. This oracle randomly selects an initial block
+to push and moves it to a randomly selected square. The               ∗ Due to a bug in our evaluation code, only 22 environment initializations
+remaining block is then pushed into the remaining square.             are used for robomimic tasks. This does not change our conclusion since all
+This task contains long-horizon multimodality that can not            baseline methods are evaluated in the same way.
+8
+
+
+                                                                     control as the diffusion-policy action space significantly
+                                                                     outperformed velocity control. The baseline methods we
+                                                                     evaluate, however, work best with velocity control (and this
+                                                                     is reflected in the literature where most existing work reports
+                                                                     using velocity-control action spaces Mandlekar et al. (2021);
+                                                                     Shafiullah et al. (2022); Zhang et al. (2018); Florence et al.
+                                                                     (2019); Mandlekar et al. (2020b,a)).
+                                                                       The tradeoff in action horizon. As discussed in Sec
+                        BlockPush              Kitchen               4.3, having an action horizon greater than 1 helps the
+                        p1    p2        p1     p2   p3       p4      policy predict consistent actions and compensate for idle
+                                                                     portions of the demonstration, but too long a horizon reduces
+     LSTM-GMM           0.03    0.01   1.00   0.90   0.74   0.34     performance due to slow reaction time. Our experiment
+               IBC      0.01    0.00   0.99   0.87   0.61   0.24     confirms this trade-off (Fig. 5 left) and found the action
+              BET       0.96    0.71   0.99   0.93   0.71   0.44     horizon of 8 steps to be optimal for most tasks that we tested.
+ DiffusionPolicy-C      0.36    0.11   1.00   1.00   1.00   0.99
+                                                                        Robustness against latency. Diffusion Policy employs
+ DiffusionPolicy-T      0.99    0.94   1.00   0.99   0.99   0.96
+                                                                     receding horizon position control to predict a sequence
+Table 4. Multi-Stage Tasks (State Observation). For                  of actions into the future. This design helps address the
+PushBlock, px is the frequency of pushing x blocks into the
+                                                                     latency gap caused by image processing, policy inference,
+targets. For Kitchen, px is the frequency of interacting with x or
+more objects (e.g. bottom burner). Diffusion Policy performs         and network delay. Our ablation study with simulated
+better, especially for difficult metrics such as p2 for Block        latency showed Diffusion Policy is able to maintain peak
+Pushing and p4 for Kitchen, as demonstrated by our results.          performance with latency up to 4 steps (Fig 5). We also find
+                                                                     that velocity control is more affected by latency than position
+of best-performing checkpoints for robomimic and Push-               control, likely due to compounding error effects.
+T tasks to be consistent with the evaluation methodology                Diffusion Policy is stable to train. We found that the
+of their respective original papers Mandlekar et al. (2021);         optimal hyperparameters for Diffusion Policy are mostly
+Florence et al. (2021). All state-based tasks are trained for        consistent across tasks. In contrast, IBC Florence et al.
+4500 epochs, and image-based tasks for 3000 epochs. Each             (2021) is prone to training instability. This property is
+method is evaluated with its best-performing action space:           discussed in Sec 4.4.
+position control for Diffusion Policy and velocity control
+for baselines (the effect of action space will be discussed
+in detail in Sec 5.3). The results from these simulation
+benchmarks are summarized in Table 1 and Table 2.                    5.4    Ablation Study
+                                                                     We explore alternative vision encoder design decisions
+5.3    Key Findings                                                  on the simulated robomimic square task. Specifically, we
+Diffusion Policy outperforms alternative methods on all tasks        evaluated 3 different architectures: ResNet-18, ResNet-34
+and variants, with both state and vision observations, in            He et al. (2016) and ViT-B/16 Dosovitskiy et al. (2020).
+our simulation benchmark study (Tabs 1, 2 and 4) with an             For each architecture, we evaluated 3 different training
+average improvement of 46.9%. The following paragraphs               strategies: training end-to-end from scratch, using frozen
+summarize the key takeaways.                                         pre-trained vision encoder, and finetuning pre-trained vision
+   Diffusion Policy can express short-horizon multi-                 encoders (with 10x lower learning rate with respect to the
+modality. We define short-horizon action multimodality as            policy network). We use ImageNet-21k Ridnik et al. (2021)
+multiple ways of achieving the same immediate goal, which            pretraining for ResNet and CLIP Radford et al. (2021)
+is prevalent in human demonstration data Mandlekar et al.            pretraining for ViT-B/16. The quantitative comparison on
+(2021). In Fig 3, we present a case study of this type of short-     square task with proficient-human (PH) dataset is shown in
+horizon multimodality in the Push-T task. Diffusion Policy           Tab. 5.
+learns to approach the contact point equally likely from left           We found training ViT from scratch to be challenging
+or right, while LSTM-GMM Mandlekar et al. (2021) and                 (with only 22% success rate), likely due to the limited
+IBC Florence et al. (2021) exhibit bias toward one side and          amount data. We also found training with frozen pretrained
+BET Shafiullah et al. (2022) cannot commit to one mode.              vision encoder to yield poor performance, which indicates
+   Diffusion Policy can express long-horizon multimodal-             that diffusion policy prefers different vision representation
+ity. Long-horizon multimodality is the completion of differ-         than what is offered in popular pretraining methods.
+ent sub-goals in inconsistent order. For example, the order of       However, we found finetuning the pretrained vision encoder
+pushing a particular block in the Block Push task or the order       with a small learning rate (10x smaller vs diffusion
+of interacting with 7 possible objects in the Kitchen task are       policy network) gives the best performance overall. This
+arbitrary. We find that Diffusion Policy copes well with this        is especially true for the CLIP-trained ViT-B/16, which
+type of multimodality; it outperforms baselines on both tasks        reaches 98% success rate with only 50 epochs of training.
+by a large margin: 32% improvement on Block Push’s p2                Overall, the best performance across different architectures
+metric and 213% improvement on Kitchen’s p4 metric.                  is not large, despite their significant theoretical capacity gap.
+   Diffusion Policy can better leverage position control.            We anticipate that their performance gap could be more
+Our ablation study (Fig. 4) shows that selecting position            pronounced on a complex task.
+Diffusion Policy                                                                                                                  9
+
+
+         Archicture &     From              Pretrained             measured at the last step instead of taking the maximum over
+        Prertain Datset   Scatch       frozen finetuning           all steps. We threshold success rate by the minimum achieved
+                                                                   IoU metric from the human demonstration dataset. Our UR5-
+       Resnet18 (in21)     0.94        0.58       0.92             based experiment setup is shown in Fig 6. Diffusion Policy
+       Resnet34 (in21)     0.92        0.40       0.94             predicts robot commands at 10 Hz and these commands then
+        ViT-base (clip)    0.22        0.70       0.98             linearly interpolated to 125 Hz for robot execution.
+Table 5. Vision Encoder Comparison All models are trained             Result Analysis. Diffusion Policy performed close to
+on the robomimic square (ph) task using CNN-based diffusion        human level with 95% success rate and 0.8 v.s. 0.84
+policy. Each model is trained for 500 epochs and evaluated
+every 50 epochs under 50 different environment initial
+                                                                   average IoU, compared with the 0% and 20% success rate
+conditions.                                                        of best-performing IBC and LSTM-GMM variants. Fig 7
+                                                                   qualitatively illustrates the behavior for each method starting
+                                                                   from the same initial condition. We observed that poor
+                                                                   performance during the transition between stages is the
+                                                         ②         most common failure case for the baseline method due to
+                                                                   high multimodality during those sections and an ambiguous
+                                           ①
+                                                                   decision boundary. LSTM-GMM got stuck near the T block
+                                                                   in 8 out of 20 evaluations (3rd row), while IBC prematurely
+                                                                   left the T block in 6 out of 20 evaluations (4th row).
+                                                                   We did not follow the common practice of removing idle
+                                                                   actions from training data due to task requirements, which
+                                                                   also contributed to LSTM and IBC’s tendency to overfit on
+                                                                   small actions and get stuck in this task. The results are best
+                                                                   appreciated with videos in supplemental materials.
+                                                                      End-to-end v.s. pre-trained vision encoders We tested
+        Human IBC LSTM-GMM       Diffusion Policy                  Diffusion Policy with pre-trained vision encoders (ImageNet
+        Demo pos vel pos vel T-E2E ImgNet R3M E2E                  Deng et al. (2009) and R3MNair et al. (2022)), as seen in
+ IoU  0.84 0.14 0.19 0.24       0.25     0.53   0.24   0.66 0.80   Tab. 6. Diffusion Policy with R3M achieves an 80% success
+Succ% 1.00 0.00 0.00 0.20       0.10     0.65   0.15   0.80 0.95   rate but predicts jittery actions and is more likely to get stuck
+ Dur. 20.3 56.3 41.6 47.3       51.7     57.5   55.8   31.7 22.9   compared to the end-to-end trained version. Diffusion Policy
+Table 6. Realworld Push-T Experiment. a) Hardware setup.           with ImageNet showed less promising results with abrupt
+b) Illustration of the task. The robot needs to ⃝
+                                                1 precisely push   actions and poor performance. We found that end-to-end
+the T-shaped block into the target region, and ⃝ 2 move the        training is still the most effective way to incorporate visual
+end-effector to the end-zone. c) The ground truth end state        observation into Diffusion Policy, and our best-performing
+used to calculate IoU metrics used in this table. Table: Success   models were all end-to-end trained.
+is defined by the end-state IoU greater than the minimum IoU in
+the demonstration dataset. Average episode duration presented
+                                                                      Robustness against perturbation Diffusion Policy’s
+in seconds. T-E2E stands for end-to-end trained                    robustness against visual and physical perturbations was
+Transformer-based Diffusion Policy                                 evaluated in a separate episode from experiments in Tab
+                                                                   6. As shown in Fig 8, three types of perturbations are
+6     Realworld Evaluation                                         applied. 1) The front camera was blocked for 3 secs by a
+                                                                   waving hand (left column), but the diffusion policy, despite
+We evaluated Diffusion Policy in the realworld performance         exhibiting some jitter, remained on-course and pushed the
+on 4 tasks across 2 hardware setups – with training data from      T block into position. 2) We shifted the T block while
+different demonstrators for each setup. On the realworld           Diffusion Policy was making fine adjustments to the T
+Push-T task, we perform ablations examining Diffusion              block’s position. Diffusion policy immediately re-planned
+Policy on 2 architecture options and 3 visual encoder options;     to push from the opposite direction, negating the impact of
+we also benchmarked against 2 baseline methods with                perturbation. 3) We moved the T block while the robot was
+both position-control and velocity-control action spaces.          en route to the end-zone after the first stage’s completion.
+On all tasks, Diffusion Policy variants with both CNN              The Diffusion Policy immediately changed course to adjust
+backbones and end-to-end-trained visual encoders yielded           the T block back to its target and then continued to the end-
+the best performance. More details about the task setup and        zone. This experiment indicates that Diffusion Policy may
+parameters may be found in supplemental materials.                 be able to synthesize novel behavior in response to unseen
+                                                                   observations.
+6.1    Realworld Push-T Task
+Real-world Push-T is significantly harder than the simulated       6.2    Mug Flipping Task
+version due to 3 modifications: 1. The real-world Push-T           The mug flipping task is designed to test Diffusion Policy’s
+task is multi-stage. It requires the robot to ⃝  1 push the        ability to handle complex 3D rotations while operating close
+T block into the target and then 2 ⃝ move its end-effector         to the hardware’s kinematic limits. The goal is to reorient a
+into a designated end-zone to avoid occlusion. 2. The policy       randomly placed mug to have ⃝   1 the lip facing down ⃝2 the
+needs to make fine adjustments to make sure the T is fully         handle pointing left, as shown in Fig. 9. Depending on the
+in the goal region before heading to the end-zone, creating        mug’s initial pose, the demonstrator might directly place the
+additional short-term multimodality. 3. The IoU metric is          mug in desired orientation, or may use additional push of the
+10
+
+                                                         Time                                                        Avg of End States
+
+
+ Diffusion
+  Policy
+(End2End)
+                                                                                                                A
+
+
+Diffusion
+ Policy
+ (R3M)
+             B
+
+
+LSTM-GMM
+(End2End)
+
+                                                                                    C
+
+
+   IBC
+(End2End)
+
+                                                                                    D
+
+Figure 7. Realworld Push-T Comparisons. Columns 1-4 show action trajectories based on key events. The last column shows
+averaged images of the end state. A: Diffusion policy (End2End) achieves more accurate and consistent end states. B: Diffusion
+Policy (R3M) gets stuck initially but later recovers and finishes the task. C: LSTM-GMM fails to reach the end zone while adjusting
+the T block, blocking the eval camera view. D: IBC prematurely ends the pushing stage.
+
+       Visual           Perturbation during   Perturbation during
+      Occlusion           Pushing Stage         Finishing Stage
+
+
+
+
+                                                                                                            1
+
+                                                                                                      2
+
+
+
+                                                                                   Human       LSTM-GMM             Diffusion Policy
+Figure 8. Robustness Test for Diffusion Policy. Left: A
+waving hand in front of the camera for 3 seconds causes slight         Succ %        1.0            0.0                    0.9
+jitter, but the predicted actions still function as expected.
+Middle: Diffusion Policy immediately corrects shifted block          Figure 9. 6DoF Mug Flipping Task. The robot needs to ⃝     1
+position to the goal state during the pushing stage. Right: Policy   Pickup a randomly placed mug and place it lip down (marked
+immediately aborts heading to the end zone, returning the block      orange). ⃝2 Rotate the mug such that its handle is pointing left.
+to goal state upon detecting block shift. This novel behavior was
+never demonstrated. Please check the videos in the
+supplementary material.
+                                                                     6.3    Sauce Pouring and Spreading
+handle to rotation the mug. As a result, the demonstration           The sauce pouring and spreading tasks are designed to test
+dataset is highly multi-modal: grasp vs push, different types        Diffusion Policy’s ability to work with non-rigid objects, 6
+of grasps (forehand vs backhand) or local grasp adjustments          Dof action spaces, and periodic actions in real-world setups.
+(rotation around mug’s principle axis), and are particularly         Our Franka Panda setup and tasks are shown in Fig 10. The
+challenging for baseline approaches to capture.                      goal for the 6DoF pouring task is to pour one full ladle of
+   Result Analysis. Diffusion policy is able to complete             sauce onto the center of the pizza dough, with performance
+this task with 90% success rate over 20 trials. The richness         measured by IoU between the poured sauce mask and a
+of captured behaviors is best appreciated with the video.            nominal circle at the center of the pizza dough (illustrated
+Although never demonstrated, the policy is also able to              by the green circle in Fig 10). The goal for the periodic
+sequence multiple pushes for handle alignment or regrasps            spreading task is to spread sauce on pizza dough, with
+for dropped mug when necessary. For comparison, we also              performance measured by sauce coverage. Variations across
+train a LSTM-GMM policy trained with a subset of the same            evaluation episodes come from random locations for the
+data. For 20 in-distribution initial conditions, the LSTM-           dough and the sauce bowl. The success rate is computed by
+GMM policy never aligns properly with respect to the mug,            thresholding with minimum human performance. Results are
+and fails to grasp in all trials.                                    best viewed in supplemental videos. Both tasks were trained
+Diffusion Policy                                                                                                                      11
+
+
+                                          Spreading Goal               7     Realworld Bimanual Tasks
+                                                                       Beyond single arm setup, we further demonstrate Diffusion
+                                                                       Policy on several challenging bimanual tasks. To enable
+                                                                       bimanual tasks, the majority of effort was spent on extending
+                                                                       our robot stack to support multi-arm teleopration and control.
+                                     1                                 Diffusion Policy worked out of the box for these tasks
+ Pouring Goal     4
+                                                 3                     without hyperparameter tuning.
+                               2                             1
+                         3
+                                                     2                 7.1    Observation and Action Spaces
+                                                                       The proprioceptive observation space is extended to include
+                                Pour              Spread               the poses of both end-effectors and the gripper widths of both
+                             IoU Succ       Coverage Succ %            grippers. We also extend the observation space to include
+                Human     0.79     1.00        0.79        1.00        the actual and desired values of these quantities. The image
+                                                                       observation space is comprised of two scene cameras and
+       LSTM-GMM           0.06     0.00        0.27        0.00
+                                                                       two wrist cameras, one attached to each arm. The action
+     Diffusion Policy     0.74     0.79        0.77        1.00
+                                                                       space is extended to include the desired poses of both end-
+Figure 10. Realworld Sauce Manipulation. [Left] 6DoF                   effectors and the desired gripper widths of both grippers.
+pouring Task. The robot needs to ⃝    1 dip the ladle to scoop
+sauce from the bowl, ⃝ 2 approach the center of the pizza              7.2    Teleoperation
+dough, ⃝ 3 pour sauce, and 4 ⃝ lift the ladle to finish the task.
+[Right] Periodic spreading Task The robot needs to ⃝
+                                                                       For these coordinated bimanual tasks, we found using
+                                                           1
+approach the center of the sauce with a grasped spoon, ⃝       2       2 SpaceMouse simultaneously quite challenging for the
+spread the sauce to cover pizza in a spiral pattern, and ⃝    3 lift   demonstrator. Thus, we implemented two new teleoperation
+the spoon to finish the task.                                          modes: using a Meta Quest Pro VR device with two
+                                                                       hand controllers, or haptic-enabled control using 2 Haption
+with the same Push-T hyperparameters, and successful                   Virtuose™ 6D HF TAO devices using bilateral position-
+policies were achieved on the first attempt.                           position coupling as described succinctly in the haptics
+   The sauce pouring task requires the robot to remain                 section of Siciliano et al. (2008). This coupling is performed
+stationary for a period of time to fill the ladle with viscous         between a Haption device and a Franka Panda arm. More
+tomato sauce. The resulting idle actions are known to be               details on the controllers themselves may be found in Sec.
+challenging for behavior cloning algorithms and therefore              D.1. The following provides more details on each task and
+are often avoided or filtered out. Fine adjustments during             policy performance.
+pouring are necessary during sauce pouring to ensure
+coverage and to achieve the desired shape.                             7.3    Bimanual Egg Beater
+   The demonstrated sauce-spreading strategy is inspired by
+                                                                       The bimanual egg beater task is illustrated and described
+the human chef technique, which requires both a long-
+                                                                       in Fig. 11, using a OXO™ Egg Beater and a Room
+horizon cyclic pattern to maximize coverage and short-
+                                                                       Essentials™ plastic bowl. We chose this task to illustrate the
+horizon feedback for even distribution (since the tomato
+                                                                       importance of haptic feedback for teleoperating bimanual
+sauce used often drips out in lumps with unpredictable
+                                                                       manipulation even for common daily life tasks such as
+sizes). Periodic motions are known to be difficult to learn
+                                                                       coordinated tool use. Without haptic feedback, an expert was
+and therefore are often addressed by specialized action
+                                                                       unable to successfully complete a single demonstration out
+representations Yang et al. (2022). Both tasks require the
+                                                                       of 10 trials. 5 failed due to robot pulling the crank handle
+policy to self-terminate by lifting the ladle/spoon.
+                                                                       off the egg beater; 3 failed due to robot losing grasp of
+   Result Analysis. Diffusion policy achieves close-to-
+                                                                       the handle; 2 failed due to robot triggering torque limit. In
+human performance on both tasks, with coverage 0.74 vs
+                                                                       contrast, the same operator could easily perform this task 10
+0.79 on pouring and 0.77 vs 0.79 on spreading. Diffusion
+                                                                       out of 10 times with haptic feedback. Using haptic feedback
+policy reacted gracefully to external perturbations such
+                                                                       made it possible for the demonstrations to be both quicker
+as moving the pizza dough by hand during pouring and
+                                                                       and higher quality than without feedback.
+spreading. Results are best appreciated with videos in the
+                                                                          Result Analysis. Diffusion policy is able to complete this
+supplemental material.
+                                                                       task with 55% success rate over 20 trials, trained using
+   LSTM-GMM performs poorly on both sauce pouring and
+                                                                       210 demonstrations. The primary failure modes for these
+spreading tasks. It failed to lift the ladle after successfully
+                                                                       were out-of-domain initial positioning of the egg beater, or
+scooping sauce in 15 out of 20 of the pouring trials. When
+                                                                       missing the egg beater crank handle or losing grasp of it. The
+the ladle was successfully lifted, the sauce was poured
+                                                                       initial and final states for all rollouts are visualized in 18 and
+off-centered. LSTM-GMM failed to self-terminate in all
+                                                                       19.
+trials. We suspect LSTM-GMM’s hidden state failed to
+capture sufficiently long history to distinguish between the
+ladle dipping and the lifting phases of the task. For sauce            7.4    Bimanual Mat Unrolling
+spreading, LSTM-GMM always lifts the spoon right after                 The mat unrolling task is shown and described in Fig.
+the start, and failed to make contact with the sauce in all 20         12, using a XXL Dog Buddy™ Dog Mat. This task was
+experiments.                                                           teleoperated using the VR setup, as it did not require rich
+12
+
+
+
+
+                                       4             3
+                                            5
+
+                             2
+         1
+
+
+
+Figure 11. Bimanual Egg Beater Manipulation. The robot
+needs to ⃝ 1 push the bowl into position (only if too close to the
+           ⃝ approach and pick up the egg beater with the right
+left arm), 2
+arm, ⃝ 3 place the egg beater in the bowl, ⃝
+                                           4 approach and
+grasp the egg beater crank handle, and ⃝  5 turn the crank
+handle 3 or more times.
+              1
+                     3
+
+                                                                      Figure 13. Bimanual Shirt Folding. The robot needs to ⃝        1
+                                                           5     6    approach and grasp the closest sleeve with both arms, 2    ⃝ fold
+                         4
+             2                                                                                ⃝ drag the shirt closer (if needed), ⃝
+                                                                      the sleeve and release, 3                                        4
+                                                                      approach and grasp the other sleeve with both arms, ⃝     5 fold the
+                                                                      sleeve and release, ⃝6 drag the shirt to a orientation for folding,
+Figure 12. Bimanual Mat Unrolling. The robot needs to ⃝        1      ⃝7 grasp and fold the shirt in half by its collar, ⃝
+                                                                                                                         8 drag the shirt
+pick up one side of the mat (if needed), using the left or right      to the center, and ⃝
+                                                                                         9 smooth out the shirt and move the arms
+arm, ⃝                                       ⃝ ensure that both
+      2 lift and unroll the mat (if needed), 3                        away.
+sides of the mat are grasped, ⃝  4 lift the mat, ⃝
+                                                 5 place the mat
+oriented with the table, mostly centered, and ⃝  6 release the mat.   et al. (2020). While conceptually simple, behavior cloning
+                                                                      has shown surprising promise on an array of real-world
+haptic feedback to perform the task. We taught this skill to          robot tasks, including manipulation Zhang et al. (2018);
+be omnidextrous, meaning it can unroll either to the left or          Florence et al. (2019); Mandlekar et al. (2020b,a); Zeng
+right depending on the initial condition.                             et al. (2021); Rahmatizadeh et al. (2018); Avigal et al. (2022)
+   Result Analysis. Diffusion policy is able to complete this         and autonomous driving Pomerleau (1988); Bojarski et al.
+task with 75% success rate over 20 trials, trained using 162          (2016). Current behavior cloning approaches can be catego-
+demonstrations. The primary failure modes for these were              rized into two groups, depending on the policy’s structure.
+missed grasps during initial grasp of the mat, where the                 Explicit Policy. The simplest form of explicit policies
+policy struggled to correct itself and thus got stuck repeating       maps from world state or observation directly to action
+the same behavior. The initial and final states for all rollouts      Pomerleau (1988); Zhang et al. (2018); Florence et al.
+are visualized in 16 and 17.                                          (2019); Ross et al. (2011); Toyer et al. (2020); Rahmatizadeh
+                                                                      et al. (2018); Bojarski et al. (2016). They can be
+7.5    Bimanual Shirt Folding.                                        supervised with a direct regression loss and have efficient
+The shirt folding task is described and illustrated in Fig. 13,       inference time with one forward pass. Unfortunately, this
+using a short-sleeve T-shirt. This task was also teleoperated         type of policy is not suitable for modeling multi-modal
+using the VR setup as it did not require rich feedback                demonstrated behavior, and struggles with high-precision
+to perform the task. Due to the kinematic and workspace               tasks Florence et al. (2021). A popular approach to
+constraints, this task is notably longer and can take up              model multimodal action distributions while maintaining
+to nine discrete steps. The last few steps require both               the simplicity of direction action mapping is convert
+grippers to come very close towards each other. Having our            the regression task into classification by discretizing the
+mid-level controller explicitly handling collision avoidance          action space Zeng et al. (2021); Wu et al. (2020); Avigal
+was especially important for both teleoperation and policy            et al. (2022). However, the number of bins needed to
+rollout.                                                              approximate a continuous action space grows exponentially
+   Result Analysis. Diffusion policy is able to complete this         with increasing dimensionality. Another approach is to
+task with 75% success rate over 20 trials, trained using 284          combine Categorical and Gaussian distributions to represent
+demonstrations. The primary failure modes for these were              continuous multimodal distributions via the use of MDNs
+missed grasps for initial folding (the sleeves and the color),        Bishop (1994); Mandlekar et al. (2021) or clustering with
+and the policy being unable to stop adjusting the shirt at the        offset prediction Shafiullah et al. (2022); Sharma et al.
+end. The initial and final states for all rollouts are visualized     (2018). Nevertheless, these models tend to be sensitive to
+in 20 and 21.                                                         hyperparameter tuning, exhibit mode collapse, and are still
+                                                                      limited in their ability to express high-precision behavior
+                                                                      Florence et al. (2021).
+8     Related Work                                                       Implicit Policy. Implicit policies (Florence et al. 2021;
+Creating capable robots without requiring explicit program-           Jarrett et al. 2020) define distributions over actions by using
+ming of behaviors is a longstanding challenge in the field            Energy-Based Models (EBMs) (LeCun et al. 2006; Du and
+Atkeson and Schaal (1997); Argall et al. (2009); Ravichandar          Mordatch 2019; Dai et al. 2019; Grathwohl et al. 2020;
+Diffusion Policy                                                                                                                  13
+
+
+Du et al. 2020). In this setting, each action is assigned        (2023); Hansen-Estruch et al. (2023), to take advantage of
+an energy value, with action prediction corresponding to         suboptimal and negative data. Second, diffusion policy has
+the optimization problem of finding a minimal energy             higher computational costs and inference latency compared
+action. Since different actions may be assigned low              to simpler methods like LSTM-GMM. Our action sequence
+energies, implicit policies naturally represent multi-modal      prediction approach partially mitigates this issue, but may
+distributions. However, existing implicit policies (Florence     not suffice for tasks requiring high rate control. Future
+et al. 2021) are unstable to train due to the necessity of       work can exploit the latest advancements in diffusion model
+drawing negative samples when computing the underlying           acceleration methods to reduce the number of inference
+Info-NCE loss.                                                   steps required, such as new noise schedules Chen (2023),
+   Diffusion Models. Diffusion models are probabilistic          inference solvers Karras et al. (2022), and consistency
+generative models that iteratively refine randomly sampled       models Song et al. (2023).
+noise into draws from an underlying distribution. They can
+also be conceptually understood as learning the gradient field
+                                                                 10    Conclusion
+of an implicit action score and then optimizing that gradient
+during inference. Diffusion models (Sohl-Dickstein et al.        In this work, we assess the feasibility of diffusion-based
+2015; Ho et al. 2020) have recently been applied to solve        policies for robot behaviors. Through a comprehensive
+various different control tasks (Janner et al. 2022a; Urain      evaluation of 15 tasks in simulation and the real world,
+et al. 2022; Ajay et al. 2022).                                  we demonstrate that diffusion-based visuomotor policies
+   In particular, Janner et al. (2022a) and Huang et al.         consistently and definitively outperform existing methods
+(2023) explore how diffusion models may be used in the           while also being stable and easy to train. Our results also
+context of planning and infer a trajectory of actions that       highlight critical design factors, including receding-horizon
+may be executed in a given environment. In the context of        action prediction, end-effector position control, and efficient
+Reinforcement Learning, Wang et al. (2022) use diffusion         visual conditioning, that is crucial for unlocking the full
+model for policy representation and regularization with state-   potential of diffusion-based policies. While many factors
+based observations. In contrast, in this work, we explore        affect the ultimate quality of behavior-cloned policies —
+how diffusion models may instead be effectively applied in       including the quality and quantity of demonstrations, the
+the context of behavioral cloning for effective visuomotor       physical capabilities of the robot, the policy architecture,
+control policy. To construct effective visuomotor control        and the pretraining regime used — our experimental results
+policies, we propose to combine DDPM’s ability to predict        strongly indicate that policy structure poses a significant
+high-dimensional action squences with closed-loop control,       performance bottleneck during behavior cloning. We hope
+as well as a new transformer architecture for action diffusion   that this work drives further exploration in the field into
+and a manner to integrate visual inputs into the action          diffusion-based policies and highlights the importance of
+diffusion model.                                                 considering all aspects of the behavior cloning process
+   Wang et al. (2023) explore how diffusion models learned       beyond just the data used for policy training.
+from expert demonstrations can be used to augment
+classical explicit polices without directly taking advantage     11    Acknowledgement
+of diffusion models as policy representation.
+   Concurrent to us, Pearce et al. (2023), Reuss et al.          We’d like to thank Naveen Kuppuswamy, Hongkai Dai,
+(2023) and Hansen-Estruch et al. (2023) has conducted            Aykut Önol, Terry Suh, Tao Pang, Huy Ha, Samir Gadre,
+a complimentary analysis of diffusion-based policies in          Kevin Zakka and Brandon Amos for their thoughtful
+simulated environments. While they focus more on effective       discussions. We thank Jarod Wilson for 3D printing support
+sampling strategies, leveraging classifier-free guidance for     and Huy Ha for photography and lighting advice. We thank
+goal-conditioning as well as applications in Reinforcement       Xiang Li for discovering the bug in our evaluation code on
+Learning, and we focus on effective action spaces, our           GitHub.
+empirical findings largely concur in the simulated regime.
+In addition, our extensive real-world experiments provide        Funding
+strong evidence for the importance of a receding-horizon         This work was supported by the Toyota Research Institute, NSF
+prediction scheme, the careful choice between velocity and       CMMI-2037101 and NSF IIS-2132519. We would like to thank
+position control, and the necessity of optimization for real-    Google for the UR5 robot hardware. The views and conclusions
+time inference and other critical design decisions for a         contained herein are those of the authors and should not be
+physical robot system.                                           interpreted as necessarily representing the official policies, either
+                                                                 expressed or implied, of the sponsors.
+
+9   Limitations and Future Work
+                                                                 References
+Although we have demonstrated the effectiveness of
+diffusion policy in both simulation and real-world systems,      Ajay A, Du Y, Gupta A, Tenenbaum J, Jaakkola T and Agrawal
+there are limitations that future work can improve. First,           P (2022) Is conditional generative modeling all you need for
+our implementation inherits limitations from behavior                decision-making? arXiv preprint arXiv:2211.15657 .
+cloning, such as suboptimal performance with inadequate          Argall BD, Chernova S, Veloso M and Browning B (2009) A
+demonstration data. Diffusion policy can be applied to               survey of robot learning from demonstration. Robotics and
+other paradigms, such as reinforcement learning Wang et al.          autonomous systems 57(5): 469–483.
+14
+
+
+Atkeson CG and Schaal S (1997) Robot learning from                     Ho J, Jain A and Abbeel P (2020) Denoising diffusion probabilistic
+    demonstration. In: ICML, volume 97. pp. 12–20.                          models. arXiv preprint arXiv:2006.11239 .
+Avigal Y, Berscheid L, Asfour T, Kröger T and Goldberg K (2022)       Huang S, Wang Z, Li P, Jia B, Liu T, Zhu Y, Liang W and Zhu SC
+    Speedfolding: Learning efficient bimanual folding of garments.          (2023) Diffusion-based generation, optimization, and planning
+    In: 2022 IEEE/RSJ International Conference on Intelligent               in 3d scenes. arXiv preprint arXiv:2301.06015 .
+    Robots and Systems (IROS). IEEE, pp. 1–8.                          Janner M, Du Y, Tenenbaum J and Levine S (2022a) Planning
+Bishop CM (1994) Mixture density networks. Aston University.                with diffusion for flexible behavior synthesis. In: International
+Bojarski M, Del Testa D, Dworakowski D, Firner B, Flepp B,                  Conference on Machine Learning.
+    Goyal P, Jackel LD, Monfort M, Muller U, Zhang J et al.            Janner M, Du Y, Tenenbaum J and Levine S (2022b) Planning with
+    (2016) End to end learning for self-driving cars. arXiv preprint        diffusion for flexible behavior synthesis. In: Chaudhuri K,
+    arXiv:1604.07316 .                                                      Jegelka S, Song L, Szepesvari C, Niu G and Sabato S (eds.)
+Chen T (2023) On the importance of noise scheduling for diffusion           Proceedings of the 39th International Conference on Machine
+    models. arXiv preprint arXiv:2301.10972 .                               Learning, Proceedings of Machine Learning Research. PMLR.
+Chi C, Feng S, Du Y, Xu Z, Cousineau E, Burchfiel B and Song S         Jarrett D, Bica I and van der Schaar M (2020) Strictly batch
+    (2023) Diffusion policy: Visuomotor policy learning via action          imitation learning by energy-based distribution matching.
+    diffusion. In: Proceedings of Robotics: Science and Systems             Advances in Neural Information Processing Systems 33: 7354–
+    (RSS).                                                                  7365.
+Dai B, Liu Z, Dai H, He N, Gretton A, Song L and Schuurmans D          Karras T, Aittala M, Aila T and Laine S (2022) Elucidating the
+    (2019) Exponential family estimation via adversarial dynamics           design space of diffusion-based generative models. arXiv
+    embedding. Advances in Neural Information Processing                    preprint arXiv:2206.00364 .
+    Systems 32.                                                        Khatib O (1987) A unified approach for motion and force control of
+Deng J, Dong W, Socher R, Li LJ, Li K and Fei-Fei L (2009)                  robot manipulators: The operational space formulation. IEEE
+    Imagenet: A large-scale hierarchical image database. In: 2009           Journal on Robotics and Automation 3(1): 43–53. DOI:10.
+    IEEE conference on computer vision and pattern recognition.             1109/JRA.1987.1087068. Conference Name: IEEE Journal on
+    Ieee, pp. 248–255.                                                      Robotics and Automation.
+Dosovitskiy A, Beyer L, Kolesnikov A, Weissenborn D, Zhai X,           LeCun Y, Chopra S, Hadsell R, Huang FJ and et al (2006) A tutorial
+    Unterthiner T, Dehghani M, Minderer M, Heigold G, Gelly S               on energy-based learning. In: Predicting Structured Data. MIT
+    et al. (2020) An image is worth 16x16 words: Transformers for           Press.
+    image recognition at scale. arXiv preprint arXiv:2010.11929 .      Liu L, Liu X, Gao J, Chen W and Han J (2020) Understanding
+Du Y, Li S, Tenenbaum J and Mordatch I (2020) Improved                      the difficulty of training transformers.         arXiv preprint
+    contrastive divergence training of energy based models. arXiv           arXiv:2004.08249 .
+    preprint arXiv:2012.01316 .                                        Liu N, Li S, Du Y, Torralba A and Tenenbaum JB (2022)
+Du Y and Mordatch I (2019) Implicit generation and generalization           Compositional visual generation with composable diffusion
+    in energy-based models. arXiv preprint arXiv:1903.08689 .               models. arXiv preprint arXiv:2206.01714 .
+Florence P, Lynch C, Zeng A, Ramirez OA, Wahid A, Downs L,             Mandlekar A, Ramos F, Boots B, Savarese S, Fei-Fei L, Garg A and
+    Wong A, Lee J, Mordatch I and Tompson J (2021) Implicit                 Fox D (2020a) Iris: Implicit reinforcement without interaction
+    behavioral cloning. In: 5th Annual Conference on Robot                  at scale for learning control from offline robot manipulation
+    Learning.                                                               data. In: 2020 IEEE International Conference on Robotics and
+Florence P, Manuelli L and Tedrake R (2019) Self-supervised                 Automation (ICRA). IEEE.
+    correspondence in visuomotor policy learning. IEEE Robotics        Mandlekar A, Xu D, Martı́n-Martı́n R, Savarese S and Fei-Fei L
+    and Automation Letters 5(2): 492–499.                                   (2020b) Learning to generalize across long-horizon tasks from
+Grathwohl W, Wang KC, Jacobsen JH, Duvenaud D and Zemel                     human demonstrations. arXiv preprint arXiv:2003.06085 .
+    R (2020) Learning the stein discrepancy for training and           Mandlekar A, Xu D, Wong J, Nasiriany S, Wang C, Kulkarni R,
+    evaluating energy-based models without sampling.             In:        Fei-Fei L, Savarese S, Zhu Y and Martı́n-Martı́n R (2021)
+    International Conference on Machine Learning.                           What matters in learning from offline human demonstrations
+Gupta A, Kumar V, Lynch C, Levine S and Hausman K (2019)                    for robot manipulation. In: 5th Annual Conference on Robot
+    Relay policy learning: Solving long-horizon tasks via imitation         Learning.
+    and reinforcement learning. arXiv preprint arXiv:1910.11956 .      Mayne DQ and Michalska H (1988) Receding horizon control
+Hansen-Estruch P, Kostrikov I, Janner M, Kuba JG and Levine S               of nonlinear systems. In: Proceedings of the 27th IEEE
+    (2023) Idql: Implicit q-learning as an actor-critic method with         Conference on Decision and Control. IEEE, pp. 464–465.
+    diffusion policies. arXiv preprint arXiv:2304.10573 .              Nair S, Rajeswaran A, Kumar V, Finn C and Gupta A (2022) R3m:
+He K, Fan H, Wu Y, Xie S and Girshick R (2020) Momentum                     A universal visual representation for robot manipulation. In:
+    contrast for unsupervised visual representation learning. In:           6th Annual Conference on Robot Learning.
+    Proceedings of the IEEE/CVF conference on computer vision          Neal RM et al. (2011) Mcmc using hamiltonian dynamics.
+    and pattern recognition. pp. 9729–9738.                                 Handbook of markov chain monte carlo .
+He K, Zhang X, Ren S and Sun J (2016) Deep residual learning for       Nichol AQ and Dhariwal P (2021) Improved denoising diffusion
+    image recognition. In: Proceedings of the IEEE conference on            probabilistic models. In: International Conference on Machine
+    computer vision and pattern recognition. pp. 770–778.                   Learning. PMLR, pp. 8162–8171.
+Diffusion Policy                                                                                                                        15
+
+
+Pearce T, Rashid T, Kanervisto A, Bignell D, Sun M, Georgescu R,            information processing systems 32.
+     Macua SV, Tan SZ, Momennejad I, Hofmann K et al. (2023)            Subramanian J and Mahajan A (2019) Approximate information
+     Imitating human behaviour with diffusion models. arXiv                 state for partially observed systems. In: 2019 IEEE 58th
+     preprint arXiv:2301.10677 .                                            Conference on Decision and Control (CDC). IEEE, pp. 1629–
+Perez E, Strub F, De Vries H, Dumoulin V and Courville A (2018)             1636.
+     Film: Visual reasoning with a general conditioning layer. In:      Ta DN, Cousineau E, Zhao H and Feng S (2022) Conditional
+     Proceedings of the AAAI Conference on Artificial Intelligence.         energy-based models for implicit policies: The gap between
+Pomerleau DA (1988) Alvinn: An autonomous land vehicle in a                 theory and practice. arXiv preprint arXiv:2207.05824 .
+     neural network. Advances in neural information processing          Tancik M, Srinivasan P, Mildenhall B, Fridovich-Keil S, Raghavan
+     systems 1.                                                             N, Singhal U, Ramamoorthi R, Barron J and Ng R (2020)
+Radford A, Kim JW, Hallacy C, Ramesh A, Goh G, Agarwal S,                   Fourier features let networks learn high frequency functions
+     Sastry G, Askell A, Mishkin P, Clark J et al. (2021) Learning          in low dimensional domains. Advances in Neural Information
+     transferable visual models from natural language supervision.          Processing Systems 33: 7537–7547.
+     In: International conference on machine learning. PMLR, pp.        Toyer S, Shah R, Critch A and Russell S (2020) The magical
+     8748–8763.                                                             benchmark for robust imitation.          Advances in Neural
+Rahmatizadeh R, Abolghasemi P, Bölöni L and Levine S (2018)               Information Processing Systems 33: 18284–18295.
+     Vision-based multi-task manipulation for inexpensive robots        Urain J, Funk N, Chalvatzaki G and Peters J (2022) Se (3)-
+     using end-to-end learning from demonstration. In: 2018 IEEE            diffusionfields: Learning cost functions for joint grasp and
+     international conference on robotics and automation (ICRA).            motion optimization through diffusion.          arXiv preprint
+     IEEE, pp. 3758–3765.                                                   arXiv:2209.03855 .
+Ravichandar H, Polydoros AS, Chernova S and Billard A (2020)            Vaswani A, Shazeer N, Parmar N, Uszkoreit J, Jones L, Gomez AN,
+     Recent advances in robot learning from demonstration. Annual           Kaiser Ł and Polosukhin I (2017) Attention is all you need.
+     review of control, robotics, and autonomous systems 3: 297–            Advances in neural information processing systems 30.
+     330.                                                               Wang Z, Hunt JJ and Zhou M (2022) Diffusion policies as an
+Reuss M, Li M, Jia X and Lioutikov R (2023) Goal-conditioned                expressive policy class for offline reinforcement learning.
+     imitation learning using score-based diffusion policies. In:           arXiv preprint arXiv:2208.06193 .
+     Proceedings of Robotics: Science and Systems (RSS).                Wang Z, Hunt JJ and Zhou M (2023) Diffusion policies as an
+Ridnik T, Ben-Baruch E, Noy A and Zelnik-Manor L (2021)                     expressive policy class for offline reinforcement learning.
+     Imagenet-21k pretraining for the masses.                               In: The Eleventh International Conference on Learning
+Ronneberger O, Fischer P and Brox T (2015) U-net: Convolu-                  Representations.      URL https://openreview.net/
+     tional networks for biomedical image segmentation. In: Med-            forum?id=AHvFDPi-FA.
+     ical Image Computing and Computer-Assisted Intervention–           Welling M and Teh YW (2011) Bayesian learning via stochastic
+     MICCAI 2015: 18th International Conference, Munich, Ger-               gradient langevin dynamics. In: Proceedings of the 28th
+     many, October 5-9, 2015, Proceedings, Part III 18. Springer,           international conference on machine learning (ICML-11). pp.
+     pp. 234–241.                                                           681–688.
+Ross S, Gordon G and Bagnell D (2011) A reduction of imitation          Wu J, Sun X, Zeng A, Song S, Lee J, Rusinkiewicz S
+     learning and structured prediction to no-regret online learning.       and Funkhouser T (2020) Spatial action maps for mobile
+     In: Proceedings of the fourteenth international conference             manipulation. In: Proceedings of Robotics: Science and
+     on artificial intelligence and statistics. JMLR Workshop and           Systems (RSS).
+     Conference Proceedings, pp. 627–635.                               Wu Y and He K (2018) Group normalization. In: Proceedings of the
+Shafiullah NMM, Cui ZJ, Altanzaya A and Pinto L (2022) Behavior             European conference on computer vision (ECCV). pp. 3–19.
+     transformers: Cloning $k$ modes with one stone. In: Oh AH,         Yang J, Zhang J, Settle C, Rai A, Antonova R and Bohg J (2022)
+     Agarwal A, Belgrave D and Cho K (eds.) Advances in Neural              Learning periodic tasks from human demonstrations. In: 2022
+     Information Processing Systems.                                        International Conference on Robotics and Automation (ICRA).
+Sharma P, Mohan L, Pinto L and Gupta A (2018) Multiple                      IEEE, pp. 8658–8665.
+     interactions made easy (mime): Large scale demonstrations          Zeng A, Florence P, Tompson J, Welker S, Chien J, Attarian M,
+     data for imitation. In: Conference on robot learning. PMLR.            Armstrong T, Krasin I, Duong D, Sindhwani V et al. (2021)
+Siciliano B, Khatib O and Kröger T (2008) Springer handbook of             Transporter networks: Rearranging the visual world for robotic
+     robotics, volume 200. Springer.                                        manipulation. In: Conference on Robot Learning. PMLR, pp.
+Sohl-Dickstein J, Weiss E, Maheswaranathan N and Ganguli                    726–747.
+     S (2015) Deep unsupervised learning using nonequilibrium           Zhang A, McAllister RT, Calandra R, Gal Y and Levine S
+     thermodynamics. In: International Conference on Machine                (2020) Learning invariant representations for reinforcement
+     Learning.                                                              learning without reconstruction. In: International Conference
+Song J, Meng C and Ermon S (2021) Denoising diffusion                       on Learning Representations.
+     implicit models. In: International Conference on Learning          Zhang T, McCarthy Z, Jow O, Lee D, Chen X, Goldberg K
+     Representations.                                                       and Abbeel P (2018) Deep imitation learning for complex
+Song Y, Dhariwal P, Chen M and Sutskever I (2023) Consistency               manipulation tasks from virtual reality teleoperation. In: 2018
+     models. arXiv preprint arXiv:2303.01469 .                              IEEE International Conference on Robotics and Automation
+Song Y and Ermon S (2019) Generative modeling by estimating                 (ICRA). IEEE, pp. 5628–5635.
+     gradients of the data distribution.         Advances in neural
+16
+
+
+Zhou Y, Barnes C, Lu J, Yang J and Li H (2019) On the continuity                                                                       7 X E X I  ' 2 2                     : M W M S R  ' 2 2          : M W M S R  8 V E R W J S V Q I V
+                                                                                                                        
+
+
+
+                                                                      6 I P E X M Z I  4 I V J  ' L E R K I
+   of rotation representations in neural networks. In: Proceedings
+   of the IEEE/CVF Conference on Computer Vision and Pattern                                                            
+   Recognition. pp. 5745–5753.
+                                                                                                                        
+                                                                                                                        
+A     Diffusion Policy Implementation Details                                                                                                                                
+                                                                                                                                                       3 F W  , S V M ^ S R   W X I T W 
+A.1    Normalization                                                                                                                                     4 Y W L 8                 7 U Y E V I
+Properly normalizing action data is critical to achieve best             Figure 14. Observation Horizon Ablation Study. State-based
+performance for Diffusion Policy. Scaling the min and max                Diffusion Policy is not sensitive to observation horizon.
+of each action dimension independently to [−1, 1] works well             Vision-based Diffusion Policy prefers low but > 1 observation
+for most tasks. Since DDPMs clip prediction to [−1, 1] at                horizon, with 2 being a good compromise for most tasks.
+each iteration to ensure stability, the common zero-mean
+unit-variance normalization will cause some region of the                                                                          4 Y W L  8  ( E X E  ) J J M G M I R G ]               7 U Y E V I  ( E X E  ) J J M G M I R G ]
+                                                                                                                        
+
+
+
+
+                                                                         6 I P E X M Z I  4 I V J  ' L E R K I
+action space to be inaccessible. When the data variance is                                                             
+small (e.g., near constant value), shift the data to zero-mean                                                         
+without scaling to prevent numerical issues. We leave action                                                           
+dimensions corresponding to rotation representations (e.g.                                                             
+Quaternion) unchanged.                                                                                                 
+                                                                                                                       
+                                                                                                                       
+A.2    Rotation Representation                                                                                                                                 
+                                                                                                                                  8 V E M R M R K  ( I Q S  ) T M W S H I W        8 V E M R M R K  ( I Q S  ) T M W S H I W
+For all environments with velocity control action space, we                                                                                           ( M J J Y W M S R 4 S P M G ]     0 7 8 1  + 1 1
+followed the standard practice Mandlekar et al. (2021) to use
+3D axis-angle representation for the rotation component of               Figure 15. Data Efficiency Ablation Study. Diffusion Policy
+action. Since velocity action commands are usually close                 outperforms LSTM-GMM Mandlekar et al. (2021) at every
+to 0, the singularity and discontinuity of the axis-angle                training dataset size.
+representation don’t usually cause problems. We used the
+                                                                         except Push-T. Performance reported for DiffusionPolicy-C
+6D rotation representation proposed in Zhou et al. (2019) for
+                                                                         on Push-T in Tab. 1 used impaiting instead of FiLM.
+all environments (real-world and simulation) with positional
+control action space.                                                       On simulation benchmarks, we used the iDDPM algorithm
+                                                                         Nichol and Dhariwal (2021) with the same 100 denoising
+                                                                         diffusion iterations for both training and inference. We used
+A.3    Image Augmentation                                                DDIM Song et al. (2021) on realworld benchmarks to reduce
+Following Mandlekar et al. (2021), we employed random                    the inference denoising iterations to 16 therefore reducing
+crop augmentation during training. The crop size for each                inference latency.
+task is indicated in Tab. 7. During inference, we take a static             We used batch size of 256 for all state-based experiments
+center crop with the same size.                                          and 64 for all image-based experiments. For learning-rate
+                                                                         scheduling, we used cosine schedule with linear warmup.
+A.4    Hyperparameters                                                   CNN-based Diffusion Policy is warmed up for 500 steps
+Hyerparameters used for Diffusion Policy on both simulation              while Transformer-based Diffusion Policy is warmed up for
+and realworld benchmarks are shown in Tab. 7 and Tab.                    1000 steps.
+8. Since the Block Push task uses a Markovian scripted
+oracle policy to generate demonstration data, we found its               A.5                                                  Data Efficiency
+optimal hyper parameter for observation and action horizon
+to be very different from other tasks with human teleop                  We found Diffusion Policy to outperform LSTM-GMM
+demostrations.                                                           Mandlekar et al. (2021) at every training dataset size, as
+   We found that the optimal hyperparameters for CNN-                    shown in Fig. 15.
+based Diffusion Policy are consistent across tasks. In
+contrast, transformer-based Diffusion Policy’s optimal
+attention dropout rate and weight decay varies greatly                   B                                             Additional Ablation Results
+across different tasks. During tuning, we found increasing
+                                                                         B.1                                                  Observation Horizon
+the number of parameters in CNN-based Diffusion Policy
+always improves performance, therefore the optimal model                 We found state-based Diffusion Policy to be insensitive
+size is limited by the available compute and memory                      to observation horizon, as shown in Fig. 14. However,
+capacity. On the other hand, increasing model size for                   vision-based Diffusion Policy, in particular the variant with
+transformer-based Diffusion Policy (in particular number                 CNN backbone, see performance decrease with increasing
+of layers) hurts performance sometimes. For CNN-based                    observation horizon. In practice, we found an observation
+Diffusion Policy, We found using FiLM conditioning to                    horizon of 2 is good for most of the tasks for both state and
+pass-in observations is better than impainting on all tasks              image observations.
+Diffusion Policy                                                                                                               17
+
+
+ H-Param         Ctrl To Ta Tp ImgRes           CropRes    #D-Params #V-Params Lr          WDecay D-Iters Train D-Iters Eval
+ Lift            Pos    2   8   16   2x84x84   2x76x76   256             22          1e-4 1e-6       100            100
+ Can             Pos    2   8   16   2x84x84   2x76x76   256             22          1e-4 1e-6       100            100
+ Square          Pos    2   8   16   2x84x84   2x76x76   256             22          1e-4 1e-6       100            100
+ Transport       Pos    2   8   16   4x84x85   4x76x76   264             45          1e-4 1e-6       100            100
+ ToolHang        Pos    2   8   16   2x240x240 2x216x216 256             22          1e-4 1e-6       100            100
+ Push-T          Pos    2   8   16   1x96x96   1x84x84   256             22          1e-4 1e-6       100            100
+ Block Push      Pos    3   1   12   N/A       N/A       256             0           1e-4 1e-6       100            100
+ Kitchen         Pos    2   8   16   N/A       N/A       256             0           1e-4 1e-6       100            100
+ Real Push-T     Pos    2   6   16   2x320x240 2x288x216 67              22          1e-4 1e-6       100            16
+ Real Pour       Pos    2   8   16   2x320x240 2x288x216 67              22          1e-4 1e-6       100            16
+ Real Spread     Pos    2   8   16   2x320x240 2x288x216 67              22          1e-4 1e-6       100            16
+ Real Mug Flip   Pos    2   8   16   2x320x240 2x288x216 67              22          1e-4 1e-6       100            16
+Table 7. Hyperparameters for CNN-based Diffusion Policy Ctrl: position or velocity control To: observation horizon Ta: action
+horizon Tp: action prediction horizon ImgRes: environment observation resolution (Camera views x W x H) CropRes: random crop
+resolution #D-Params: diffusion network number of parameters in millions #V-Params: vision encoder number of parameters in
+millions Lr: learining rate WDecay: weight decay D-Iters Train: number of training diffusion iterations D-Iters Eval: number of
+inference diffusion iterations (enabled by DDIM Song et al. (2021))
+
+
+ H-Param      Ctrl To Ta Tp #D-params #V-params #Layers Emb Dim Attn Drp Lr                WDecay D-Iters Train D-Iters Eval
+ Lift         Pos   2   8   10 9           22          8          256         0.3     1e-4 1e-3      100           100
+ Can          Pos   2   8   10 9           22          8          256         0.3     1e-4 1e-3      100           100
+ Square       Pos   2   8   10 9           22          8          256         0.3     1e-4 1e-3      100           100
+ Transport    Pos   2   8   10 9           45          8          256         0.3     1e-4 1e-3      100           100
+ ToolHang     Pos   2   8   10 9           22          8          256         0.3     1e-4 1e-3      100           100
+ Push-T       Pos   2   8   16 9           22          8          256         0.01    1e-4 1e-1      100           100
+ Block Push   Vel   3   1   5 9            0           8          256         0.3     1e-4 1e-3      100           100
+ Kitchen      Pos   4   8   16 80          0           8          768         0.1     1e-4 1e-3      100           100
+ Real Push-T Pos 2      6   16 80          22          8          768         0.3     1e-4 1e-3      100           16
+Table 8. Hyperparameters for Transformer-based Diffusion Policy Ctrl: position or velocity control To: observation horizon Ta:
+action horizon Tp: action prediction horizon #D-Params: diffusion network number of parameters in millions #V-Params: vision
+encoder number of parameters in millions Emb Dim: transformer token embedding dimension Attn Drp: transformer attention
+dropout probability Lr: learining rate WDecay: weight decay (for transformer only) D-Iters Train: number of training diffusion
+iterations D-Iters Eval: number of inference diffusion iterations (enabled by DDIM Song et al. (2021))
+
+B.2     Performance Improvement Calculation                        text Fig. 7. Each method is evaluated for 20 episodes, all
+For each task i (column) reported in Tab. 1, Tab. 2                starting from the same set of initial conditions. To ensure
+and Tab. 4 (mh results ignored), we find the maximum               the consistency of initial conditions, we carefully adjusted
+performance for baseline methods max baselinei and                 the pose of the T block and the robot according to overlayed
+the maximum performance for Diffusion Policy variant               images from the top-down camera. Each evaluation episode
+(CNN vs Transformer) max oursi . For each task, the                is terminated by either keeping the end-effector within the
+performance improvement is calculated as improvementi =            end-zone for more than 0.5 second, or by reaching the 60
+max oursi −max baselinei
+                         (positive for all tasks). Finally, the    sec time limit. The IoU metric is directly computed in the
+     max baselinei
+average improvement is calculated as avg improvement =             top-down camera pixel space.
+ 1 i
+N ∑N improvementi = 0.46858 ≈ 46.9%.
+                                                                   C.2     Sauce Pouring and Spreading
+                                                                   C.2.1     Demonstrations 50 demonstrations are collected,
+C     Realworld Task Details                                       and 90% are used for training for each task. For pouring,
+C.1     Push-T                                                     initial locations of the pizza dough and sauce bowl are varied.
+                                                                   After each demonstration, sauce is poured back into the
+C.1.1     Demonstrations 136 demonstrations are collected          bowl, and the dough is wiped clean. For spreading, location
+and used for training. The initial condition is varied by          of the pizza dough as well as the poured sauce shape are
+randomly pushing or tossing the T block onto the table. Prior      varied. For resetting, we manually gather sauce towards
+to this data collection session, the operator has performed        the center of the dough, and wipe the remaining dough
+this task for many hours and should be considered proficient       clean. The rotational components for tele-op commands are
+at this task.                                                      discarded during spreading and sauce transferring to avoid
+                                                                   accidentally scooping or spilling sauce.
+C.1.2   Evaluation We used a fixed training time of 12
+hours for each method, and selected the last checkpoint            C.2.2    Evaluation Both Diffusion Policy and LSTM-GMM
+for each, with the exception of IBC, where the checkpoint          are trained for 1000 epochs. The last checkpoint is used for
+with minimum training set action prediction MSE error due          evaluation.
+to IBC’s training stability issue. The difficulty of training         Each method is evaluated from the same set of random
+and checkpoint selection for IBC is demonstrated in main           initial conditions, where positions of the pizza dough and
+18
+
+
+sauce bowl are varied. We use a similar protocol as in Push-
+T to set up initial conditions. We do not try to match initial
+shape of poured sauce for spreading. Instead, we make sure
+the amount of sauce is fixed during all experiments.
+  The evaluation episodes are terminated by moving the
+spoon upward (away form the dough) for 0.5 seconds, or
+when the operator deems the policy’s behavior is unsafe.
+  The coverage metric is computed by first projecting the
+RGB image from both the left and right cameras onto
+the table space through homography, then computing the
+coverage in each projected image. The maximum coverage
+between the left and right cameras is reported.
+
+D     Realworld Setup Details                                       Figure 16. Initial states for Mat Unrolling
+D.0.1   UR5 robot station Experiments for the Push-T task
+are performed on the UR5 robot station.
+   The UR5 robot accepts end-effector space positional
+command at 125Hz, which is linearly interpolated from the
+10Hz command from either human demonstration or the
+policy. The interpolation controller limits the end-effector
+velocity to be below 0.43 m/s and its position to be
+within the region 1cm above the table for safety reason.
+Position-controlled policies directly predicts the desired end-
+effector pose, while velocity-controlled policies predicts the
+difference the current positional setpoint and the previous
+setpoint.
+   The UR5 robot station has 5 realsense D415 depth camera
+recording 720p RGB videos at 30fps. Only 2 of the cameras
+                                                                    Figure 17. Final states for Mat Unrolling
+are used for policy observation, which are down-sampled to
+320x240 at 10fps.
+   During demonstration, the operator teleoperates the robot        posed as costs. This, coupled with a good model of the
+via a 3dconnexion SpaceMouse at 10Hz.                               Franka Panda arm, including reflected rotor inertias, allows
+                                                                    us to perform good tracking with pure spatial feedback, and
+D.1     Franka Robot Station                                        even better tracking with feedforward spatial acceleration.
+Experiments for Sauce Pouring and Spreading, Bimanual               Collision avoidance has not yet been enabled for this control
+Egg Beater, Bimanual Mat Unrolling, and Bimanual                    mode.
+Shirt Folding tasks are performed on the Franka robot                  Note that for inference, we use the non-haptic control.
+station.                                                            Future work intends to simplify this control strategy and only
+   For the non-haptic control, a custom mid-level controller        use a single controller for our given objectives.
+is implemented to generate desired joint positions from                The operator uses a SpaceMouse or VR controller input
+desired end effector poses from the learned policies. At            device(s) to control the robot’s end effector(s), and the
+each time step, we solve a differential kinematics problem          grippers are controlled by a trigger button on the respective
+(formulated as a Quadratic Program) to compute the desired          device. Tele-op and learned policies run at 10Hz, and the
+joint velocity to track the desired end effector velocity. The      mid-level controller runs around 1kHz. Desired end effector
+resulting joint velocity is Euler integrated into joint position,   pose commands are interpolated by the mid-level controller.
+which is tracked by a joint-level controller on the robot.          This station has 2 realsense D415 RGBD camera streaming
+This formulation allows us to impose constraints such as            VGA RGB images at 30fps, which are downsampled to
+collision avoidance for the two arms and the table, safety          320x240 at 10fps as input to the learned policies.
+region for end effector and joint limits. It also enables
+regulating redundant DoF in the null space of the end               D.2    Initial and Final States of Bimanual Tasks
+effector commands. This mid-level controller is particularly        The following figures show the initial and final state of four
+valuable for safeguarding the learned policy during hardware        bimanual tasks. Green and red boxes indicate successful and
+deployment.                                                         failed rollouts respectively. Since mat and shirt are very flat
+   For haptic teleoperation control, another custom mid-level       objects, we used a homographic projection to better visualize
+controller is implemented, but formulated as a pure torque-         the initial and final states.
+controller. The controller is formulated using Operational
+Space Control Khatib (1987) as a Quadratic Program
+operating at 200 Hz, where position, velocity, and torque
+limits are added as constraints, and the primary spatial
+objective and secondary null-space posture objectives are
+Diffusion Policy                              19
+
+
+
+
+Figure 18. Initial states for Egg Beater
+
+
+
+
+Figure 19. Final states for Egg Beater
+
+
+
+
+Figure 20. Initial states for Shirt Folding
+
+
+
+
+Figure 21. Final states for Shirt Folding
+

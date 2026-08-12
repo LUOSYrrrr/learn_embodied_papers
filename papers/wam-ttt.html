@@ -492,7 +492,7 @@
         <div class="math-block">
           $$\mathcal{L}_{\mathrm{adapt}}(W_i) = \mathcal{L}_{\mathrm{vg}}^{\mathrm{human}}\big(\mathbf{u}_h;\, \Theta_{\mathrm{WAM}}, \theta_{\mathrm{TTT}}, W_i\big) + \lambda \sum_\ell \mathcal{L}_{\mathrm{KVM}}^{(\ell)}(W_i)$$
           <span class="math-label">Eq. 4 · p.4 · 内环目标 = 人类视频预测 + 记忆重建（只依赖无动作的人类侧！）</span>
-        </div>
+        </div><div class="math-explain"><div class="me-title">测试时内环究竟更新什么</div><dl><dt>$W_i$</dt><dd>第 $i$ 个场景/任务的快速适配参数；主 WAM 参数保持冻结。</dd><dt>$\mathcal L_{vg}^{human}$</dt><dd>只用现场无动作人类视频构造的未来生成损失，因此适配时不需要机器人动作标签。</dd><dt>$\mathcal L_{KVM}^{(\ell)}$</dt><dd>第 $\ell$ 层键值记忆重建约束，防止少量现场样本把适配参数推向不稳定捷径。</dd><dt>$\lambda$</dt><dd>平衡场景适配与记忆保持；过小易遗忘，过大则难以吸收当前环境。</dd></dl></div>
         <div class="math-block">
           $$W_{i+1}^{(\ell)} = W_i^{(\ell)} - \eta\, \nabla_{W_i^{(\ell)}} \mathcal{L}_{\mathrm{adapt}}(W_i)$$
           <span class="math-label">Eq. 5 · p.4 · 内环 SGD：从 W_init 出发更新快权重</span>
@@ -567,7 +567,7 @@
         <div class="math-block">
           $$\mathcal{L}_{\mathrm{TTT}}(W_i) = \frac{1}{|\mathcal{B}_h|}\sum_{\mathbf{u}\in\mathcal{B}_h}\left[ \mathcal{L}_{\mathrm{vg}}(\mathbf{u};\, \Theta_{\mathrm{WAM}}, \theta_{\mathrm{TTT}}, W_i) + \lambda\sum_\ell \mathcal{L}_{\mathrm{KVM}}^{(\ell)}(\mathbf{u};\, W_i)\right]$$
           <span class="math-label">Eq. 7 · p.5 · 测试时目标：对现场人类视频批 B_h 求平均，形式与 Eq.4 完全相同</span>
-        </div>
+        </div><div class="math-explain"><div class="me-title">从单样本内环到现场批次</div><dl><dt>$\mathcal B_h$</dt><dd>部署现场收集的人类演示视频小批次，不包含机器人动作。</dd><dt>$1/|\mathcal B_h|$</dt><dd>对现场样本平均，降低单个视频噪声对测试时梯度的支配。</dd><dt>$\Theta_{WAM},\theta_{TTT}$</dt><dd>基础世界动作模型与测试时适配模块；实现时必须明确哪些冻结、哪些参与内环更新。</dd><dt>与 Eq.4 的关系</dt><dd>训练时显式优化“未来可在测试时被无监督适配”，部署只是重复同一种目标，避免 train–test objective mismatch。</dd></dl></div>
         <div class="math-block">
           $$W_{i+1}^{(\ell)} = W_i^{(\ell)} - \eta\,\nabla_{W_i^{(\ell)}}\mathcal{L}_{\mathrm{TTT}}(W_i) \qquad\Longrightarrow\qquad \mathbf{a}_{t:t+k} \sim p_{\Theta_{\mathrm{WAM}},\,\theta_{\mathrm{TTT}},\,W_N}\big(\mathbf{a}_{t:t+k} \mid \mathbf{o}_t,\, \mathbf{g}\big)$$
           <span class="math-label">Eq. 8–9 · p.5 · 更新快权重到 W_N 后固定，正常 rollout 出动作块</span>

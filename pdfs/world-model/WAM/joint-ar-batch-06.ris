@@ -1,0 +1,97 @@
+TY  - CPAPER
+TI  - Unleashing Large-Scale Video Generative Pre-training for Visual Robot Manipulation
+AU  - Wu, Hongtao
+AU  - Jing, Ya
+AU  - Cheang, Chilam
+AU  - Chen, Guangzeng
+AU  - Xu, Jiafeng
+AU  - Li, Xinghang
+AU  - Liu, Minghuan
+AU  - Li, Hang
+AU  - Kong, Tao
+PY  - 2024
+T2  - International Conference on Learning Representations (ICLR)
+DO  - 10.48550/arXiv.2312.13139
+UR  - https://arxiv.org/abs/2312.13139
+L1  - file:///Users/siyuanluo/STUDY/paper/learn_embodied_papers/pdfs/world-model/WAM/Wu%20et%20al.%20-%202024%20-%20GR-1%20Unleashing%20Large-Scale%20Video%20Generative%20Pre-training%20for%20Visual%20Robot%20Manipulation.pdf
+N1  - ICLR 2024; model named GR-1.
+KW  - WAM-route
+KW  - joint autoregressive WAM
+KW  - GR-1
+ER  -
+
+TY  - RPRT
+TI  - GR-2: A Generative Video-Language-Action Model with Web-Scale Knowledge for Robot Manipulation
+AU  - Cheang, Chi-Lam
+AU  - Chen, Guangzeng
+AU  - Jing, Ya
+AU  - Kong, Tao
+AU  - Li, Hang
+AU  - Li, Yifeng
+AU  - Liu, Yuxiao
+AU  - Wu, Hongtao
+AU  - Xu, Jiafeng
+AU  - Yang, Yichu
+AU  - Zhang, Hanbo
+AU  - Zhu, Minzhao
+PY  - 2024
+DO  - 10.48550/arXiv.2410.06158
+UR  - https://arxiv.org/abs/2410.06158
+L1  - file:///Users/siyuanluo/STUDY/paper/learn_embodied_papers/pdfs/world-model/WAM/Cheang%20et%20al.%20-%202024%20-%20GR-2%20A%20Generative%20Video-Language-Action%20Model%20with%20Web-Scale%20Knowledge%20for%20Robot%20Manipulation.pdf
+N1  - Technical report.
+KW  - WAM-route
+KW  - joint autoregressive WAM
+KW  - GR-2
+ER  -
+
+TY  - RPRT
+TI  - WorldVLA: Towards Autoregressive Action World Model
+AU  - Cen, Jun
+AU  - Yu, Chaohui
+AU  - Yuan, Hangjie
+AU  - Jiang, Yuming
+AU  - Huang, Siteng
+AU  - Guo, Jiayan
+AU  - Li, Xin
+AU  - Song, Yibing
+AU  - Luo, Hao
+AU  - Wang, Fan
+AU  - Zhao, Deli
+AU  - Chen, Hao
+PY  - 2025
+DO  - 10.48550/arXiv.2506.21539
+UR  - https://arxiv.org/abs/2506.21539
+L1  - file:///Users/siyuanluo/STUDY/paper/learn_embodied_papers/pdfs/world-model/WAM/Cen%20et%20al.%20-%202025%20-%20WorldVLA%20Towards%20Autoregressive%20Action%20World%20Model.pdf
+N1  - Technical report.
+KW  - WAM-route
+KW  - joint autoregressive WAM
+KW  - WorldVLA
+ER  -
+
+TY  - CPAPER
+TI  - CoT-VLA: Visual Chain-of-Thought Reasoning for Vision-Language-Action Models
+AU  - Zhao, Qingqing
+AU  - Lu, Yao
+AU  - Kim, Moo Jin
+AU  - Fu, Zipeng
+AU  - Zhang, Zhuoyang
+AU  - Wu, Yecheng
+AU  - Li, Zhaoshuo
+AU  - Ma, Qianli
+AU  - Han, Song
+AU  - Finn, Chelsea
+AU  - Handa, Ankur
+AU  - Liu, Ming-Yu
+AU  - Xiang, Donglai
+AU  - Wetzstein, Gordon
+AU  - Lin, Tsung-Yi
+PY  - 2025
+T2  - IEEE/CVF Conference on Computer Vision and Pattern Recognition (CVPR)
+DO  - 10.48550/arXiv.2503.22020
+UR  - https://arxiv.org/abs/2503.22020
+L1  - file:///Users/siyuanluo/STUDY/paper/learn_embodied_papers/pdfs/world-model/WAM/Zhao%20et%20al.%20-%202025%20-%20CoT-VLA%20Visual%20Chain-of-Thought%20Reasoning%20for%20Vision-Language-Action%20Models.pdf
+N1  - CVPR 2025.
+KW  - WAM-route
+KW  - visual chain of thought
+KW  - joint autoregressive WAM
+ER  -

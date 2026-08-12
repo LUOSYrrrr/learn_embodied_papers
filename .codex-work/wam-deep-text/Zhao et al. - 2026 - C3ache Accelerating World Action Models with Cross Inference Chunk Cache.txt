@@ -1,0 +1,632 @@
+                                             C3ache: Accelerating World Action Models with
+                                                     Cross Inference Chunk Cache
+                                                     Weisen Zhao1 Lam Nguyen2 Zhicong Lu1† Yuzhang Shang2†
+                                                          1
+                                                            George Mason University 2 University of Central Florida
+                                                   {wzhao9,zlu6}@gmu.edu        {lam.nguyen,yuzhang.shang}@ucf.edu
+
+
+
+                                                 Abstract: World Action Models (WAMs) generalize better than standard Vision-
+
+
+
+
+arXiv:2606.08962v1 [cs.LG] 8 Jun 2026
+                                                 Language-Action (VLA) policies to novel motions and environments, because a
+                                                 video-modeling objective lets them learn from abundant unlabeled video rather
+                                                 than scarce labeled robot demonstrations. This generalization is computationally
+                                                 expensive. To complete a task, a WAM runs over multiple inference chunks, and
+                                                 each chunk requires a costly denoising process. Existing acceleration methods
+                                                 reduce this cost by caching and reusing computation within a single chunk’s de-
+                                                 noising trajectory. Our empirical analysis reveals a substantial source of redun-
+                                                 dancy they overlook: redundancy across chunks. When a robot executes a smooth
+                                                 behavior, the residuals computed at a given denoising step are strongly correlated
+                                                 from one chunk to the next. We introduce C3 ache, a training-free method that
+                                                 caches and reuses these residuals across inference chunks at the same denoising
+                                                 step. Experiments on benchmarks with a Fast-WAM backbone show that C3 ache
+                                                 achieves up to a 2.5× speedup in total wall-clock inference time, with negligible
+                                                 degradation in task success rate.
+
+                                                 Keywords: World Action Model, Efficiency, Diffusion Transformer
+
+                                        1   Introduction
+
+                                        Vision-Language-Action (VLA) models have become the dominant recipe for generalist robot poli-
+                                        cies. VLAs such as RT-2, OpenVLA, and π0 inherit the semantic priors of internet-scale image-text
+                                        data and carry them into control [1, 2, 3, 4]. However, the behaviors VLAs produce remain bounded
+                                        by the demonstrations they were trained on [5]. World Action Models (WAMs) come at this from
+                                        the other side, pairing action prediction with a video-modeling objective that learns to predict how
+                                        the scene itself will evolve [6, 7, 8, 5]. This changes what the model can learn from: video is a
+                                        dense supervisory signal, and unlike action-labeled trajectories it is available in enormous quantity.
+                                        The resulting representations are shaped by how objects move and interact rather than by a fixed set
+                                        of demonstrated trajectories, giving WAMs markedly stronger generalization to novel motions and
+                                        unseen environments than VLAs of comparable scale [5].
+                                        Until recently, turning this objective into a policy means following the imagine-then-execute
+                                        paradigm: at test time, the model synthesizes future frames through a video-diffusion process and
+                                        reads off actions from the imagined rollout. Generating frames this way is expensive. Each rollout
+                                        is a long sequence of denoising steps through a diffusion transformer [9], as shown in the top part
+                                        of Figure 1a, and it fits poorly with the latency budget of closed-loop control [10, 11]. To complete
+                                        a task, a WAM runs over multiple inference chunks, and each chunk requires this expensive denois-
+                                        ing process. This is a sequence of forward passes that each refine a noisy estimate toward a clean
+                                        one [12, 3].
+                                        Most acceleration work targets redundancy in denoising, building on one premise: a diffusion
+                                        model’s features barely change between adjacent steps, so computation can be reused rather than
+                                            † Corresponding authors.
+                                                                                 store                             3
+    full         h0                        DiT ×L                     hL                                                                Fast-WAM
+                                                                                                                             2.5 x      C3ache
+                                        run all L blocks          R̃ = hL − h0    residual
+                                                                                   cache
+
+
+
+
+                                                                                              Inference speed up
+                                                                                     R̃
+                                                                                                                   2                       1.8 x
+ cached          h0                        DiT ×L                 hL = h0 + R̃     reuse R̃
+
+                                            skipped
+
+                                bypass: skip all L blocks                                                                1.0 x        1.0 x
+                                                                                                                   1
+  inference schedule (each square = one inference chunk)
+
+                                                            ···
+
+  refresh every τ chunks: 1 full + (τ −1) cached                                                                   0      LIBERO      RoboTwin
+                                   3
+                            (a) C ache method overview.                                                                (b) Inference speed-up.
+
+Figure 1: (a) Overview of C3 ache. In full-computation chunks, our method runs the full DiT blocks
+and computes the residual. In cached chunks, it reuses the pre-computed residual to skip all DiT
+blocks. The residual is refreshed according to the inference schedule. (b) Inference speed compari-
+son between C3 ache and Fast-WAM (no cache) on two benchmarks: LIBERO and RoboTwin.
+
+repeated. They differ mainly in the granularity at which they cache. To accelerate visual gener-
+ation diffusion model, DeepCache and Block Caching reuse whole blocks of the network across
+steps [13, 14]; Learning-to-Cache instead treats each layer as the unit of reuse and learns which
+layers can be skipped [15]; ToCa pushes the granularity down to individual tokens, caching only
+those whose features are stable [16]; and methods such as PAB adapt what is reused and when [17].
+Diverse as these methods are, they share a common scope: they exploit redundancy within a single
+chunk’s denoising trajectory (across its steps, layers, or tokens) and treat each chunk as an indepen-
+dent unit of computation. We therefore ask two questions: (1) Does any redundancy exist in WAM
+across chunks? (2) Can we exploit this redundancy to accelerate WAM’s inference?
+We find that the answer to the first question is yes: our empirical analysis reveals that this scope
+leaves a substantial source of redundancy untouched. When a robot executes a smooth, temporally
+coherent behavior, the observations at successive inference chunks change only gradually, and the
+action velocities predicted from them differ only slightly. We observe that this surface-level similar-
+ity propagates inward: at a fixed denoising step, the intermediate residuals computed by the action
+expert for one chunk are strongly correlated with those computed for the chunk before it. Caching
+strategies that operate one chunk at a time cannot capture this, because the quantities they would
+reuse never persist across the chunk.
+More importantly, we find that the answer to the second question is also yes. We introduce C3 ache
+(Cross Inference Chunk Cache), a training free method that exploits precisely this cross-chunk re-
+dundancy. C3 ache caches the residuals produced at each denoising step and reuses them at the
+corresponding step of subsequent chunks as shown in Figure 1a, eliminating a large fraction of the
+denoising computation while leaving the model weights and training procedure untouched.
+In summary, our contributions are as follows:
+• We empirically characterize cross-chunk redundancy in a world action model, showing that the
+  residuals computed at the same denoising step are strongly correlated across consecutive action
+  chunks—a form of redundancy that current chunk-local caching methods do not exploit.
+• We propose C3 ache, a training-free acceleration method that caches and reuses these residuals
+  across chunks, and which composes with existing within-chunk step-wise caching.
+• We show on LIBERO and RoboTwin [18, 19], with a Fast-WAM[20] backbone, that C3 ache
+  achieves up to a 2.5× wall clock inference speedup with negligible degradation of task success
+  rate as shown in Figure 1b.
+
+
+
+
+                                                                             2
+2     Related Work
+2.1   World Action Models
+
+World Action Models pair action prediction with a video-modeling objective, learning to predict
+how a scene evolves [6, 7, 8, 5]. Since the video objective can be trained on unlabeled footage, a
+WAM isn’t bottlenecked by action-labeled robot data, and its representations are grounded in how
+the physical world moves. WAMs use this for imagine-then-execute inference: synthesize future
+frames via video diffusion, then extract actions from them. Fast-WAM [20] shows the benefit comes
+from video co-training, not from generating frames at inference. So a video-co-trained WAM can
+skip future-frame synthesis at test time and produce actions directly: a video backbone encodes the
+observation in one forward pass, and a flow-matching action expert outputs the action chunk. Even
+here, the action expert denoises each chunk over multiple steps, and this is rerun for every inference
+chunk.
+
+2.2   Caching for Diffusion Acceleration
+
+Most work on speeding up diffusion models starts from one observation: a model’s intermedi-
+ate features change only slightly between adjacent denoising steps, so computation can be reused
+across steps. Methods differ in what they cache. DeepCache and Block Caching reuse whole net-
+work blocks [13, 14]; Learning-to-Cache works at the layer level, learning which layers are safe to
+skip [15]; ToCa goes down to individual tokens, caching only the stable ones [16]. Others adapt what
+is reused and when: PAB broadcasts attention outputs on a pyramid schedule, TeaCache uses the
+timestep embedding to decide when fresh computation is needed, and AdaCache tailors the schedule
+to each input [17, 21, 22]. A related line attacks attention’s quadratic cost through sparse or routed
+attention [23, 24] or post-training compression, as in DiTFastAttn [25]. All of these share one
+scope: they exploit redundancy inside a single inference chunk, treating each chunk as independent.
+In contrast, our method leverages redundancy across inference chunks.
+
+2.3   Accelerating Iterative Action Generation
+
+One way to cut the cost of iterative action generation is to shorten the schedule. Distillation com-
+presses a many-step denoiser into a few step or single-step one; SnapFlow, for instance, distills a
+flow-matching action expert down to a single forward pass [26]. These methods reduce the number
+of steps, but still treat each chunk’s generation in isolation.
+The second axis of redundancy comes from the way long behaviors are produced: chunk by chunk,
+in sequence. Autoregressive video diffusion makes this explicit: a long video is generated chunk
+by chunk, each new segment denoised conditioned on the frames already produced [27, 28]. Be-
+cause each chunk attends to earlier ones, key-value caching lets a new chunk reuse attention states
+already computed [29], and Ca2-VDM precomputes and shares them across denoising steps [30].
+CausVid takes a different approach, distilling a slow bidirectional video diffusion model into a fast
+autoregressive one [10].
+The closest work to ours is X Cache [31], concurrent work that also identifies cross-chunk redun-
+dancy: the block inputs at matching denoising-step and block positions are similar between consec-
+utive chunks. X-Cache is built for few-step distilled driving world models, where inter-step redun-
+dancy has already been removed by distillation. In contrast, C3 ache targets the standard multi-step
+denoising regime, where this redundancy remains to be exploited. In short, X-Cache removes cross-
+chunk redundancy in a setting where inter-step redundancy is already gone, whereas C3 ache targets
+the standard multi-step setting and exploits both axes together.
+
+3     Method
+This section outlines the proposed C3 ache framework. We begin in Section 3.1 by reviewing the
+underlying formulations our method builds upon. Section 3.2 then highlights the key empirical
+
+
+                                                  3
+observations that motivate our approach. Finally, we break down the detailed workflow of C3 ache
+in Section 3.3, with a visual overview provided in Figure 3.
+
+3.1   Preliminaries
+
+World action models with multi-chunk action generation. Actions are produced in chunks. At
+control cycle c the action expert outputs a chunk xc of H future actions; the robot executes part
+of that chunk, the scene advances, and the next cycle conditions on a fresh observation to produce
+xc+1 . A full episode is thus a sequence of chunks x1 , x2 , . . . , each generated from its own context
+ctxc . We refer to each xc as an inference chunk.
+Action generation by flow matching. A chunk is not produced in a single network evaluation.
+The action expert is a flow-matching model [12, 32]: it turns a sample of noise into a clean action
+chunk through a sequence of denoising steps. We use the flow matching formulation throughout.
+Flow matching connects the clean action chunk xc to a Gaussian sample ϵc ∼ N (0, I) along the
+straight path
+                                 xct = (1 − t) ϵc + t, xc ,     t ∈ [0, 1],                           (1)
+so that t = 0 is pure noise and t = 1 is the action chunk. The action expert vθ is trained to predict the
+velocity of this path, xc − ϵc , given the noisy iterate, the time t, and the context ctxc . At inference
+the chunk is generated by integrating the resulting ODE from noise to data. Discretizing [0, 1] into
+K steps 0 = t0 < t1 < · · · < tK = 1 and writing xc(k) for the iterate after step k, the sampler starts
+from xc(0) = ϵc and repeats
+                                                                                       
+                 xc(k) = xc(k−1) + (tk − tk−1 ) vkc ,     vkc = vθ xc(k−1) , tk−1 , ctxc ,            (2)
+for k = 1, . . . , K, after which xc(K) is the action chunk the robot executes. We call vkc the velocity
+prediction at denoising step k of chunk c.
+The cost of an episode follows directly. Producing one action chunk takes K denoising steps of
+the action expert. An episode of C control cycles takes C · K of them in all. Every one is a full
+forward pass of the action expert, and chunk c is denoised from fresh noise ϵc with no reference to
+the computation already spent on previous chunks. Our method C3 ache changes that.
+The action expert as a diffusion transformer. We now look more closely at the action expert.
+The noisy action chunk is embedded into a sequence of action tokens, which we write h0 ; the
+denoising time t enters through adaptive normalization. These tokens pass through a stack of L
+Diffusion Transformer (DiT) blocks, each pairing an attention layer with a feedforward network,
+with every sublayer wrapped in a residual connection. The attention is the joint attention of the
+MoT [33]: an action token attends both to the other action tokens and to the video tokens that carry
+the conditioning ctxc . Within a chunk those video tokens are fixed, since the video branch produces
+them once, so over the K denoising steps the action expert’s computation varies only with the action
+tokens. Writing hL for the output of the final block, the velocity is read from hL by a linear head.
+Because every block carries a residual connection, the input h0 propagates additively through the
+entire stack: the output is hL = h0 + R, where R collects everything the L blocks add. We call R
+the residual of the action expert,
+                                           R = h L − h0 ,                                         (3)
+the output of the last block minus the input to the first. A single forward pass of the action expert
+produces one such R. Two facts about it matter here. First, producing R is the whole cost: it
+means running all L blocks—their joint attention, whose cost grows quadratically with the number
+of tokens [23, 24], and their feedforward networks—which is essentially the entire forward pass.
+Second, R is a self-contained additive term: given R, the output is recovered as hL = h0 + R and
+the velocity follows, with no block evaluated. An estimate of R obtained without running the stack
+would therefore let a denoising step be taken almost for free.
+Indexed by chunk and step, write hc,k     c,k
+                                  0 and hL for the input embedding and stack output at denoising
+                              c,k     c,k
+step k of chunk c, and Rkc = hL − h0 for the residual. The output head turns the stack output into
+
+
+                                                   4
+                                 0.94                                                                                  0.10
+
+
+
+
+      Cosine Similarity (Mean)                                                               Cosine Similarity (Std)
+                                                                                                                       0.09
+                                 0.92
+
+                                                                                                                       0.08
+                                 0.90
+
+                                                                                                                       0.07
+                                 0.88
+
+                                                                                                                       0.06
+                                 0.86
+
+                                                                                                                       0.05
+                                 0.84
+
+
+                                        0   1   2    3    4    5      6     7      8     9                                        0   1       2   3     4    5    6    7       8        9
+                                                     Denoising Step                                                                               Denoising Step
+                                                           Residual             Output of Final Block                                 Velocity Prediction
+
+
+
+Figure 2: Cosine similarity across inference chunks for the three tensors: output of Final Block hL ,
+Residual R and Velocity Prediction v. Left: mean; right: standard deviation.
+
+the velocity prediction of that step,
+                             vkc = Head hc,k     = Head hc,k         c
+                                                                      
+                                            L                 0 + Rk ,                          (4)
+  3
+C ache rests on the observation, developed in the next section, that across the chunk index c, at a
+matched step k, these residuals have high similarity across inference chunks.
+
+3.2               Key Observation
+
+To investigate what information can be reused across inference chunks, we perform our analysis
+using Fast-WAM [20] on the LIBERO [18] benchmark. LIBERO contains four suites: LIBERO
+Spatial, LIBERO-Object, LIBERO-Goal, and LIBERO-Long. Each suite contains 500 episodes
+covering 10 tasks. We implement the analysis with 2, 000 episodes containing all suites.
+We examine three tensors: the output of the final block hL , the residual R, and the velocity prediction
+v. Specifically, we compute the cosine similarity of hL , R, and v across inference chunks at the same
+denoising step, using 10 denoising steps per chunk over the full LIBERO benchmark:
+                                                    hc−1,k ·hc,k                                                              Rc−1 ·Rc                                     v c−1 ·v c
+  sim(hc−1,k
+       L     , hc,k
+                L ) = ∥hc−1,k ∥ ∥hc,k ∥ ,
+                         L       L
+                                                                          sim(Rkc−1 , Rkc ) = ∥Rc−1
+                                                                                                 k     k
+                                                                                                    ∥ ∥Rc ∥
+                                                                                                            ,                                     sim(vkc−1 , vkc ) = ∥vc−1
+                                                                                                                                                                         k     k
+                                                                                                                                                                            ∥ ∥v c ∥
+                                                                                                                                                                                            (5)
+                                                    L         L                                                               k           k                                k            k
+
+
+The evaluation on the whole LIBERO benchmark yields 29, 924 inference chunks. At each de-
+noising step, we report the mean and standard deviation of the cosine similarity across all 29, 924
+chunks. As shown in Figure 2 (left), adjacent inference chunks exhibit very high cosine similarity at
+the same denoising step, revealing substantial redundancy that can potentially be exploited to reduce
+computation. In addition, as shown in Figure 2 (right), the standard deviation of cosine similarity
+increases as the denoising process approaches its end, indicating greater variability across inference
+chunks at the tail denoising steps. This suggests that, when caching, the last few denoising steps
+should be avoided, a choice that is confirmed by our later experiments in Section 4.
+
+3.3               C3 ache
+
+As shown in Section 3.2, hL , R, and v at the same denoising step are highly correlated across infer-
+ence chunks. They vary smoothly across inference iterations in this autoregressive action generation
+setup. We consider caching those three tensors to reuse this redundancy to speed up action inference.
+Directly caching hL and v freezes the two tensors at each denoising step across consecutive infer-
+ence chunks. Therefore, hL and v are excluded from cache choices. To allow the new observation
+to flow into the current chunk while still reusing the redundancy from previous inference chunks,
+we ultimately choose to cache R.
+When caching is off and hL is fully computed at denoising step k and at inference chunk c, we cache
+the residual as follow:
+                               R̃c,k ← ∆R,       ∆R = hc,k
+                                                         L − h0 ,
+                                                                 c,k
+                                                                                                (6)
+
+
+                                                                                             5
+Figure 3: C3 ache framework design. (Top) Per-chunk computation at one denoising step k. A full
+chunk runs all L DiT blocks and writes the residual ∆R = hL − h0 into the cache as R̃; a cached
+chunk skips every DiT block and reconstructs hL = h0 + R̃ from the current observation h0 and
+the cached residual. (Bottom) Schedule across inference chunks. Chunks are grouped into refresh
+intervals of length τ : every τ -th chunk is fully recomputed and refreshes the cache, while every other
+chunk in the interval reads from it; the first chunk is always full computation. A separate residual R̃
+is cached per step.
+
+                                                                                         ′   ′
+ In the next inference chunk c′ , at denoising step k ′ with caching   on, we combine hc0 ,k with R̃c,k to
+                                                                c′ ,k′
+skip the expensive computation of the L DiT blocks, since h0 already carries the new observation
+from chunk c′ :                             ′ ′      ′ ′
+                                         hcL ,k = hc0 ,k + R̃c,k                                       (7)
+
+We define a cache refresh interval τ . Concretely, R̃c,k is reused to compute the block output hL
+for chunks c through c + τ − 1, and we refresh the cache to R̃c+τ,k at chunk c + τ . Caching with
+reuse cannot be applied in the first chunk, since R̃0,k is empty when c = 0; in this case we run the
+full denoising computation to populate R̃0,k . Without such a refresh, the cached residual would stay
+frozen at R̃0,k throughout inference, which is the case τ = 0.
+                                          (
+                                            ∆R,        c mod τ = 0
+                                  R̃c,k =                                                         (8)
+                                            R̃c−1,k , otherwise
+Figure 3 illustrates the detailed design of C3 ache and how it operates at inference time across
+inference chunks.
+
+4     Experiment
+4.1   Experimental Settings
+
+Model and Datasets. We evaluate our method on two benchmarks: LIBERO [18] and RoboTwin
+2.0 [19]. For LIBERO, we evaluate on all four task suites, which together contain 2000 episodes,
+as discussed in Section 3.2. RoboTwin 2.0 is a challenging bimanual manipulation benchmark
+consisting of 50 tasks that require coordinated dual-arm control. We evaluate on all 50 tasks under
+two settings: clean and randomized. In the clean setting, object poses are randomized but the
+environment is left unchanged. In the randomized setting, it additionally varies the background,
+
+
+                                                    6
+Table 1: Results on LIBERO. Effect of cache steps and refresh interval on success rate and infer-
+ence speedup. SR is reported per suite (%), with ∆SR measured against the baseline (Fast-WAM).
+Speedups are relative to the baseline (Fast-WAM).
+              Cache                           Success Rate (%)
+ Config         Steps   Refresh Spatial      Object    Goal    Long    Average     ∆SR      Speedup
+ Fast-WAM        —         —        96.40    99.40    96.40 95.40       96.90     +0.00      1.00×
+                  7         0       97.40    100.00 97.20 95.20         97.45     +0.55      2.10×
+ [0, 6]           7         4       97.80    100.00 95.60 92.80         96.55     −0.35      1.69×
+                  7         8       98.00     99.80 95.40 93.80         96.75     −0.15      1.86×
+                  8         0       97.60    99.60    96.00 95.20       97.10     +0.20      2.51×
+ [0, 7]           8         4       96.80    99.80    95.60 94.60       96.70     −0.20      1.82×
+                  8         8       97.40    99.80    96.40 94.40       97.00     +0.10      2.13×
+
+
+lighting, table height, camera distance, and clutter. For each task, we run 20 evaluation episodes per
+setting, each with a different seed. In the clean setting, varying the seed changes the initial object
+placement while the environment is held fixed. In the randomized setting, it changes both the initial
+object placement and the environment, including all visual conditions.
+We evaluate our method on Fast-WAM [20], which builds on the Wan2.2-5B backbone [34]. Fast-
+WAM keeps video co-training during training but skips future prediction at action inference time.
+Its action expert mirrors the architecture of the video branch, but with a reduced hidden dimension
+of da = 1024. This gives a 1B-parameter action expert and a total model size of 6B parameters. For
+both LIBERO and RoboTwin, we use 10 denoising steps and an action horizon of 32.
+Hardware. We evaluate our method on a single NVIDIA A100 80GB GPU with a 64-Core AMD
+CPU and 500 GB memory by PyTorch for all experiments.
+Metrics. We evaluate whether our method improves inference speed without noticeably degrading
+performance. We report two metrics: total wall-clock inference speedup across all episodes and
+success rate. The reported inference speed covers the full inference pipeline, not just the cached
+DiT blocks: it also includes the components we never cache, namely VAE encoding, video prefill
+for KV cache construction, action token embedding, the projection from block outputs to velocity
+predictions, and scheduler steps.
+Implementation Detail. For both LIBERO and RoboTwin, we use 10 denoising steps and an
+action horizon of 32. As shown in Figure 2 and discussed in Section 3.2, both the mean and stan-
+dard deviation of the cosine similarity across inference chunks drop more sharply past step 6. We
+therefore evaluate our method on LIBERO and RoboTwin across two cache-step ranges, [0, 6] and
+[0, 7], each paired with refresh intervals τ ∈ {0, 4, 8}. For the ablation, we repeat the same τ values
+with longer ranges, [0, 8] and [0, 9].
+
+
+4.2   Main Results
+
+Table 1 and Table 2 summarize the results on LIBERO and RoboTwin, respectively. Overall,
+C3 ache achieves wall-clock inference speedups across the cache step ranges [0, 6] and [0, 7] with
+negligible degradation in task success rate on both LIBERO and RoboTwin. The best speedups we
+obtain are 2.5× on LIBERO and 1.8× on RoboTwin. At 2.5×, LIBERO shows no drop in success
+rate, and at 1.8×, RoboTwin loses only 1%. Within this range, RoboTwin also reaches 1.6× speedup
+with no drop at all. In addition, we find that more frequent cache refreshes are needed in the cache
+step range [0, 7] on RoboTwin. Looking into why, we find a clear trend with task length: at τ = 0,
+all shortest tasks (3–5 chunks per episode) hold their success rates with no drop, tasks of moderate
+length (6–11 chunks) drop by 10.81% on average, and tasks with 12 or more chunks fall by 34%—a
+substantial degradation. This monotonic trend suggests that longer-horizon episodes, where stale
+cache compounds over more steps, call for a lower τ .
+
+
+                                                  7
+Table 2: Results on RoboTwin. Effect of cache steps and refresh interval on success rate and
+inference speedup. SR is reported on clean and randomized settings (%), with ∆SR measured
+against the baseline (Fast-WAM). Speedups are relative to the baseline (Fast-WAM).
+                      Cache                 Success Rate (%)
+                       Config              Steps       Refresh        Clean   Random                          Average           ∆SR           Speedup
+                       Fast-WAM             —            —            92.20         90.60                       91.40          +0.00           1.00×
+                                            7             0           91.00         89.70                       90.35          −1.05           1.84×
+                       [0, 6]               7             4           92.60         91.10                       91.85          +0.45           1.56×
+                                            7             8           90.90         89.90                       90.40          −1.00           1.71×
+                                            8             0           76.10         75.60                       75.85          −15.55          1.68×
+                       [0, 7]               8             4           88.60         89.20                       88.90          −2.50           1.55×
+                                            8             8           85.40         85.10                       85.25          −6.15           1.72×
+
+                                       RoboTwin
+                 100                               Fast-WAM (91.4)                                                          LIBERO
+                                                                                                   100                               Fast-WAM (96.9)
+
+                  80
+
+
+
+
+Average SR (%)
+                                                                                                    80
+
+
+
+
+                                                                                  Average SR (%)
+                  60
+                                                                                                    60
+
+                  40
+                        Refresh interval                                                            40
+                                                                                                         Refresh interval
+                             refresh = 0
+                  20                                                                                          refresh = 0
+                             refresh = 4                                                            20
+                                                                                                              refresh = 4
+                             refresh = 8                                                                      refresh = 8
+                   0                                                                                 0
+                       7              8            9             10                                      7             8             9            10
+                                Number of cached steps                                                          Number of cached steps
+
+                                      (a) RoboTwin                                                                          (b) LIBERO
+Figure 4: Effect of cache-step range on success rate. On both benchmarks, longer caching steps
+causes a sharp drop in success rate
+4.3                Ablation
+
+We keep the same τ values with longer cache-step ranges, [0, 8] and [0, 9]. As shown in Figure 4,
+performance falls off sharply in both cases. On LIBERO, the task success rate drops substantially
+at τ = 0 for the range [0, 8], and at every τ for the range [0, 9]; on RoboTwin, it drops at every
+refresh interval τ for both ranges. This is consistent with our observation in Section 3.2 that the tail
+denoising steps vary more across inference chunks.
+5                 Limitation
+We find that the refresh interval τ is an important factor affecting both inference speedup and suc-
+cess rate. For example, in our RoboTwin experiments, we observe that within the cache step range
+[0, 7] setting, an appropriate refresh interval τ can deliver a decent inference speedup while avoiding
+excessive loss in success rate. In general, a smaller and more conservative τ leads to a relatively
+small drop in success rate but also yields a lower inference speedup, whereas a larger and more ag-
+gressive τ sacrifices more success rate while achieving a relatively higher inference speedup. In the
+current design, the refresh interval τ must be tuned manually to find the most suitable balance point.
+In future work, we hope to find a dynamic refresh interval based on task difficulty, the complexity of
+scene, and the rate of change of the physical situation, so as to reach the sweet spot between success
+rate and inference speedup—that is, how to maximize inference speedup while incurring little loss
+in success rate.
+6                 Conclusion
+In this paper, we propose C3 ache, a training-free method that caches and reuses residuals across
+inference chunks at the same denoising step, reducing the total inference time of WAM with negli-
+gible drop in task success rate. C3 ache achieves up to a 2.5× speedup in wall-clock inference time
+while maintaining task success rate on LIBERO and RoboTwin.
+
+
+                                                                              8
+References
+ [1] B. Zitkovich, T. Yu, S. Xu, P. Xu, T. Xiao, F. Xia, J. Wu, P. Wohlhart, S. Welker, A. Wahid,
+     Q. Vuong, V. Vanhoucke, H. Tran, R. Soricut, A. Singh, J. Singh, P. Sermanet, P. R. San-
+     keti, G. Salazar, M. S. Ryoo, K. Reymann, K. Rao, K. Pertsch, I. Mordatch, H. Michalewski,
+     Y. Lu, S. Levine, L. Lee, T.-W. E. Lee, I. Leal, Y. Kuang, D. Kalashnikov, R. Julian, N. J.
+     Joshi, A. Irpan, B. Ichter, J. Hsu, A. Herzog, K. Hausman, K. Gopalakrishnan, C. Fu, P. Flo-
+     rence, C. Finn, K. A. Dubey, D. Driess, T. Ding, K. M. Choromanski, X. Chen, Y. Chebotar,
+     J. Carbajal, N. Brown, A. Brohan, M. G. Arenas, and K. Han. RT-2: Vision-language-action
+     models transfer web knowledge to robotic control. In Proceedings of The 7th Conference on
+     Robot Learning, volume 229 of Proceedings of Machine Learning Research, pages 2165–2183.
+     PMLR, 2023.
+ [2] M. J. Kim, K. Pertsch, S. Karamcheti, T. Xiao, A. Balakrishna, S. Nair, R. Rafailov, E. P. Foster,
+     P. R. Sanketi, Q. Vuong, T. Kollar, B. Burchfiel, R. Tedrake, D. Sadigh, S. Levine, P. Liang, and
+     C. Finn. OpenVLA: An open-source vision-language-action model. In Proceedings of The 8th
+     Conference on Robot Learning, volume 270 of Proceedings of Machine Learning Research,
+     pages 2679–2713. PMLR, 2024.
+ [3] K. Black, N. Brown, D. Driess, A. Esmail, M. Equi, C. Finn, N. Fusai, L. Groom, K. Haus-
+     man, B. Ichter, S. Jakubczak, T. Jones, L. Ke, S. Levine, A. Li-Bell, M. Mothukuri, S. Nair,
+     K. Pertsch, L. X. Shi, L. Smith, J. Tanner, Q. Vuong, A. Walling, H. Wang, and U. Zhilin-
+     sky. π0 : A vision-language-action flow model for general robot control. In Proceedings of
+     Robotics: Science and Systems (RSS), Los Angeles, CA, USA, 2025.
+ [4] S. Liu, L. Wu, B. Li, H. Tan, H. Chen, Z. Wang, K. Xu, H. Su, and J. Zhu. RDT-1B: A dif-
+     fusion foundation model for bimanual manipulation. In International Conference on Learning
+     Representations (ICLR), 2025.
+ [5] S. Ye, Y. Ge, K. Zheng, S. Gao, S. Yu, G. Kurian, S. Indupuru, Y. L. Tan, C. Zhu, J. Xi-
+     ang, A. Malik, K. Lee, W. Liang, N. Ranawaka, J. Gu, Y. Xu, G. Wang, F. Hu, A. Narayan,
+     J. Bjorck, J. Wang, G. Kim, D. Niu, R. Zheng, Y. Xie, J. Wu, Q. Wang, R. Julian, D. Xu, Y. Du,
+     Y. Chebotar, S. Reed, J. Kautz, Y. Zhu, L. Fan, and J. Jang. World action models are zero-shot
+     policies, 2026.
+ [6] Y. Du, M. Yang, B. Dai, H. Dai, O. Nachum, J. B. Tenenbaum, D. Schuurmans, and P. Abbeel.
+     Learning universal policies via text-guided video generation. In Advances in Neural Informa-
+     tion Processing Systems (NeurIPS), 2023.
+ [7] H. Wu, Y. Jing, C. Cheang, G. Chen, J. Xu, X. Li, M. Liu, H. Li, and T. Kong. Unleashing large-
+     scale video generative pre-training for visual robot manipulation. In International Conference
+     on Learning Representations (ICLR), 2024.
+ [8] Y. Hu, Y. Guo, P. Wang, X. Chen, Y.-J. Wang, J. Zhang, K. Sreenath, C. Lu, and J. Chen.
+     Video prediction policy: A generalist robot policy with predictive visual representations. In
+     International Conference on Machine Learning (ICML), 2025.
+ [9] W. Peebles and S. Xie. Scalable diffusion models with transformers. In IEEE/CVF Interna-
+     tional Conference on Computer Vision (ICCV), 2023.
+[10] T. Yin, Q. Zhang, R. Zhang, W. T. Freeman, F. Durand, E. Shechtman, and X. Huang. From
+     slow bidirectional to fast autoregressive video diffusion models. In IEEE/CVF Conference on
+     Computer Vision and Pattern Recognition (CVPR), 2025.
+[11] Y. Feng, C. Xiang, X. Mao, H. Tan, Z. Zhang, S. Huang, K. Zheng, H. Liu, H. Su, and J. Zhu.
+     Vidarc: Embodied video diffusion model for closed-loop control, 2025.
+[12] Y. Lipman, R. T. Q. Chen, H. Ben-Hamu, M. Nickel, and M. Le. Flow matching for generative
+     modeling. In International Conference on Learning Representations (ICLR), 2023.
+
+
+                                                  9
+[13] X. Ma, G. Fang, and X. Wang. DeepCache: Accelerating diffusion models for free. In
+     IEEE/CVF Conference on Computer Vision and Pattern Recognition (CVPR), 2024.
+
+[14] F. Wimbauer, B. Wu, E. Schoenfeld, X. Dai, J. Hou, Z. He, P. Zhang, S. Tsai, J. Kohler,
+     A. Sanakoyeu, D. Cremers, C. Rupprecht, P. Vajda, and J. Wang. Cache me if you can: Accel-
+     erating diffusion models through block caching. In IEEE/CVF Conference on Computer Vision
+     and Pattern Recognition (CVPR), 2024.
+
+[15] X. Ma, G. Fang, M. B. Mi, and X. Wang. Learning-to-cache: Accelerating diffusion trans-
+     former via layer caching. In Advances in Neural Information Processing Systems (NeurIPS),
+     2024.
+
+[16] C. Zou, X. Liu, T. Liu, S. Huang, and L. Zhang. Accelerating diffusion transformers with
+     token-wise feature caching. In International Conference on Learning Representations (ICLR),
+     2025.
+
+[17] X. Zhao, X. Jin, K. Wang, and Y. You. Real-time video generation with pyramid attention
+     broadcast. In International Conference on Learning Representations (ICLR), 2025.
+
+[18] B. Liu, Y. Zhu, C. Gao, Y. Feng, Q. Liu, Y. Zhu, and P. Stone. LIBERO: Benchmarking
+     knowledge transfer for lifelong robot learning. In Advances in Neural Information Processing
+     Systems (NeurIPS), 2023.
+
+[19] Y. Mu, T. Chen, Z. Chen, S. Peng, Z. Lan, Z. Gao, Z. Liang, Q. Yu, Y. Zou, M. Xu, L. Lin,
+     Z. Xie, M. Ding, and P. Luo. RoboTwin: Dual-arm robot benchmark with generative digital
+     twins. In IEEE/CVF Conference on Computer Vision and Pattern Recognition (CVPR), 2025.
+
+[20] T. Yuan, Z. Dong, Y. Liu, and H. Zhao. Fast-wam: Do world action models need test-time
+     future imagination?, 2026.
+
+[21] F. Liu, S. Zhang, X. Wang, Y. Wei, H. Qiu, Y. Zhao, Y. Zhang, Q. Ye, and F. Wan. Timestep
+     embedding tells: It’s time to cache for video diffusion model. In IEEE/CVF Conference on
+     Computer Vision and Pattern Recognition (CVPR), 2025.
+
+[22] K. Kahatapitiya, H. Liu, S. He, D. Liu, M. Jia, C. Zhang, M. S. Ryoo, and T. Xie. Adaptive
+     caching for faster video generation with diffusion transformers. In IEEE/CVF International
+     Conference on Computer Vision (ICCV), 2025.
+
+[23] W. Sun, R.-C. Tu, Y. Ding, Z. Jin, J. Liao, S. Liu, and D. Tao. VORTA: Efficient video diffusion
+     via routing sparse attention. In Advances in Neural Information Processing Systems (NeurIPS),
+     2025.
+
+[24] Y. Zhang, J. Xing, B. Xia, S. Liu, B. Peng, X. Tao, P. Wan, E. Lo, and J. Jia. Training-
+     free efficient video generation via dynamic token carving. In Advances in Neural Information
+     Processing Systems (NeurIPS), 2025.
+
+[25] Z. Yuan, H. Zhang, P. Lu, X. Ning, L. Zhang, T. Zhao, S. Yan, G. Dai, and Y. Wang. DiT-
+     FastAttn: Attention compression for diffusion transformer models. In Advances in Neural
+     Information Processing Systems (NeurIPS), 2024.
+
+[26] W. Luan, J. Li, W. Zhao, W. Zhang, T. Wu, and R. Ma. Snapflow: One-step action generation
+     for flow-matching vlas via progressive self-distillation, 2026.
+
+[27] B. Chen, D. Martı́ Monsó, Y. Du, M. Simchowitz, R. Tedrake, and V. Sitzmann. Diffusion forc-
+     ing: Next-token prediction meets full-sequence diffusion. In Advances in Neural Information
+     Processing Systems (NeurIPS), 2024.
+
+[28] K. Song, B. Chen, M. Simchowitz, Y. Du, R. Tedrake, and V. Sitzmann. History-guided video
+     diffusion. In International Conference on Machine Learning (ICML), 2025.
+
+
+                                                 10
+[29] X. Huang, Z. Li, G. He, M. Zhou, and E. Shechtman. Self forcing: Bridging the train-test
+     gap in autoregressive video diffusion. In Advances in Neural Information Processing Systems
+     (NeurIPS), 2025.
+[30] K. Gao, J. Shi, H. Zhang, C. Wang, J. Xiao, and L. Chen. Ca2-VDM: Efficient autoregressive
+     video diffusion model with causal generation and cache sharing. In International Conference
+     on Machine Learning (ICML), 2025.
+[31] Y. Zeng, J. Zheng, C. Zheng, S. Chen, M. Liu, T. Liu, T. Luo, Y. Zhang, B. Wang, L. Xu, S. Lu,
+     B. Tian, and X. Liu. X-cache: Cross-chunk block caching for few-step autoregressive world
+     models inference, 2026.
+
+[32] X. Liu, C. Gong, and Q. Liu. Flow straight and fast: Learning to generate and transfer data
+     with rectified flow. In International Conference on Learning Representations (ICLR), 2023.
+[33] W. Liang, L. Yu, L. Luo, S. Iyer, N. Dong, C. Zhou, G. Ghosh, M. Lewis, W. tau Yih, L. Zettle-
+     moyer, and X. V. Lin. Mixture-of-transformers: A sparse and scalable architecture for multi-
+     modal foundation models. Transactions on Machine Learning Research, 2025. ISSN 2835-
+     8856.
+[34] T. Wan, A. Wang, B. Ai, B. Wen, C. Mao, C.-W. Xie, D. Chen, F. Yu, H. Zhao, J. Yang, J. Zeng,
+     J. Wang, J. Zhang, J. Zhou, J. Wang, J. Chen, K. Zhu, K. Zhao, K. Yan, L. Huang, M. Feng,
+     N. Zhang, P. Li, P. Wu, R. Chu, R. Feng, S. Zhang, S. Sun, T. Fang, T. Wang, T. Gui, T. Weng,
+     T. Shen, W. Lin, W. Wang, W. Wang, W. Zhou, W. Wang, W. Shen, W. Yu, X. Shi, X. Huang,
+     X. Xu, Y. Kou, Y. Lv, Y. Li, Y. Liu, Y. Wang, Y. Zhang, Y. Huang, Y. Li, Y. Wu, Y. Liu, Y. Pan,
+     Y. Zheng, Y. Hong, Y. Shi, Y. Feng, Z. Jiang, Z. Han, Z.-F. Wu, and Z. Liu. Wan: Open and
+     advanced large-scale video generative models. arXiv preprint arXiv:2503.20314, 2025.
+
+
+
+
+                                                11
+

@@ -1,0 +1,58 @@
+<!DOCTYPE html>
+
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8"/><meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>V-JEPA 2 · 理解、预测与规划</title>
+<link href="../assets/css/style.css" rel="stylesheet"/><link href="https://cdn.jsdelivr.net/npm/katex@0.16/dist/katex.min.css" rel="stylesheet"/>
+<script src="../assets/js/theme.js"></script><script defer="" src="../assets/js/interactive.js"></script>
+<script defer="" src="https://cdn.jsdelivr.net/npm/katex@0.16/dist/katex.min.js"></script>
+<script defer="" onload="renderMathInElement(document.body,{delimiters:[{left:'$$',right:'$$',display:true},{left:'$',right:'$',display:false}]})" src="https://cdn.jsdelivr.net/npm/katex@0.16/dist/contrib/auto-render.min.js"></script>
+</head>
+<body>
+<nav class="nav"><a class="nav-logo" href="../index.html">Paper Notes</a><div class="nav-links"><a href="vjepa.html">← V-JEPA</a><a href="vjepa21.html">V-JEPA 2.1 →</a><a href="../pdfs/world-model/Assran 等 - 2025 - V-JEPA 2 Self-Supervised Video Models Enable Understanding, Prediction and Planning.pdf" target="_blank">📄 PDF</a></div></nav>
+<div class="page"><div class="docs-layout">
+<aside class="docs-sidebar-left"><div class="ds-title">V-JEPA 2 · 2025</div><a class="ds-leaf-top" href="#tldr">§1 一张图看全局</a><a class="ds-leaf-top" href="#two-stage">§2 两阶段训练</a><a class="ds-leaf-top" href="#planning">§3 Latent MPC</a><a class="ds-leaf-top" href="#evidence">§4 真机证据</a><a class="ds-leaf-top" href="#limits">§5 局限与定位</a></aside>
+<main class="docs-content">
+<div class="docs-breadcrumb"><a href="../index.html">paper-notes</a><span class="sep">/</span>world model<span class="sep">/</span>V-JEPA 2</div>
+<h1>V-JEPA 2: Self-Supervised Video Models Enable Understanding, Prediction and Planning</h1>
+<p style="color:var(--text3);font-family:var(--font-mono);font-size:12px;margin-top:-12px;">Mahmoud Assran et al. · FAIR at Meta / Mila · arXiv:2506.09985 · 2025</p>
+<div class="callout amber"><div class="callout-label">专题进度</div><p>主架构、MPC 公式、真机结果与局限已成；VQA、anticipation 与全部消融将在下一轮补齐。</p></div>
+<h2 id="tldr">§1 它跨过了 V-JEPA 最关键的门槛：动作进入预测器</h2>
+<div class="cn-read"><div class="cn-label">这一节解决什么</div><p>V-JEPA 只证明 latent video prediction 能学强表征，却不能回答“做这个动作会怎样”。V-JEPA 2 用超过 100 万小时互联网视频先学 action-free 表征，再用 62 小时 DROID 机器人轨迹训练 action-conditioned predictor。于是同一个视觉状态空间既能做理解，也能被 MPC 拿来规划。</p></div>
+<div class="fig-interactive panel-below"><div class="fig-block"><div class="hotspot-wrap" data-hotspot-group="vj2-fig1">
+<img alt="V-JEPA 2 overview" src="../assets/figures/vjepa2/fig-1.png"/>
+<div class="hotspot" data-body="&lt;div class='hp-body'&gt;&lt;p&gt;&lt;strong&gt;图中位置与输入：&lt;/strong&gt;第一阶段输入超过一百万小时无动作标签互联网视频，并混入约一百万张静态图像。&lt;/p&gt;&lt;p&gt;&lt;strong&gt;这里真正发生什么：&lt;/strong&gt;模型通过 masked latent prediction 学通用对象、场景和运动规律，不依赖机器人 action、奖励或语言标注。&lt;/p&gt;&lt;p&gt;&lt;strong&gt;它与相邻模块的关系：&lt;/strong&gt;该阶段产生可迁移视觉 encoder；后续语言对齐与 62 小时机器人训练是两个小分支，不能把最终规划能力误归因于海量机器人数据。&lt;/p&gt;&lt;/div&gt;" data-id="web" data-title="Action-free 预训练" style="left:15%;top:31%;"></div>
+<div class="hotspot" data-body="&lt;div class='hp-body'&gt;&lt;p&gt;&lt;strong&gt;图中位置与输入：&lt;/strong&gt;V-JEPA 2 Encoder 位于大规模无标签预训练和所有下游任务之间。&lt;/p&gt;&lt;p&gt;&lt;strong&gt;这里真正发生什么：&lt;/strong&gt;它只处理可见 token，并预测 EMA target encoder 的 masked latent；训练不解码 RGB，因此计算集中在高层时空表征。&lt;/p&gt;&lt;p&gt;&lt;strong&gt;它与相邻模块的关系：&lt;/strong&gt;VideoQA 直接复用其语义，机器人规划则冻结它并另训 action-conditioned predictor，测试跨任务通用性。&lt;/p&gt;&lt;/div&gt;" data-id="encoder" data-title="V-JEPA 2 Encoder" style="left:38%;top:27%;"></div>
+<div class="hotspot" data-body="&lt;div class='hp-body'&gt;&lt;p&gt;&lt;strong&gt;图中位置与输入：&lt;/strong&gt;语言对齐分支把冻结/微调视觉表示连接到 LLM，用视频问答监督建立词语与时空事件的对应。&lt;/p&gt;&lt;p&gt;&lt;strong&gt;这里真正发生什么：&lt;/strong&gt;它证明 action-free latent 不只是运动特征，也能支持事件、对象和时间关系的语言推理。&lt;/p&gt;&lt;p&gt;&lt;strong&gt;它与相邻模块的关系：&lt;/strong&gt;该分支与机器人规划平行，而非规划必经步骤；二者共享视觉 backbone，但各自训练适配模块和目标。&lt;/p&gt;&lt;/div&gt;" data-id="language" data-title="Language Alignment" style="left:61%;top:16%;"></div>
+<div class="hotspot" data-body="&lt;div class='hp-body'&gt;&lt;p&gt;&lt;strong&gt;图中位置与输入：&lt;/strong&gt;第二阶段只使用约 62 小时 DROID 机器人视频、末端状态和真实动作。&lt;/p&gt;&lt;p&gt;&lt;strong&gt;这里真正发生什么：&lt;/strong&gt;动作与位姿不再作为预测标签直接改写大 encoder，而是条件化轻量 predictor，让它学习不同控制会把 latent 推向哪里。&lt;/p&gt;&lt;p&gt;&lt;strong&gt;它与相邻模块的关系：&lt;/strong&gt;相对于百万小时 web 视频，这一小数据阶段完成动力学 grounding；它支撑‘通用表征 + 少量具身对齐’的主张。&lt;/p&gt;&lt;/div&gt;" data-id="robot" data-title="62 小时 Robot Data" style="left:39%;top:67%;"></div>
+<div class="hotspot" data-body="&lt;div class='hp-body'&gt;&lt;p&gt;&lt;strong&gt;图中位置与输入：&lt;/strong&gt;规划时输入当前图像、候选动作序列和目标图像在 encoder 空间的 latent。&lt;/p&gt;&lt;p&gt;&lt;strong&gt;这里真正发生什么：&lt;/strong&gt;action-conditioned predictor rollout 候选未来表示，MPC 比较终点与目标 latent 距离，选择代价最低的第一段动作并重复规划。&lt;/p&gt;&lt;p&gt;&lt;strong&gt;它与相邻模块的关系：&lt;/strong&gt;encoder 保持冻结且无需生成 RGB；执行真实动作后重新观察可限制模型误差，形成 latent world model 的闭环用法。&lt;/p&gt;&lt;/div&gt;" data-id="planning" data-title="Planning" style="left:85%;top:68%;"></div>
+</div><div class="fig-cap"><span class="fig-num">Fig 1 · p.2</span> V-JEPA 2 的三种下游：理解、预测、规划。<span class="fig-cn">关键不是一个模型同时输出一切，而是通用 latent 先学好，再按任务接 probe / LLM / action predictor。</span></div></div><div class="hotspot-panel"></div></div>
+<h2 id="two-stage">§2 两阶段训练：先学“世界状态”，再学“动作如何改变状态”</h2>
+<div class="cn-read"><div class="cn-label">从总览到训练图</div><p>互联网视频没有 action，所以不能直接拟合 $p(z_{t+1}\mid z_t,a_t)$。论文把问题拆开：第一阶段学习稳定、通用的 $z$；第二阶段冻结 $z$ 的语义，只训练一个新的 predictor 学机器人动力学。这样 62 小时动作数据不用同时承担“学视觉”和“学控制”两件事。</p></div>
+<div class="fig-interactive panel-below"><div class="fig-block"><div class="hotspot-wrap" data-hotspot-group="vj2-fig2">
+<img alt="V-JEPA 2 multistage training" src="../assets/figures/vjepa2/fig-2.png"/>
+<div class="hotspot" data-body="&lt;div class='hp-body'&gt;&lt;p&gt;&lt;strong&gt;图中位置与输入：&lt;/strong&gt;online encoder 只收到保留下来的视频 patch/token，被 mask 的时空区域完全不进入其计算。&lt;/p&gt;&lt;p&gt;&lt;strong&gt;这里真正发生什么：&lt;/strong&gt;遮挡既降低 ViT 计算量，又制造需要上下文和运动规律才能解决的预测任务。&lt;/p&gt;&lt;p&gt;&lt;strong&gt;它与相邻模块的关系：&lt;/strong&gt;可见 token 进入 predictor；完整视频则走 EMA target 分支提供答案。两条路径必须分开，避免模型直接复制目标。&lt;/p&gt;&lt;/div&gt;" data-id="masked" data-title="Masked video" style="left:20%;top:54%;"></div>
+<div class="hotspot" data-body="&lt;div class='hp-body'&gt;&lt;p&gt;&lt;strong&gt;图中位置与输入：&lt;/strong&gt;target encoder 读取完整视频，参数由 online encoder 的指数移动平均更新，并停止梯度。&lt;/p&gt;&lt;p&gt;&lt;strong&gt;这里真正发生什么：&lt;/strong&gt;缓慢变化的 teacher 产生稳定 latent target，避免 online encoder 与 predictor 一起坍缩为常数表示。&lt;/p&gt;&lt;p&gt;&lt;strong&gt;它与相邻模块的关系：&lt;/strong&gt;它只在训练时提供目标；部署时保留 online encoder，机器人预测器在同一 latent 空间学习未来。&lt;/p&gt;&lt;/div&gt;" data-id="ema" data-title="EMA target encoder" style="left:37%;top:35%;"></div>
+<div class="hotspot" data-body="&lt;div class='hp-body'&gt;&lt;p&gt;&lt;strong&gt;图中位置与输入：&lt;/strong&gt;预训练阶段的 $z$ 是带时空坐标的 mask token，插入 predictor 对应缺失 patch 的位置。&lt;/p&gt;&lt;p&gt;&lt;strong&gt;这里真正发生什么：&lt;/strong&gt;它告诉 predictor ‘要预测哪里’，但不泄露该位置真实像素或 target feature。&lt;/p&gt;&lt;p&gt;&lt;strong&gt;它与相邻模块的关系：&lt;/strong&gt;同一 predictor 接口到机器人阶段被 action/pose 条件替换；这展示 V-JEPA 2 如何从空间补全扩展到受动作控制的未来预测。&lt;/p&gt;&lt;/div&gt;" data-id="mask-token" data-title="z · mask token" style="left:29%;top:25%;"></div>
+<div class="hotspot" data-body="&lt;div class='hp-body'&gt;&lt;p&gt;&lt;strong&gt;图中位置与输入：&lt;/strong&gt;机器人阶段的条件 $z$ 编码候选动作序列与末端执行器 pose，而不再只是 mask 位置。&lt;/p&gt;&lt;p&gt;&lt;strong&gt;这里真正发生什么：&lt;/strong&gt;predictor 学习给定当前 latent 和控制输入后，下一时刻 latent 应怎样变化，成为轻量 action-conditioned dynamics。&lt;/p&gt;&lt;p&gt;&lt;strong&gt;它与相邻模块的关系：&lt;/strong&gt;它把无动作 web 预训练得到的表征接到真实控制语义；没有这一步，encoder 只知道视频规律，不知道机器人命令对应什么变化。&lt;/p&gt;&lt;/div&gt;" data-id="action" data-title="z · actions &amp; poses" style="left:74%;top:25%;"></div>
+<div class="hotspot" data-body="&lt;div class='hp-body'&gt;&lt;p&gt;&lt;strong&gt;图中位置与输入：&lt;/strong&gt;输出是未来帧经过同一冻结 encoder 后应具有的 latent，而不是 RGB 图像。&lt;/p&gt;&lt;p&gt;&lt;strong&gt;这里真正发生什么：&lt;/strong&gt;训练用 latent 距离监督；规划时比较预测未来与目标图像 latent，省去高成本像素解码。&lt;/p&gt;&lt;p&gt;&lt;strong&gt;它与相邻模块的关系：&lt;/strong&gt;这种输出适合低延迟 MPC，但可解释性较弱，必须用闭环任务验证 latent 距离是否真的对应可达的机器人进展。&lt;/p&gt;&lt;/div&gt;" data-id="future" data-title="Future latent" style="left:84%;top:55%;"></div>
+</div><div class="fig-cap"><span class="fig-num">Fig 2 · p.4</span> 左：V-JEPA 2；右：V-JEPA 2-AC。<span class="fig-cn">同一个 latent 坐标系，两种 predictor：一个补 mask，一个预测动作后的未来。</span></div></div><div class="hotspot-panel"></div></div>
+<div class="math-block">$$\min_{\theta,\phi,\Delta_y}\left\|P_\phi(\Delta_y,E_\theta(x))-\operatorname{sg}(E_{\bar\theta}(y))\right\|_1$$<span class="math-label">Eq. 1 · V-JEPA 2 pretraining · p.4</span></div>
+<div class="math-explain"><div class="me-title">逐项拆解</div><dl><dt>$x,y$</dt><dd>遮罩视频与干净视频。</dd><dt>$\Delta_y$</dt><dd>learnable mask token，编码目标位置。</dd><dt>$E_{\bar\theta}$</dt><dd>EMA target encoder；其输出停止反传。</dd><dt>$L_1$</dt><dd>只在 masked patch 的 latent 上计算。</dd></dl></div>
+<h2 id="planning">§3 Latent MPC：不生成视频，直接比较“想象状态”与“目标状态”</h2>
+<div class="cn-read"><div class="cn-label">从动力学到行动</div><p>有了 action-conditioned predictor，规划就变成在动作序列上做搜索：把当前帧与目标图编码成 latent，让 predictor rollout 候选动作的未来 latent，选离目标最近的一条。论文用 Cross-Entropy Method 反复采样、筛 top-k、更新动作分布，并只执行第一步后重规划。</p></div>
+<div class="math-block">$$E(\hat a_{1:T};z_k,s_k,z_g)=\left\|P(\hat a_{1:T};s_k,z_k)-z_g\right\|_1$$<span class="math-label">Eq. 5 · Goal-conditioned energy · p.10</span></div>
+<div class="math-explain"><div class="me-title">逐项拆解</div><dl><dt>$z_k$</dt><dd>当前相机帧的 latent。</dd><dt>$s_k$</dt><dd>当前末端执行器状态。</dd><dt>$\hat a_{1:T}$</dt><dd>待优化的动作序列。</dd><dt>$P(\cdot)$</dt><dd>V-JEPA 2-AC imagined rollout。</dd><dt>$z_g$</dt><dd>目标图像 latent；距离越小，候选动作越好。</dd></dl></div>
+<h2 id="evidence">§4 证据：两间实验室零样本部署，但速度仍是瓶颈</h2>
+<div class="cn-read"><div class="cn-label">看结果时别只看“能抓”</div><p>模型在两台训练环境之外的 Franka 上执行 reach、grasp、pick-and-place。平均 reach 为 100%，杯子 pick-and-place 为 80%，盒子为 65%；关键对照是生成式 Cosmos 规划每个动作约 4 分钟，而 latent V-JEPA 2-AC 在更多候选样本下约 16 秒。它快很多，却仍远低于实时控制频率。</p></div>
+<table class="kv-table"><tr><td>Action data</td><td>&lt;62 小时 DROID，无任务奖励。</td></tr><tr><td>部署</td><td>两间新实验室的 Franka，单目低分辨率 RGB，零样本。</td></tr><tr><td>优势</td><td>latent rollout 比像素视频生成显著更快；物体交互成功率优于 Octo 与 Cosmos 基线。</td></tr><tr><td>代价</td><td>CEM 每一步仍需秒级搜索，长程任务靠人工给子目标图。</td></tr></table>
+<div class="quiz" data-correct="d" data-explain="V-JEPA 2-AC 的训练数据仍包含机器人动作和末端状态；“unlabeled”指没有任务标签或奖励。" data-explain-wrong="它没有任务 reward，但 action-conditioned predictor 仍需要 action/state 轨迹。">
+<div class="q-label">🧠 理解检查</div><div class="q-text">“62 小时 unlabeled robot videos”最准确的含义是？</div><div class="q-options"><button class="q-opt" data-k="a">只有 RGB，没有任何动作</button><button class="q-opt" data-k="b">全部来自互联网视频</button><button class="q-opt" data-k="c">没有相机画面</button><button class="q-opt" data-k="d">有状态与动作，但没有任务标签/奖励</button></div><div class="q-feedback"></div>
+</div>
+<h2 id="limits">§5 路线定位：它是 latent world model，不是生成式 WAM</h2>
+<div class="callout blue"><div class="callout-label">最重要的贡献</div><p>它第一次把大规模 action-free 视频 JEPA 与少量机器人 interaction data 接起来，并在真实机器人上证明 latent-space planning 可行。</p></div>
+<div class="callout red"><div class="callout-label">论文自己承认的限制</div><p>相机摆位敏感；单目下动作坐标轴可能不可辨；自回归 latent 长程误差累积；CEM 规划慢；长程 pick-and-place 依赖人工子目标；表征的 dense spatial detail 仍不足。这些问题分别被 V-JEPA 2.1、LeWorldModel 与实时 WAM 路线继续追。</p></div>
+</main>
+</div></div>
+</body></html>

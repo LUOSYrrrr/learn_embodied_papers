@@ -1,0 +1,98 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Latent Diffusion Models · 中文精读</title>
+  <link rel="stylesheet" href="../../assets/css/style.css">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16/dist/katex.min.css">
+  <script src="../../assets/js/theme.js"></script>
+  <script src="../../assets/js/interactive.js" defer></script>
+  <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16/dist/katex.min.js"></script>
+  <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16/dist/contrib/auto-render.min.js" onload="renderMathInElement(document.body,{delimiters:[{left:'$$',right:'$$',display:true},{left:'$',right:'$',display:false}]})"></script>
+  <style>@media (max-width:900px){.docs-sidebar-left{display:none!important;}}</style>
+</head>
+<body>
+  <nav class="nav"><a class="nav-logo" href="../../index.html">Paper Notes</a><div class="nav-links"><a href="../wam-roadmap.html#foundation">← WAM 路线</a><a href="../../pdfs/generation/Rombach%20et%20al.%20-%202022%20-%20High-Resolution%20Image%20Synthesis%20with%20Latent%20Diffusion%20Models.pdf" target="_blank">📄 PDF</a></div></nav>
+  <div class="page">
+    <div class="docs-layout">
+      <aside class="docs-sidebar-left">
+        <div class="ds-title">LDM · CVPR 2022</div>
+        <a class="ds-leaf-top" href="#tldr">§1 核心转移</a>
+        <a class="ds-leaf-top" href="#compression">§2 两级压缩</a>
+        <a class="ds-leaf-top" href="#architecture">§3 模型架构</a>
+        <a class="ds-leaf-top" href="#objective">§4 训练目标</a>
+        <a class="ds-leaf-top" href="#conditioning">§5 条件机制</a>
+        <a class="ds-leaf-top" href="#evidence">§6 实验证据</a>
+        <a class="ds-leaf-top" href="#wam">§7 通向 Video DiT / WAM</a>
+      </aside>
+      <main class="docs-content">
+        <div class="docs-breadcrumb"><a href="../../index.html">paper-notes</a><span class="sep">/</span>生成模型地基<span class="sep">/</span>Latent Diffusion</div>
+        <h1>High-Resolution Image Synthesis with Latent Diffusion Models</h1>
+        <p style="color:var(--text3);font-family:var(--font-mono);font-size:12px;margin-top:-12px;">Robin Rombach 等 · CVPR 2022 · arXiv:2112.10752 · Zotero V9VTDBYM</p>
+        <div class="cn-read"><div class="cn-label">先建立正确定位</div><p>LDM 不是一种新的前向加噪公式。它保留扩散模型的训练范式，却把工作空间从像素 $x$ 换成预训练自编码器的 latent $z=\mathcal E(x)$；再用 cross-attention 把文本、语义图、布局等条件注入 U-Net。这三件事共同奠定了 Stable Diffusion 与大量视频/WAM 系统的结构基础。</p></div>
+
+        <h2 id="tldr">§1 核心转移：别在每个像素上反复去噪</h2>
+        <div class="callout"><div class="callout-label">论文主张</div><p>像素空间同时包含语义结构与大量人眼难以察觉的高频细节。先用自编码器移除感知冗余，再让扩散模型专注于语义/概念组合，可以显著降低训练与采样成本，同时保留高分辨率生成能力。</p></div>
+        <div class="module-grid">
+          <div class="module-card"><div class="module-card-name">STAGE 1</div><div class="module-card-title">感知压缩</div><div class="module-card-desc">$z=\mathcal E(x)$，$\tilde x=\mathcal D(z)$；只丢弃难感知细节。</div></div>
+          <div class="module-card"><div class="module-card-name">STAGE 2</div><div class="module-card-title">语义生成</div><div class="module-card-desc">在二维 latent 上训练 diffusion U-Net，学习 $p(z)$ 或 $p(z\mid y)$。</div></div>
+          <div class="module-card"><div class="module-card-name">CONTROL</div><div class="module-card-title">Cross-Attention</div><div class="module-card-desc">将文本、语义图、图像等条件统一映射为 token 表征。</div></div>
+          <div class="module-card"><div class="module-card-name">OUTPUT</div><div class="module-card-title">一次解码回像素</div><div class="module-card-desc">去噪结束后由 $\mathcal D$ 把 $z_0$ 还原成高分辨率图像。</div></div>
+        </div>
+
+        <h2 id="compression">§2 两级压缩：感知信息与语义信息分工</h2>
+        <div class="fig-interactive panel-below">
+          <div class="fig-block"><div class="hotspot-wrap" data-hotspot-group="ldm-rate">
+            <img src="../../assets/figures/latent-diffusion/fig-2.png" alt="LDM perceptual and semantic compression">
+            <div class="hotspot" data-id="semantic" style="left:30%;top:18%;" data-title="语义压缩区" data-body="码率已经很低，继续压缩会快速增加失真；这里由生成模型学习数据分布与语义组合。"></div>
+            <div class="hotspot" data-id="perceptual" style="left:64%;top:41%;" data-title="感知压缩区" data-body="自编码器沿低失真区域移除人眼不敏感的细节，换取空间维度和算力下降。"></div>
+            <div class="hotspot" data-id="sweetspot" style="left:43%;top:34%;" data-title="LDM 的工作点" data-body="不是压得越小越好；目标是在可接受重建失真下给 diffusion 留足够二维结构。"></div>
+          </div><div class="fig-cap"><span class="fig-num">Fig 2 · p.2</span> 率失真视角下的两阶段分工。<span class="fig-cn">自编码器处理感知冗余，扩散模型处理语义不确定性。</span></div></div><div class="hotspot-panel"></div>
+        </div>
+        <div class="math-block">$$z=\mathcal E(x)\in\mathbb R^{h\times w\times c},\qquad \tilde x=\mathcal D(z),\qquad f=H/h=W/w$$<span class="math-label">§3.1 · p.4 · 空间下采样因子</span></div>
+        <div class="math-explain"><div class="me-title">压缩什么，保留什么</div><dl><dt>$f$</dt><dd>空间下采样因子；论文系统比较 $f=2^m$。</dd><dt>二维 latent</dt><dd>仍保留图像网格结构，因此 U-Net 的卷积归纳偏置可以继续使用。</dd><dt>KL-reg / VQ-reg</dt><dd>论文分别用轻量 KL 正则或向量量化约束 latent，避免尺度失控。</dd></dl></div>
+        <div class="callout red"><div class="callout-label">重要反直觉</div><p>压缩率不是越大越好。论文分析显示 $f\in\{4,8\}$ 常位于质量与效率的较好折中；过强压缩（如 $f=32$）把生成模型需要恢复的语义信息也丢掉。</p></div>
+
+        <h2 id="architecture">§3 架构：Pixel Space 只在入口和出口出现</h2>
+        <div class="fig-interactive panel-below"><div class="fig-block"><div class="hotspot-wrap" data-hotspot-group="ldm-arch">
+          <img src="../../assets/figures/latent-diffusion/fig-3.png" alt="Latent Diffusion architecture and conditioning">
+          <div class="hotspot" data-id="codec" style="left:11%;top:25%;" data-title="冻结/预训练的编码器与解码器" data-body="E 把像素压成 z，D 只在最后把去噪完成的 latent 解码回图像。"></div>
+          <div class="hotspot" data-id="diffusion" style="left:49%;top:14%;" data-title="Latent diffusion process" data-body="加噪与去噪都发生在 z 空间，主干网络不再反复处理全分辨率 RGB。"></div>
+          <div class="hotspot" data-id="unet" style="left:51%;top:30%;" data-title="Denoising U-Net" data-body="时间条件 U-Net 预测 latent 噪声；卷积继续利用二维空间局部性。"></div>
+          <div class="hotspot" data-id="condition" style="left:89%;top:24%;" data-title="通用条件编码器 τθ" data-body="文本、语义图、图像等先编码成 token，再通过 cross-attention 或 concat 注入 U-Net。"></div>
+        </div><div class="fig-cap"><span class="fig-num">Fig 3 · p.4</span> LDM 的完整数据流。<span class="fig-cn">Stable Diffusion 与后续 Video LDM 的核心骨架都能从这张图读出。</span></div></div><div class="hotspot-panel"></div></div>
+        <div class="step-walker" data-hotspot-group="ldm-arch"><div class="sw-header"><div class="sw-title">从输入到生成结果：4 步</div><div class="sw-controls"><button class="sw-btn prev">←</button><span class="sw-counter"></span><button class="sw-btn next">→</button></div></div><div class="sw-progress"><span class="sw-dot"></span><span class="sw-dot"></span><span class="sw-dot"></span><span class="sw-dot"></span></div><div class="sw-body">
+          <div class="sw-step" data-hotspot="codec"><h4>1. 先训练感知压缩器</h4><p>用重建、感知与对抗目标得到 $\mathcal E,\mathcal D$；它决定后续扩散能看到哪些信息。</p></div>
+          <div class="sw-step" data-hotspot="diffusion"><h4>2. 固定编码空间并添加噪声</h4><p>把图像编码成 $z$，随机取 $t$ 构造 $z_t$，训练过程与 DDPM 同构。</p></div>
+          <div class="sw-step" data-hotspot="condition"><h4>3. 条件变成 token</h4><p>$\tau_\theta(y)$ 将文本或其他模态投影为序列，供每层 cross-attention 读取。</p></div>
+          <div class="sw-step" data-hotspot="unet"><h4>4. 去噪 latent，再一次解码</h4><p>采样从 $z_T$ 走到 $z_0$；最终只运行一次 $\mathcal D(z_0)$ 得到像素图像。</p></div>
+        </div></div>
+
+        <h2 id="objective">§4 训练目标：DDPM 换了变量，没有换基本语法</h2>
+        <div class="math-block">$$\mathcal L_{LDM}=\mathbb E_{\mathcal E(x),\epsilon\sim\mathcal N(0,1),t}\left[\|\epsilon-\epsilon_\theta(z_t,t)\|_2^2\right]$$<span class="math-label">Eq. 2 · p.4</span></div>
+        <div class="math-explain"><div class="me-title">与 DDPM 对照</div><dl><dt>$x\rightarrow z$</dt><dd>训练目标的干净样本由像素换成编码 latent。</dd><dt>$z_t$</dt><dd>按相同高斯前向过程污染的 latent。</dd><dt>$\epsilon_\theta$</dt><dd>时间条件 U-Net 预测噪声；优势来自每次网络计算处理的空间更小。</dd></dl></div>
+
+        <h2 id="conditioning">§5 Cross-Attention：让一种 U-Net 接多种控制信号</h2>
+        <div class="math-block">$$\operatorname{Attention}(Q,K,V)=\operatorname{softmax}\!\left(\frac{QK^\top}{\sqrt d}\right)V$$<span class="math-label">§3.3 · p.4</span></div>
+        <div class="math-explain"><div class="me-title">谁问，谁回答</div><dl><dt>$Q=W_Q\varphi_i(z_t)$</dt><dd>查询来自 U-Net 当前空间特征。</dd><dt>$K,V=W_{K,V}\tau_\theta(y)$</dt><dd>键和值来自文本、语义图或其他条件编码。</dd><dt>意义</dt><dd>条件无需和图像同尺寸；同一生成骨架可支持 text-to-image、layout-to-image 等任务。</dd></dl></div>
+        <div class="quiz" data-correct="c" data-explain="LDM 的核心是先压缩像素，再在仍保留二维结构的 latent 上扩散；cross-attention 负责通用条件控制。" data-explain-wrong="它没有取消扩散，也不是把整张图离散成文本 token。"><div class="q-label">理解检查</div><div class="q-text">下面哪一项最准确描述 LDM？</div><div class="q-options"><button class="q-opt" data-k="a">用 VAE 直接替代扩散模型</button><button class="q-opt" data-k="b">只对文本 embedding 做扩散</button><button class="q-opt" data-k="c">在自编码器的二维 latent 上训练条件扩散模型</button><button class="q-opt" data-k="d">把 DDPM 改成自回归 token 预测</button></div><div class="q-feedback"></div></div>
+
+        <h2 id="evidence">§6 论文证据：省算力不是免费午餐</h2>
+        <div class="module-grid">
+          <div class="module-card"><div class="module-card-name">TASKS</div><div class="module-card-title">生成 / 修复 / 超分</div><div class="module-card-desc">同一 latent 框架覆盖无条件、类别/文本条件、语义合成、inpainting 与超分辨率。</div></div>
+          <div class="module-card"><div class="module-card-name">COMPUTE</div><div class="module-card-title">像素维度显著下降</div><div class="module-card-desc">训练和每个去噪步骤都更便宜；论文 inpainting 对比报告至少约 2.7× 的速度差距。</div></div>
+          <div class="module-card"><div class="module-card-name">QUALITY</div><div class="module-card-title">中等压缩最佳</div><div class="module-card-desc">过小 $f$ 节省有限，过大 $f$ 破坏语义与细节；需要选择折中工作点。</div></div>
+          <div class="module-card"><div class="module-card-name">BOTTLENECK</div><div class="module-card-title">Codec 决定上限</div><div class="module-card-desc">扩散模型无法恢复编码器已经不可逆丢失的信息；重建伪影会传给生成结果。</div></div>
+        </div>
+
+        <h2 id="wam">§7 为什么它直接通向 Video DiT 与 WAM</h2>
+        <div class="cn-read"><div class="cn-label">从二维 latent 扩展到时空 latent</div><p>视频生成把 $z$ 扩成 $T\times H'\times W'\times C$，用 3D/时空 VAE 压缩视频，再让 Video U-Net 或 DiT 处理时空 patch。生成式 WAM 进一步把历史观测、语言、机器人状态和动作作为条件，或把未来 latent 与动作共同生成。</p></div>
+        <table class="kv-table"><tr><td>LDM</td><td>$p(z_0\mid y)$：条件图像 latent</td></tr><tr><td>Video LDM / Video DiT</td><td>$p(z_{1:T}\mid y)$：条件视频 latent</td></tr><tr><td>生成式 WAM</td><td>$p(z_{future},a\mid z_{history},l,s)$：未来与动作受历史/任务约束</td></tr><tr><td>新增难题</td><td>时间一致性、动作—后果因果一致、闭环延迟与接触细节</td></tr></table>
+        <div class="callout red"><div class="callout-label">不能机械外推</div><p>图像“感知等价”的 latent 不一定对机器人“控制等价”。微小接触状态、物体深度和夹爪相对位姿，可能在人眼看来不重要，却决定动作成败；WAM 的 video tokenizer 必须为动力学与控制重新评估。</p></div>
+        <div class="callout blue"><div class="callout-label">接下来读什么</div><p>先回看 <a href="ddpm.html">DDPM</a> 与 <a href="classifier-free-guidance.html">CFG</a>，再进入 <a href="../dit.html">DiT</a> 和 Video DiT。你会看到模型空间从像素迁到 latent 后，去噪主干也从 U-Net 逐步迁到 Transformer。</p></div>
+      </main>
+    </div>
+  </div>
+</body>
+</html>

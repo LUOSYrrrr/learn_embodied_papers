@@ -1,17 +1,17 @@
 <!DOCTYPE html>
+
 <html lang="zh-CN">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>τ₀-WM · 统一视频-动作世界模型用于机器人操作</title>
-  <link rel="stylesheet" href="../assets/css/style.css">
-  <script src="../assets/js/theme.js"></script>
-  <script src="../assets/js/interactive.js" defer></script>
-  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16/dist/katex.min.css">
-  <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16/dist/katex.min.js"></script>
-  <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16/dist/contrib/auto-render.min.js"
-          onload="renderMathInElement(document.body,{delimiters:[{left:'$$',right:'$$',display:true},{left:'$',right:'$',display:false}]})"></script>
-  <style>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>τ₀-WM · 统一视频-动作世界模型用于机器人操作</title>
+<link href="../assets/css/style.css" rel="stylesheet"/>
+<script src="../assets/js/theme.js"></script>
+<script defer="" src="../assets/js/interactive.js"></script>
+<link href="https://cdn.jsdelivr.net/npm/katex@0.16/dist/katex.min.css" rel="stylesheet"/>
+<script defer="" src="https://cdn.jsdelivr.net/npm/katex@0.16/dist/katex.min.js"></script>
+<script defer="" onload="renderMathInElement(document.body,{delimiters:[{left:'$$',right:'$$',display:true},{left:'$',right:'$',display:false}]})" src="https://cdn.jsdelivr.net/npm/katex@0.16/dist/contrib/auto-render.min.js"></script>
+<style>
     .docs-layout { display: grid; grid-template-columns: 220px minmax(0, 1fr); max-width: 1400px; margin: 0 auto; }
     .sidebar { position: sticky; top: 60px; height: calc(100vh - 60px); overflow-y: auto; padding: 24px 16px; border-right: 1px solid var(--border); background: var(--bg); }
     .sidebar-title { font-family: var(--font-mono); font-size: 10px; color: var(--text3); letter-spacing: 0.08em; text-transform: uppercase; margin-bottom: 16px; padding-bottom: 8px; border-bottom: 1px solid var(--border); }
@@ -142,753 +142,618 @@
   </style>
 </head>
 <body>
-  <nav class="nav">
-    <a class="nav-logo" href="../index.html">Paper Notes</a>
-    <div class="nav-links">
-      <a href="../index.html">← 返回首页</a>
-    </div>
-  </nav>
-
-  <div class="docs-layout">
-    <!-- Sidebar -->
-    <aside class="sidebar">
-      <div class="sidebar-title">目录</div>
-      <ul class="sidebar-tree">
-        <li><a href="#overview" class="section-link">§01 核心洞见</a></li>
-        <li><a href="#data" class="section-link">§02 异质数据策略</a></li>
-        <li><a href="#vam" class="section-link">§03 视频动作模型 VAM</a></li>
-        <li><a href="#acvs" class="section-link">§04 动作条件视频模拟器 ACVS</a></li>
-        <li><a href="#ttc" class="section-link">§05 推理时计算 TTC</a></li>
-        <li><a href="#experiments" class="section-link">§06 实验结果</a></li>
-        <li><a href="#vla-link" class="section-link">§07 与 VLA 的联系</a></li>
-      </ul>
-    </aside>
-
-    <main class="main-content">
-      <!-- Paper Header -->
-      <div class="paper-header">
-        <div class="paper-venue">arXiv · 2606.01027 · May 2026 · AGIBOT Finch · Shanghai Innovation Institute</div>
-        <div class="paper-title">τ₀-WM: A Unified Video-Action World Model for Robotic Manipulation</div>
-        <div class="paper-authors">Pengfei Zhou*, Shengcong Chen*, Di Chen, Jiaxu Wang, Rongjun Jin, Bingwen Zhu, Yike Pan, Songen Gu, Kuanning Wang, Shufeng Nan, Xingyu Qiu, Chenhao Qiu, Pu Yang, Yunuo Cai, Jianxiong Gao, Yifan Li, Yanwei Fu, Xiangyu Yue, Zhi Chen, Jianlan Luo†</div>
-        <div class="paper-badges">
-          <span class="badge badge-green">World Model</span>
-          <span class="badge badge-blue">Video Diffusion</span>
-          <span class="badge badge-purple">Flow Matching</span>
-          <span class="badge badge-amber">Test-Time Compute</span>
-          <span class="badge">Robotic Manipulation</span>
-          <span class="badge">5.5B params</span>
-        </div>
-      </div>
-
-      <!-- §01 核心洞见 -->
-      <div class="section" id="overview">
-        <div class="section-num">§ 01</div>
-        <h2>核心洞见：为什么要把动作和视频"合并"？</h2>
-
-        <div class="cn-read">
-          <div class="cn-label">这一节解决什么</div>
-          <p>
+<nav class="nav">
+<a class="nav-logo" href="../index.html">Paper Notes</a>
+<div class="nav-links">
+<a href="../index.html">← 返回首页</a>
+</div>
+</nav>
+<div class="docs-layout">
+<!-- Sidebar -->
+<aside class="sidebar">
+<div class="sidebar-title">目录</div>
+<ul class="sidebar-tree">
+<li><a class="section-link" href="#overview">§01 核心洞见</a></li>
+<li><a class="section-link" href="#data">§02 异质数据策略</a></li>
+<li><a class="section-link" href="#vam">§03 视频动作模型 VAM</a></li>
+<li><a class="section-link" href="#acvs">§04 动作条件视频模拟器 ACVS</a></li>
+<li><a class="section-link" href="#ttc">§05 推理时计算 TTC</a></li>
+<li><a class="section-link" href="#experiments">§06 实验结果</a></li>
+<li><a class="section-link" href="#vla-link">§07 与 VLA 的联系</a></li>
+</ul>
+</aside>
+<main class="main-content">
+<!-- Paper Header -->
+<div class="paper-header">
+<div class="paper-venue">arXiv · 2606.01027 · May 2026 · AGIBOT Finch · Shanghai Innovation Institute · Zotero ABXTSETQ · PDF NIBM9BJZ</div>
+<div class="paper-title">τ₀-WM: A Unified Video-Action World Model for Robotic Manipulation</div>
+<div class="paper-authors">Pengfei Zhou*, Shengcong Chen*, Di Chen, Jiaxu Wang, Rongjun Jin, Bingwen Zhu, Yike Pan, Songen Gu, Kuanning Wang, Shufeng Nan, Xingyu Qiu, Chenhao Qiu, Pu Yang, Yunuo Cai, Jianxiong Gao, Yifan Li, Yanwei Fu, Xiangyu Yue, Zhi Chen, Jianlan Luo†</div>
+<div class="paper-badges">
+<span class="badge badge-green">World Model</span>
+<span class="badge badge-blue">Video Diffusion</span>
+<span class="badge badge-purple">Flow Matching</span>
+<span class="badge badge-amber">Test-Time Compute</span>
+<span class="badge">Robotic Manipulation</span>
+<span class="badge">5.5B params</span>
+</div>
+</div>
+<!-- §01 核心洞见 -->
+<div class="section" id="overview">
+<div class="section-num">§ 01</div>
+<h2>核心洞见：为什么要把动作和视频"合并"？</h2>
+<div class="cn-read">
+<div class="cn-label">这一节解决什么</div>
+<p>
             机器人要做一件事，需要两种能力：<strong>能生成动作</strong>（VAM，知道手往哪儿移）和<strong>能预测后果</strong>（ACVS，想象这样做完场景会变成什么样）。过去这两件事是分开的两个模型。τ₀-WM 的核心洞见是：<strong>这两件事共享同一个"视频预测骨干"</strong>——就像司机的脑子里用同一套世界认知来开车和预判危险，不需要两套脑子。把它们统一之后，不仅省参数，还能让预测能力在推理时直接增强动作质量。
           </p>
-        </div>
-
-        <p>
+</div>
+<p>
           传统机器人操作策略只学"观测→动作"映射，完全不管执行后世界会变成什么样。视频预测模型学物理规律但不输出可执行指令。τ₀-WM 认为这两个目标本质上共享同一套<span class="term" data-en="predictive world representation">预测性世界表征</span>，因此把它们统一进单个<span class="term" data-en="video diffusion backbone">视频扩散骨干</span>（Wan 2.2 · 5B 参数），对外暴露两个接口：
         </p>
-
-        <div class="module-grid">
-          <div class="module-card">
-            <div class="module-card-name">VAM · VIDEO ACTION MODEL</div>
-            <div class="module-card-title">视频动作模型</div>
-            <div class="module-card-desc">
-              <strong>策略接口</strong>：给当前多视角观测 + 语言指令 + 机器人状态，同时预测<strong>未来视频 latent</strong>（场景会怎么演变）和<strong>可执行动作块</strong>（手臂怎么动）。5B 视频 DiT + 0.5B 动作 DiT，共 5.5B 参数。
+<div class="module-grid">
+<div class="module-card">
+<div class="module-card-name">VAM · VIDEO ACTION MODEL</div>
+<div class="module-card-title">视频动作模型</div>
+<div class="module-card-desc">
+<strong>策略接口</strong>：给当前多视角观测 + 语言指令 + 机器人状态，同时预测<strong>未来视频 latent</strong>（场景会怎么演变）和<strong>可执行动作块</strong>（手臂怎么动）。5B 视频 DiT + 0.5B 动作 DiT，共 5.5B 参数。
             </div>
-          </div>
-          <div class="module-card">
-            <div class="module-card-name">ACVS · ACTION-CONDITIONED VIDEO SIMULATOR</div>
-            <div class="module-card-title">动作条件视频模拟器</div>
-            <div class="module-card-desc">
-              <strong>评估接口</strong>：给当前观测 + 语言 + <strong>候选动作块</strong>，预测这个动作执行后的未来视频展开 + 密集奖励轨迹。复用同一个 5B 骨干，不生成动作，只评估动作好坏。
+</div>
+<div class="module-card">
+<div class="module-card-name">ACVS · ACTION-CONDITIONED VIDEO SIMULATOR</div>
+<div class="module-card-title">动作条件视频模拟器</div>
+<div class="module-card-desc">
+<strong>评估接口</strong>：给当前观测 + 语言 + <strong>候选动作块</strong>，预测这个动作执行后的未来视频展开 + 密集奖励轨迹。复用同一个 5B 骨干，不生成动作，只评估动作好坏。
             </div>
-          </div>
-        </div>
-
-        <div class="callout">
-          <div class="callout-label">核心贡献（三点）</div>
-          <p style="margin:0">① <strong>统一框架</strong>：VAM + ACVS 共享视频扩散骨干，策略学习与动态建模同步训练。<br>② <strong>异质数据整合</strong>：27.3K 小时机器人 + UMI + 自我中心视频，用<strong>模态监督掩码</strong>统一训练。<br>③ <strong>推理时计算（TTC）</strong>：先用轻量 RCS 筛候选，再用 ACVS 对低质量候选做模拟+修正，推理即计划。</p>
-        </div>
-
-        <details class="en-quote">
-          <summary>展开原文 · 统一框架动机</summary>
-          <div class="quote-body">
-            <p>"Rather than separating policy learning from dynamics modeling, τ₀-WM builds both around a shared video diffusion backbone. This backbone exposes two complementary interfaces."</p>
-            <div class="quote-cite">— §I Introduction, p.1</div>
-          </div>
-        </details>
-
-        <!-- Fig 1 -->
-        <div class="fig-interactive panel-below">
-          <div class="fig-block">
-            <div class="hotspot-wrap" data-hotspot-group="fig1">
-              <img src="../assets/figures/tau0-wm/fig-1.png" alt="Figure 1: τ₀-WM framework overview">
-              <div class="hotspot" data-id="data-robot" style="left:8%; top:30%;"
-                   data-title="真实机器人数据 · Real Robot"
-                   data-body="17.8K 小时（占 65%），来自 AGIBOT-G01、ARX、双臂 Franka。提供部署对齐的精确动作标签，是 ground-truth 动作监督的唯一来源。"></div>
-              <div class="hotspot" data-id="data-umi" style="left:8%; top:55%;"
-                   data-title="UMI 风格数据 · UMI-Style"
-                   data-body="6.5K 小时（占 24%），手持夹爪式收集。动作信号较弱（与真实机器人运动学对齐度低），但场景多样性远超真实机器人数据，能给视觉动态建模提供有益先验。"></div>
-              <div class="hotspot" data-id="data-ego" style="left:8%; top:78%;"
-                   data-title="自我中心视频 · Egocentric"
-                   data-body="3.0K 小时（占 11%），日常人类操作视频。完全没有机器人可执行的动作标签，只用来监督视觉动态预测损失，让模型学习更广泛的物体运动和接触模式。"></div>
-              <div class="hotspot" data-id="vam-box" style="left:37%; top:35%;"
-                   data-title="视频动作模型 VAM · 策略接口"
-                   data-body="接收多视角观测 + 语言指令 + 机器人状态，同时生成未来视频 latent 和可执行动作块。Wan2.2-TI2V-5B 视频 DiT 骨干 + 0.5B 动作 DiT 分支，通过 cross-attention 耦合，共 5.5B 参数。"></div>
-              <div class="hotspot" data-id="acvs-box" style="left:37%; top:70%;"
-                   data-title="动作条件视频模拟器 ACVS · 评估接口"
-                   data-body="接收当前观测 + 语言 + 候选动作块，预测该动作引起的未来视频展开 + 密集奖励轨迹。复用同一个 5B 视频骨干（不需要动作 DiT 分支），只做评估不生成新动作。"></div>
-              <div class="hotspot" data-id="ttc-box" style="left:60%; top:30%;"
-                   data-title="推理时计算 TTC · 可选"
-                   data-body="部署时可选的增强模块。VAM 先采样 N 个动作候选，用 RCS（重噪声一致性分数）快速筛选。若最优候选不可靠，则调用 ACVS 模拟各候选的未来，选最好的，并再次查询 VAM 做低质量动作修正（LAR）。"></div>
-              <div class="hotspot" data-id="reward-select" style="left:60%; top:60%;"
-                   data-title="奖励估计 + 动作选择"
-                   data-body="ACVS 对每个候选动作预测 dense reward 轨迹（每个子任务的完成进度），取轨迹中最大进度作为该候选的价值 J^(i)，选择 J 最大的展开作为最优未来。"></div>
-              <div class="hotspot" data-id="deployment" style="left:88%; top:45%;"
-                   data-title="实机部署 · 快速适配新任务"
-                   data-body="τ₀-WM 在三种机械臂平台（AGIBOT-G01、ARX、双臂 Franka）上评估，支持语言条件多视角闭环控制。推理延迟约 220ms/query（RTX 5090），缓存文本 KV 后可降至 ~180ms。"></div>
-            </div>
-            <div class="fig-cap">
-              <span class="fig-num">Fig 1 · p.2</span>
+</div>
+</div>
+<div class="callout">
+<div class="callout-label">核心贡献（三点）</div>
+<p style="margin:0">① <strong>统一框架</strong>：VAM + ACVS 共享视频扩散骨干，策略学习与动态建模同步训练。<br/>② <strong>异质数据整合</strong>：27.3K 小时机器人 + UMI + 自我中心视频，用<strong>模态监督掩码</strong>统一训练。<br/>③ <strong>推理时计算（TTC）</strong>：先用轻量 RCS 筛候选，再用 ACVS 对低质量候选做模拟+修正，推理即计划。</p>
+</div>
+<details class="en-quote">
+<summary>展开原文 · 统一框架动机</summary>
+<div class="quote-body">
+<p>"Rather than separating policy learning from dynamics modeling, τ₀-WM builds both around a shared video diffusion backbone. This backbone exposes two complementary interfaces."</p>
+<div class="quote-cite">— §I Introduction, p.1</div>
+</div>
+</details>
+<!-- Fig 1 -->
+<div class="fig-interactive panel-below">
+<div class="fig-block">
+<div class="hotspot-wrap" data-hotspot-group="fig1">
+<img alt="Figure 1: τ₀-WM framework overview" src="../assets/figures/tau0-wm/fig-1.png"/>
+<div class="hotspot" data-body="&lt;div class='hp-body'&gt;&lt;p&gt;&lt;strong&gt;这处在图里表示什么：&lt;/strong&gt;17.8K 小时（占 65%），来自 AGIBOT-G01、ARX、双臂 Franka。提供部署对齐的精确动作标签，是 ground-truth 动作监督的唯一来源。 它对应逐步导览中的“第 1 步：三类数据合流”。&lt;/p&gt;&lt;p&gt;&lt;strong&gt;输入与实际操作：&lt;/strong&gt; 已经采集的专家演示、机器人交互轨迹或评测样本。每条数据通常包含观测、动作，以及可能存在的奖励或下一状态。 真实机器人（65%）、UMI 风格（24%）、自我中心视频（11%）三流合并。关键：每类数据对应不同级别的监督信号，用 模态掩码 让它们各司其职，不强求统一格式。&lt;/p&gt;&lt;p&gt;&lt;strong&gt;输出、前后关系与必要性：&lt;/strong&gt; 经过本步骤处理、含义更明确的中间结果。这个结果会交给下一步“VAM 学策略”继续处理。 图中下一环节是“第 2 步：VAM 学策略”。 学习算法只能从它见过的经历中改进；这一步决定训练数据是否覆盖成功、失败和恢复状态。&lt;/p&gt;&lt;/div&gt;" data-id="data-robot" data-title="真实机器人数据 · Real Robot" style="left:8%; top:30%;"></div>
+<div class="hotspot" data-body="6.5K 小时（占 24%），手持夹爪式收集。动作信号较弱（与真实机器人运动学对齐度低），但场景多样性远超真实机器人数据，能给视觉动态建模提供有益先验。" data-id="data-umi" data-title="UMI 风格数据 · UMI-Style" style="left:8%; top:55%;"></div>
+<div class="hotspot" data-body="3.0K 小时（占 11%），日常人类操作视频。完全没有机器人可执行的动作标签，只用来监督视觉动态预测损失，让模型学习更广泛的物体运动和接触模式。" data-id="data-ego" data-title="自我中心视频 · Egocentric" style="left:8%; top:78%;"></div>
+<div class="hotspot" data-body="接收多视角观测 + 语言指令 + 机器人状态，同时生成未来视频 latent 和可执行动作块。Wan2.2-TI2V-5B 视频 DiT 骨干 + 0.5B 动作 DiT 分支，通过 cross-attention 耦合，共 5.5B 参数。" data-id="vam-box" data-title="视频动作模型 VAM · 策略接口" style="left:37%; top:35%;"></div>
+<div class="hotspot" data-body="&lt;div class='hp-body'&gt;&lt;p&gt;&lt;strong&gt;这处在图里表示什么：&lt;/strong&gt;接收当前观测 + 语言 + 候选动作块，预测该动作引起的未来视频展开 + 密集奖励轨迹。复用同一个 5B 视频骨干（不需要动作 DiT 分支），只做评估不生成新动作。 它对应逐步导览中的“第 3 步：ACVS 学模拟”。&lt;/p&gt;&lt;p&gt;&lt;strong&gt;输入与实际操作：&lt;/strong&gt; 来自上一步“VAM 学策略”的产物：一组比原始输入更紧凑的内部特征；它不是最终动作或画面。本步骤还会按论文设置读取当前条件、时间步或训练信号。 动作条件视频模拟器复用同一个 5B 骨干（省参数！），但把候选动作作为条件注入。对同一场景下不同动作会产生不同的&quot;想象展开&quot;——这正是世界模型的核心能力。&lt;/p&gt;&lt;p&gt;&lt;strong&gt;输出、前后关系与必要性：&lt;/strong&gt; 一个或多个候选未来、动作或轨迹，以及必要的中间状态。这个结果会交给下一步“推理时计算（可选）”继续处理。 图中下一环节是“第 4 步：推理时计算（可选）”。 它承担上下两步之间的接口；缺少它，前一步产生的信息无法以正确格式或正确含义传到下一步。&lt;/p&gt;&lt;/div&gt;" data-id="acvs-box" data-title="动作条件视频模拟器 ACVS · 评估接口" style="left:37%; top:70%;"></div>
+<div class="hotspot" data-body="部署时可选的增强模块。VAM 先采样 N 个动作候选，用 RCS（重噪声一致性分数）快速筛选。若最优候选不可靠，则调用 ACVS 模拟各候选的未来，选最好的，并再次查询 VAM 做低质量动作修正（LAR）。" data-id="ttc-box" data-title="推理时计算 TTC · 可选" style="left:60%; top:30%;"></div>
+<div class="hotspot" data-body="ACVS 对每个候选动作预测 dense reward 轨迹（每个子任务的完成进度），取轨迹中最大进度作为该候选的价值 J^(i)，选择 J 最大的展开作为最优未来。" data-id="reward-select" data-title="奖励估计 + 动作选择" style="left:60%; top:60%;"></div>
+<div class="hotspot" data-body="τ₀-WM 在三种机械臂平台（AGIBOT-G01、ARX、双臂 Franka）上评估，支持语言条件多视角闭环控制。推理延迟约 220ms/query（RTX 5090），缓存文本 KV 后可降至 ~180ms。" data-id="deployment" data-title="实机部署 · 快速适配新任务" style="left:88%; top:45%;"></div>
+</div>
+<div class="fig-cap">
+<span class="fig-num">Fig 1 · p.2</span>
               Overview of the τ₀-WM framework. Heterogeneous interaction data from real robots, UMI-style collection, and egocentric human videos are used to train a Video Action Model and an Action-Conditioned Video Simulator.
               <span class="fig-cn">τ₀-WM 框架总览：三类异质数据共同训练 VAM（策略接口）和 ACVS（评估接口），推理时通过 TTC 增强动作质量，最终部署到多种真实机器人平台。</span>
-            </div>
-          </div>
-          <div class="hotspot-panel"></div>
-        </div>
-
-        <div class="step-walker" data-hotspot-group="fig1">
-          <div class="sw-header">
-            <div class="sw-title">🪜 数据→模型→部署 · 跟着信号走一遍</div>
-            <div class="sw-controls">
-              <button class="sw-btn prev">◀</button>
-              <span class="sw-counter">1 / 5</span>
-              <button class="sw-btn next">▶</button>
-            </div>
-          </div>
-          <div class="sw-progress">
-            <div class="sw-dot"></div>
-            <div class="sw-dot"></div>
-            <div class="sw-dot"></div>
-            <div class="sw-dot"></div>
-            <div class="sw-dot"></div>
-          </div>
-          <div class="sw-body">
-            <div class="sw-step active" data-hotspot="data-robot">
-              <h4>第 1 步：三类数据合流</h4>
-              <p>真实机器人（65%）、UMI 风格（24%）、自我中心视频（11%）三流合并。关键：每类数据对应不同级别的监督信号，用<strong>模态掩码</strong>让它们各司其职，不强求统一格式。</p>
-            </div>
-            <div class="sw-step" data-hotspot="vam-box">
-              <h4>第 2 步：VAM 学策略</h4>
-              <p>视频动作模型用 5B 视频 DiT 骨干，加 0.5B 动作分支，通过 cross-attention 让动作预测"看到"视频动态。同时预测未来视频 latent 和可执行动作块。</p>
-            </div>
-            <div class="sw-step" data-hotspot="acvs-box">
-              <h4>第 3 步：ACVS 学模拟</h4>
-              <p>动作条件视频模拟器复用同一个 5B 骨干（省参数！），但把候选动作作为条件注入。对同一场景下不同动作会产生不同的"想象展开"——这正是世界模型的核心能力。</p>
-            </div>
-            <div class="sw-step" data-hotspot="ttc-box">
-              <h4>第 4 步：推理时计算（可选）</h4>
-              <p>VAM 先采样 N 个候选动作，用轻量 RCS 过滤。如果最好的候选也不够可靠（低于阈值 γ），才调用 ACVS 做更昂贵的模拟评估，选最优展开并修正动作。</p>
-            </div>
-            <div class="sw-step" data-hotspot="deployment">
-              <h4>第 5 步：实机部署</h4>
-              <p>最终动作块在机器人上以 receding-horizon 方式执行（每次执行 chunk 的前几步，再重新推理）。支持三种机械臂平台，任务成功率平均 64%，显著超过 π₀.₅（44%）和 Fast-WAM（20%）。</p>
-            </div>
-          </div>
-        </div>
-
-        <div class="quiz"
-             data-correct="b"
-             data-explain="VAM 和 ACVS 共享同一个 5B 视频 DiT 骨干（Wan2.2），这是 τ₀-WM 的核心设计。VAM 加了动作 DiT 分支，ACVS 加了奖励专家分支，但骨干是同一个。论文 §IV-B 和 §V-B 都明确说明'reuses the Wan VAE and video transformer backbone'。"
-             data-explain-wrong="不对。VAM 和 ACVS 不是完全独立的两个模型——它们共享 5B 的视频骨干，只在分支部分不同。这是论文的核心技术贡献之一：统一表征。">
-          <div class="q-label">🧠 理解检查</div>
-          <div class="q-text">τ₀-WM 中，VAM 和 ACVS 的参数关系是？</div>
-          <div class="q-options">
-            <button class="q-opt" data-k="a">完全独立的两个模型，分别训练，部署时按需选用</button>
-            <button class="q-opt" data-k="b">共享同一个 5B 视频 DiT 骨干，只在分支（动作 vs 奖励）部分不同</button>
-            <button class="q-opt" data-k="c">ACVS 是 VAM 的子模块，嵌套在 VAM 内部</button>
-            <button class="q-opt" data-k="d">VAM 用 5B 参数，ACVS 用独立的 1B 参数轻量模型</button>
-          </div>
-          <div class="q-feedback"></div>
-        </div>
-      </div>
-
-      <!-- §02 异质数据策略 -->
-      <div class="section" id="data">
-        <div class="section-num">§ 02</div>
-        <h2>异质数据策略：让三类数据"各自贡献"</h2>
-
-        <div class="cn-read">
-          <div class="cn-label">这一节解决什么</div>
-          <p>
+</div>
+</div>
+<div class="hotspot-panel"></div>
+</div>
+<div class="step-walker" data-hotspot-group="fig1">
+<div class="sw-header">
+<div class="sw-title">🪜 数据→模型→部署 · 跟着信号走一遍</div>
+<div class="sw-controls">
+<button class="sw-btn prev">◀</button>
+<span class="sw-counter">1 / 5</span>
+<button class="sw-btn next">▶</button>
+</div>
+</div>
+<div class="sw-progress">
+<div class="sw-dot"></div>
+<div class="sw-dot"></div>
+<div class="sw-dot"></div>
+<div class="sw-dot"></div>
+<div class="sw-dot"></div>
+</div>
+<div class="sw-body">
+<div class="sw-step active" data-hotspot="data-robot">
+<h4>第 1 步：三类数据合流</h4>
+<p>真实机器人（65%）、UMI 风格（24%）、自我中心视频（11%）三流合并。关键：每类数据对应不同级别的监督信号，用<strong>模态掩码</strong>让它们各司其职，不强求统一格式。</p><div class="step-beginner"><div class="sb-label">给第一次接触这个领域的读者</div><p><strong>输入是什么：</strong>已经采集的专家演示、机器人交互轨迹或评测样本。每条数据通常包含观测、动作，以及可能存在的奖励或下一状态。</p><p><strong>这一步究竟做什么：</strong>真实机器人（65%）、UMI 风格（24%）、自我中心视频（11%）三流合并。关键：每类数据对应不同级别的监督信号，用 模态掩码 让它们各司其职，不强求统一格式。</p><p><strong>输出到哪里：</strong>经过本步骤处理、含义更明确的中间结果。这个结果会交给下一步“VAM 学策略”继续处理。</p><p><strong>为什么不能省略：</strong>学习算法只能从它见过的经历中改进；这一步决定训练数据是否覆盖成功、失败和恢复状态。</p></div>
+</div>
+<div class="sw-step" data-hotspot="vam-box">
+<h4>第 2 步：VAM 学策略</h4>
+<p>视频动作模型用 5B 视频 DiT 骨干，加 0.5B 动作分支，通过 cross-attention 让动作预测"看到"视频动态。同时预测未来视频 latent 和可执行动作块。</p><div class="step-beginner"><div class="sb-label">给第一次接触这个领域的读者</div><p><strong>输入是什么：</strong>来自上一步“三类数据合流”的产物：经过本步骤处理、含义更明确的中间结果。本步骤还会按论文设置读取当前条件、时间步或训练信号。</p><p><strong>这一步究竟做什么：</strong>视频动作模型用 5B 视频 DiT 骨干，加 0.5B 动作分支，通过 cross-attention 让动作预测"看到"视频动态。同时预测未来视频 latent 和可执行动作块。</p><p><strong>输出到哪里：</strong>一组比原始输入更紧凑的内部特征；它不是最终动作或画面。这个结果会交给下一步“ACVS 学模拟”继续处理。</p><p><strong>为什么不能省略：</strong>它承担上下两步之间的接口；缺少它，前一步产生的信息无法以正确格式或正确含义传到下一步。</p><div class="sb-terms"><strong>术语先翻译：</strong>policy（策略）：把相机画面、指令和机器人状态映射成下一步动作的决策规则；action chunk（动作块）：模型一次生成连续多步控制，而不是每次只预测一个瞬时动作；latent（隐表示）：模型内部压缩后的数字特征，人看不见，但比原始图像或动作更便于计算。</div></div>
+</div>
+<div class="sw-step" data-hotspot="acvs-box">
+<h4>第 3 步：ACVS 学模拟</h4>
+<p>动作条件视频模拟器复用同一个 5B 骨干（省参数！），但把候选动作作为条件注入。对同一场景下不同动作会产生不同的"想象展开"——这正是世界模型的核心能力。</p><div class="step-beginner"><div class="sb-label">给第一次接触这个领域的读者</div><p><strong>输入是什么：</strong>来自上一步“VAM 学策略”的产物：一组比原始输入更紧凑的内部特征；它不是最终动作或画面。本步骤还会按论文设置读取当前条件、时间步或训练信号。</p><p><strong>这一步究竟做什么：</strong>动作条件视频模拟器复用同一个 5B 骨干（省参数！），但把候选动作作为条件注入。对同一场景下不同动作会产生不同的"想象展开"——这正是世界模型的核心能力。</p><p><strong>输出到哪里：</strong>一个或多个候选未来、动作或轨迹，以及必要的中间状态。这个结果会交给下一步“推理时计算（可选）”继续处理。</p><p><strong>为什么不能省略：</strong>它承担上下两步之间的接口；缺少它，前一步产生的信息无法以正确格式或正确含义传到下一步。</p><div class="sb-terms"><strong>术语先翻译：</strong>world model（世界模型）：在模型内部模拟‘做了动作以后会发生什么’。</div></div>
+</div>
+<div class="sw-step" data-hotspot="ttc-box">
+<h4>第 4 步：推理时计算（可选）</h4>
+<p>VAM 先采样 N 个候选动作，用轻量 RCS 过滤。如果最好的候选也不够可靠（低于阈值 γ），才调用 ACVS 做更昂贵的模拟评估，选最优展开并修正动作。</p><div class="step-beginner"><div class="sb-label">给第一次接触这个领域的读者</div><p><strong>输入是什么：</strong>来自上一步“ACVS 学模拟”的产物：一个或多个候选未来、动作或轨迹，以及必要的中间状态。本步骤还会按论文设置读取当前条件、时间步或训练信号。</p><p><strong>这一步究竟做什么：</strong>VAM 先采样 N 个候选动作，用轻量 RCS 过滤。如果最好的候选也不够可靠（低于阈值 γ），才调用 ACVS 做更昂贵的模拟评估，选最优展开并修正动作。</p><p><strong>输出到哪里：</strong>一个或多个候选未来、动作或轨迹，以及必要的中间状态。这个结果会交给下一步“实机部署”继续处理。</p><p><strong>为什么不能省略：</strong>它承担上下两步之间的接口；缺少它，前一步产生的信息无法以正确格式或正确含义传到下一步。</p></div>
+</div>
+<div class="sw-step" data-hotspot="deployment">
+<h4>第 5 步：实机部署</h4>
+<p>最终动作块在机器人上以 receding-horizon 方式执行（每次执行 chunk 的前几步，再重新推理）。支持三种机械臂平台，任务成功率平均 64%，显著超过 π₀.₅（44%）和 Fast-WAM（20%）。</p><div class="step-beginner"><div class="sb-label">给第一次接触这个领域的读者</div><p><strong>输入是什么：</strong>来自上一步“推理时计算（可选）”的产物：一个或多个候选未来、动作或轨迹，以及必要的中间状态。本步骤还会按论文设置读取当前条件、时间步或训练信号。</p><p><strong>这一步究竟做什么：</strong>最终动作块在机器人上以 receding-horizon 方式执行（每次执行 chunk 的前几步，再重新推理）。支持三种机械臂平台，任务成功率平均 64%，显著超过 π₀.₅（44%）和 Fast-WAM（20%）。</p><p><strong>输出到哪里：</strong>可发送给机器人控制器的动作，以及执行后重新观测到的真实状态。这是图中这条链路的最终产物，随后会进入真实执行、模型更新或指标评测。</p><p><strong>为什么不能省略：</strong>机器人动作会改变下一次观测；只有执行后重新读取现实，才能发现预测误差并阻止错误连续累积。</p><div class="sb-terms"><strong>术语先翻译：</strong>action chunk（动作块）：模型一次生成连续多步控制，而不是每次只预测一个瞬时动作；WAM（世界—动作模型）：既预测动作，也显式或隐式预测动作会把未来世界变成什么样。</div></div>
+</div>
+</div>
+</div>
+<div class="quiz" data-correct="b" data-explain="VAM 和 ACVS 共享同一个 5B 视频 DiT 骨干（Wan2.2），这是 τ₀-WM 的核心设计。VAM 加了动作 DiT 分支，ACVS 加了奖励专家分支，但骨干是同一个。论文 §IV-B 和 §V-B 都明确说明'reuses the Wan VAE and video transformer backbone'。" data-explain-wrong="不对。VAM 和 ACVS 不是完全独立的两个模型——它们共享 5B 的视频骨干，只在分支部分不同。这是论文的核心技术贡献之一：统一表征。">
+<div class="q-label">🧠 理解检查</div>
+<div class="q-text">τ₀-WM 中，VAM 和 ACVS 的参数关系是？</div>
+<div class="q-options">
+<button class="q-opt" data-k="a">完全独立的两个模型，分别训练，部署时按需选用</button>
+<button class="q-opt" data-k="b">共享同一个 5B 视频 DiT 骨干，只在分支（动作 vs 奖励）部分不同</button>
+<button class="q-opt" data-k="c">ACVS 是 VAM 的子模块，嵌套在 VAM 内部</button>
+<button class="q-opt" data-k="d">VAM 用 5B 参数，ACVS 用独立的 1B 参数轻量模型</button>
+</div>
+<div class="q-feedback"></div>
+</div>
+</div>
+<!-- §02 异质数据策略 -->
+<div class="section" id="data">
+<div class="section-num">§ 02</div>
+<h2>异质数据策略：让三类数据"各自贡献"</h2>
+<div class="cn-read">
+<div class="cn-label">这一节解决什么</div>
+<p>
             上一节说 VAM 要同时学视频预测和动作生成——问题来了：互联网上海量视频没有机器人动作标签，而真实机器人数据昂贵且场景窄。τ₀-WM 的解法是：<strong>三类数据联合训练，但用模态掩码让每个样本只监督它"知道"的损失</strong>。就像一个厨师团队：有人专攻刀工（机器人数据提供精准动作），有人专攻口感（UMI 数据提供多样场景），有人专攻食材知识（自我中心视频提供视觉规律）——各展所长，共享一套烹饪理论。
           </p>
-        </div>
-
-        <h3>三种数据源</h3>
-
-        <div class="data-bar-row">
-          <div class="data-bar-label">真实机器人遥操</div>
-          <div class="data-bar-track"><div class="data-bar-fill" style="width:65%; background:var(--accent);"></div></div>
-          <div class="data-bar-val">17.8K hrs · 65%</div>
-        </div>
-        <div class="data-bar-row">
-          <div class="data-bar-label">UMI 风格示教</div>
-          <div class="data-bar-track"><div class="data-bar-fill" style="width:24%; background:var(--blue);"></div></div>
-          <div class="data-bar-val">6.5K hrs · 24%</div>
-        </div>
-        <div class="data-bar-row">
-          <div class="data-bar-label">自我中心人类视频</div>
-          <div class="data-bar-track"><div class="data-bar-fill" style="width:11%; background:var(--amber);"></div></div>
-          <div class="data-bar-val">3.0K hrs · 11%</div>
-        </div>
-        <p style="margin-top:8px; font-size:13px; color:var(--text3);">+ 展开/失败轨迹（用于奖励监督，数量未单独列出）</p>
-
-        <table class="kv-table" style="margin-top: 20px;">
-          <tr>
-            <td>真实机器人遥操</td>
-            <td>AGIBOT-G01、ARX、双臂 Franka；头部相机 + 腕部相机；提供<strong>精确的可执行动作标签</strong>（监督 VAM 动作分支 + ACVS 视频分支）。场景覆盖家庭、零售、工业。</td>
-          </tr>
-          <tr>
-            <td>UMI 风格示教</td>
-            <td>用 Gen-DAS 夹爪装置收集；动作信号是"夹爪运动"而非机器人关节角，与部署机器人<strong>运动学不对齐</strong>，因此只用来监督<strong>视觉动态</strong>（VAM 视频分支）。</td>
-          </tr>
-          <tr>
-            <td>自我中心人类视频</td>
-            <td>来自 EgoVerse、Ropedia Xperience-10M 等；完全无机器人动作标签，只监督<strong>视频预测损失</strong>。覆盖最广泛的物体/接触/环境分布，是提升泛化的关键。</td>
-          </tr>
-          <tr>
-            <td>展开/失败轨迹</td>
-            <td>rollout 轨迹提供<strong>任务进度标签</strong>；失败轨迹给 ACVS 负样本（负奖励），让模拟器学会区分"看起来合理但实际失败"的动作。</td>
-          </tr>
-        </table>
-
-        <h3>模态监督掩码：统一训练的关键</h3>
-        <p>每个训练样本携带一个掩码，指定"哪些输入可观测、预测哪些目标、哪些损失激活"。这样：</p>
-        <ul style="font-size:14px; color:var(--text2); line-height:2; padding-left:20px; margin-bottom:16px;">
-          <li>真实机器人数据 → 激活视频预测损失 <strong>+</strong> 动作损失</li>
-          <li>UMI / 人类视频 → 只激活视频预测损失（动作损失被掩掉）</li>
-          <li>失败轨迹 → 激活视频损失 <strong>+</strong> 奖励损失（奖励为负）</li>
-        </ul>
-
-        <div class="callout amber">
-          <div class="callout-label">为什么不直接把 UMI 动作当动作监督？</div>
-          <p style="margin:0">UMI 设备的末端执行器运动学与目标机器人的关节空间存在本质差异——直接用会引入错误的动作先验。论文明确将其定位为"scalable but weaker video-action supervision"，只监督视觉动态。§III-B, p.3</p>
-        </div>
-
-        <details class="en-quote">
-          <summary>展开原文 · 统一监督层次</summary>
-          <div class="quote-body">
-            <p>"The three sources induce a hierarchy of supervision. Real-robot data provides deployment-aligned action labels; UMI-style data provides diverse interaction trajectories with weaker action-like signals; and egocentric videos provide large-scale visual dynamics without action supervision."</p>
-            <div class="quote-cite">— §III-D Unified supervision, p.3</div>
-          </div>
-        </details>
-
-        <div class="quiz"
-             data-correct="c"
-             data-explain="自我中心人类视频没有机器人可执行的动作标签，因此只激活视频预测损失，用来让模型学习更广泛的视觉动态规律（物体运动、接触模式等）。动作损失被掩码掩掉，不参与计算。§III-D, p.3"
-             data-explain-wrong="不对。自我中心视频的核心价值在于提供视觉动态的多样性，但它不提供动作标签——用它监督动作会引入错误先验。论文明确排除其动作监督。">
-          <div class="q-label">🧠 理解检查</div>
-          <div class="q-text">自我中心人类视频（3K 小时）在 τ₀-WM 训练中起什么作用？</div>
-          <div class="q-options">
-            <button class="q-opt" data-k="a">提供动作标签，帮助模型学习人手操作策略</button>
-            <button class="q-opt" data-k="b">同时监督视频预测损失和 ACVS 奖励损失</button>
-            <button class="q-opt" data-k="c">只激活视频预测损失，让模型学习广泛的视觉动态，不提供动作监督</button>
-            <button class="q-opt" data-k="d">用于 zero-shot 测试集，不参与训练</button>
-          </div>
-          <div class="q-feedback"></div>
-        </div>
-      </div>
-
-      <!-- §03 VAM -->
-      <div class="section" id="vam">
-        <div class="section-num">§ 03</div>
-        <h2>视频动作模型 VAM：策略接口</h2>
-
-        <div class="cn-read">
-          <div class="cn-label">这一节解决什么</div>
-          <p>
+</div>
+<h3>三种数据源</h3>
+<div class="data-bar-row">
+<div class="data-bar-label">真实机器人遥操</div>
+<div class="data-bar-track"><div class="data-bar-fill" style="width:65%; background:var(--accent);"></div></div>
+<div class="data-bar-val">17.8K hrs · 65%</div>
+</div>
+<div class="data-bar-row">
+<div class="data-bar-label">UMI 风格示教</div>
+<div class="data-bar-track"><div class="data-bar-fill" style="width:24%; background:var(--blue);"></div></div>
+<div class="data-bar-val">6.5K hrs · 24%</div>
+</div>
+<div class="data-bar-row">
+<div class="data-bar-label">自我中心人类视频</div>
+<div class="data-bar-track"><div class="data-bar-fill" style="width:11%; background:var(--amber);"></div></div>
+<div class="data-bar-val">3.0K hrs · 11%</div>
+</div>
+<p style="margin-top:8px; font-size:13px; color:var(--text3);">+ 展开/失败轨迹（用于奖励监督，数量未单独列出）</p>
+<table class="kv-table" style="margin-top: 20px;">
+<tr>
+<td>真实机器人遥操</td>
+<td>AGIBOT-G01、ARX、双臂 Franka；头部相机 + 腕部相机；提供<strong>精确的可执行动作标签</strong>（监督 VAM 动作分支 + ACVS 视频分支）。场景覆盖家庭、零售、工业。</td>
+</tr>
+<tr>
+<td>UMI 风格示教</td>
+<td>用 Gen-DAS 夹爪装置收集；动作信号是"夹爪运动"而非机器人关节角，与部署机器人<strong>运动学不对齐</strong>，因此只用来监督<strong>视觉动态</strong>（VAM 视频分支）。</td>
+</tr>
+<tr>
+<td>自我中心人类视频</td>
+<td>来自 EgoVerse、Ropedia Xperience-10M 等；完全无机器人动作标签，只监督<strong>视频预测损失</strong>。覆盖最广泛的物体/接触/环境分布，是提升泛化的关键。</td>
+</tr>
+<tr>
+<td>展开/失败轨迹</td>
+<td>rollout 轨迹提供<strong>任务进度标签</strong>；失败轨迹给 ACVS 负样本（负奖励），让模拟器学会区分"看起来合理但实际失败"的动作。</td>
+</tr>
+</table>
+<h3>模态监督掩码：统一训练的关键</h3>
+<p>每个训练样本携带一个掩码，指定"哪些输入可观测、预测哪些目标、哪些损失激活"。这样：</p>
+<ul style="font-size:14px; color:var(--text2); line-height:2; padding-left:20px; margin-bottom:16px;">
+<li>真实机器人数据 → 激活视频预测损失 <strong>+</strong> 动作损失</li>
+<li>UMI / 人类视频 → 只激活视频预测损失（动作损失被掩掉）</li>
+<li>失败轨迹 → 激活视频损失 <strong>+</strong> 奖励损失（奖励为负）</li>
+</ul>
+<div class="callout amber">
+<div class="callout-label">为什么不直接把 UMI 动作当动作监督？</div>
+<p style="margin:0">UMI 设备的末端执行器运动学与目标机器人的关节空间存在本质差异——直接用会引入错误的动作先验。论文明确将其定位为"scalable but weaker video-action supervision"，只监督视觉动态。§III-B, p.3</p>
+</div>
+<details class="en-quote">
+<summary>展开原文 · 统一监督层次</summary>
+<div class="quote-body">
+<p>"The three sources induce a hierarchy of supervision. Real-robot data provides deployment-aligned action labels; UMI-style data provides diverse interaction trajectories with weaker action-like signals; and egocentric videos provide large-scale visual dynamics without action supervision."</p>
+<div class="quote-cite">— §III-D Unified supervision, p.3</div>
+</div>
+</details>
+<div class="quiz" data-correct="c" data-explain="自我中心人类视频没有机器人可执行的动作标签，因此只激活视频预测损失，用来让模型学习更广泛的视觉动态规律（物体运动、接触模式等）。动作损失被掩码掩掉，不参与计算。§III-D, p.3" data-explain-wrong="不对。自我中心视频的核心价值在于提供视觉动态的多样性，但它不提供动作标签——用它监督动作会引入错误先验。论文明确排除其动作监督。">
+<div class="q-label">🧠 理解检查</div>
+<div class="q-text">自我中心人类视频（3K 小时）在 τ₀-WM 训练中起什么作用？</div>
+<div class="q-options">
+<button class="q-opt" data-k="a">提供动作标签，帮助模型学习人手操作策略</button>
+<button class="q-opt" data-k="b">同时监督视频预测损失和 ACVS 奖励损失</button>
+<button class="q-opt" data-k="c">只激活视频预测损失，让模型学习广泛的视觉动态，不提供动作监督</button>
+<button class="q-opt" data-k="d">用于 zero-shot 测试集，不参与训练</button>
+</div>
+<div class="q-feedback"></div>
+</div>
+</div>
+<!-- §03 VAM -->
+<div class="section" id="vam">
+<div class="section-num">§ 03</div>
+<h2>视频动作模型 VAM：策略接口</h2>
+<div class="cn-read">
+<div class="cn-label">这一节解决什么</div>
+<p>
             上一节解决了"用什么数据"，这一节解决"模型长什么样"。VAM 是 τ₀-WM 对外的<strong>策略接口</strong>：给它当前多视角图像 + 语言指令 + 机器人状态，它同时吐出"未来的视频"和"下一步的动作块"。类比 GPS：不只告诉你"往左转"（动作），还在脑子里"模拟"出转完之后街景什么样（视频）——这两件事共用同一个"地图认知"（视频骨干）。
           </p>
-        </div>
-
-        <h3>接口定义</h3>
-
-        <div class="math-block">
+</div>
+<h3>接口定义</h3>
+<div class="math-block">
           $$F_\theta(\mathbf{o}_t, \mathbf{p}, \mathbf{s}_t) \rightarrow (\hat{\mathbf{z}}_{t+1:t+H_v},\; \hat{\mathbf{a}}_{t:t+H_a-1})$$
           <span class="math-label">Eq. 1 · VAM 接口 · §IV-A, p.4</span>
-        </div>
-
-        <div class="math-explain">
-          <div class="me-title">逐项拆解</div>
-          <dl>
-            <dt>$\mathbf{o}_t$</dt>
-            <dd>当前时刻的<strong>多视角观测</strong>（多摄像头图像，经 Wan VAE 编码为 latent）</dd>
-            <dt>$\mathbf{p}$</dt>
-            <dd><strong>语言指令</strong>（如"把螺丝刀放进工具箱左边的槽"），通过 cross-attention 注入模型</dd>
-            <dt>$\mathbf{s}_t$</dt>
-            <dd>机器人当前<strong>状态向量</strong>（关节角、末端执行器位姿等）</dd>
-            <dt>$\hat{\mathbf{z}}_{t+1:t+H_v}$</dt>
-            <dd>预测的<strong>未来视频 latent 轨迹</strong>，跨越 $H_v$ 步时间窗口，可选择解码回像素空间</dd>
-            <dt>$\hat{\mathbf{a}}_{t:t+H_a-1}$</dt>
-            <dd>预测的<strong>连续动作块</strong>，长度为 $H_a$，可直接在机器人上执行</dd>
-          </dl>
-        </div>
-
-        <h3>架构：5B 视频 DiT + 0.5B 动作 DiT</h3>
-
-        <div class="fig-interactive panel-below">
-          <div class="fig-block">
-            <div class="hotspot-wrap" data-hotspot-group="fig2">
-              <img src="../assets/figures/tau0-wm/fig-2.png" alt="Figure 2: τ₀-WM Architecture - VAM and ACVS">
-              <div class="hotspot" data-id="wan-vae" style="left:5%; top:50%;"
-                   data-title="Wan VAE · 多视角编码"
-                   data-body="把每个摄像头视图编码为 latent tensor。多视角输入在宽度维度拼接，形成时间对齐的 latent canvas。当前帧 latent 保持干净作为视觉上下文，未来帧 latent 加噪后由视频分支去噪预测。"></div>
-              <div class="hotspot" data-id="video-dit" style="left:28%; top:35%;"
-                   data-title="Video DiT Block · 5B 骨干"
-                   data-body="Wan 原版视频 DiT（5B 参数），基于 Wan2.2-TI2V-5B 预训练权重。处理时间序列的视频 latent token，预测未来视频动态。语言指令通过 cross-attention 注入（图中 'Cross Attn.' 箭头）。"></div>
-              <div class="hotspot" data-id="cross-attn" style="left:28%; top:75%;"
-                   data-title="Cross-Attention 耦合 · 视频→动作"
-                   data-body="动作 DiT 通过 cross-attention 访问视频 DiT 中间层的特征（h），让动作预测'看到'视觉动态。论文称此为'feature-level cross-attention'，是两个分支共享表征的关键机制。"></div>
-              <div class="hotspot" data-id="action-dit" style="left:28%; top:90%;"
-                   data-title="Action DiT Block · 0.5B 动作分支"
-                   data-body="0.5B 参数的动作 DiT（Scalable Diffusion Transformers 风格）。先在时间维度建模动作 horizon 内的依赖关系，再 cross-attend 到视频特征 h。最终输出连续动作向量场（flow matching 的速度场）。"></div>
-              <div class="hotspot" data-id="video-out" style="left:68%; top:30%;"
-                   data-title="Predicted Video · 解码输出"
-                   data-body="视频分支经 Norm & Out 层输出未来视频 latent，可选择用 Wan VAE 解码回像素空间做显式视频展示，也可只保留 latent 用于动作生成。"></div>
-              <div class="hotspot" data-id="action-out" style="left:68%; top:80%;"
-                   data-title="Predicted Action · 动作输出"
-                   data-body="动作分支输出预测动作速度场（flow matching 的 v_a），去噪后得到连续动作块。在推理时以 receding-horizon 方式执行，固定动作 chunk 长度为 30。"></div>
-              <div class="hotspot" data-id="acvs-right" style="left:85%; top:50%;"
-                   data-title="ACVS 右侧 · 共享骨干"
-                   data-body="右半部分是 ACVS 架构：复用同一个 5B 视频生成骨干，通过 AdaLN-Zero 将动作和时间步嵌入条件注入，用 cross-attention 接可选奖励专家（0.5B）预测奖励轨迹。注意：ACVS 没有动作 DiT 分支——它不生成动作，只评估动作。"></div>
-            </div>
-            <div class="fig-cap">
-              <span class="fig-num">Fig 2 · p.5</span>
+</div>
+<div class="math-explain">
+<div class="me-title">逐项拆解</div>
+<dl>
+<dt>$\mathbf{o}_t$</dt>
+<dd>当前时刻的<strong>多视角观测</strong>（多摄像头图像，经 Wan VAE 编码为 latent）</dd>
+<dt>$\mathbf{p}$</dt>
+<dd><strong>语言指令</strong>（如"把螺丝刀放进工具箱左边的槽"），通过 cross-attention 注入模型</dd>
+<dt>$\mathbf{s}_t$</dt>
+<dd>机器人当前<strong>状态向量</strong>（关节角、末端执行器位姿等）</dd>
+<dt>$\hat{\mathbf{z}}_{t+1:t+H_v}$</dt>
+<dd>预测的<strong>未来视频 latent 轨迹</strong>，跨越 $H_v$ 步时间窗口，可选择解码回像素空间</dd>
+<dt>$\hat{\mathbf{a}}_{t:t+H_a-1}$</dt>
+<dd>预测的<strong>连续动作块</strong>，长度为 $H_a$，可直接在机器人上执行</dd>
+</dl>
+</div>
+<h3>架构：5B 视频 DiT + 0.5B 动作 DiT</h3>
+<div class="fig-interactive panel-below">
+<div class="fig-block">
+<div class="hotspot-wrap" data-hotspot-group="fig2">
+<img alt="Figure 2: τ₀-WM Architecture - VAM and ACVS" src="../assets/figures/tau0-wm/fig-2.png"/>
+<div class="hotspot" data-body="把每个摄像头视图编码为 latent tensor。多视角输入在宽度维度拼接，形成时间对齐的 latent canvas。当前帧 latent 保持干净作为视觉上下文，未来帧 latent 加噪后由视频分支去噪预测。" data-id="wan-vae" data-title="Wan VAE · 多视角编码" style="left:5%; top:50%;"></div>
+<div class="hotspot" data-body="Wan 原版视频 DiT（5B 参数），基于 Wan2.2-TI2V-5B 预训练权重。处理时间序列的视频 latent token，预测未来视频动态。语言指令通过 cross-attention 注入（图中 'Cross Attn.' 箭头）。" data-id="video-dit" data-title="Video DiT Block · 5B 骨干" style="left:28%; top:35%;"></div>
+<div class="hotspot" data-body="动作 DiT 通过 cross-attention 访问视频 DiT 中间层的特征（h），让动作预测'看到'视觉动态。论文称此为'feature-level cross-attention'，是两个分支共享表征的关键机制。" data-id="cross-attn" data-title="Cross-Attention 耦合 · 视频→动作" style="left:28%; top:75%;"></div>
+<div class="hotspot" data-body="0.5B 参数的动作 DiT（Scalable Diffusion Transformers 风格）。先在时间维度建模动作 horizon 内的依赖关系，再 cross-attend 到视频特征 h。最终输出连续动作向量场（flow matching 的速度场）。" data-id="action-dit" data-title="Action DiT Block · 0.5B 动作分支" style="left:28%; top:90%;"></div>
+<div class="hotspot" data-body="视频分支经 Norm &amp; Out 层输出未来视频 latent，可选择用 Wan VAE 解码回像素空间做显式视频展示，也可只保留 latent 用于动作生成。" data-id="video-out" data-title="Predicted Video · 解码输出" style="left:68%; top:30%;"></div>
+<div class="hotspot" data-body="动作分支输出预测动作速度场（flow matching 的 v_a），去噪后得到连续动作块。在推理时以 receding-horizon 方式执行，固定动作 chunk 长度为 30。" data-id="action-out" data-title="Predicted Action · 动作输出" style="left:68%; top:80%;"></div>
+<div class="hotspot" data-body="右半部分是 ACVS 架构：复用同一个 5B 视频生成骨干，通过 AdaLN-Zero 将动作和时间步嵌入条件注入，用 cross-attention 接可选奖励专家（0.5B）预测奖励轨迹。注意：ACVS 没有动作 DiT 分支——它不生成动作，只评估动作。" data-id="acvs-right" data-title="ACVS 右侧 · 共享骨干" style="left:85%; top:50%;"></div>
+</div>
+<div class="fig-cap">
+<span class="fig-num">Fig 2 · p.5</span>
               Architecture of τ₀-WM. (a) VAM: shared video DiT backbone with Action DiT branch via cross-attention. (b) ACVS: reuses video-generation backbone with optional reward expert head.
               <span class="fig-cn">左：VAM 架构（视频 DiT 5B + 动作 DiT 0.5B，cross-attention 耦合）；右：ACVS 架构（复用 5B 视频骨干 + 可选奖励专家 0.5B）。两者共享骨干是统一的核心。</span>
-            </div>
-          </div>
-          <div class="hotspot-panel"></div>
-        </div>
-
-        <h3>联合 Flow Matching 训练目标</h3>
-
-        <p>VAM 对未来视频 latent 和动作块<strong>同时</strong>做 flow matching。直觉：flow matching 就像导航 GPS 在噪声时空中学习"从哪来、往哪走"的速度场，VAM 用同一个速度场框架同时导航视频像素空间和动作空间。</p>
-
-        <div class="math-block">
+</div>
+</div>
+<div class="hotspot-panel"></div>
+</div>
+<h3>联合 Flow Matching 训练目标</h3>
+<p>VAM 对未来视频 latent 和动作块<strong>同时</strong>做 flow matching。直觉：flow matching 就像导航 GPS 在噪声时空中学习"从哪来、往哪走"的速度场，VAM 用同一个速度场框架同时导航视频像素空间和动作空间。</p>
+<div class="math-block">
           $$\mathcal{L}_\text{VAM} = \mathbb{E}\!\left[\lambda_z \left\|f_\theta^z(\tilde{\mathbf{z}}, u_z, \mathbf{c}_t, \mathbf{p}) - \mathbf{v}_z\right\|_2^2 + \lambda_a \left\|f_\theta^a(\tilde{\mathbf{a}}, u_a, \mathbf{s}_t, \mathbf{h}) - \mathbf{v}_a\right\|_2^2\right]$$
           <span class="math-label">Eq. 2 · VAM 联合损失 · §IV-C, p.4</span>
-        </div>
-
-        <div class="math-explain">
-          <div class="me-title">逐项拆解</div>
-          <dl>
-            <dt>$f_\theta^z(\tilde{\mathbf{z}}, u_z, \mathbf{c}_t, \mathbf{p})$</dt>
-            <dd><strong>视频分支</strong>的速度场预测头（video vector field head）。输入：加噪视频 latent $\tilde{\mathbf{z}}$、噪声水平 $u_z$、干净的视觉上下文 $\mathbf{c}_t$（当前帧）、语言指令 $\mathbf{p}$。</dd>
-            <dt>$\mathbf{v}_z$</dt>
-            <dd>视频的<strong>真实速度目标</strong>：flow matching 中从噪声 $\mathbf{z}_0$ 到真实未来帧 $\mathbf{z}_1$ 的线性插值速度 $\mathbf{z}_1 - \mathbf{z}_0$。</dd>
-            <dt>$f_\theta^a(\tilde{\mathbf{a}}, u_a, \mathbf{s}_t, \mathbf{h})$</dt>
-            <dd><strong>动作分支</strong>的速度场预测头（action vector field head）。输入：加噪动作 $\tilde{\mathbf{a}}$、噪声水平 $u_a$、机器人状态 $\mathbf{s}_t$、视频中间特征 $\mathbf{h}$（cross-attention 来的）。</dd>
-            <dt>$\mathbf{v}_a$</dt>
-            <dd>动作的<strong>真实速度目标</strong>：从噪声动作走向真实动作的方向。只有真实机器人数据提供这个监督；UMI/ego 数据对应的 $\lambda_a$ 被掩码置零。</dd>
-            <dt>$\lambda_z = \lambda_a = 1$</dt>
-            <dd>两个损失的权重在所有实验中均设为 1（等权重），由模态掩码控制哪些样本激活哪个分支。</dd>
-          </dl>
-        </div>
-
-        <h3>两种部署模式</h3>
-        <div class="module-grid">
-          <div class="module-card">
-            <div class="module-card-name">ACTION-ONLY DEPLOYMENT</div>
-            <div class="module-card-title">仅动作模式（快速）</div>
-            <div class="module-card-desc">只运行动作 DiT 分支，视频 latent 用于内部 cross-attention 但不解码到像素。动作生成延迟约 220ms（RTX 5090），支持实时闭环控制。</div>
-          </div>
-          <div class="module-card">
-            <div class="module-card-name">ROLLOUT-ENABLED DEPLOYMENT</div>
-            <div class="module-card-title">视频展开模式（显式可视化）</div>
-            <div class="module-card-desc">同时解码未来视频 latent 到像素空间，可明确看到模型"想象"的场景演变。这些视频 latent 也可以作为 ACVS 推理时计算的输入条件。</div>
-          </div>
-        </div>
-      </div>
-
-      <!-- §04 ACVS -->
-      <div class="section" id="acvs">
-        <div class="section-num">§ 04</div>
-        <h2>动作条件视频模拟器 ACVS：评估接口</h2>
-
-        <div class="cn-read">
-          <div class="cn-label">这一节解决什么</div>
-          <p>
+</div>
+<div class="math-explain">
+<div class="me-title">逐项拆解</div>
+<dl>
+<dt>$f_\theta^z(\tilde{\mathbf{z}}, u_z, \mathbf{c}_t, \mathbf{p})$</dt>
+<dd><strong>视频分支</strong>的速度场预测头（video vector field head）。输入：加噪视频 latent $\tilde{\mathbf{z}}$、噪声水平 $u_z$、干净的视觉上下文 $\mathbf{c}_t$（当前帧）、语言指令 $\mathbf{p}$。</dd>
+<dt>$\mathbf{v}_z$</dt>
+<dd>视频的<strong>真实速度目标</strong>：flow matching 中从噪声 $\mathbf{z}_0$ 到真实未来帧 $\mathbf{z}_1$ 的线性插值速度 $\mathbf{z}_1 - \mathbf{z}_0$。</dd>
+<dt>$f_\theta^a(\tilde{\mathbf{a}}, u_a, \mathbf{s}_t, \mathbf{h})$</dt>
+<dd><strong>动作分支</strong>的速度场预测头（action vector field head）。输入：加噪动作 $\tilde{\mathbf{a}}$、噪声水平 $u_a$、机器人状态 $\mathbf{s}_t$、视频中间特征 $\mathbf{h}$（cross-attention 来的）。</dd>
+<dt>$\mathbf{v}_a$</dt>
+<dd>动作的<strong>真实速度目标</strong>：从噪声动作走向真实动作的方向。只有真实机器人数据提供这个监督；UMI/ego 数据对应的 $\lambda_a$ 被掩码置零。</dd>
+<dt>$\lambda_z = \lambda_a = 1$</dt>
+<dd>两个损失的权重在所有实验中均设为 1（等权重），由模态掩码控制哪些样本激活哪个分支。</dd>
+</dl>
+</div>
+<h3>两种部署模式</h3>
+<div class="module-grid">
+<div class="module-card">
+<div class="module-card-name">ACTION-ONLY DEPLOYMENT</div>
+<div class="module-card-title">仅动作模式（快速）</div>
+<div class="module-card-desc">只运行动作 DiT 分支，视频 latent 用于内部 cross-attention 但不解码到像素。动作生成延迟约 220ms（RTX 5090），支持实时闭环控制。</div>
+</div>
+<div class="module-card">
+<div class="module-card-name">ROLLOUT-ENABLED DEPLOYMENT</div>
+<div class="module-card-title">视频展开模式（显式可视化）</div>
+<div class="module-card-desc">同时解码未来视频 latent 到像素空间，可明确看到模型"想象"的场景演变。这些视频 latent 也可以作为 ACVS 推理时计算的输入条件。</div>
+</div>
+</div>
+</div>
+<!-- §04 ACVS -->
+<div class="section" id="acvs">
+<div class="section-num">§ 04</div>
+<h2>动作条件视频模拟器 ACVS：评估接口</h2>
+<div class="cn-read">
+<div class="cn-label">这一节解决什么</div>
+<p>
             VAM 学会了"给出动作"，但它不评估动作好不好。ACVS 填补这个空缺：<strong>给 ACVS 一个候选动作，它会"想象"这个动作执行后世界变成什么样，并给出任务进度分</strong>。类比棋手在下棋前在脑海中"走几步看看"——ACVS 就是这个心理模拟能力。关键：ACVS 复用 VAM 的 5B 视频骨干，所以不需要额外学一套世界物理知识。
           </p>
-        </div>
-
-        <h3>接口定义</h3>
-
-        <div class="math-block">
+</div>
+<h3>接口定义</h3>
+<div class="math-block">
           $$G_\phi(\mathbf{o}_{t-M:t}, \mathbf{p}, \tilde{\mathbf{a}}_{t:t+H_a-1}) \rightarrow (\hat{\mathbf{z}}_{t+1:t+H_v},\; \hat{\mathbf{r}}_{t:t+H_a-1})$$
           <span class="math-label">Eq. 3 · ACVS 接口 · §V-A, p.4</span>
-        </div>
-
-        <div class="math-explain">
-          <div class="me-title">逐项拆解</div>
-          <dl>
-            <dt>$\mathbf{o}_{t-M:t}$</dt>
-            <dd>过去 $M+1$ 帧的<strong>历史观测</strong>（比 VAM 多看过去，让模拟器有更丰富的上下文）</dd>
-            <dt>$\tilde{\mathbf{a}}_{t:t+H_a-1}$</dt>
-            <dd><strong>候选动作块</strong>（作为干净条件注入，不加噪声）——ACVS 把它当作"假设这个动作已经执行了"的条件</dd>
-            <dt>$\hat{\mathbf{z}}_{t+1:t+H_v}$</dt>
-            <dd>该动作引起的<strong>预测未来视频展开</strong>（imagined rollout）</dd>
-            <dt>$\hat{\mathbf{r}}_{t:t+H_a-1}$</dt>
-            <dd><strong>密集奖励轨迹</strong>：每个时间步的任务完成进度分数（而非单一的终止奖励）</dd>
-          </dl>
-        </div>
-
-        <h3>动作如何注入 ACVS</h3>
-        <p>对每个未来 latent 槽 $\ell$，时间对齐的动作分组为动作块 $\mathbf{b}_\ell$，经过两个轻量 MLP 投影：</p>
-
-        <div class="math-block">
+</div>
+<div class="math-explain">
+<div class="me-title">逐项拆解</div>
+<dl>
+<dt>$\mathbf{o}_{t-M:t}$</dt>
+<dd>过去 $M+1$ 帧的<strong>历史观测</strong>（比 VAM 多看过去，让模拟器有更丰富的上下文）</dd>
+<dt>$\tilde{\mathbf{a}}_{t:t+H_a-1}$</dt>
+<dd><strong>候选动作块</strong>（作为干净条件注入，不加噪声）——ACVS 把它当作"假设这个动作已经执行了"的条件</dd>
+<dt>$\hat{\mathbf{z}}_{t+1:t+H_v}$</dt>
+<dd>该动作引起的<strong>预测未来视频展开</strong>（imagined rollout）</dd>
+<dt>$\hat{\mathbf{r}}_{t:t+H_a-1}$</dt>
+<dd><strong>密集奖励轨迹</strong>：每个时间步的任务完成进度分数（而非单一的终止奖励）</dd>
+</dl>
+</div>
+<h3>动作如何注入 ACVS</h3>
+<p>对每个未来 latent 槽 $\ell$，时间对齐的动作分组为动作块 $\mathbf{b}_\ell$，经过两个轻量 MLP 投影：</p>
+<div class="math-block">
           $$\mathbf{c}_\ell^a = \psi_D(\mathbf{b}_\ell), \qquad \mathbf{m}_\ell^a = \psi_6(\mathbf{b}_\ell)$$
           <span class="math-label">Eq. 4 · 动作注入 · §V-B, p.5</span>
-        </div>
-
-        <div class="math-explain">
-          <div class="me-title">逐项拆解</div>
-          <dl>
-            <dt>$\mathbf{c}_\ell^a$</dt>
-            <dd>注入扩散时间步嵌入的<strong>动作条件向量</strong>（类似 AdaLN 的 scale/shift）</dd>
-            <dt>$\mathbf{m}_\ell^a$</dt>
-            <dd>AdaLN-Zero 调制向量，广播到对应未来槽的所有空间 token 和摄像头视角</dd>
-            <dt>关键设计</dt>
-            <dd>只有<strong>未来 latent 槽</strong>被动作条件化；当前观测槽保持无条件（干净上下文）。这保证 ACVS 能对同一场景下的不同候选动作产生不同的想象展开。</dd>
-          </dl>
-        </div>
-
-        <h3>奖励构建：密集 vs 稀疏</h3>
-        <p>传统奖励是"任务成功/失败"二值——这对学习信号太稀疏。ACVS 的奖励构建采用<strong>子任务级密集监督</strong>：</p>
-
-        <ul style="font-size:14px; color:var(--text2); line-height:2; padding-left:20px; margin-bottom:16px;">
-          <li>把每个操作任务分解为若干子任务（如"打开拉链 → 放入物品 → 合上拉链"）</li>
-          <li>在子任务粒度分配进度标签（0-1 连续值或阶段性离散值）</li>
-          <li>通过 Monte Carlo 传播，把子任务进度转化为帧级奖励信号</li>
-          <li>失败轨迹片段赋予负奖励，让 ACVS 学会识别"看起来在动但其实没进展"的动作</li>
-        </ul>
-
-        <div class="callout blue">
-          <div class="callout-label">为什么要加入失败轨迹？</div>
-          <p style="margin:0">成功演示只能告诉模型"什么是正确的"，但 ACVS 还需要学会区分"看起来合理的动作"和"真正有效的动作"。失败轨迹（碰撞、抓取失败、错误物体）提供了对比信号，训练 ACVS 对未来动作的评估更为保守和准确。§V-C, p.5</p>
-        </div>
-
-        <div class="quiz"
-             data-correct="a"
-             data-explain="ACVS 不生成动作——它把候选动作作为干净条件注入，通过 MLP 投影到 AdaLN-Zero 调制向量，预测该动作引起的未来视频展开和密集奖励。论文原文：'ACVS does not generate actions. Its sole purpose is to estimate how the scene would evolve under a proposed action sequence.' §V-B, p.5"
-             data-explain-wrong="这个理解混淆了 VAM 和 ACVS 的角色。ACVS 的动作输入是候选动作（条件），而不是它要预测的目标。">
-          <div class="q-label">🧠 理解检查</div>
-          <div class="q-text">ACVS 中"动作"扮演什么角色？</div>
-          <div class="q-options">
-            <button class="q-opt" data-k="a">作为条件输入（干净信号）注入模型，ACVS 据此预测该动作引起的未来视频和奖励</button>
-            <button class="q-opt" data-k="b">是 ACVS 的预测目标，ACVS 在评估视频后反向推断最优动作</button>
-            <button class="q-opt" data-k="c">加噪后由 ACVS 去噪，与 VAM 的动作生成过程完全相同</button>
-            <button class="q-opt" data-k="d">不输入 ACVS，ACVS 仅基于视觉观测自主预测奖励</button>
-          </div>
-          <div class="q-feedback"></div>
-        </div>
-      </div>
-
-      <!-- §05 TTC -->
-      <div class="section" id="ttc">
-        <div class="section-num">§ 05</div>
-        <h2>推理时计算（TTC）：粗到细的动作增强</h2>
-
-        <div class="cn-read">
-          <div class="cn-label">这一节解决什么</div>
-          <p>
+</div>
+<div class="math-explain">
+<div class="me-title">逐项拆解</div>
+<dl>
+<dt>$\mathbf{c}_\ell^a$</dt>
+<dd>注入扩散时间步嵌入的<strong>动作条件向量</strong>（类似 AdaLN 的 scale/shift）</dd>
+<dt>$\mathbf{m}_\ell^a$</dt>
+<dd>AdaLN-Zero 调制向量，广播到对应未来槽的所有空间 token 和摄像头视角</dd>
+<dt>关键设计</dt>
+<dd>只有<strong>未来 latent 槽</strong>被动作条件化；当前观测槽保持无条件（干净上下文）。这保证 ACVS 能对同一场景下的不同候选动作产生不同的想象展开。</dd>
+</dl>
+</div>
+<h3>奖励构建：密集 vs 稀疏</h3>
+<p>传统奖励是"任务成功/失败"二值——这对学习信号太稀疏。ACVS 的奖励构建采用<strong>子任务级密集监督</strong>：</p>
+<ul style="font-size:14px; color:var(--text2); line-height:2; padding-left:20px; margin-bottom:16px;">
+<li>把每个操作任务分解为若干子任务（如"打开拉链 → 放入物品 → 合上拉链"）</li>
+<li>在子任务粒度分配进度标签（0-1 连续值或阶段性离散值）</li>
+<li>通过 Monte Carlo 传播，把子任务进度转化为帧级奖励信号</li>
+<li>失败轨迹片段赋予负奖励，让 ACVS 学会识别"看起来在动但其实没进展"的动作</li>
+</ul>
+<div class="callout blue">
+<div class="callout-label">为什么要加入失败轨迹？</div>
+<p style="margin:0">成功演示只能告诉模型"什么是正确的"，但 ACVS 还需要学会区分"看起来合理的动作"和"真正有效的动作"。失败轨迹（碰撞、抓取失败、错误物体）提供了对比信号，训练 ACVS 对未来动作的评估更为保守和准确。§V-C, p.5</p>
+</div>
+<div class="quiz" data-correct="a" data-explain="ACVS 不生成动作——它把候选动作作为干净条件注入，通过 MLP 投影到 AdaLN-Zero 调制向量，预测该动作引起的未来视频展开和密集奖励。论文原文：'ACVS does not generate actions. Its sole purpose is to estimate how the scene would evolve under a proposed action sequence.' §V-B, p.5" data-explain-wrong="这个理解混淆了 VAM 和 ACVS 的角色。ACVS 的动作输入是候选动作（条件），而不是它要预测的目标。">
+<div class="q-label">🧠 理解检查</div>
+<div class="q-text">ACVS 中"动作"扮演什么角色？</div>
+<div class="q-options">
+<button class="q-opt" data-k="a">作为条件输入（干净信号）注入模型，ACVS 据此预测该动作引起的未来视频和奖励</button>
+<button class="q-opt" data-k="b">是 ACVS 的预测目标，ACVS 在评估视频后反向推断最优动作</button>
+<button class="q-opt" data-k="c">加噪后由 ACVS 去噪，与 VAM 的动作生成过程完全相同</button>
+<button class="q-opt" data-k="d">不输入 ACVS，ACVS 仅基于视觉观测自主预测奖励</button>
+</div>
+<div class="q-feedback"></div>
+</div>
+</div>
+<!-- §05 TTC -->
+<div class="section" id="ttc">
+<div class="section-num">§ 05</div>
+<h2>推理时计算（TTC）：粗到细的动作增强</h2>
+<div class="cn-read">
+<div class="cn-label">这一节解决什么</div>
+<p>
             现在 VAM 能生成动作，ACVS 能评估动作，那怎么把它们组合成一个"更聪明"的推理流程？问题是：每次都调用 ACVS 代价很高（需要完整展开视频）。τ₀-WM 提出<strong>粗到细的两阶段策略</strong>：先用超轻量的 RCS（重噪声一致性分数）过滤一批候选；只有当最优候选还不够好时，才动用 ACVS 做精细评估和修正。类比 HR 招聘：先简历筛选（RCS），只有简历过了才面试（ACVS），更好的候选再做修正（LAR）。
           </p>
-        </div>
-
-        <h3>算法一览（Algorithm 1）</h3>
-
-        <div class="callout">
-          <div class="callout-label">推理时计算全流程（伪代码）</div>
-          <p style="margin:0; font-family:var(--font-mono); font-size:13px; line-height:2; color:var(--text);">
-            给定 VAM $F_\theta$、ACVS $G_\phi$、当前上下文 $\mathcal{C}_t$、候选预算 N、阈值 γ<br>
-            1. 从 VAM 采样 N 个候选动作 $\{\tilde{\mathbf{a}}^{(i)}\}_{i=1}^N$<br>
-            2. 对每个候选：计算 RCS 分数 $S_\text{RCS}^{(i)}$<br>
-            3. 选最高 RCS 的候选 $i^* = \arg\max_i S_\text{RCS}^{(i)}$<br>
-            4. <span style="color:var(--accent)">如果 $S_\text{RCS}^{(i^*)} \geq \gamma$：直接返回 $\tilde{\mathbf{a}}^{(i^*)}$（轻量路径）</span><br>
-            5. <span style="color:var(--amber)">否则：用 ACVS 评估所有候选，计算展开价值 $J^{(i)}$</span><br>
-            6. 选最高价值展开 $j^* = \arg\max_j J^{(j)}$<br>
+</div>
+<h3>算法一览（Algorithm 1）</h3>
+<div class="callout">
+<div class="callout-label">推理时计算全流程（伪代码）</div>
+<p style="margin:0; font-family:var(--font-mono); font-size:13px; line-height:2; color:var(--text);">
+            给定 VAM $F_\theta$、ACVS $G_\phi$、当前上下文 $\mathcal{C}_t$、候选预算 N、阈值 γ<br/>
+            1. 从 VAM 采样 N 个候选动作 $\{\tilde{\mathbf{a}}^{(i)}\}_{i=1}^N$<br/>
+            2. 对每个候选：计算 RCS 分数 $S_\text{RCS}^{(i)}$<br/>
+            3. 选最高 RCS 的候选 $i^* = \arg\max_i S_\text{RCS}^{(i)}$<br/>
+            4. <span style="color:var(--accent)">如果 $S_\text{RCS}^{(i^*)} \geq \gamma$：直接返回 $\tilde{\mathbf{a}}^{(i^*)}$（轻量路径）</span><br/>
+            5. <span style="color:var(--amber)">否则：用 ACVS 评估所有候选，计算展开价值 $J^{(i)}$</span><br/>
+            6. 选最高价值展开 $j^* = \arg\max_j J^{(j)}$<br/>
             7. 对低质量候选做 LAR 修正，返回修正后的动作 $\bar{\mathbf{a}}$
           </p>
-        </div>
-
-        <h3>第一阶段：RCS（重噪声一致性分数）</h3>
-        <p>RCS 衡量一个候选动作是否处于模型学到的<strong>条件动作分布流形</strong>上。直觉：如果一个动作"合理"，对它加噪再去噪，应该还能基本恢复原来的动作；如果动作"奇怪"（在分布外），加噪后去噪会漂移到别的地方。</p>
-
-        <div class="math-block">
+</div>
+<h3>第一阶段：RCS（重噪声一致性分数）</h3>
+<p>RCS 衡量一个候选动作是否处于模型学到的<strong>条件动作分布流形</strong>上。直觉：如果一个动作"合理"，对它加噪再去噪，应该还能基本恢复原来的动作；如果动作"奇怪"（在分布外），加噪后去噪会漂移到别的地方。</p>
+<div class="math-block">
           $$S_\text{RCS}^{(i)} = -\mathcal{E}_\text{RCS}^{(i)}$$
           <span class="math-label">Eq. 6 · Re-denoising Consistency Score · §VI-A, p.6</span>
-        </div>
-
-        <div class="math-explain">
-          <div class="me-title">逐项拆解</div>
-          <dl>
-            <dt>$\mathcal{E}_\text{RCS}^{(i)}$</dt>
-            <dd>对候选 $i$ 随机采样 K 个 flow 时间步，按训练时的加噪过程加噪，再用 VAM 的动作速度场头去噪，计算<strong>平均重噪声误差</strong>（re-denoising error）</dd>
-            <dt>$S_\text{RCS}^{(i)} = -\mathcal{E}$</dt>
-            <dd>误差越小 → 一致性越高 → 分数越高。这是个<strong>无监督的分布内置信度</strong>，不需要 rollout</dd>
-            <dt>计算代价</dt>
-            <dd>只需 K 次前向传播（远小于 ACVS 完整展开），几乎可以忽略不计。是过滤大量候选的轻量"简历筛选"</dd>
-          </dl>
-        </div>
-
-        <h3>第二阶段：LAR（低质量动作修正）</h3>
-        <p>当 RCS 最高的候选也低于阈值 γ（所有候选都不可靠），启用 ACVS 精细评估：</p>
-
-        <ul style="font-size:14px; color:var(--text2); line-height:2; padding-left:20px; margin-bottom:16px;">
-          <li>ACVS 对每个候选 $\tilde{\mathbf{a}}^{(i)}$ 展开未来视频 + 奖励轨迹</li>
-          <li>候选价值 $J^{(i)} = \max_{0 \leq q \leq H_a} \hat{r}^{(i)}_{t+q}$（展开中最高的任务进度）</li>
-          <li>选最优展开 $j^* = \arg\max_j J^{(j)}$，将对应视频 latent $\hat{\mathbf{z}}^{(j^*)}$ 转为未来条件</li>
-          <li>将该"最优想象未来"注入 VAM，重新查询一次，得到与这个未来一致的修正动作 $\bar{\mathbf{a}}$</li>
-        </ul>
-
-        <div class="callout amber">
-          <div class="callout-label">LAR 的类比：先想好再做</div>
-          <p style="margin:0">LAR 的思路类似人类处理难题时的"心理预演"：先在脑中模拟多种方案的后果，选最好的那个未来，再反问"要到达这个未来，我该怎么做？"——这是把未来想象转化为行动指导，而不是直接执行第一个想法。</p>
-        </div>
-
-        <details class="en-quote">
-          <summary>展开原文 · TTC 设计动机</summary>
-          <div class="quote-body">
-            <p>"This design preserves real-time performance in most situations while retaining the ability to recover from difficult states. The overall procedure is summarized in Alg. 1."</p>
-            <div class="quote-cite">— §VI Test-Time Computation, p.6</div>
-          </div>
-        </details>
-
-        <div class="quiz"
-             data-correct="c"
-             data-explain="RCS 是对候选动作加 K 次噪声后重新去噪，计算重噪声误差的负值。误差越小说明动作在学到的条件分布上越一致（in-manifold），不需要实际展开视频。这是一个无监督的、轻量的分布内置信度测量。§VI-A, p.6"
-             data-explain-wrong="RCS 不需要 ACVS 展开视频，也不需要人工标注。它只用 VAM 自身的速度场头做重噪声一致性检验，计算代价极低。">
-          <div class="q-label">🧠 理解检查</div>
-          <div class="q-text">Re-denoising Consistency Score (RCS) 的计算过程是？</div>
-          <div class="q-options">
-            <button class="q-opt" data-k="a">调用 ACVS 展开候选动作的视频，用奖励轨迹的最大值作为 RCS</button>
-            <button class="q-opt" data-k="b">在真实机器人上执行候选动作，用传感器读数与预期的差异作为分数</button>
-            <button class="q-opt" data-k="c">对候选动作加 K 次随机噪声再去噪，用 VAM 速度场计算重噪声误差，误差越小 RCS 越高</button>
-            <button class="q-opt" data-k="d">用语言模型评估动作指令与当前任务语义的匹配度</button>
-          </div>
-          <div class="q-feedback"></div>
-        </div>
-      </div>
-
-      <!-- §06 实验 -->
-      <div class="section" id="experiments">
-        <div class="section-num">§ 06</div>
-        <h2>实验结果：数据多样性 + 推理时计算都有效</h2>
-
-        <div class="cn-read">
-          <div class="cn-label">这一节解决什么</div>
-          <p>
+</div>
+<div class="math-explain">
+<div class="me-title">逐项拆解</div>
+<dl>
+<dt>$\mathcal{E}_\text{RCS}^{(i)}$</dt>
+<dd>对候选 $i$ 随机采样 K 个 flow 时间步，按训练时的加噪过程加噪，再用 VAM 的动作速度场头去噪，计算<strong>平均重噪声误差</strong>（re-denoising error）</dd>
+<dt>$S_\text{RCS}^{(i)} = -\mathcal{E}$</dt>
+<dd>误差越小 → 一致性越高 → 分数越高。这是个<strong>无监督的分布内置信度</strong>，不需要 rollout</dd>
+<dt>计算代价</dt>
+<dd>只需 K 次前向传播（远小于 ACVS 完整展开），几乎可以忽略不计。是过滤大量候选的轻量"简历筛选"</dd>
+</dl>
+</div>
+<h3>第二阶段：LAR（低质量动作修正）</h3>
+<p>当 RCS 最高的候选也低于阈值 γ（所有候选都不可靠），启用 ACVS 精细评估：</p>
+<ul style="font-size:14px; color:var(--text2); line-height:2; padding-left:20px; margin-bottom:16px;">
+<li>ACVS 对每个候选 $\tilde{\mathbf{a}}^{(i)}$ 展开未来视频 + 奖励轨迹</li>
+<li>候选价值 $J^{(i)} = \max_{0 \leq q \leq H_a} \hat{r}^{(i)}_{t+q}$（展开中最高的任务进度）</li>
+<li>选最优展开 $j^* = \arg\max_j J^{(j)}$，将对应视频 latent $\hat{\mathbf{z}}^{(j^*)}$ 转为未来条件</li>
+<li>将该"最优想象未来"注入 VAM，重新查询一次，得到与这个未来一致的修正动作 $\bar{\mathbf{a}}$</li>
+</ul>
+<div class="callout amber">
+<div class="callout-label">LAR 的类比：先想好再做</div>
+<p style="margin:0">LAR 的思路类似人类处理难题时的"心理预演"：先在脑中模拟多种方案的后果，选最好的那个未来，再反问"要到达这个未来，我该怎么做？"——这是把未来想象转化为行动指导，而不是直接执行第一个想法。</p>
+</div>
+<details class="en-quote">
+<summary>展开原文 · TTC 设计动机</summary>
+<div class="quote-body">
+<p>"This design preserves real-time performance in most situations while retaining the ability to recover from difficult states. The overall procedure is summarized in Alg. 1."</p>
+<div class="quote-cite">— §VI Test-Time Computation, p.6</div>
+</div>
+</details>
+<div class="quiz" data-correct="c" data-explain="RCS 是对候选动作加 K 次噪声后重新去噪，计算重噪声误差的负值。误差越小说明动作在学到的条件分布上越一致（in-manifold），不需要实际展开视频。这是一个无监督的、轻量的分布内置信度测量。§VI-A, p.6" data-explain-wrong="RCS 不需要 ACVS 展开视频，也不需要人工标注。它只用 VAM 自身的速度场头做重噪声一致性检验，计算代价极低。">
+<div class="q-label">🧠 理解检查</div>
+<div class="q-text">Re-denoising Consistency Score (RCS) 的计算过程是？</div>
+<div class="q-options">
+<button class="q-opt" data-k="a">调用 ACVS 展开候选动作的视频，用奖励轨迹的最大值作为 RCS</button>
+<button class="q-opt" data-k="b">在真实机器人上执行候选动作，用传感器读数与预期的差异作为分数</button>
+<button class="q-opt" data-k="c">对候选动作加 K 次随机噪声再去噪，用 VAM 速度场计算重噪声误差，误差越小 RCS 越高</button>
+<button class="q-opt" data-k="d">用语言模型评估动作指令与当前任务语义的匹配度</button>
+</div>
+<div class="q-feedback"></div>
+</div>
+</div>
+<!-- §06 实验 -->
+<div class="section" id="experiments">
+<div class="section-num">§ 06</div>
+<h2>实验结果：数据多样性 + 推理时计算都有效</h2>
+<div class="cn-read">
+<div class="cn-label">这一节解决什么</div>
+<p>
             前几节搭好了框架，这一节用实验回答三个问题：① VAM 作为策略本身有多强？② 加 UMI 和自我中心数据有没有帮助？③ TTC（RCS + LAR）能再提升多少？结论是三个问题答案都是"是"，且效果显著。
           </p>
-        </div>
-
-        <h3>评估任务（4 个，未包含在预训练数据中）</h3>
-
-        <!-- Fig 3 -->
-        <div class="fig-interactive panel-below">
-          <div class="fig-block">
-            <div class="hotspot-wrap" data-hotspot-group="fig3">
-              <img src="../assets/figures/tau0-wm/fig-3.png" alt="Figure 3: Evaluation tasks">
-              <div class="hotspot" data-id="toolbox" style="left:25%; top:12%;"
-                   data-title="Toolbox · 工具箱整理"
-                   data-body="将桌面上不同工具放入工具箱对应的槽位。需要多步骤规划（识别工具类型→找到对应槽→精准插入）。在 AGIBOT-G01 上执行。τ₀-WM 成功率 80%，π₀.₅ 60%，Fast-WAM 20%。"></div>
-              <div class="hotspot" data-id="schoolbag" style="left:25%; top:37%;"
-                   data-title="School Bag · 书包整理"
-                   data-body="解开书包拉链，把物品放入书包，再拉上拉链。典型的序列操作任务，要求精确拉链操作（变形物体操作）。τ₀-WM 成功率 80%，π₀.₅ 60%，Fast-WAM 30%。AGIBOT-G01 执行。"></div>
-              <div class="hotspot" data-id="faucet" style="left:25%; top:62%;"
-                   data-title="Faucet · 水管连接"
-                   data-body="将软管连接到水龙头接口并固定。要求精确的几何对准（软管口和接头需要亚厘米级精度）。这是最难的任务——所有方法成功率都低，但 τ₀-WM（15%）比 π₀.₅（5%）和 Fast-WAM（0%）好。在双臂 Franka 执行。"></div>
-              <div class="hotspot" data-id="badminton" style="left:25%; top:87%;"
-                   data-title="Badminton · 羽毛球整理"
-                   data-body="把羽毛球放入筒并盖好盖子。在 ARX 机械臂执行。τ₀-WM 成功率 40%，π₀.₅ 40%，Fast-WAM 25%。这是 τ₀-WM 优势最小的任务，说明单臂小物体精操作仍有提升空间。"></div>
-            </div>
-            <div class="fig-cap">
-              <span class="fig-num">Fig 3 · p.7</span>
+</div>
+<h3>评估任务（4 个，未包含在预训练数据中）</h3>
+<!-- Fig 3 -->
+<div class="fig-interactive panel-below">
+<div class="fig-block">
+<div class="hotspot-wrap" data-hotspot-group="fig3">
+<img alt="Figure 3: Evaluation tasks" src="../assets/figures/tau0-wm/fig-3.png"/>
+<div class="hotspot" data-body="将桌面上不同工具放入工具箱对应的槽位。需要多步骤规划（识别工具类型→找到对应槽→精准插入）。在 AGIBOT-G01 上执行。τ₀-WM 成功率 80%，π₀.₅ 60%，Fast-WAM 20%。" data-id="toolbox" data-title="Toolbox · 工具箱整理" style="left:25%; top:12%;"></div>
+<div class="hotspot" data-body="解开书包拉链，把物品放入书包，再拉上拉链。典型的序列操作任务，要求精确拉链操作（变形物体操作）。τ₀-WM 成功率 80%，π₀.₅ 60%，Fast-WAM 30%。AGIBOT-G01 执行。" data-id="schoolbag" data-title="School Bag · 书包整理" style="left:25%; top:37%;"></div>
+<div class="hotspot" data-body="将软管连接到水龙头接口并固定。要求精确的几何对准（软管口和接头需要亚厘米级精度）。这是最难的任务——所有方法成功率都低，但 τ₀-WM（15%）比 π₀.₅（5%）和 Fast-WAM（0%）好。在双臂 Franka 执行。" data-id="faucet" data-title="Faucet · 水管连接" style="left:25%; top:62%;"></div>
+<div class="hotspot" data-body="把羽毛球放入筒并盖好盖子。在 ARX 机械臂执行。τ₀-WM 成功率 40%，π₀.₅ 40%，Fast-WAM 25%。这是 τ₀-WM 优势最小的任务，说明单臂小物体精操作仍有提升空间。" data-id="badminton" data-title="Badminton · 羽毛球整理" style="left:25%; top:87%;"></div>
+</div>
+<div class="fig-cap">
+<span class="fig-num">Fig 3 · p.7</span>
               Illustrations of evaluation tasks: (a) Toolbox (b) School Bag (c) Faucet (d) Badminton. All tasks excluded from pre-training corpus.
               <span class="fig-cn">四个评估任务，全部排除在预训练数据集外（零样本+微调评估）。覆盖三种机械臂平台：AGIBOT-G01、ARX、双臂 Franka。</span>
-            </div>
-          </div>
-          <div class="hotspot-panel"></div>
-        </div>
-
-        <h3>主结果</h3>
-
-        <!-- Fig 4 -->
-        <div class="fig-interactive panel-below">
-          <div class="fig-block">
-            <div class="hotspot-wrap" data-hotspot-group="fig4">
-              <img src="../assets/figures/tau0-wm/fig-4.png" alt="Figure 4: Main results">
-              <div class="hotspot" data-id="toolbox-bar" style="left:14%; top:45%;"
-                   data-title="Toolbox · 成功率"
-                   data-body="τ₀-WM 80% vs π₀.₅ 60% vs Fast-WAM 20%。τ₀-WM 优势明显，归因于未来视觉动态建模提供了更丰富的预测监督，帮助模型在长距离操作任务上保持稳定。"></div>
-              <div class="hotspot" data-id="faucet-bar" style="left:60%; top:70%;"
-                   data-title="Faucet · 最难任务"
-                   data-body="所有方法成功率都低，但 τ₀-WM（15%）远好于 π₀.₅（5%）和 Fast-WAM（0%）。Faucet 要求亚厘米级精度对准，τ₀-WM 能做额外的纠正动作（推压到位）体现了视觉预测建模的优势。"></div>
-              <div class="hotspot" data-id="avg-bar" style="left:80%; top:40%;"
-                   data-title="平均成功率"
-                   data-body="τ₀-WM 平均 64% > π₀.₅ 44% > Fast-WAM 20%。右图（任务完成进度）τ₀-WM 72% > π₀.₅ 60% > Fast-WAM 40%。进度分数比成功率更能体现 τ₀-WM 的长距离任务能力。"></div>
-            </div>
-            <div class="fig-cap">
-              <span class="fig-num">Fig 4 · p.8</span>
+</div>
+</div>
+<div class="hotspot-panel"></div>
+</div>
+<h3>主结果</h3>
+<!-- Fig 4 -->
+<div class="fig-interactive panel-below">
+<div class="fig-block">
+<div class="hotspot-wrap" data-hotspot-group="fig4">
+<img alt="Figure 4: Main results" src="../assets/figures/tau0-wm/fig-4.png"/>
+<div class="hotspot" data-body="τ₀-WM 80% vs π₀.₅ 60% vs Fast-WAM 20%。τ₀-WM 优势明显，归因于未来视觉动态建模提供了更丰富的预测监督，帮助模型在长距离操作任务上保持稳定。" data-id="toolbox-bar" data-title="Toolbox · 成功率" style="left:14%; top:45%;"></div>
+<div class="hotspot" data-body="所有方法成功率都低，但 τ₀-WM（15%）远好于 π₀.₅（5%）和 Fast-WAM（0%）。Faucet 要求亚厘米级精度对准，τ₀-WM 能做额外的纠正动作（推压到位）体现了视觉预测建模的优势。" data-id="faucet-bar" data-title="Faucet · 最难任务" style="left:60%; top:70%;"></div>
+<div class="hotspot" data-body="τ₀-WM 平均 64% &gt; π₀.₅ 44% &gt; Fast-WAM 20%。右图（任务完成进度）τ₀-WM 72% &gt; π₀.₅ 60% &gt; Fast-WAM 40%。进度分数比成功率更能体现 τ₀-WM 的长距离任务能力。" data-id="avg-bar" data-title="平均成功率" style="left:80%; top:40%;"></div>
+</div>
+<div class="fig-cap">
+<span class="fig-num">Fig 4 · p.8</span>
               Comparison of different models in terms of success rate (left) and task accomplishment progress (right).
               <span class="fig-cn">左：任务成功率（τ₀-WM 64% 平均）；右：任务完成进度（τ₀-WM 72% 平均）。τ₀-WM 在所有 4 个任务上均优于或持平最强基线。</span>
-            </div>
-          </div>
-          <div class="hotspot-panel"></div>
-        </div>
-
-        <h3>消融 1：预训练数据组合</h3>
-        <table class="kv-table">
-          <tr>
-            <td>零样本（Pen→holder）· 仅机器人数据</td>
-            <td>成功率 <strong>0.14</strong>（干净环境）/ 0.06（杂乱环境）/ 平均 0.14</td>
-          </tr>
-          <tr>
-            <td>零样本（Pen→holder）· 机器人 + UMI + Ego</td>
-            <td>成功率 <strong>0.56</strong> / 0.53 / 平均 <strong>0.55</strong>（提升 3.9×！）</td>
-          </tr>
-          <tr>
-            <td>SFT（Object-wipe-place）· 仅机器人数据</td>
-            <td>成功率 0.85 / 0.55 / 平均 0.70</td>
-          </tr>
-          <tr>
-            <td>SFT（Object-wipe-place）· 机器人 + UMI + Ego</td>
-            <td>成功率 <strong>0.90</strong> / <strong>0.75</strong> / 平均 <strong>0.83</strong></td>
-          </tr>
-        </table>
-        <p>零样本场景下加入 UMI + Ego 提升最显著（0.14 → 0.55），表明这两类数据主要改善<strong>通用操作先验和视觉理解</strong>，而非特定任务技能。</p>
-
-        <h3>消融 2：推理时计算变体</h3>
-        <table class="kv-table">
-          <tr>
-            <td>不用 TTC（直接取第一个动作）</td>
-            <td>Tissue→Box 0.55 / Pen→Box 0.30 / 平均 0.43</td>
-          </tr>
-          <tr>
-            <td>用 CFG（Classifier-Free Guidance）</td>
-            <td>平均 0.20（比不用还差——CFG 改变采样分布）</td>
-          </tr>
-          <tr>
-            <td>用 ACG（Action Coherence Guidance）</td>
-            <td>平均 0.38</td>
-          </tr>
-          <tr>
-            <td>用 RCS（重噪声一致性筛选）</td>
-            <td>平均 <strong>0.50</strong>（+7pp）</td>
-          </tr>
-          <tr>
-            <td>用 RCS + LAR（完整 TTC）</td>
-            <td>平均 <strong>0.60</strong>（+17pp，+40% 相对提升）</td>
-          </tr>
-        </table>
-
-        <div class="callout">
-          <div class="callout-label">关键观察</div>
-          <p style="margin:0">CFG 和 ACG 修改生成过程本身，而 RCS+LAR 是在<strong>生成之后</strong>选择和修正。后者能显式评估候选动作的执行后果，效果更稳定。Pen→Box 任务（精确放置）受益更多（+20pp），说明对精对准任务 TTC 特别有价值。</p>
-        </div>
-
-        <div class="quiz"
-             data-correct="d"
-             data-explain="论文 Table I 显示，零样本 Pen→holder 任务中，仅用机器人数据的平均成功率是 0.14，加入 UMI+Ego 后提升到 0.55，提升约 3.9 倍（不是"少量提升"）。Table II 显示 RCS+LAR 比直接执行提升了 +17pp（0.43→0.60）。两个消融都显示显著效果。"
-             data-explain-wrong="仔细看数字——零样本成功率从 0.14 到 0.55 是接近 4 倍的提升，RCS+LAR 是 +17pp，这些都是显著的增益，不是边际改善。">
-          <div class="q-label">🧠 理解检查</div>
-          <div class="q-text">关于消融实验，以下哪个描述与论文结果一致？</div>
-          <div class="q-options">
-            <button class="q-opt" data-k="a">加入 UMI+Ego 数据对微调任务帮助显著，但对零样本任务几乎没有提升</button>
-            <button class="q-opt" data-k="b">CFG（Classifier-Free Guidance）是最强的推理时增强方法</button>
-            <button class="q-opt" data-k="c">LAR（低质量动作修正）单独使用效果最好，不需要先用 RCS 筛选</button>
-            <button class="q-opt" data-k="d">UMI+Ego 预训练让零样本成功率提升约 4 倍；RCS+LAR 让推理成功率再提升 +17pp</button>
-          </div>
-          <div class="q-feedback"></div>
-        </div>
-      </div>
-
-      <!-- §07 VLA 联系 -->
-      <div class="section" id="vla-link">
-        <div class="section-num">§ 07</div>
-        <h2>与 VLA / Embodied AI 的联系</h2>
-
-        <div class="cn-read">
-          <div class="cn-label">这一节解决什么</div>
-          <p>
+</div>
+</div>
+<div class="hotspot-panel"></div>
+</div>
+<h3>消融 1：预训练数据组合</h3>
+<table class="kv-table">
+<tr>
+<td>零样本（Pen→holder）· 仅机器人数据</td>
+<td>成功率 <strong>0.14</strong>（干净环境）/ 0.06（杂乱环境）/ 平均 0.14</td>
+</tr>
+<tr>
+<td>零样本（Pen→holder）· 机器人 + UMI + Ego</td>
+<td>成功率 <strong>0.56</strong> / 0.53 / 平均 <strong>0.55</strong>（提升 3.9×！）</td>
+</tr>
+<tr>
+<td>SFT（Object-wipe-place）· 仅机器人数据</td>
+<td>成功率 0.85 / 0.55 / 平均 0.70</td>
+</tr>
+<tr>
+<td>SFT（Object-wipe-place）· 机器人 + UMI + Ego</td>
+<td>成功率 <strong>0.90</strong> / <strong>0.75</strong> / 平均 <strong>0.83</strong></td>
+</tr>
+</table>
+<p>零样本场景下加入 UMI + Ego 提升最显著（0.14 → 0.55），表明这两类数据主要改善<strong>通用操作先验和视觉理解</strong>，而非特定任务技能。</p>
+<h3>消融 2：推理时计算变体</h3>
+<table class="kv-table">
+<tr>
+<td>不用 TTC（直接取第一个动作）</td>
+<td>Tissue→Box 0.55 / Pen→Box 0.30 / 平均 0.43</td>
+</tr>
+<tr>
+<td>用 CFG（Classifier-Free Guidance）</td>
+<td>平均 0.20（比不用还差——CFG 改变采样分布）</td>
+</tr>
+<tr>
+<td>用 ACG（Action Coherence Guidance）</td>
+<td>平均 0.38</td>
+</tr>
+<tr>
+<td>用 RCS（重噪声一致性筛选）</td>
+<td>平均 <strong>0.50</strong>（+7pp）</td>
+</tr>
+<tr>
+<td>用 RCS + LAR（完整 TTC）</td>
+<td>平均 <strong>0.60</strong>（+17pp，+40% 相对提升）</td>
+</tr>
+</table>
+<div class="callout">
+<div class="callout-label">关键观察</div>
+<p style="margin:0">CFG 和 ACG 修改生成过程本身，而 RCS+LAR 是在<strong>生成之后</strong>选择和修正。后者能显式评估候选动作的执行后果，效果更稳定。Pen→Box 任务（精确放置）受益更多（+20pp），说明对精对准任务 TTC 特别有价值。</p>
+</div>
+<div +17pp（0.43→0.60）。两个消融都显示显著效果。"="" class="quiz" data-correct="d" data-explain="论文 Table I 显示，零样本 Pen→holder 任务中，仅用机器人数据的平均成功率是 0.14，加入 UMI+Ego 后提升到 0.55，提升约 3.9 倍（不是" data-explain-wrong="仔细看数字——零样本成功率从 0.14 到 0.55 是接近 4 倍的提升，RCS+LAR 是 +17pp，这些都是显著的增益，不是边际改善。" ii="" rcs+lar="" 少量提升"）。table="" 显示="" 比直接执行提升了="">
+<div class="q-label">🧠 理解检查</div>
+<div class="q-text">关于消融实验，以下哪个描述与论文结果一致？</div>
+<div class="q-options">
+<button class="q-opt" data-k="a">加入 UMI+Ego 数据对微调任务帮助显著，但对零样本任务几乎没有提升</button>
+<button class="q-opt" data-k="b">CFG（Classifier-Free Guidance）是最强的推理时增强方法</button>
+<button class="q-opt" data-k="c">LAR（低质量动作修正）单独使用效果最好，不需要先用 RCS 筛选</button>
+<button class="q-opt" data-k="d">UMI+Ego 预训练让零样本成功率提升约 4 倍；RCS+LAR 让推理成功率再提升 +17pp</button>
+</div>
+<div class="q-feedback"></div>
+</div>
+</div>
+<!-- §07 VLA 联系 -->
+<div class="section" id="vla-link">
+<div class="section-num">§ 07</div>
+<h2>与 VLA / Embodied AI 的联系</h2>
+<div class="cn-read">
+<div class="cn-label">这一节解决什么</div>
+<p>
             τ₀-WM 作为世界模型，和你熟悉的 VLA（Vision-Language-Action Model，如 π₀、OpenVLA）有什么区别和联系？这一节帮你在已有知识框架里定位这篇论文。
           </p>
-        </div>
-
-        <h3>τ₀-WM vs π₀：同一血统，不同侧重</h3>
-
-        <table class="kv-table">
-          <tr>
-            <td>骨干</td>
-            <td>π₀ 用 PaliGemma（SigLIP + Gemma 语言模型）；τ₀-WM 用 <strong>Wan2.2 视频 DiT</strong>（专为视频生成设计）。τ₀-WM 天然更擅长时序视觉建模。</td>
-          </tr>
-          <tr>
-            <td>视频预测</td>
-            <td>π₀ 把视频预测当<strong>辅助训练目标</strong>（学完扔掉）；τ₀-WM 把视频预测<strong>保留到推理阶段</strong>，用 ACVS 做测试时的行动评估。</td>
-          </tr>
-          <tr>
-            <td>推理范式</td>
-            <td>π₀ 是单次前向推理（one-shot inference）；τ₀-WM 支持<strong>推理时计算（TTC）</strong>，用更多计算换更好的动作，是 VLA 向世界模型演进的典型。</td>
-          </tr>
-          <tr>
-            <td>数据策略</td>
-            <td>π₀/OpenVLA 主要用机器人演示；τ₀-WM 的模态掩码策略允许<strong>无动作标签的视频</strong>参与训练，突破了机器人数据瓶颈。</td>
-          </tr>
-          <tr>
-            <td>动作空间</td>
-            <td>两者都输出<strong>连续动作块</strong>（action chunks），都用 flow matching；τ₀-WM 的动作块长度 30 步，π₀ 的 chunk size 略有不同但思路一致。</td>
-          </tr>
-        </table>
-
-        <div class="callout blue">
-          <div class="callout-label">核心联系：视频预测是动作学习的辅助剂</div>
-          <p style="margin:0">τ₀-WM 验证了一个对 VLA 非常重要的结论：<strong>联合训练视频预测和动作生成，比只学动作生成效果更好</strong>（对比消融中"仅机器人数据"vs"加上 UMI+Ego"）。这支持了 π₀、UniSim 等工作的核心假设：视频动态是学习可迁移操作先验的有效代理目标（proxy objective）。</p>
-        </div>
-
-        <div class="callout purple">
-          <div class="callout-label">对 VLA 研究的启示</div>
-          <p style="margin:0">① <strong>测试时计算（Test-Time Compute）</strong>在机器人领域同样有效——就像 LLM 用 Chain-of-Thought 提升推理，机器人可以用 ACVS 模拟来提升执行质量。<br>② <strong>模态掩码（Modality Masks）</strong>是整合异质数据的通用工具，未来 VLA 可以借鉴来整合触觉、深度等新模态的稀疏标注数据。<br>③ ACVS 的密集奖励构建表明：<strong>失败轨迹有信息量</strong>——在 RL 和模仿学习混合范式下，对比式训练可能是下一步方向。</p>
-        </div>
-
-        <div class="callout red">
-          <div class="callout-label">局限性</div>
-          <p style="margin:0">① 视觉中心：只有视觉 + 语言，没有触觉，对接触密集任务（精确插拔、旋拧螺丝）仍有瓶颈。<br>② 推理延迟：完整 TTC（含 ACVS 展开）代价高，单帧决策 220ms 基础延迟在高频控制场景受限。<br>③ 地平线限制：视频预测 horizon $H_v$ 固定，超长时序任务（分钟级）仍需层次规划。<br>④ 奖励设计依赖人工定义子任务分解，新任务迁移需要重新标注进度标签。</p>
-        </div>
-
-        <details class="en-quote">
-          <summary>展开原文 · 核心论断</summary>
-          <div class="quote-body">
-            <p>"These results support the central thesis of this work: video prediction is most useful for robotic manipulation when it is trained jointly with executable action generation and exposed at deployment time as a mechanism for imagining, scoring, and refining future outcomes."</p>
-            <div class="quote-cite">— §VII Experimental Evaluation, p.8</div>
-          </div>
-        </details>
-      </div>
-
-    </main>
-  </div>
-
-  <script>
+</div>
+<h3>τ₀-WM vs π₀：同一血统，不同侧重</h3>
+<table class="kv-table">
+<tr>
+<td>骨干</td>
+<td>π₀ 用 PaliGemma（SigLIP + Gemma 语言模型）；τ₀-WM 用 <strong>Wan2.2 视频 DiT</strong>（专为视频生成设计）。τ₀-WM 天然更擅长时序视觉建模。</td>
+</tr>
+<tr>
+<td>视频预测</td>
+<td>π₀ 把视频预测当<strong>辅助训练目标</strong>（学完扔掉）；τ₀-WM 把视频预测<strong>保留到推理阶段</strong>，用 ACVS 做测试时的行动评估。</td>
+</tr>
+<tr>
+<td>推理范式</td>
+<td>π₀ 是单次前向推理（one-shot inference）；τ₀-WM 支持<strong>推理时计算（TTC）</strong>，用更多计算换更好的动作，是 VLA 向世界模型演进的典型。</td>
+</tr>
+<tr>
+<td>数据策略</td>
+<td>π₀/OpenVLA 主要用机器人演示；τ₀-WM 的模态掩码策略允许<strong>无动作标签的视频</strong>参与训练，突破了机器人数据瓶颈。</td>
+</tr>
+<tr>
+<td>动作空间</td>
+<td>两者都输出<strong>连续动作块</strong>（action chunks），都用 flow matching；τ₀-WM 的动作块长度 30 步，π₀ 的 chunk size 略有不同但思路一致。</td>
+</tr>
+</table>
+<div class="callout blue">
+<div class="callout-label">核心联系：视频预测是动作学习的辅助剂</div>
+<p style="margin:0">τ₀-WM 验证了一个对 VLA 非常重要的结论：<strong>联合训练视频预测和动作生成，比只学动作生成效果更好</strong>（对比消融中"仅机器人数据"vs"加上 UMI+Ego"）。这支持了 π₀、UniSim 等工作的核心假设：视频动态是学习可迁移操作先验的有效代理目标（proxy objective）。</p>
+</div>
+<div class="callout purple">
+<div class="callout-label">对 VLA 研究的启示</div>
+<p style="margin:0">① <strong>测试时计算（Test-Time Compute）</strong>在机器人领域同样有效——就像 LLM 用 Chain-of-Thought 提升推理，机器人可以用 ACVS 模拟来提升执行质量。<br/>② <strong>模态掩码（Modality Masks）</strong>是整合异质数据的通用工具，未来 VLA 可以借鉴来整合触觉、深度等新模态的稀疏标注数据。<br/>③ ACVS 的密集奖励构建表明：<strong>失败轨迹有信息量</strong>——在 RL 和模仿学习混合范式下，对比式训练可能是下一步方向。</p>
+</div>
+<div class="callout red">
+<div class="callout-label">局限性</div>
+<p style="margin:0">① 视觉中心：只有视觉 + 语言，没有触觉，对接触密集任务（精确插拔、旋拧螺丝）仍有瓶颈。<br/>② 推理延迟：完整 TTC（含 ACVS 展开）代价高，单帧决策 220ms 基础延迟在高频控制场景受限。<br/>③ 地平线限制：视频预测 horizon $H_v$ 固定，超长时序任务（分钟级）仍需层次规划。<br/>④ 奖励设计依赖人工定义子任务分解，新任务迁移需要重新标注进度标签。</p>
+</div>
+<details class="en-quote">
+<summary>展开原文 · 核心论断</summary>
+<div class="quote-body">
+<p>"These results support the central thesis of this work: video prediction is most useful for robotic manipulation when it is trained jointly with executable action generation and exposed at deployment time as a mechanism for imagining, scoring, and refining future outcomes."</p>
+<div class="quote-cite">— §VII Experimental Evaluation, p.8</div>
+</div>
+</details>
+</div>
+</main>
+</div>
+<script>
     // Sidebar active link tracking
     const sections = document.querySelectorAll('.section[id]');
     const links = document.querySelectorAll('.sidebar-tree a');

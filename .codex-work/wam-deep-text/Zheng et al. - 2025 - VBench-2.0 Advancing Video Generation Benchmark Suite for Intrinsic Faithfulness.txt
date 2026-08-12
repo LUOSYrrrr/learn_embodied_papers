@@ -1,0 +1,1152 @@
+                                                                                                                                                                                      1
+
+
+
+
+                                                       VBench-2.0: Advancing Video Generation
+                                                       Benchmark Suite for Intrinsic Faithfulness
+                                                                 Dian Zheng*, Ziqi Huang*, Hongbo Liu, Kai Zou, Yinan He, Fan Zhang,
+                                                             Lulu Gu, Yuanhan Zhang, Jingwen He, Wei-Shi Zheng B , Yu Qiao B , Ziwei Liu B
+
+
+
+                                            Abstract—Video generation has advanced significantly, evolv-               been developed to assess aspects like per-frame aesthetics,
+                                         ing from producing unrealistic outputs to generating videos that              frame-to-frame temporal smoothness, and adherence to simple
+                                         appear visually convincing and temporally coherent. To evaluate               text prompts, which we refer to as superficial faithfulness, the
+
+
+
+
+arXiv:2503.21755v2 [cs.CV] 20 Aug 2025
+                                         these video generative models, benchmarks such as VBench have
+                                         been developed to assess their faithfulness, measuring factors like           degree to which generated videos appear visually convincing.
+                                         per-frame aesthetics, temporal consistency, and basic prompt                  As video generative models continue to evolve, recent state-
+                                         adherence. However, these aspects mainly represent superficial                of-the-art models, including Sora [28], Kling [29], Gen-3 [30],
+                                         faithfulness, which focus on whether the video appears visually               HunyuanVideo [31], and Veo 2 [32], have demonstrated strong
+                                         convincing rather than whether it adheres to real-world prin-                 performance on these metrics, and many aspects of superficial
+                                         ciples. While recent models perform increasingly well on these
+                                         metrics, they still struggle to generate videos that are not just             faithfulness are now approaching saturation.
+                                         visually plausible but fundamentally realistic. To achieve real                   However, as video generation moves towards more ad-
+                                         “world models” through video generation, the next frontier lies               vanced applications, particularly in areas that require AI mod-
+                                         in intrinsic faithfulness to ensure that generated videos adhere to           els to simulate and reason about the real world [20], such as
+                                         physical laws, commonsense reasoning, anatomical correctness,                 AI-driven storytelling and video-generation-based simulation,
+                                         and compositional integrity. Achieving this level of realism is
+                                         essential for applications such as AI-assisted filmmaking and                 the new frontier shifts from merely appearing real to being
+                                         simulated world modeling.                                                     intrinsically real. We term this as intrinsic faithfulness - a
+                                            To bridge this gap, we introduce VBench-2.0, a next-generation             concept that extends beyond per-frame quality and smooth
+                                         benchmark designed to automatically evaluate video genera-                    motion, requiring that generated videos adhere to deeper prin-
+                                         tive models for their intrinsic faithfulness. VBench-2.0 assesses             ciples such as physical laws, commonsense reasoning, anatom-
+                                         five key dimensions: Human Fidelity, Controllability, Creativity,
+                                         Physics, and Commonsense, each further broken down into                       ical correctness, and compositional integrity. Achieving this
+                                         fine-grained capabilities. Tailored to individual dimensions, our             level of faithfulness is essential for applications ranging from
+                                         evaluation framework integrates generalists such as state-of-                 AI-assisted filmmaking to virtual environments for embodied
+                                         the-art VLMs and LLMs, and specialists, including anomaly                     intelligence, ultimately paving the way for the development
+                                         detection methods proposed for video generation. We conduct                   of true world models that can accurately represent and predict
+                                         extensive human preference annotations to ensure evaluation
+                                         alignment with human judgment. By pushing beyond superficial                  real-world dynamics.
+                                         faithfulness toward intrinsic faithfulness, VBench-2.0 aims to set                To drive video generative models towards this next gener-
+                                         a new standard for the next generation of video generative models             ation of capabilities, we introduce VBench-2.0, a benchmark
+                                         in pursuit of intrinsic faithfulness.                                         suite designed to evaluate video generative models along five
+                                           Index Terms—Video Generative Models, Evaluation Bench-                      emerging dimensions beyond superficial faithfulness: Human
+                                         mark.                                                                         Fidelity, Controllability, Creativity, Physics, and Common-
+                                                                                                                       sense. Each dimension is further broken down into isolated
+                                                                                                                       sub-abilities (shown in Figure 1(b)), providing a fine-grained
+                                                                  I. I NTRODUCTION
+                                                                                                                       assessment of the intrinsic faithfulness of video generative
+
+                                         V      IDEO generation aims to create realistic and temporally
+                                                coherent video sequences, with a wide range of applica-
+                                         tions in video editing [1]–[14], customization [15]–[17], image
+                                                                                                                       models. Given the complexity of these evaluations, we lever-
+                                                                                                                       age generalists such as state-of-the-art Video Language Mod-
+                                                                                                                       els (VLMs) and Large Language Models (LLMs) to perform
+                                         animation [18], [19], and world models [20].                                  structured reasoning and judgment. Specifically, we design
+                                            Earlier video generative models [21]–[24] primarily focused                two complementary evaluation methods: 1) text description
+                                         on generating short video clips of around two seconds, empha-                 alignment to assess abstract concept and semantic understand-
+                                         sizing fundamental capabilities like per-frame aesthetics and                 ing, leveraging modern VLM’s strong captioning and LLM’s
+                                         temporal consistency. To systematically evaluate these capabil-               reasoning ability, and 2) video-based multi-question answering
+                                         ities, benchmarks [25]–[27] such as VBench [25], [26] have                    for basic visual understanding. To enhance evaluation robust-
+                                                                                                                       ness in specific domains, we incorporate specialists, such
+                                            * equal contribution. B corresponding authors.
+                                            Email: Dian Zheng zd1423606603@gmail.com and Ziqi Huang                    as human anomaly detection pipelines trained for generated
+                                         ziqi002@ntu.edu.sg                                                            videos. Furthermore, we use evaluation safeguards like pre-
+                                            D. Zheng, H. Liu, K. Zou, F. Zhang, L. Gu, J. He, Y. Qiao are with         filtering, and redundant questioning to mitigate hallucinations
+                                         Shanghai Artificial Intelligence Laboratory. Z. Huang, Y. Zhang, Z. Liu are
+                                         with the S-Lab, Nanyang Technological University. W. Zheng is with Sun        and inconsistencies in our tailored evaluation pipelines for
+                                         Yat-sen University. J. He is also with The Chinese University of Hong Kong.   each dimension. Additionally, we follow VBench [25], [26]
+                                                                                                                                                                                                               2
+
+
+
+
+        Evolution of Video Generative Models’ Capabilities                                                                           VBench-2.0 Evaluation Dimension Suite
+                                                                                                                                                                   Human Anatomy
+             VBench                                       VBench-2.0                                                                           Human Fidelity                                  Identity
+                                                                                                                                                                 Temporal Consistency
+        Frame-to-Frame                                        Creativity                                                                                                                       Clothes
+                                                                                                                                                                          Diversity
+      Temporal Consistency                                 Human Fidelity                                                                        Creativity
+                                                                                                                                                                     Composition
+         Aesthetic Quality                            Adherence to Complex                                                                                                      Dynamic Spatial Relationship
+        Imaging Quality                                     Prompts                                                                                              Entity
+                                                                                                                                                                                     Dynamic Attribute
+      Adherence to Simple                                  Commonsense                                                                                                          Motion Order Understanding
+           Prompts                                                                                                             VBench-2.0                         Event
+                                                                                                                                                                                    Human Interaction
+                                                                Physics                                                                        Controllability
+                                                                                                                                                                                    Complex Landscape
+                                                                                                                                                                 Content
+    Superficial Faithfulness                            Intrinsic Faithfulness                                                                                                         Complex Plot
+                                                                                                                  time                                              Camera Motion
+                                                                                                                                                                   Motion Rationality
+                                                                                                                                               Commonsense
+                                                                                                                                                                 Instance Preservation
+                                         but                                                                                                                                                    Mechanics
+                                                                                                                                                                     State Change               Thermotics
+                                                                                                                                                  Physics
+visually unreal       visually real               intrinsically unreal                       intrinsically real                                                    Geometry                      Material
+                                                                                                                                                                                      Multi-View Consistency
+
+                                      (a) Scope of VBench-2.0                                                                      (b) VBench-2.0 Evaluation Dimension Suite
+Fig. 1: Overview of VBench-2.0. (a) Scope of VBench-2.0. Video generative models have progressed from achieving superficial
+faithfulness in fundamental technical aspects such as pixel fidelity and basic prompt adherence, to addressing more complex
+challenges associated with intrinsic faithfulness, including commonsense reasoning, physics-based realism, human motion, and
+creative composition. While VBench primarily assessed early-stage technical quality, VBench-2.0 expands the benchmarking
+framework to evaluate these advanced capabilities, ensuring a more comprehensive assessment of next-generation models. (b)
+Evaluation Dimension of VBench-2.0. VBench-2.0 introduces a structured evaluation suite comprising five broad categories
+and 18 fine-grained capability dimensions.
+
+
+                                                     Human Anatomy
+                                 Human Identity
+                                                                          Multi-View                                     unstable in commonsense reasoning, highlighting key open
+                                                                         Consistency
+
+                   Human Clothes                                                  Material
+                                                                                                                         challenges in video generation towards synthesizing the world
+                                                                                                                         with intrinsic faithfulness. We provide an in-depth discussion
+                  Diversity                                                                  Themotics                   on possible causes, potential solutions, inherent trade-offs, and
+                                                                                                                         future work in Section V.
+          Composition                                                                            Mechanics
+                                                                                                                            VBench-2.0 will be fully open-sourced, being comple-
+                                                                                                                         mentary to VBench [25], [26], and providing a standard-
+      Dynamic Spatial                                                                              Instance
+                                                                                                                         ized framework for evaluating future breakthroughs in video
+       Relationship                                                                              Preservation
+                                                                                                                         generation. While VBench remains essential for assessing
+                                                                                              Motion
+                                                                                                                         superficial faithfulness, VBench-2.0 extends the evaluation
+         Dynamic Attribute                                                                   Rationality
+                                                                                                                         scope to intrinsic faithfulness, addressing deeper aspects of
+                     Motion Order
+                                                                                  Camera Motion
+                                                                                                                         video realism. We will continually integrate newly released
+                    Understanding
+
+                              Human Interaction                          Complex Plot
+                                                                                                                         video generative models into VBench-2.0. By setting a higher
+                                                   Complex Landscape                                                     standard for evaluation, VBench-2.0 aims to play a pivotal
+                                                                                                                         role in guiding the development of next-generation video
+                    HunyuanVideo              CogVideoX-1.5              Sora-480p      Kling 1.6
+                                                                                                                         generative models. Together, VBench and VBench-2.0 form a
+Fig. 2: VBench-2.0 Evaluation Results of SOTA Models.                                                                    comprehensive benchmarking system, driving the field beyond
+The figure presents the evaluation results of four recent state-                                                         superficial faithfulness towards truly intrinsically faithful video
+of-the-art video generation models across 18 VBench-2.0                                                                  generation.
+dimensions. The results are normalized per dimension for a
+clearer comparison. For detailed numerical results, refer to                                                                                  II. R ELATED W ORKS
+Table II.                                                                                                                A. Video Generative Models
+                                                                                                                            With the advancements in diffusion models [33]–[44], vari-
+                                                                                                                         ational autoencoder-based compression techniques [45]–[49],
+and conduct extensive human preference annotations to vali-                                                              and transformer architectures [50], [51], video generation has
+date and align our automated evaluation results with human                                                               emerged as one of the most dynamic frontiers in artificial in-
+judgment.                                                                                                                telligence research. Prior to Sora’s breakthrough, predominant
+   Our evaluation provides comprehensive insights into the                                                               text-to-video models primarily focused on synthesizing short
+strengths and weaknesses of state-of-the-art video generative                                                            video clips (2-3 seconds duration) [2], [18], [21]–[24], [28],
+models. While recent models demonstrate emerging abilities                                                               [32], [52]–[60] through incremental improvements in visual
+in human anatomy, consistency, and some degree of novel                                                                  fidelity and temporal consistency. Sora [28] pioneered the scal-
+creativity, they still struggle with generating complex plots,                                                           ing paradigm in video generation by demonstrating unprece-
+handling simple dynamic changes in objects, and remain                                                                   dented model capacity through large-scale training, paving the
+                                                                                                                                     3
+
+
+
+TABLE I: Comparison of Video Generation Benchmarks. We compare existing video generation benchmarks based on
+their evaluation aspects. VBench-2.0 is the first comprehensive benchmark to assess intrinsic faithfulness in video generation,
+complementing VBench [25], [26]. Detailed aspects include per-frame quality (Frame Wise), temporal consistency (Temp
+Cons), adherence to simple prompts (Simp Pmpt), compositional creativity (Comp Crea), commonsense reasoning (Com Sense),
+physics-based realism (Phy), human anatomy (Human Anat), and adherence to complex prompts (Cplx Pmpt).
+
+                                  Superficial Faithfulness                              Intrinsic Faithfulness
+                            Frame Wise Temp Cons Simp Pmpt            Comp Crea     Com Sense Phy Human Anat           Cplx Pmpt
+    VBench [25], [26]           ✓              ✓            ✓
+   T2V-CompBench [73]                                       ✓             ✓             ✓
+    PhyGenBench [72]                                                                              ✓
+      StoryEval [74]                           ✓                                                                           ✓
+    VBench-2.0 (Ours)                          ✓                          ✓             ✓         ✓          ✓             ✓
+
+
+
+way for the development of next-generation video foundation           III. VB ENCH -2.0 S UITE FOR I NTRINSIC FAITHFULNESS
+models [20], [29]–[31], [59], [61]–[66] that achieve remark-
+able visual quality and robust spatiotemporal coherence. They           In this section, we introduce the evaluation framework of
+have shifted focus toward enhancing video generation adhere          VBench-2.0. Section III-A presents the five key evaluation
+to deeper principles such as physical laws and commonsense           dimensions and their respective assessment methods. Unlike
+reasoning that focuses more on action continuity and realistic       VBench, which primarily evaluates superficial faithfulness,
+physical-world perception [20], [28], [59], or high-quality          VBench-2.0 introduces a suite of tests to assess intrinsic
+human-centric generation with creativity potential [29], [31].       faithfulness, focusing on deeper properties such as physics,
+Existing benchmarks cannot systematically evaluate these new         commonsense, and creativity, human, and controllability. To
+explorations, and VBench-2.0 takes the initiative to provide a       ensure robust evaluation, we integrate multiple assessment
+comprehensive benchmark for evaluating emerging capabili-            methodologies, including LLM-assisted text alignment, video-
+ties towards the goal of achieving intrinsic faithfulness through    based multi-question answering, and specialist models trained
+video generation.                                                    for anomaly detection. Prompt suite is introduced in Sec-
+                                                                     tion III-B and Section III-C describes the human annotation
+                                                                     pipeline of VBench-2.0, including the collection and process-
+                                                                     ing of video data, labeling of human annotations, and the
+B. Evaluation of Video Generative Models                             definition of scoring criteria.
+   Initially, video generative models primarily relied on con-
+ventional evaluation metrics such as Fréchet inception dis-         A. Evaluation Dimension Suite
+tance (FID) [67], Inception Score (IS) [68], and Fréchet
+video distance (FVD) [69]. However, these metrics provided              VBench-2.0 evaluates video generation along five key di-
+limited insight into the diverse and complex capabilities of         mensions: Human Fidelity, Creativity, Controllability, Physics,
+modern video generation. Recent evaluation frameworks [25]–          and Commonsense. Each dimension is further decomposed
+[27], [70], [71] such as VBench [25], [26] introduced a              into sub-dimensions, ensuring a fine-grained assessment of a
+more structured approach by disentangling evaluation into            model’s capabilities. We employ a structured approach that
+multiple capability dimensions, enabling more detailed and           combines generalist reasoning models (VLMs/LLMs) with
+interpretable assessments. These benchmarks focus on funda-          specialist detectors. When using generalist, we adopt two
+mental technical attributes such as per-frame quality, temporal      evaluation schemes where each is tailored to different types of
+consistency, and basic prompt adherence. However, as models          semantic understanding required across evaluation dimensions.
+continue to improve, certain dimensions within VBench begin          Text Description Alignment. This scheme is suitable for
+to saturate, necessitating broader evaluation scope that assess      complex or subtle scenarios, such as those involving nuanced
+deeper aspects of intrinsic faithfulness in video generation.        human interactions or multi-step plots. In these cases, the
+To address this, specialized benchmarks have emerged. Phy-           composite scene is broken down and interpreted step by step
+GenBench [72] evaluates a model’s understanding of phys-             by the Vision-Language Model (VLM), which generates a
+ical laws through Vision-Language Models (VLMs). T2V-                descriptive caption guided by system prompts that focused on
+CompBench [73] assesses compositionality, including motion,          specific aspects of the video (e.g., prompting only about human
+actions, spatial relationships, and attributes. StoryEval [74] fo-   interactions or a specific part of the plots). The correctness of
+cuses on storytelling capabilities by aggregating the responses      the generated content is then judged by a Large Language
+from two VLMs. Unlike prior benchmarks, which either focus           Model (LLM), which compares the VLM-generated caption
+on fundamental capabilities [25]–[27] or specific emerging           with a ground-truth reference. The reference may be the
+domains [72], [73], VBench-2.0 introduces a comprehensive            original text prompt, a predefined answer, or relevant metadata.
+framework to systematically evaluate next-generation video           This process is formalized as:
+generation capabilities, bridging the gap in the evolving land-
+scape of video generation.                                                     Answer = LLM (V LM (V |Sv ), T | Sl ),              (1)
+                                                                                                                                                        4
+
+
+
+                         [cls]                            Anomaly               assess the consistency of human identity and clothing across
+                        token                             Classifier
+                                                                                frames.
+                                                                                                Question: Is there any anatomy abnormal in the video?
+                                                           SoftMax
+                                                             0.2
+                                     SimMIM
+                                                                   BCE
+                                                                   Loss
+                                                                                                        (a) many abnormalities (score: 0.24)
+                                                              0 Normal
+
+                                                         Trainable Modules
+                         …                    …
+                                                         Image Features
+                                                                                                        (b) minor abnormalities (score: 0.91)
+                                                         [cls] token Features
+                                                                                         Fig. 4: Visualization for Human Anatomy.
+Fig. 3: Human Anatomy Detector Framework. The [cls]                                (1-a) Human Anatomy. This dimension focuses on detecting
+token is used to aggregate information related to anomalies in                  potential anomalies in the appearance and structure of the
+the image. The human body, hand, and face detectors share                       human body in videos. We use a pre-trained ViT-base model
+the same pipeline with different data. The input is frame level                 [77] to train three anomaly detection models, which will
+and pre-detected.                                                               detect the human in each frame and judge the anomaly
+                                                                                score of each human, targeting the human body, hands, and
+where V is the generated video, T denotes the text prompt                       faces, respectively. The classification token (cls_token)
+or crafted reference, and Sv and Sl are the system prompts                      is passed through an MLP to produce binary outputs. We
+for the VLM and LLM, respectively. The LLM outputs a                            show the pipeline in Figure 3 and the dataset consists of two
+binary judgment (“yes” or “no”) that is discretized to a score                  components:
+of 1 or 0 to reflect caption-reference matching. This scheme                      • Real samples: We collected approximately 1,000 real
+excels in semantic understanding dimensions like Complex                            motion videos from the web and used the YOLO-World
+Plot and Human Interaction, where VLMs usually struggle                             [78] detection model to extract pre-frame patches of
+with high-level interpretation, but LLMs demonstrate stronger                       human bodies, hands, and faces as positive samples.
+reasoning capabilities. Thus, we decouple caption generation                      • Generated samples: We generated around 1,000 videos
+(by VLMs) from semantic alignment (by LLMs) to improve                              related to human motion using CogVideo [24], [59] and
+evaluation reliability. Unless otherwise specified, we adopt                        HunyuanVideo [31]. These were processed with YOLO-
+LLaVA-Video-7B [75] as our VLM model and Qwen2.5-7B-                                World to extract image patches, followed by meticulous
+Instruct [76] as LLM model.                                                         manual annotations for training. Additionally, negative
+Video-Based Multi-Question Answering. It is designed for                            samples were sampled from the HumanRefiner [79]
+evaluation dimensions where one salient concept is prominent                        dataset, focusing on human body, hands, and face.
+and can be directly queried through video question answering                    As a result, we collect 150k labeled real and generated human
+(VQA). In this approach, we construct a series of complemen-                    frame-level data. During inference, we first applied the YOLO-
+tary and sometimes redundant questions to reduce the risk of                    World model to detect all human instances in the input video.
+accidental errors and ask the VLM to perform direct VQA.                        For each detected human region, we further detected hands and
+The formalization is as follows:                                                faces, extracting corresponding patches as inputs. A human
+                           N
+                           X                                                    instance is flagged as abnormal if any of the three models
+              Answer =               V QA(Qi , V | S),                    (2)   consider this human as an anomaly and the final score is the
+                                 i                                              percentage of frames that are not flagged as abnormal.
+where Q is a set of multiple questions. For example, in the                        (1-b) Human Temporal Consistency - Clothes. Clothing con-
+Dynamic Attribute dimension focusing on color changes, we                       sistency is assessed using video-based multi-question answer-
+may ask: 1. Initially, is the color of the river mostly blue?                   ing to assess whether outfits remain stable throughout video.
+2. Finally, is the color of the river mostly brown? 3. Does                     Note that we do not use traditional methods such as feature
+the color of the river change? The answer to each question                      similarity calculation to handle this problem based on two con-
+is binary (“yes” or “no”), and scores are either averaged                       siderations: 1) Current models often generate characters with
+or awarded only if all responses are correct, depending on                      their clothing partially obscured by objects or with changes in
+the dimension’s scoring scheme. This scheme is particularly                     visible body parts (e.g., the upper body transforming into the
+effective for surface-level visual understanding, where modern                  lower body). In such cases, traditional algorithms are unable
+VLMs can confidently answer targeted queries without requir-                    to address these cross-temporal judgment issues. 2) LLaVA-
+ing high-level semantic reasoning. Unless otherwise specified,                  video-7B has strong clothing color perception and a certain
+we adopt LLaVA-Video-7B [75] as our VLM model.                                  degree of cross-temporal memory capability. Therefore, we
+1) Human Fidelity: We evaluate both the structural correct-                     use it to evaluate this dimension.
+ness and temporal consistency of human figures in generated                        (1-c) Human Temporal Consistency - Identity. Identity con-
+videos. Structural issues commonly seen in current video                        sistency is evaluated by measuring facial feature similarity
+generation models, such as sudden turns or the “thousand-hand                   using ArcFace [80], with face detection performed by Reti-
+yoga” effect, are considered. For temporal consistency, we                      naFace [81]. Specifically, we select the first frame of the
+                                                                                                                                                                                                                              5
+
+
+
+                Question: Which video has higher diversity?                                                                                      Prompt
+                                                                           1." The camera starts with a high-altitude view of an endless ice plain, where the snow-covered land stretches out as far as the eye can see. ",
+                                                                           2." The cold air gives everything a still, pristine quality, with animal tracks in the snow. ",
+                                                                           3." The night sky becomes clearer, and the aurora borealis begins to dance across the heavens in vibrant colors. ",
+                                                                           4." The camera follows the shifting aurora, contrasting with the white snow and creating a magical atmosphere. ",
+                                                                           5." The camera pulls back, revealing the vast ice plains interspersed with the aurora, as snow and lights mirror each other. "
+
+
+
+
+                                                                                                                            (a) matching 0 prompt (score: 0.0)
+
+
+
+
+                                                                                                                            (b) matching 1 prompt (score: 0.2)
+                                                                                                              Question: Is there any anatomy abnormal in the video?
+          (a) B has higher diversity (score A: 0.34 < score B: 0.70)                    Fig. 6: Visualization for Complex Landscape.
+              Fig. 5: Visualization for Diversity.
+                                                                       the text prompt. Specifically, we first split the text prompt
+                                                                                                         (a) minor abnormalities (score: 0.24)
+video as the anchor by default, and all subsequent frames are          into two descriptions with action only in turn, then we obtain
+compared to the first frame to calculate similarity. However,          the video caption by VLM with an additional system prompt
+time periods where there are multiple people or no one                 “Return the action order in video. Here is the template: ‘1. ;
+                                                                                                         (b) many abnormalities (score: 0.91)
+present are not taken into consideration. Note that after a            2. .”’. Then Question:
+                                                                                        we assess           whether
+                                                                                                Does the clothes              bothconsistency
+                                                                                                                  of human remain       actions  duringmatch
+                                                                                                                                                        the video? the ground
+
+scene change, whether it is still the same person is taken into        truth descriptions in turn; only when both actions match are
+consideration, which represents a more challenging scenario.           they considered correct. This approach cleverly avoids the
+2) Creativity: We evaluate creativity by analyzing a model’s           hallucination problem of LLM                           in order judgment.
+                                                                                                                    (a) no (score: 0)
+ability to generate diverse outputs and complex compositions              (3-d) Event - Human Interaction. We assess whether two
+beyond real-world constraints.                                         humans can interact (e.g., “One person hands an object to
+   (2-a) Diversity. Given a text prompt, we sample 20 videos           another”) based on the text                          prompt using text description
+                                                                                                                   (b) yes (score: 1)
+from a model, and measure inter-sample variation using style                   Question:The
+                                                                       alignment.               system
+                                                                                         Whether the            prompt
+                                                                                                     soda can be squeezed   as airfor     VLMandis
+                                                                                                                                   being gradually           “Describe the
+                                                                                                                                                       forcefully removed.
+
+and content diversity metrics, computed from pre-trained               human interaction in the video, following the template as
+VGG-19 [82] feature representations ( i.e., the metric is              [a person xx to another person.]”. After converting the
+modified from [83]).                                                   description into a (a) The standardized
+                                                                                                            soda can remainsformat,
+                                                                                                                               unchanged. the      LLM will determine
+                                                                                                                                           (score: 0)
+
+   (2-b) Composition. This dimension measures whether the              whether the standardized description matches the ground truth.
+model can generate novel and uncommon compositions and                 However, the wrong number of people may lead to interaction
+we assess it through three sub-dimensions: species combina-            hallucinations in (b)      VLMs,          such
+                                                                                                          The soda  can is as     treating
+                                                                                                                           compressed.  (score: 1) situations with only
+
+tion, single-entity actions, and multi-entity interactions, using      one person as interactions between two individuals, so we
+video-based multi-question answering pipeline. We addition-            pre-filter the video with wrong human number with another
+ally observe that pure VQA can not ensure robust results as            text description alignment pipeline. Specifically, we obtain the
+current video generation models will generate separate species         dense description of the video with system prompt “Describe
+for the given prompt and VQA is a discrete process that could          the video in detail” and ask the LLM to determine whether
+not consider the separate situations. So in this paper, we omit        the number of people mentioned in the video description is
+the cases that show more than one creature in the video by a           exactly one.
+pre-VQA question “Is there only one creature in the video?”.              (3-e) Content - Complex Plot. We test a model’s ability
+3) Controllability: We evaluate a model’s ability to fol-              to construct multi-scene narratives from prompts describing
+low complex prompts and simulate dynamic changes during                multi-stage events (e.g., a five-act story with 150+ words) to
+video generation. This dimension measures how accurately the           meet the demands of future movie-level video generation. We
+model can render specific entities, events, content, and camera        utilize text description alignment to evaluate it. Specifically,
+movements in response to detailed textual instructions.                we first manually split and summarize the long text prompt
+   (3-a) Entity - Dynamic Attribute. We test whether models            into 5 plot descriptions as ground truth. Then we feed the
+can modify attributes (e.g., color, size, texture) mid-video           video into VLM to obtain 5 video captions with the system
+using the video-based multi-question answering pipeline. We            prompt “Return the plot in video. Here is the template: [1. ; 2.
+take an example of questions here: “Initially, is the color of         ; 3. ; 4. ; 5. .]” ( i.e., note that when dealing with long videos
+leaves mostly red?”; “Finally, is the color of leaves mostly           at the minute level, VLMs may make errors in their point-
+green?”; “Does the color of leaves change?”                            by-point summarization. Therefore, we additionally employ
+   (3-b) Entity - Dynamic Spatial Relationship. We assess              an LLM for post-processing verification to correct captions
+whether models accurately reposition objects in response to            with incorrect numbering). Finally, we sequentially match the
+spatial instructions (e.g., “A dog is on the left of a sofa, then      corresponding text and captions in the order of the plot. If the
+the dog runs to the front of the sofa.”) using video-based             LLM determines that a plot element appears in the caption,
+multi-question answering. The question template is similar to          we proceed to evaluate the next plot element; otherwise, the
+Dynamic Attribute.                                                     evaluation stops. We discretize the plot elements to calculate
+   (3-c) Event - Motion Order Understanding. We evaluate               the accurate score, simulating the effect of LLM scoring.
+whether models generate several actions or motions in the                 (3-f) Content - Complex Landscape. We evaluate whether
+specified order. We use the text description alignment pipeline        models faithfully follow long-form landscape descriptions
+to measure whether the generated motion sequence matches               (150+ words) that include multiple scene transitions driven by
+                                                                                                                                                                                     6
+
+
+
+         Question: What will the soda can be as air being gradually and forcefully removed.               Question: Does the video contain one or more of the following anomalies:
+                                                                                                                    sudden appearance, disappearance, fusion, fission??
+
+
+
+
+                          (a) The soda can remains unchanged. (score: 0)
+                                                                                                                         (a) yes, it has sudden appearance (score: 0)
+
+
+
+
+                             (b) The soda can is compressed. (score: 1)
+                                                                                                                                      (b) no (score: 1)
+               Fig. 7: Visualization for Mechanics.
+                                                                                                     Fig. 8: Visualization for Instance Preservation.
+camera movements. We assess adherence using text descrip-
+tion alignment with landscape-specific system prompt, similar                                 ated videos properly follow material properties.
+to Complex Plot.                                                                                 (4-d) Geometry - Multi-View Consistency. Geometry is a
+   (3-g) Camera Motion. We evaluate whether models                                            critical aspect for 3D/4D video generation, ensuring that
+can generate specified camera movements. We extend                                            generated entities and scenes maintain structural consistency
+VBench++ [26]’s camera motion taxonomy to nine types,                                         when viewed from different angles or as the camera moves.
+adding “Orbit” and “Oblique shot, airborne dolly movement.”                                   However, we do not have access to explicit 3D ground
+The generated camera motion is assessed via point tracking                                    truth of the generated videos, making direct 3D validation
+with CoTracker-v2 [84] and carefully tailored heuristics (e.g.,                               infeasible. Instead, we assess multi-view consistency using
+different camera motions exhibit distinct behaviors at different                              two complementary metrics: 1) Feature Matching Stability –
+points. For example, pan left results in all points shifting to                               Measures how well objects retain their geometric consistency
+the right.).                                                                                  across frames, inspired by [85], and 2) Camera Motion Speed –
+4) Physics: The Physics dimension evaluates whether video                                     Accounts for the effect of motion strengths on feature stability,
+generation models adhere to real-world physical principles.                                   ensuring fair cross-model comparisons. Specifically, we follow
+We assess two key areas: 1) State Change, which examines                                      [85] to extract frame-level keypoint features using SIFT [86],
+how well models simulate mechanical, thermal, and material                                    efficiently match points across frames with FLANN [87], and
+transformations, and 2) Geometry, which evaluates the 3D                                      eliminate incorrect matches using RANSAC [88]. We then
+consistency of objects and scenes across different frames. We                                 estimate camera motion speed using RAFT [89], and adjust
+extend prior benchmarks (e.g., PhyGenBench [72]) by increas-                                  feature-matching frame intervals based on the motion strength
+ing physics scenario difficulty and significantly improving                                   and the video frame rate ( i.e., FPS and camera motion speed
+evaluation accuracy with tailored pipelines.                                                  will influence the score of feature matching).
+   (4-a) State Change - Mechanics. We evaluate whether                                        5) Commonsense: We assess commonsense reasoning in
+models follow basic mechanical principles such as gravity,                                    video generation models across two key aspects: 1) Motion Ra-
+buoyancy, and stress. This is done using video-based multi-                                   tionality, evaluating whether generated motions are physically
+question answering. Unlike PhyGenBench, which relies on                                       plausible and correctly executed, and 2) Instance Preservation,
+abstract physics concepts, we prompt GPT-4o to generate                                       ensuring that abnormal entity states (entity sudden merging,
+explicit visual descriptions of expected physical behavior (e.g.,                             splitting, appearing, and disappearing) do not exist.
+unlike PhyGenBench that uses terminologies to describe the                                       (5-a) Motion Rationality. We evaluate whether the generated
+physical phenomena “The liquid’s behavior aligns with the                                     motion leads to the correct real-world consequences. A preva-
+microgravity environment, floating freely, and forming nat-                                   lent issue in video generation is the presence of fake motions
+ural blobs without noticeable distortion.”, we describe the                                   that visually appear correct but lack expected effects on the
+physical phenomena’s visual results “The liquid floating, and                                 environment. For instance: 1) Fake eating: A person bites into
+forming blobs”)). Notably, the GPT-4o-generated descriptions                                  food, but the food remains unchanged. 2) Fake walking: A
+are based solely on the text prompt, remain fixed during                                      character moves their legs, but does not actually progress
+evaluation, and do not compromise evaluation reproducibility.                                 forward. and 3) Fake cutting: A knife moves through an
+To ensure a focused assessment of state changes, we also apply                                object, but the object does not split. To address this, we adopt
+a pre-filtering step to exclude cases where the initial state of                              the video-based multi-question answering pipeline, specifically
+the generated video does not align with the prompt.                                           to ensure the motion’s impact is checked explicitly (e.g.,
+   (4-b) State Change - Thermotics. We evaluate how well                                      “After slurping, is the amount of noodles visibly reduced?”).
+the models simulate state transitions such as vaporization,                                   Redundant questioning (e.g., 1. “Does the person appear to
+liquefaction, and sublimation. To increase complexity, we                                     be slurping noodles?”, 2. “Is the person’s mouth in contact
+introduce temperature-specific prompts (e.g., “A timelapse                                    with the noodles?”, 3. “Is the bowl of noodles remaining
+captures dry ice transforming at -90°C”). Evaluation follows                                  after slurping?”) helps filter out false positives and accidental
+the same video-based multi-question answering approach used                                   misinterpretations.
+in the Mechanics dimension.                                                                      (5-b) Instance Preservation. Video generative models fre-
+   (4-c) State Change - Material. We evaluate whether the                                     quently generate videos with unnatural entity merging, du-
+models correctly depict color mixing, hardness, combustion,                                   plication, or disappearance, particularly during large-motion
+and solubility. Similar to Mechanics and Thermotics, we use                                   sequences or object interactions. As current VLMs could
+video-based multi-question answering, testing whether gener-                                  not capture this clip-level or even frame-level abnormal (
+                                                                                                                                    7
+
+
+
+
+                                                                            Fig. 10: Interface for Human Preference An-
+                                                                            notation. Top: Question descriptions. Right:
+Fig. 9: Overview of Prompt Suite Statistics. Left: distribution of words in Choices   available to annotators. Bottom left:
+the prompt suites. Right: number of prompts per evaluation dimension.       Controls  for stopping and playback.
+
+i.e., Unnatural merging can appear between adjacent frames,        prompts in Thermotics, require models to demonstrate a deeper
+despite both frames being normal on their own). We tune a          understanding in how temperature affect thermotics beyond
+clip-level entity abnormal detector based on Qwen2.5-VL-3B-        simple pattern matching.
+Instruct [90]. Specifically, we use a multiple-choice question     Ensuring Disentangled Evaluation. Prompts are designed to
+format to ask the VLM to determine whether a given clip            eliminate confounding factors and ensure focused assessment
+contains any of the aforementioned anomalies (A for “yes”          in the dimension of interest. For example, in Dynamic Spatial
+and B for “no”). Only the all of the clips in a video is normal    Relationship and Dynamic Attribute, only one entity is allowed
+will be considered as normal (score 1), otherwise 0.               to move or changed, ensuring the test solely assesses posi-
+   In terms of training data, we first collected a set of videos   tioning and attribute rather than taking the irrelevant ability of
+that align with our prompt theme as normal samples. We             multi-object interactions into account.
+also sampled several generative models (CogVideo, Hunyuan-         Evaluation Robustness. To improve the robustness of evalu-
+Video, Wan2.1, StepVideo), and manually annotated anoma-           ation, we design the actions and events in each dimension’s
+lous samples. To reduce the gap between virtual and real data,     prompts to be explicitly recognizable by VLMs and LLMs.
+both virtual and real normal data is used for training and         In the Human Interaction dimension, we ensure that prompts
+we further apply LoRA fine-tuning to maintain the model’s          include physical contact interactions (e.g., “A person shakes
+generalization ability as much as possible.                        hands with another”) rather than ambiguous social scenarios
+                                                                   that are harder to verify visually (e.g., “Two people are having
+B. Prompt Suite                                                    a picnic”). For Motion Rationality, prompts are designed to
+                                                                   ensure that the counterexamples involve visually observable
+   The VBench-2.0 Prompt Suite is designed to be compact
+                                                                   outcomes, such as fake eating (food remains unchanged),
+yet representative. Given the increasing computational cost
+                                                                   fake walking (not moving forward), or fake cutting (objects
+of video sampling, especially for longer and higher-resolution
+                                                                   remain unaltered), rather than examples like lip-syncing, which
+videos (e.g., HunyuanVideo and CogVideoX-1.5 taking over
+                                                                   are difficult to conclusively assess through visual observation
+five minutes per sample on 8×A100 GPUs), we strategically
+                                                                   alone.
+limit the number of test cases to reduct sampling costs during
+                                                                      By following these structured design principles, VBench-
+evaluation, while ensuring coverage across diverse evaluation
+                                                                   2.0 provides a compact, diverse, and reliable benchmark for
+dimensions and content scenarios. Figure 9 visualizes the
+                                                                   evaluating video generation models across a diverse range of
+prompt distributions.
+                                                                   real-world and abstract scenarios.
+Tailored Prompts for Each Dimension. For each evaluation
+dimension in VBench-2.0, we carefully construct a suite of
+approximately 70 prompts, specifically tailored to probe the       C. Human Preference Annotation
+model’s capabilities in that dimension. Prompts are designed          Following the approach of VBench [25], [26], we conduct
+to systematically analyze the core ability being tested. For       large-scale human preference labeling on generated videos
+example, in the Multi-View Consistency dimension, we evalu-        to validate the alignment between VBench-2.0’s evaluation
+ate both object-level and scene-level prompts, ensuring that       and human perception across all evaluation dimensions. The
+models are tested across varying spatial structures. In the        collected human annotations also serve as a valuable resource
+Composition dimension, we systematically divide prompts            for future research on fine-tuning generation and evaluation
+into species combination, single-entity action, and multi-entity   models to better reflect human judgments.
+tasks, covering different levels of creativity and composi-        Data Preparation. There are two types of annotation formats
+tional reasoning. The Physics dimension follows a structured       in VBench-2.0.
+approach, incorporating Mechanics (e.g., gravity, buoyancy,           The first type follows VBench and the human anno-
+stress), Thermotics (e.g., vaporization, freezing), and Material   tators are tasked to select a preferred video from two
+properties (e.g., color mixing, solubility) to comprehensively     generated videos based on specific criteria. Given a text
+assess adherence to physical laws. To further challenge model      prompt pi and four video generation models {A, B, C, D},
+reasoning, additional constraints, such as temperature-specific    we generate a set of videos, forming a “group” Gi,j =
+                                                                                                                                                    8
+
+
+
+TABLE II: VBench-2.0 Evaluation Results per Dimension. This table presents evaluation results for four recent state-of-
+the-art video generation models across all 18 VBench-2.0 dimensions. A higher score indicates better performance in the
+corresponding dimension.
+                           Human           Human         Human                                                                        Multi-view
+        Models                                                        Composition   Diversity   Mechanics   Material   Thermotics
+                           Anatomy         Clothes      Identity                                                                     Consistency
+   HunyuanVideo [31]       88.58%          82.97%        75.67%         43.96%        39.73%     76.09%     64.37%      56.52%          43.80%
+   CogVideoX-1.5 [59]       59.72%         87.18%        69.51%         44.70%        42.61%    80.80%      83.19%      67.13%          21.79%
+       Sora [28]            86.45%         98.15%        78.57%         53.65%       67.48%      62.22%     64.94%      43.36%          58.22%
+     Kling 1.6 [29]         86.99%         91.75%        71.95%         43.89%        53.26%     65.55%     68.00%      59.46%         64.38%
+                        Dynamic Spatial   Dynamic     Motion Order      Human        Complex    Complex     Camera      Motion         Instance
+        Models
+                         Relationship     Attribute   Understanding   Interaction   Landscape      Plot     Motion     Rationality   Preservation
+   HunyuanVideo [31]       21.26%          22.71%        26.94%         66.67%        18.89%      9.78%     33.95%      34.48%          92.40%
+   CogVideoX-1.5 [59]       19.32%         24.18%        26.60%         72.33%       20.00%     11.21%      33.33%      33.91%          82.46%
+       Sora [28]            19.81%          8.06%        15.15%         58.00%        15.33%     11.11%     27.16%      34.48%         94.15%
+     Kling 1.6 [29]         20.77%         19.41%        29.29%         72.00%        17.33%     10.83%     61.73%      38.51%          92.40%
+
+
+
+{Vi,A,j , Vi,B,j , Vi,C,j , Vi,D,j }. For each prompt pi , we sam-                                  IV. E XPERIMENTS
+ple five such groups {Gi,0 , Gi,1 , Gi,2 , Gi,3 , Gi,4 } and con-           A. Video Generation Models in Evaluation
+struct pairwise comparisons: (VA , VB ), (VA , VC ), (VA , VD ),
+                                                                               To assess our benchmark against recent advancements, we
+(VB , VC ), (VB , VD ), (VC , VD ). Human annotators are asked
+                                                                            utilize four models for comparison, with more to be included
+to select their preferred video for each pair. To ensure unbiased
+                                                                            as they become open-sourced. We show the basical informa-
+annotations, the video order within each pair is randomized.
+                                                                            tion of the four models in Table III and introduce the detailed
+  The second type might involve two groups of videos, and the               implementation and a unified prompt refiner to pre-process the
+dimension in evaluation is related to the content distribution              text prompt as follows.
+in these two groups of videos. In this type, the pairwise                   Prompt Refiner. As video generation models continue to
+construction is the same as the first type while each Vi contains           improve their understanding of text and support longer in-
+20 videos generated by single prompt pi .                                   puts, many methods have begun adopting prompt rewriting
+                                                                            techniques to refine text input. To ensure fair comparisons
+Labeling Instructions. The annotation process follows                       and higher quality video in this paper, we employ a modified
+VBench but incorporates refinements in interface design and                 version of the original Prompt Refiner from CogVideoX to
+evaluation methodology. Since VBench-2.0 introduces multi-                  uniformly process all input prompts. We tested the following
+ple dimensions with detailed multi-question evaluations and                 four models and found that except for Sora, our Prompt
+long text prompts (some exceeding 150 words), we enhance                    Refiner consistently result in higher-quality videos with better
+the interface for improved readability and efficiency. Instead of           alignment to the input text. We hypothesize that Sora may
+displaying extensive text in video titles, we sequentially list all         have an embedded Prompt Refiner, which could explain its
+key annotation instructions directly within the interface. This             performance. Therefore, we applied our Prompt Refiner to all
+structured layout allows annotators to efficiently reference the            dimensions of the other three models.
+necessary details while conducting evaluations.                             Kling 1.6 [29]. We adopt the standard API version of Kling
+                                                                            1.6. For each prompt, we sample 241 continuous frames of size
+Win Ratio. Given human annotations, we calculate the win                    720×1280 at 24 frames per second (FPS). For the classifier-
+ratio for each model. During pairwise comparisons, if a                     free guidance (cfg) scale, we used the official default value of
+model’s video is preferred, it scores 1, while the other model              0.5.
+scores 0. In case of a tie, both models score 0.5. The win                  Sora-480p [28]. Sora represents one of the earliest large-
+ratio for each model is computed as the total score divided by              scale video generation models to emerge. For each prompt, we
+the number of pairwise comparisons. We show the result in                   directly perform sampling on the official website, containing
+Table IV.                                                                   150 continuous frames of size 480×854 at 30 FPS ( i.e., , the
+Quality Assurance. The annotation process maintains the                     low-resolution version of Sora).
+rigorous quality control measures established in VBench while               HunyuanVideo [31]. HunyuanVideo is a powerful open-
+further refining the review criteria. We randomly sample 20%                sourced video generation model. It is equipped with a pre-
+of the annotated pairs for verification, with a required success            trained Multimodal Large Language Model (MLLM) [91]
+rate of 95%.                                                                to better understand text prompts, supporting a large maxi-
+                                                                            mum token length and incorporating a dual-branch diffusion
+   To quantify the annotation effort across all 18 evaluation               transformer generative architecture, which produces visually
+dimensions, we account for the cumulative time spent on                     convincing results. We use the best version of HunyuanVideo
+documentation drafting, initial trials, formal annotation, and              with no classifier-free guidance. For each prompt, we sample
+re-annotation. In total, the process required 15.75 hours of                129 continuous frames of size 720×1280 at 24 FPS. All of the
+individual effort and 284 hours across 18 annotators, reflecting            hyper-parameters are followed the default value in the official
+the scale of the task and our commitment to ensuring high-                  inference code. The initial random seed is set to 42 during
+quality human preference annotations. Most evaluation dimen-                sampling.
+sions go through 2 rounds of trial labeling, official labeling,             CogVideoX-1.5 [59]. CogVideoX-1.5 is a transformer-based
+and post-labeling verification.                                             video generation model, which is equipped with a 3D causal
+                                                                                                                                                                                                                                                          9
+
+
+                 Human                    Human                     Human                                                                       Dynamic Spatial                  Dynamic                  Motion Order                  Human
+         1.0
+                Anatomy           1.0
+                                          Identity          1.0
+                                                                    Clothes         1.0
+                                                                                           Diversity           1.0
+                                                                                                                     Composition          1.0
+                                                                                                                                                 Relationship           1.0
+                                                                                                                                                                                 Attribute         1.0
+                                                                                                                                                                                                         Understanding         1.0
+                                                                                                                                                                                                                                      Interaction
+               = 0.9546                 = 0.9946                  = 0.9089                = 0.9453                   = 0.8170                    = 0.9736                       = 0.9095                 = 0.9931                    = 0.8928
+
+         0.5                      0.5                       0.5                     0.5                        0.5                        0.5                           0.5                        0.5                         0.5
+
+
+
+
+VBench-2.0
+         0.0                      0.0                       0.0                     0.0                        0.0                        0.0                           0.0                        0.0                         0.0
+                    0.5     1.0              0.5     1.0               0.5    1.0              0.5       1.0              0.5       1.0               0.5         1.0                0.5     1.0              0.5        1.0              0.5       1.0
+                 Complex                 Complex                    Camera                   Motion                    Instance                                                                                                       Multi-View
+         1.0
+                Landscape         1.0
+                                           Plot             1.0
+                                                                    Motion          1.0
+                                                                                           Rationality         1.0
+                                                                                                                     Preservation         1.0
+                                                                                                                                                  Mechanics             1.0
+                                                                                                                                                                                 Themotics         1.0
+                                                                                                                                                                                                           Material            1.0
+                                                                                                                                                                                                                                     Consistency
+               = 0.9182                 = 0.8959                  = 0.9795                = 0.8797                   = 0.9911                    = 0.9356                       = 0.9386                 = 0.9371                    = 0.9844
+
+         0.5                      0.5                       0.5                     0.5                        0.5                        0.5                           0.5                        0.5                         0.5
+
+
+
+         0.0                      0.0                       0.0                     0.0                        0.0                        0.0                           0.0                        0.0                         0.0
+                    0.5     1.0              0.5     1.0               0.5    1.0              0.5       1.0              0.5       1.0               0.5         1.0                0.5     1.0              0.5        1.0              0.5       1.0
+                                                                                                                     Human
+                                            HunyuanVideo win ratio                   CogVideoX-1.5 win ratio                    Sora-480p win ratio                           Kling 1.6 win ratio              Fitting
+
+Fig. 11: Human Alignment of VBench-2.0 Evaluation. Each plot represents the alignment verification for a specific VBench-
+2.0 dimension. In each plot, a dot corresponds to the human preference win ratio (horizontal axis) and the VBench-2.0 evaluation
+win ratio (vertical axis) for a given video generation model. A linear fit is applied to visualize the correlation, and Spearman’s
+correlation coefficient (ρ) is computed for each dimension. Experiments show that VBench-2.0 evaluations closely align with
+human judgement in all dimensions.
+
+               TABLE III: Information on Evaluated Models.                                                                                              V. I NSIGHTS AND D ISCUSSIONS
+        Model Name                  Video Length           Per-Frame Resolution           Frame Rate (FPS)
+     HunyuanVideo [31]                  5.3s                    720×1280                        24                            In this section, we present key insights from VBench-2.0’s
+     CogVideoX-1.5 [59]                 10.1s                   768×1360                        16
+       Sora-480p [28]                   5.0s                     480×854                        30                         evaluation, highlighting trade-offs, model characteristics, and
+       Kling 1.6 [29]                   10.0s                   720×1280                        24                         in-depth discussion on superficial versus intrinsic faithfulness
+                                                                                                                           in video generation.
+VAE to compress the spatial and temporal dimensions and
+an expert transformer generative architecture to achieve better
+text-video alignment. We use the best version of it (5B) to                                                                A. Characteristics of Recent SOTA Models
+evaluate. For each prompt, we sample 161 continuous frames                                                                    From Figure 2, we can observe the relative strengths and
+of size 768×1360 at 16 FPS. The initial random seed is also                                                                weaknesses of each model under evaluation.
+set to 42 for a fair comparison.                                                                                           Sora-480p [28]. Sora clearly excels in Human Fidelity and
+                                                                                                                           Creativity dimensions compared to other SOTA models. It
+B. VBench-2.0 Evaluation Results                                                                                           demonstrates a strong ability to generate human figures with
+                                                                                                                           reasonable anatomical consistency throughout a video while
+   For each sub-ability dimension, videos were generated using
+                                                                                                                           also showing improvisational skill in producing novel and
+the models based on the corresponding prompt suite described
+                                                                                                                           imaginative content. This makes Sora a potential tool for
+in Section III-B. The evaluation method introduced in Sec-
+                                                                                                                           human-centric filmmaking and artistic exploration. However,
+tion III-A is then applied to obtain numerical scores between
+                                                                                                                           it falls short in Controllability, Physics and Commonsense
+0 and 1, where a higher value indicate relatively stronger
+                                                                                                                           dimensions, indicating that the generated videos may not align
+performance in that dimension. The evaluation results of the
+                                                                                                                           well with user-provided text prompts and sometimes violate
+four video generative models are summarized in Table II and
+                                                                                                                           real-world principles.
+visualized in Figure 2. Additionally, for each of the five major
+dimensions, we visualize the evaluation results of one model                                                               Kling 1.6 [29]. Kling demonstrates relative strengths in the
+pair to demonstrate the accuracy of our method in Figure 6                                                                 Commonsense, Controllability and camera-related (Multi-View
+(Complex Landscape in Controllability), Figure 5 (Diversity                                                                Consistency, Camera Motion) dimensions. These capabilities
+in Creativity), Figure 4 (Human Anatomy in Human Fidelity),                                                                make Kling well-suited not only for tasks that require precise
+Figure 7 (Mechanics in Physics) and Figure 8 (Instance                                                                     camera control, but also for broader applications involving
+Preservation in Commonsense).                                                                                              coherent, accurate, and user-guided visual storytelling or simu-
+                                                                                                                           lation. Additionally, Kling does not show significantly weaker
+                                                                                                                           performance in any particular area, suggesting that its training
+C. Human Alignment of VBench-2.0                                                                                           data is broad and well-rounded, making it a valuable reference
+   To ensure that VBench-2.0’s evaluation aligns closely with                                                              for future model development.
+human judgment across all evaluation dimensions, we con-                                                                   CogVideoX-1.5 [59]. This model is relatively strong in most
+ducted human preference labeling on a large set of generated                                                               dimensions related to complex prompt adherence (e.g., Com-
+videos, following the approach of VBench [25], [26]. Specifi-                                                              plex Landscape and Complex Plot) and Physics, but shows
+cally, we computed the correlation between our evaluation re-                                                              notably poorer results in human-centric dimensions such as
+sults and human annotations. Figure 11 and Table IV presents                                                               Human Fidelity and Motion Rationality. These outcomes sug-
+the correlation plot and numerical win ratios respectively, illus-                                                         gest that CogVideoX’s training data contains limited high-
+trating the alignment between human judgment and VBench-                                                                   quality human-related content.
+2.0 evaluations in terms of model-level win ratios across video                                                            HunyuanVideo [31]. Although HunyuanVideo is relatively
+generation models in each dimension.                                                                                       weaker in many VBench-2.0 dimensions, it demonstrates
+                                                                                                                                                                                     10
+
+
+
+TABLE IV: Human Alignment of VBench-2.0 Evaluation Methods. For each evaluation dimension and each video generative
+model, we report “VBench-2.0 Win Ratios (left) / Human Win Ratios (right)”. The results demonstrate that our evaluation metrics
+closely align with human perception across all dimensions.
+                           Human             Human             Human                                                                                                     Multi-View
+      Models                                                                  Composition        Diversity        Mechanics          Material         Thermotics
+                          Anatomy            Clothes           Identity                                                                                                  Consistency
+ HunyuanVideo [31]    67.73% / 58.73%   44.49% / 45.67%   52.60% / 58.19%   46.02% / 40.25%   16.67% / 36.67%   53.30% / 50.64%   45.70% / 45.49%   50.13% / 46.08%   52.83% / 50.39%
+ CogVideoX-1.5 [59]    13.10% / 5.28%   48.12% / 44.28%   36.81% / 20.62%   50.00% / 46.23%   26.67% / 28.33%   57.57% / 51.20%   59.43% / 57.49%   56.69% / 58.51%    8.77% / 18.07%
+     Sora [28]        60.05% / 69.71%   55.61% / 57.15%   53.88% / 56.25%   56.08% / 59.96%   93.33% / 83.33%   43.47% / 49.39%   47.38% / 50.79%   40.37% / 41.19%   64.10% / 63.94%
+   Kling 1.6 [29]     59.12% / 66.36%   51.18% / 52.86%   56.48% / 63.05%   47.90% / 53.56%   63.33% / 51.67%   45.56% / 48.78%   46.65% / 45.90%   52.74% / 54.02%   80.00% / 65.98%
+    Correlation            95.46%            90.89%            99.46%            81.70%            94.53%            93.56%            93.71%            93.86%             98.44%
+                      Dynamic Spatial       Dynamic        Motion Order          Human            Complex           Complex            Camera            Motion            Instance
+      Models
+                        Relationship        Attribute      Understanding       Interaction       Landscape            Plot             Motion          Rationality       Preservation
+ HunyuanVideo [31]    50.64% / 51.37%   52.75% / 55.07%   51.63% / 56.35%   49.61% / 52.45%   52.41% / 60.04%   46.85% / 30.46%   46.60% / 49.28%   49.43% / 52.68%   51.36% / 50.88%
+ CogVideoX-1.5 [59]   49.36% / 48.07%   53.72% / 54.70%   51.40% / 52.13%   53.39% / 51.34%   53.89% / 54.46%   52.31% / 65.37%   46.19% / 44.08%   49.04% / 42.24%   44.74% / 43.27%
+     Sora [28]        49.68% / 49.60%   42.98% / 43.16%   43.77% / 30.81%   43.83% / 43.49%   42.04% / 35.87%   51.30% / 49.35%   42.08% / 42.64%   49.43% / 44.83%    52.53% / 53.80%
+   Kling 1.6 [29]     50.32% / 50.97%   50.55% / 47.07%   53.20% / 60.73%   53.17% / 52.73%   51.67% / 49.63%   49.54% / 54.81%   65.12% / 63.99%   52.11% / 60.25%   51.36% / 52.05%
+    Correlation            97.36%            90.95%            99.31%            89.28%            91.82%            89.59%            97.95%            87.97%             99.11%
+
+
+
+
+impressive strengths in human-related aspects (Human Fidelity                                 of diversity. Sora’s internal prompt optimization appears to
+and Motion Rationality). This suggests that HunyuanVideo                                      take a different approach. Going forward, prompt refinement
+likely benefits from training data rich in high-quality, human-                               strategies should consider not only precision but also the
+related content.                                                                              preservation of diversity, which is essential for creating open-
+                                                                                              ended content and simulating the distributions of the real
+B. Key Limitations of Recent SOTA Models                                                      world.
+                                                                                              Prompting Partially Compensates for Physical Reason-
+Key Challenge: Generating Complex Plots. In the Com-
+                                                                                              ing Gaps. Physics is often challenging in video generation.
+plex Plot dimension, state-of-the-art video generation models
+                                                                                              However, with the exception of Sora-480p, models guided by
+struggle to follow detailed text descriptions involving multiple
+                                                                                              the external Prompt Refiner demonstrated reasonably strong
+scenes, character interactions, and logical story progression.
+                                                                                              performance in the Physics dimension. This suggests that even
+A major limitation is that current foundation video generative
+                                                                                              without an inherent understanding of physical laws, models
+models typically produce single-shot videos under 10 seconds
+                                                                                              can be steered toward physically plausible outcomes through
+in length, insufficient for conveying coherent narratives. This
+                                                                                              carefully designed prompts. Therefore, the core difficulty may
+highlights an important direction for future research: building
+                                                                                              lie less in physical reasoning itself, and more in achieving
+models capable of functioning more like true filmmakers.
+                                                                                              precise video-text alignment.
+Surprising Weakness: Controllability in Simple Dynamics.
+Most models perform poorly in capturing Dynamic Spatial                                       Limited Impact on Knowledge-Driven Dimensions. For
+Relationships and Dynamic Attributes. Even in relatively sim-                                 dimensions that rely on model’s intrinsic visual understanding
+ple cases, where an entity’s position, relationship, or attribute                             and prior knowledge, like Human Fidelity, Camera Motion,
+(e.g., color) is instructed to change, and models fail in about                               Geometry, and Commonsense, we observe no consistent per-
+80% of the time. These shortcomings, despite the simplicity                                   formance trend from models using different Prompt Refiners.
+of the underlying semantics, are likely due to inadequate                                     These aspects likely extend beyond the scope of logical
+captioning granularity in video generation datasets. Existing                                 inference or direct text-to-video mapping, limiting the Prompt
+video captioning pipelines may not be intentionally describing                                Refiner’s influence. This suggests that success in these areas
+how object attributes or positions evolve over time, weakening                                may depend less on prompt engineering and more on under-
+models’ understanding of these dynamics. Enhancing these                                      lying data quality and model architecture.
+pipelines with more focused, temporally grounded instructions
+during video captioning could help address this gap.                                          D. Superficial Faithfulness vs. Intrinsic Faithfulness: Do Not
+                                                                                              Miss Out on Any Pillar
+C. The Role of Prompt Engineering                                                                Superficial Faithfulness (e.g., cinematographic quality) often
+   In modern video generation, the Prompt Refiner rewrites or                                 shapes the first impression viewers get from a video. As a
+augments input text prompts to enhance video generation qual-                                 result, models that produce aesthetically pleasing and smooth
+ity. For implementation details, please refer to the Sec IV-A.                                outputs are frequently perceived as “better”. However, this per-
+Below, we highlight several notable and potentially surprising                                ception could be misleading. In practice, Intrinsic Faithfulness,
+observations.                                                                                 which includes elements like storytelling, logical progression,
+Controllability vs. Creativity. Our evaluation results reveal a                               and world simulation, is equally important for determining
+trade-off between Creativity and Controllability. Sora performs                               a model’s potential for real-world applications. For example,
+well in creative tasks but struggles with controllability, while                              as shown in Figure 2 and Table II, CogVideoX performs rela-
+the other models show the reverse pattern. This suggests                                      tively well across many VBench-2.0 dimensions, though its vi-
+that models emphasizing creativity and diversity are better at                                sual Quality Score in VBench suggests room for improvement
+flexibly imagining novel content, but may be less capable of                                  compared to models like Sora and HunyuanVideo. Conversely,
+strictly and accurately following control signals. Alternatively,                             HunyuanVideo produces visually impressive results, though its
+the Prompt Refiner used with the other three models may                                       performance in many structure-driven dimensions in VBench-
+improve controllability by fine-graining the text at the expense                              2.0 suggests opportunities for further growth in those areas.
+                                                                                                                                  11
+
+
+
+These observations highlight a common bias toward relying         Therefore, integrating abnormal data to train a unified clip-
+primarily on visual quality when judging video generation         level anomaly detection model can help the model capture both
+models. To address this, we encourage the community to            the differences and commonalities across various anomalies,
+use both VBench and VBench-2.0 together, enabling a more          thereby enabling the development of a more generalized
+comprehensive and in-depth evaluation across both Superficial     and unified anomaly detection large model. 2) Accuracy and
+Faithfulness and Intrinsic Faithfulness.                          sustainability are two important pillar off a good benchmark.
+                                                                  Fine-tuning-based methods cannot meet the sustainability re-
+                                                                  quirement under current circumstances (unless transform into
+E. Challenge, Current Solution and Future Work of Video
+                                                                  a clip-level formulation that is independent of video length
+Generation Evaluation
+                                                                  and construct a virtual database with the same scale as the
+Challenge. Since Intrinsic Faithfulness is more difficult to      VLM training data). Therefore, what needs to be done in
+accurately evaluate compared to Superficial Faithfulness (        the future is to more thoroughly evaluate existing models’
+i.e., evaluation models need to have capabilities that include    understanding of real-world physical laws and 3D scenes (e.g.,
+complex scene understanding, commonsense reasoning, and           VLM benchmarks for 3D space reasoning [92], cinematogra-
+physical world perception), the demand for using large models     phy understanding [93] and physics understanding [94], [95]).
+such as VLMs and LLMs has gradually increased. However,           When a truly capable and qualified intelligent large model
+in practical applications, dimensions such as Human Anatomy       emerges in the future, it will mark the beginning of the next
+and Motion Rationality are areas where current large models       generation of video generation benchmarks.
+cannot serve as reliable evaluators. The main reasons can be
+summarized into two points: 1) Training data gap: Real-world
+video data used for training VLMs does not contain anomaly                              VI. C ONCLUSION
+or unnatural entity states that are commonly present in gener-
+                                                                     While recent video generative models have achieved super-
+ated videos; 2) Capability limitations: VLMs perform poorly
+                                                                  ficial faithfulness, true progress requires advancing towards
+in aspects such as object counting and 3D understanding.
+                                                                  intrinsic faithfulness, ensuring adherence to physical laws,
+Current Solution. In this paper, to address the above two
+                                                                  commonsense reasoning, and structured coherence. To address
+challenges, we construct the corresponding solutions: 1) For
+                                                                  this, we introduced VBench-2.0, a benchmark assessing mod-
+different tasks and scenarios, we build anomaly specialists to
+                                                                  els on five key dimensions beyond superficial faithfulness. To
+collect abnormal data regarding human body, motion, entity
+                                                                  accurately evaluate these more challenging dimensions, we
+splitting and merging. This data is then mixed with real
+                                                                  fully explore the capabilities of state-of-the-art vision-language
+datasets for training, achieving high accuracy while maintain-
+                                                                  models (VLMs) and large language models (LLMs). We
+ing generalizability. 2) Currently, there are two mainstream
+                                                                  build generalists in dimensions where they excel, and employ
+approaches: fine-tuning-based and non-fine-tuning methods.
+                                                                  various specialists for assessment in areas where they are less
+Fine-tuning-based methods can easily overfit to the generated
+                                                                  proficient. VBench-2.0 complements VBench by expanding
+training data (due to limited data size), achieving high test
+                                                                  evaluation to deeper aspects of video generation, providing a
+accuracy. However, since most generated videos are less than
+                                                                  multi-dimensional and human-aligned evaluation framework.
+10 seconds in length, models tuned in this way struggle to
+                                                                  We believe that VBench-2.0 is an important contribution to
+generalize to longer videos in the future, and the overall
+                                                                  the video generation community, shaping the field into its next
+generalization ability of the model is also a major concern.
+                                                                  era.
+Due to the above drawbacks, VBench-2.0 adopts a non-fine-
+                                                                  Future Work. We will continually add more video generative
+tuning approach. We break down a large problem into multiple
+                                                                  models to VBench-2.0 when they become available.
+visual phenomena that can be understood by VLMs, and
+design redundant questions to improve the accuracy of VLMs.       Potential Negative Societal Impacts. Although VBench-
+For dimensions that require high-level understanding ability,     2.0 does not directly generate videos, the evaluation process
+we further integrate LLM into the evaluation.                     inevitably involves working with generated content. As video
+                                                                  generative models grow more powerful and capable of produc-
+Future Work. We believe that some dimensions will in-
+                                                                  ing increasingly realistic scenes, we emphasize the importance
+evitably require the understanding capabilities of large models
+                                                                  of safety and ethical considerations when using these models.
+to be resolved in the future. However, other dimensions (par-
+                                                                  We encourage responsible use to mitigate potential risks
+ticularly those involving content that should not exist in real
+                                                                  associated with AI-generated media.
+data) indeed need to be handled by specialized expert models,
+as outlined in the two points mentioned above. Here, following
+the above classification, we outline the key directions that                          ACKNOWLEDGMENTS
+future next-generation video generation evaluation methods
+should explore: 1) Although the types of anomalies judged            This study is supported by the Ministry of Education, Sin-
+by different dimensions vary (Human Anatomy and Instance          gapore, under its MOE AcRF Tier 2 (MOE-T2EP20221-0012,
+Preservation evaluate anomalies in human motion, appearance       MOE-T2EP20223-0002), and under the RIE2020 Industry
+anomalies and entity state anomalies, respectively), there is     Alignment Fund – Industry Collaboration Projects (IAF-ICP)
+an overlap between these anomaly types. For example, during       Funding Initiative, as well as cash and in-kind contribution
+the entity splitting process, limb anomalies will also occur.     from the industry partner(s).
+                                                                                                                                                                12
+
+
+
+                              R EFERENCES                                        [26] Z. Huang, F. Zhang, X. Xu, Y. He, J. Yu, Z. Dong, Q. Ma, N. Chanpaisit,
+                                                                                      C. Si, Y. Jiang, Y. Wang, X. Chen, Y.-C. Chen, L. Wang, D. Lin, Y. Qiao,
+ [1] J. H. Liew, H. Yan, J. Zhang, Z. Xu, and J. Feng, “Magicedit:                    and Z. Liu, “Vbench++: Comprehensive and versatile benchmark suite
+     High-fidelity and temporally coherent video editing,” arXiv preprint             for video generative models,” arXiv preprint arXiv:2411.13503, 2024.
+     arXiv:2308.14749, 2023.                                                     [27] Y. Liu, X. Cun, X. Liu, X. Wang, Y. Zhang, H. Chen, Y. Liu, T. Zeng,
+ [2] W. Chai, X. Guo, G. Wang, and Y. Lu, “Stablevideo: Text-                         R. Chan, and Y. Shan, “Evalcrafter: Benchmarking and evaluating large
+     driven consistency-aware diffusion video editing,” arXiv preprint                video generation models,” in CVPR, 2024.
+     arXiv:2308.09592, 2023.                                                     [28] OpenAI, “Sora,” Accessed February 15, 2024 [Online] https:
+ [3] M. Geyer, O. Bar-Tal, S. Bagon, and T. Dekel, “Tokenflow: Con-                   //sora.com/library, 2024. [Online]. Available: https://sora.com/library
+     sistent diffusion features for consistent video editing,” arXiv preprint    [29] K. Team, “Kling,” Accessed December 9, 2024 [Online] https://klingai.
+     arxiv:2307.10373, 2023.                                                          kuaishou.com/, 2024. [Online]. Available: https://klingai.kuaishou.com/
+ [4] J. Huang, L. Sigal, K. M. Yi, O. Wang, and J.-Y. Lee, “Inve: Interactive    [30] runway, “Gen-3,” Accessed June 17, 2024 [Online] https://runwayml.
+     neural video editing,” arXiv preprint arXiv:2307.07663, 2023.                    com/research/introducing-gen-3-alpha, 2024. [Online]. Available: https:
+ [5] P. Couairon, C. Rambour, J.-E. Haugeard, and N. Thome, “Videdit:                 //runwayml.com/research/introducing-gen-3-alpha
+     Zero-shot and spatially aware text-driven video editing,” arXiv preprint    [31] T. Team, “Hunyuanvideo: A systematic framework for large video
+     arXiv:2306.08707, 2023.                                                          generative models,” 2024.
+ [6] S. Liu, Y. Zhang, W. Li, Z. Lin, and J. Jia, “Video-p2p: Video editing      [32] G. Team, “Veo2,” Accessed December 18, 2024 [Online] https:
+     with cross-attention control,” arXiv preprint arXiv:2303.04761, 2023.            //deepmind.google/technologies/veo/veo-2/, 2025. [Online]. Available:
+ [7] Z. Zhang, B. Li, X. Nie, C. Han, T. Guo, and L. Liu, “Towards                    https://deepmind.google/technologies/veo/veo-2/
+     consistent video editing with text-to-image diffusion models,” arXiv        [33] J. Sohl-Dickstein, E. Weiss, N. Maheswaranathan, and S. Ganguli, “Deep
+     preprint arXiv:2305.17431, 2023.                                                 unsupervised learning using nonequilibrium thermodynamics,” in ICML,
+ [8] M. Zhao, R. Wang, F. Bao, C. Li, and J. Zhu, “Controlvideo: Adding               2015.
+     conditional control for one shot text-to-video editing,” arXiv preprint     [34] Y. Song, J. Sohl-Dickstein, D. P. Kingma, A. Kumar, S. Ermon, and
+     arXiv:2305.17098, 2023.                                                          B. Poole, “Score-based generative modeling through stochastic differ-
+ [9] W. Wang, k. Xie, Z. Liu, H. Chen, Y. Cao, X. Wang, and C. Shen,                  ential equations,” in ICLR, 2021.
+     “Zero-shot video editing using off-the-shelf image diffusion models,”       [35] J. Ho, A. Jain, and P. Abbeel, “Denoising diffusion probabilistic models,”
+     arXiv preprint arXiv:2303.17599, 2023.                                           in NeurIPS, 2020.
+[10] D. Ceylan, C.-H. P. Huang, and N. J. Mitra, “Pix2video: Video editing       [36] J. Song, C. Meng, and S. Ermon, “Denoising diffusion implicit models,”
+     using image diffusion,” in ICCV, 2023.                                           in ICLR, 2021.
+[11] C. Qi, X. Cun, Y. Zhang, C. Lei, X. Wang, Y. Shan, and Q. Chen,             [37] L. Zhang and M. Agrawala, “Adding conditional control to text-to-image
+     “Fatezero: Fusing attentions for zero-shot text-based video editing,”            diffusion models,” arXiv preprint arXiv:2302.05543, 2023.
+     arXiv preprint arXiv:2303.09535, 2023.                                      [38] A. Blattmann, T. Dockhorn, S. Kulal, D. Mendelevitch, M. Kilian,
+[12] Y.-C. Lee, J.-Z. G. J. Jang, Y.-T. Chen, E. Qiu, and J.-B. Huang,                D. Lorenz, Y. Levi, Z. English, V. Voleti, A. Letts et al., “Stable video
+     “Shape-aware text-driven layered video editing demo,” arXiv preprint             diffusion: Scaling latent video diffusion models to large datasets,” arXiv
+     arXiv:2301.13173, 2023.                                                          preprint arXiv:2311.15127, 2023.
+[13] Y. Zhao, E. Xie, L. Hong, Z. Li, and G. H. Lee, “Make-a-protagonist:        [39] P. Esser, S. Kulal, A. Blattmann, R. Entezari, J. Müller, H. Saini, Y. Levi,
+     Generic video editing with an ensemble of experts,” arXiv preprint               D. Lorenz, A. Sauer, F. Boesel et al., “Scaling rectified flow transformers
+     arXiv:2305.08850, 2023.                                                          for high-resolution image synthesis,” in ICML, 2024.
+[14] X. Yang, L. Zhu, H. Fan, and Y. Yang, “Videograin: Modulating space-        [40] C. Mou, X. Wang, L. Xie, J. Zhang, Z. Qi, Y. Shan, and X. Qie, “T2i-
+     time attention for multi-grained video editing,” in ICLR, 2025.                  adapter: Learning adapters to dig out more controllable ability for text-
+[15] N. Kumari, B. Zhang, R. Zhang, E. Shechtman, and J.-Y. Zhu,                      to-image diffusion models,” arXiv preprint arXiv:2302.08453, 2023.
+     “Multi-concept customization of text-to-image diffusion,” arXiv preprint    [41] Z. Huang, K. C. Chan, Y. Jiang, and Z. Liu, “Collaborative diffusion
+     arXiv:2212.04488, 2022.                                                          for multi-modal face generation and editing,” in CVPR, 2023.
+[16] J. Karras, A. Holynski, T.-C. Wang, and I. Kemelmacher-Shlizerman,          [42] M. Ding, Z. Yang, W. Hong, W. Zheng, C. Zhou, D. Yin, J. Lin, X. Zou,
+     “Dreampose: Fashion image-to-video synthesis via stable diffusion,”              Z. Shao, H. Yang et al., “CogView: Mastering text-to-image generation
+     arXiv preprint arXiv:2304.06025, 2023.                                           via transformers,” in NeurIPS, 2021.
+[17] Y. He, M. Xia, H. Chen, X. Cun, Y. Gong, J. Xing, Y. Zhang, X. Wang,        [43] M. Ding, W. Zheng, W. Hong, and J. Tang, “Cogview2: Faster and better
+     C. Weng, Y. Shan et al., “Animate-a-story: Storytelling with retrieval-          text-to-image generation via hierarchical transformers,” in NeurIPS,
+     augmented video generation,” arXiv preprint arXiv:2307.06940, 2023.              2022.
+[18] Y. Guo, C. Yang, A. Rao, Y. Wang, Y. Qiao, D. Lin, and B. Dai,              [44] J. Ho, W. Chan, C. Saharia, J. Whang, R. Gao, A. Gritsenko, D. P.
+     “Animatediff: Animate your personalized text-to-image diffusion models           Kingma, B. Poole, M. Norouzi, D. J. Fleet et al., “Imagen video:
+     without specific tuning,” in ICLR, 2024.                                         High definition video generation with diffusion models,” arXiv preprint
+[19] J. Xing, M. Xia, Y. Zhang, H. Chen, X. Wang, T.-T. Wong, and Y. Shan,            arXiv:2210.02303, 2022.
+     “Dynamicrafter: Animating open-domain images with video diffusion           [45] D. P. Kingma and M. Welling, “Auto-encoding variational bayes,” arXiv
+     priors,” arXiv preprint arXiv:2310.12190, 2023.                                  preprint arXiv:1312.6114, 2013.
+[20] N. Agarwal, A. Ali, M. Bala, Y. Balaji, E. Barker, T. Cai, P. Chattopad-    [46] A. Van Den Oord, O. Vinyals et al., “Neural discrete representation
+     hyay, Y. Chen, Y. Cui, Y. Ding et al., “Cosmos world foundation model            learning,” in NeurIPS, 2017.
+     platform for physical ai,” arXiv preprint arXiv:2501.03575, 2025.           [47] P. Esser, R. Rombach, and B. Ommer, “Taming transformers for high-
+[21] Y. Wang, X. Chen, X. Ma, S. Zhou, Z. Huang, Y. Wang, C. Yang,                    resolution image synthesis,” in CVPR, 2021.
+     Y. He, J. Yu, P. Yang et al., “Lavie: High-quality video generation with    [48] D. Podell, Z. English, K. Lacey, A. Blattmann, T. Dockhorn, J. Müller,
+     cascaded latent diffusion models,” arXiv preprint arXiv:2309.15103,              J. Penna, and R. Rombach, “Sdxl: Improving latent diffusion models
+     2023.                                                                            for high-resolution image synthesis,” arXiv preprint arXiv:2307.01952,
+[22] J. Wang, H. Yuan, D. Chen, Y. Zhang, X. Wang, and S. Zhang, “Mod-                2023.
+     elscope text-to-video technical report,” arXiv preprint arXiv:2308.06571,   [49] L. Yu, Y. Cheng, K. Sohn, J. Lezama, H. Zhang, H. Chang, A. G.
+     2023.                                                                            Hauptmann, M.-H. Yang, Y. Hao, I. Essa et al., “Magvit: Masked
+[23] H. Chen, M. Xia, Y. He, Y. Zhang, X. Cun, S. Yang, J. Xing, Y. Liu,              generative video transformer,” in CVPR, 2023.
+     Q. Chen, X. Wang, C. Weng, and Y. Shan, “Videocrafter1: Open                [50] A. Dosovitskiy, L. Beyer, A. Kolesnikov, D. Weissenborn, X. Zhai,
+     diffusion models for high-quality video generation,” arXiv preprint              T. Unterthiner, M. Dehghani, M. Minderer, G. Heigold, S. Gelly et al.,
+     arXiv:2310.19512, 2023.                                                          “An image is worth 16x16 words: Transformers for image recognition
+[24] W. Hong, M. Ding, W. Zheng, X. Liu, and J. Tang, “CogVideo: Large-               at scale,” arXiv preprint arXiv:2010.11929, 2020.
+     scale pretraining for text-to-video generation via transformers,” arXiv     [51] W. Peebles and S. Xie, “Scalable diffusion models with transformers,”
+     preprint arXiv:2205.15868, 2022.                                                 arXiv preprint arXiv:2212.09748, 2022.
+[25] Z. Huang, Y. He, J. Yu, F. Zhang, C. Si, Y. Jiang, Y. Zhang, T. Wu,         [52] Z. Luo, D. Chen, Y. Zhang, Y. Huang, L. Wang, Y. Shen, D. Zhao,
+     Q. Jin, N. Chanpaisit et al., “Vbench: Comprehensive benchmark suite             J. Zhou, and T. Tan, “Videofusion: Decomposed diffusion models for
+     for video generative models,” in CVPR, 2024.                                     high-quality video generation,” in CVPR, 2023.
+                                                                                                                                                            13
+
+
+
+[53] Y. He, T. Yang, Y. Zhang, Y. Shan, and Q. Chen, “Latent video diffusion     [73] K. Sun, K. Huang, X. Liu, Y. Wu, Z. Xu, Z. Li, and X. Liu, “T2v-
+     models for high-fidelity video generation with arbitrary lengths,” arXiv         compbench: A comprehensive benchmark for compositional text-to-
+     preprint arXiv:2211.13221, 2022.                                                 video generation,” arXiv preprint arXiv:2407.14505, 2024.
+[54] D. Zhou, W. Wang, H. Yan, W. Lv, Y. Zhu, and J. Feng, “Magicvideo:          [74] Y. Wang, X. He, K. Wang, L. Ma, J. Yang, S. Wang, S. S. Du,
+     Efficient video generation with latent diffusion models,” arXiv preprint         and Y. Shen, “Is your world simulator a good story presenter? a
+     arXiv:2211.11018, 2023.                                                          consecutive events-based benchmark for future long video generation,”
+[55] D. J. Zhang, J. Z. Wu, J.-W. Liu, R. Zhao, L. Ran, Y. Gu, D. Gao, and            arXiv preprint arXiv:2412.16211, 2024.
+     M. Z. Shou, “Show-1: Marrying pixel and latent diffusion models for         [75] Y. Zhang, J. Wu, W. Li, B. Li, Z. Ma, Z. Liu, and C. Li, “Video
+     text-to-video generation,” arXiv preprint arXiv:2309.15818, 2023.                instruction tuning with synthetic data,” arXiv preprint arXiv:2410.02713,
+[56] S. Ge, S. Nah, G. Liu, T. Poon, A. Tao, B. Catanzaro, D. Jacobs, J.-             2024.
+     B. Huang, M.-Y. Liu, and Y. Balaji, “Preserve your own correlation: A       [76] A. Yang, B. Yang, B. Zhang, B. Hui, B. Zheng, B. Yu, C. Li, D. Liu,
+     noise prior for video diffusion models,” in ICCV, 2023.                          F. Huang, H. Wei et al., “Qwen2. 5 technical report,” arXiv preprint
+[57] A. Blattmann, R. Rombach, H. Ling, T. Dockhorn, S. W. Kim, S. Fidler,            arXiv:2412.15115, 2024.
+     and K. Kreis, “Align your latents: High-resolution video synthesis with     [77] Z. Xie, Z. Zhang, Y. Cao, Y. Lin, J. Bao, Z. Yao, Q. Dai, and
+     latent diffusion models,” in CVPR, 2023.                                         H. Hu, “Simmim: A simple framework for masked image modeling,”
+                                                                                      in Proceedings of the IEEE/CVF conference on computer vision and
+[58] L. Khachatryan, A. Movsisyan, V. Tadevosyan, R. Henschel, Z. Wang,
+                                                                                      pattern recognition, 2022, pp. 9653–9663.
+     S. Navasardyan, and H. Shi, “Text2video-zero: Text-to-image dif-
+                                                                                 [78] T. Cheng, L. Song, Y. Ge, W. Liu, X. Wang, and Y. Shan, “Yolo-
+     fusion models are zero-shot video generators,” arXiv preprint
+                                                                                      world: Real-time open-vocabulary object detection,” in Proceedings of
+     arXiv:2303.13439, 2023.
+                                                                                      the IEEE/CVF Conference on Computer Vision and Pattern Recognition,
+[59] Z. Yang, J. Teng, W. Zheng, M. Ding, S. Huang, J. Xu, Y. Yang,                   2024, pp. 16 901–16 911.
+     W. Hong, X. Zhang, G. Feng et al., “Cogvideox: Text-to-video diffusion      [79] G. Fang, W. Yan, Y. Guo, J. Han, Z. Jiang, H. Xu, S. Liao, and X. Liang,
+     models with an expert transformer,” arXiv preprint arXiv:2408.06072,             “Humanrefiner: Benchmarking abnormal human generation and refining
+     2024.                                                                            with coarse-to-fine pose-reversible guidance,” in European Conference
+[60] A. Polyak, A. Zohar, A. Brown, A. Tjandra, A. Sinha, A. Lee,                     on Computer Vision. Springer, 2024, pp. 201–217.
+     A. Vyas, B. Shi, C.-Y. Ma, C.-Y. Chuang, D. Yan, D. Choudhary,              [80] J. Deng, J. Guo, N. Xue, and S. Zafeiriou, “Arcface: Additive angular
+     D. Wang, G. Sethi, G. Pang, H. Ma, I. Misra, J. Hou, J. Wang,                    margin loss for deep face recognition,” in CVPR, 2019.
+     K. Jagadeesh, K. Li, L. Zhang, M. Singh, M. Williamson, M. Le,              [81] J. Deng, J. Guo, E. Ververas, I. Kotsia, and S. Zafeiriou, “Retinaface:
+     M. Yu, M. K. Singh, P. Zhang, P. Vajda, Q. Duval, R. Girdhar,                    Single-shot multi-level face localisation in the wild,” in CVPR, 2020.
+     R. Sumbaly, S. S. Rambhatla, S. Tsai, S. Azadi, S. Datta, S. Chen,          [82] K. Simonyan and A. Zisserman, “Very deep convolutional networks for
+     S. Bell, S. Ramaswamy, S. Sheynin, S. Bhattacharya, S. Motwani,                  large-scale image recognition,” in ICLR, 2015.
+     T. Xu, T. Li, T. Hou, W.-N. Hsu, X. Yin, X. Dai, Y. Taigman, Y. Luo,        [83] L. A. Gatys, A. S. Ecker, and M. Bethge, “A neural algorithm of artistic
+     Y.-C. Liu, Y.-C. Wu, Y. Zhao, Y. Kirstain, Z. He, Z. He, A. Pumarola,            style,” arXiv preprint arXiv:1508.06576, 2015.
+     A. Thabet, A. Sanakoyeu, A. Mallya, B. Guo, B. Araya, B. Kerr,              [84] N. Karaev, I. Rocco, B. Graham, N. Neverova, A. Vedaldi, and C. Rup-
+     C. Wood, C. Liu, C. Peng, D. Vengertsev, E. Schonfeld, E. Blanchard,             precht, “Cotracker: It is better to track together,” in ECCV, 2024.
+     F. Juefei-Xu, F. Nord, J. Liang, J. Hoffman, J. Kohler, K. Fire,            [85] X. Li, D. Zhou, C. Zhang, S. Wei, Q. Hou, and M.-M. Cheng, “Sora
+     K. Sivakumar, L. Chen, L. Yu, L. Gao, M. Georgopoulos, R. Moritz,                generates videos with stunning geometrical consistency,” arXiv preprint
+     S. K. Sampson, S. Li, S. Parmeggiani, S. Fine, T. Fowler, V. Petrovic,           arXiv:2402.17403, 2024.
+     and Y. Du, “Movie gen: A cast of media foundation models,” 2025.            [86] G. Lowe, “Sift-the scale invariant feature transform,” Int. J, 2004.
+     [Online]. Available: https://arxiv.org/abs/2410.13720                       [87] M. Muja and D. G. Lowe, “Fast approximate nearest neighbors with
+[61] W. Team, “Wan: Open and advanced large-scale video generative                    automatic algorithm configuration.” VISAPP (1), 2009.
+     models,” 2025.                                                              [88] M. A. Fischler and R. C. Bolles, “Random sample consensus: a paradigm
+[62] S. Team, 2025. [Online]. Available: https://arxiv.org/abs/2502.10248             for model fitting with applications to image analysis and automated
+[63] M. Team, “Minmax,” Accessed August 31, 2024 [Online] https:                      cartography,” Communications of the ACM, 1981.
+     //hailuoai.com/, 2023. [Online]. Available: https://hailuoai.com/           [89] Z. Teed and J. Deng, “Raft: Recurrent all-pairs field transforms for
+[64] W. Fan, C. Si, J. Song, Z. Yang, Y. He, L. Zhuo, Z. Huang, Z. Dong,              optical flow,” in ECCV, 2020.
+     J. He, D. Pan et al., “Vchitect-2.0: Parallel transformer for scaling up    [90] S. Bai, K. Chen, X. Liu, J. Wang, W. Ge, S. Song, K. Dang, P. Wang,
+     video diffusion models,” arXiv preprint arXiv:2501.08453, 2025.                  S. Wang, J. Tang et al., “Qwen2. 5-vl technical report,” arXiv preprint
+[65] C. Si, W. Fan, Z. Lv, Z. Huang, Y. Qiao, and Z. Liu, “Repvideo: Rethink-         arXiv:2502.13923, 2025.
+     ing cross-layer representation for video generation,” arXiv 2501.08994,     [91] X. Sun, Y. Chen, Y. Huang, R. Xie, J. Zhu, K. Zhang, S. Li,
+     2025.                                                                            Z. Yang, J. Han, X. Shu et al., “Hunyuan-large: An open-source moe
+[66] X. Peng, Z. Zheng, C. Shen, T. Young, X. Guo, B. Wang, H. Xu, H. Liu,            model with 52 billion activated parameters by tencent,” arXiv preprint
+     M. Jiang, W. Li, Y. Wang, A. Ye, G. Ren, Q. Ma, W. Liang, X. Lian,               arXiv:2411.02265, 2024.
+     X. Wu, Y. Zhong, Z. Li, C. Gong, G. Lei, L. Cheng, L. Zhang, M. Li,         [92] J. Yang, S. Yang, A. W. Gupta, R. Han, L. Fei-Fei, and S. Xie, “Thinking
+     R. Zhang, S. Hu, S. Huang, X. Wang, Y. Zhao, Y. Wang, Z. Wei, and                in space: How multimodal large language models see, remember, and
+     Y. You, “Open-sora 2.0: Training a commercial-level video generation             recall spaces,” in CVPR, 2025.
+     model in $200k,” arXiv preprint arXiv:2503.09642, 2025.                     [93] H. Liu, J. He, Y. Jin, D. Zheng, Y. Dong, F. Zhang, Z. Huang, Y. He,
+                                                                                      Y. Li, W. Chen et al., “Shotbench: Expert-level cinematic understanding
+[67] M. Heusel, H. Ramsauer, T. Unterthiner, B. Nessler, and S. Hochreiter,
+                                                                                      in vision-language models,” arXiv preprint arXiv:2506.21356, 2025.
+     “GANs trained by a two time-scale update rule converge to a local nash
+                                                                                 [94] V. Balazadeh, M. Ataei, H. Cheong, A. Hosein Khasahmadi, and
+     equilibrium,” in NeurIPS, 2017.
+                                                                                      R. G. Krishnan, “Synthetic vision: Training vision-language models to
+[68] T. Salimans, I. Goodfellow, W. Zaremba, V. Cheung, A. Radford,                   understand physics,” arXiv e-prints, 2024.
+     X. Chen, and X. Chen, “Improved techniques for training gans,” in           [95] H. Al-Tahan, Q. Garrido, R. Balestriero, D. Bouchacourt, C. Hazirbas,
+     NeurIPS, 2016.                                                                   and M. Ibrahim, “Unibench: Visual reasoning requires rethinking vision-
+[69] T. Unterthiner, S. van Steenkiste, K. Kurach, R. Marinier, M. Michalski,         language beyond scaling,” in NeruIPS, 2024.
+     and S. Gelly, “FVD: A new metric for video generation,” in ICLRW,
+     2019.
+[70] Y. Liu, L. Li, S. Ren, R. Gao, S. Li, S. Chen, X. Sun, and L. Hou, “Fetv:
+     A benchmark for fine-grained evaluation of open-domain text-to-video
+     generation,” in NeurIPS, 2023.
+[71] F. Zhang, S. Tian, Z. Huang, Y. Qiao, and Z. Liu, “Evaluation agent:
+     Efficient and promptable evaluation framework for visual generative
+     models,” arXiv preprint arXiv:2412.09645, 2024.
+[72] F. Meng, J. Liao, X. Tan, W. Shao, Q. Lu, K. Zhang, Y. Cheng,
+     D. Li, Y. Qiao, and P. Luo, “Towards world simulator: Crafting physical
+     commonsense-based benchmark for video generation,” arXiv preprint
+     arXiv:2410.05363, 2024.
+                                                                                                                                   14
+
+
+
+Dian Zheng is an incoming Ph.D. student at MM-                                   Fan Zhang is currently a research assistant at the
+Lab@CUHK, Chinese University of Hong Kong                                        Shanghai Artificial Intelligence Laboratory, super-
+(CUHK), supervised by Prof. Hongsheng Li. He                                     vised by Prof. Ziwei Liu. He received his bachelor’s
+received his Master’s degree in 2025 and his Bache-                              degree from the University of Electronic Science
+lor’s degree in 2022 from Sun Yat-sen University and                             and Technology of China (UESTC). His research
+Dalian University of Technology respectively. His                                interests include generative models and computer
+current research interests focus on visual generation                            vision.
+and evaluation.
+
+
+
+
+                                                                                 Lulu Gu is a research intern at the Shanghai Artifi-
+                                                                                 cial Intelligence Laboratory. She is currently pursu-
+Ziqi Huang is currently a Ph.D. student at                                       ing her master’s degree at the School of Electronic
+MMLab@NTU, Nanyang Technological University                                      Information and Electrical Engineering, Shanghai
+(NTU), supervised by Prof. Ziwei Liu. She received                               Jiao Tong University. Her research interests lie in
+her Bachelor’s degree from NTU in 2022. Her cur-                                 deep learning and generative modeling.
+rent research interests include visual generation and
+evaluation. She is awarded Google PhD Fellowship
+2023, and is a recipient of the 2025 Apple Scholars
+in AI/ML PhD Fellowship.
+
+
+
+
+                                                                                Yuanhan Zhang is currently a Ph.D. student at
+                                                                                MMLab@NTU, Nanyang Technological University,
+                                                                                supervised by Prof. Ziwei Liu. His interests lie in
+                                                                                computer vision and deep learning. In particular,
+Hongbo Liu is currently pursuing his Ph.D. degree                               He is focused on adapting foundation models—from
+at Tongji University, under the supervision of Prof.                            vision to multi-modal—for real-world exploration.
+Shengjie Zhao. He received his Bachelor’s degree                                He has published several papers in ICCV, ECCV,
+from Tongji University in 2023. His research inter-                             CVPR, NeurIPS and IEEE Transactions on Pattern
+ests lie in multimodal understanding and generation.                            Analysis and Machine Intelligence (TPAMI). He
+                                                                                also served as a reviewer for CVPR, ICCV, ECCV,
+                                                                                NeurIPS, ICML, ICLR, IEEE Transactions on Pat-
+                                                         tern Analysis and Machine Intelligence (TPAMI), and International Journal
+                                                         of Computer Vision (IJCV).
+
+
+
+
+                                                                                 Jingwen He is currently a Ph.D. student at Chinese
+                                                                                 University of Hong Kong, supervised by Prof. Wanli
+                                                                                 Ouyang. She received her M.Phil. degree in elec-
+Kai Zou is currently a Master’s student at the Uni-                              tronic and information engineering from the Uni-
+versity of Science and Technology of China, under                                versity of Sydney, Australia, in 2019, supervised by
+the supervision of Professor Bin Liu. He obtained                                Prof. Dong Xu. Her research interests include image
+his Bachelor’s degree from Shanghai University in                                generation, video generation, and vision language
+2023. His current research interests lie in multimodal                           models.
+generation and understanding.
+
+
+
+
+                                                                                  Wei-Shi Zheng is now a full Professor with Sun
+                                                                                  Yat-sen University. His research interests include
+                                                                                  person association and activity understanding, AI
+                                                                                  robotics learning, and the related weakly super-
+                                                                                  vised/unsupervised and continuous learning machine
+Yinan He is currently a Research Engineer at                                      learning algorithms. He has now published more
+Shanghai AI Laboratory, where he is a member of                                   than 200 papers, including more than 150 publica-
+the OpenGVLab. He received his Master’s degree                                    tions in main journals (TPAMI, IJCV, SIGGRAPH,
+from Beijing University of Posts and Telecommuni-                                 TIP) and top conferences (ICCV, CVPR, ECCV,
+cations. His current research interests include video                             NeurIPS). He has ever served as area chairs of
+understanding and multi-modality large language                                   ICCV, CVPR, ECCV, BMVC, NeurIPS and etc.
+models.                                                  He is associate editors/on the editorial board of IEEE-TPAMI, Artificial
+                                                         Intelligence Journal, Pattern Recognition. He has ever joined Microsoft
+                                                         Research Asia Young Faculty Visiting Programme. He is a Cheung Kong
+                                                         Scholar Distinguished Professor, a recipient of the NSFC Excellent Young
+                                                         Scientists Fund, a Fellow of IAPR and a recipient of the Royal Society-
+                                                         Newton Advanced Fellowship of the United Kingdom.
+                                                                                 15
+
+
+
+                          Yu Qiao (Senior Member, IEEE) is a professor and
+                          Leading Scientist at the Shanghai AI Laboratory,
+                          previously the Director of the Institute of Advanced
+                          Computing and Digital Engineering at the Shen-
+                          zhen Institutes of Advanced Technology, Chinese
+                          Academy of Science. He has published more than
+                          300 research papers with more than 100,000 cita-
+                          tions. His team won the AAAI 2021 Best Paper,
+                          the CVPR 2023 Best Paper, and the ACL 2024
+                          Distinguished Paper. He received the Young Scholar
+                          Award of Wang Xuan Award, the First Prize of
+the Guangdong Technological Invention Award, and the Jiaxi Lv Young
+Researcher Award from the Chinese Academy of Sciences. His research
+interests include deep learning on computer vision, video understanding and
+generation, and multimodal large models.
+
+
+
+
+                        Ziwei Liu is currently an Associate Professor at
+                        Nanyang Technological University, Singapore. His
+                        research revolves around computer vision, machine
+                        learning and computer graphics. He has published
+                        extensively on top-tier conferences and journals
+                        in relevant fields, including CVPR, ICCV, ECCV,
+                        NeurIPS, ICLR, SIGGRAPH, TPAMI, TOG and
+                        Nature - Machine Intelligence. He is the recipient
+                        of PAMI Mark Everingham Prize, CVPR Best Paper
+                        Award Candidate, Asian Young Scientist Fellowship,
+                        International Congress of Basic Science Frontiers of
+Science Award and MIT Technology Review Innovators under 35 Asia Pacific.
+He serves as an Area Chair of CVPR, ICCV, ECCV, NeurIPS and ICLR, as
+well as an Associate Editor of IJCV.
+

@@ -1,0 +1,58 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>VLA + RL 学习路线 · 已核验论文</title>
+  <link rel="stylesheet" href="../assets/css/style.css"><script src="../assets/js/theme.js"></script>
+  <style>
+    .roadmap{max-width:1160px;margin:0 auto;padding:86px 28px 80px}.hero{padding:34px;border:1px solid var(--border);border-radius:18px;background:var(--bg2)}
+    .eyebrow{font:600 11px/1 var(--font-mono);letter-spacing:.12em;color:var(--accent)}h1{font:700 42px/1.15 var(--font-serif);margin:14px 0}.lead{max-width:850px;color:var(--text2);line-height:1.8}
+    .legend{display:flex;gap:14px;flex-wrap:wrap;margin-top:18px;color:var(--text3);font:500 11px/1.4 var(--font-mono)}
+    .phase{margin-top:26px;padding:24px;border:1px solid var(--border);border-radius:15px;background:var(--bg2)}.phase h2{margin:0 0 6px;font:650 24px/1.3 var(--font-serif)}.phase>p{margin:0 0 18px;color:var(--text3);line-height:1.75}
+    .lane{display:grid;grid-template-columns:180px 1fr;gap:18px;padding:14px 0;border-top:1px solid var(--border)}.lane-label{font:600 12px/1.5 var(--font-mono);color:var(--accent)}.chips{display:flex;gap:8px;flex-wrap:wrap}
+    .paper-chip{padding:6px 9px;border-radius:8px;border:1px solid rgba(74,222,154,.38);color:var(--accent);text-decoration:none;font:500 12px/1.3 var(--font-mono);background:var(--bg3)}.paper-chip:hover{border-color:var(--accent);color:var(--text)}
+    .audit{margin-top:26px;padding:22px;border:1px dashed var(--amber);border-radius:14px;background:color-mix(in srgb,var(--amber) 5%,var(--bg2))}.audit h2{font:650 20px/1.3 var(--font-serif);margin:0 0 10px}.audit p,.audit li{color:var(--text2);line-height:1.75}.audit code{color:var(--amber)}
+    .matrix{width:100%;border-collapse:collapse;margin-top:14px;font-size:13px}.matrix th,.matrix td{padding:10px;border-bottom:1px solid var(--border);text-align:left;vertical-align:top}.matrix th{color:var(--text3);font-family:var(--font-mono)}
+    @media(max-width:700px){.roadmap{padding:72px 16px}.hero{padding:24px}h1{font-size:32px}.lane{grid-template-columns:1fr}.matrix{display:block;overflow:auto}}
+  </style>
+</head>
+<body><nav class="nav"><a class="nav-logo" href="../index.html">Paper Notes</a><div class="nav-links"><a href="wam-roadmap.html">WAM 路线</a><a href="../index.html#vla-rl">首页专题</a></div></nav>
+<main class="roadmap">
+  <section class="hero"><div class="eyebrow">TOPIC 02 · VERIFIED ROUTE</div><h1>VLA + RL：从动作模仿到闭环自我改进</h1><p class="lead">截图的主线是对的：VLA 先用大规模数据建立跨任务先验，SFT 把它适配到机器人，RL 再通过环境反馈补上分布偏移、错误恢复与策略最优性。但“用了 RL”不是一个方法类别；真正要区分的是反馈来自离线数据、在线真机还是世界模型，以及更新的是整条生成链、动作块、residual，还是仅仅一个 critic。</p><div class="legend"><span>● 绿色 = 身份已核验 + PDF + Zotero + 独立 HTML</span><span>路线按学习依赖排列，不按发布时间排列</span></div></section>
+
+  <section class="phase" id="foundation"><h2>§1 基础：先分清 VLA、SFT、offline RL 与 online RL</h2><p>先学会读动作头和数据分布，再进入后训练。RT-2/OpenVLA/π₀ 是 VLA 基座；IQL、AWAC 与 HIL-SERL 分别提供离线、离线到在线、真机人类介入三套 RL 直觉。</p>
+    <div class="lane"><div class="lane-label">VLA 基座</div><div class="chips"><a class="paper-chip" href="rt-2.html">RT-2</a><a class="paper-chip" href="openvla.html">OpenVLA</a><a class="paper-chip" href="pi0-vla-flow-model.html">π₀</a><a class="paper-chip" href="pi05-open-world.html">π₀.₅</a><a class="paper-chip" href="diffusion-policy.html">Diffusion Policy</a></div></div>
+    <div class="lane"><div class="lane-label">RL 基础</div><div class="chips"><a class="paper-chip" href="iql.html">IQL</a><a class="paper-chip" href="awac.html">AWAC</a><a class="paper-chip" href="hil-serl.html">HIL-SERL</a></div></div>
+  </section>
+
+  <section class="phase" id="why"><h2>§2 RL 到底给 VLA 带来了什么</h2><p>不要把训练任务涨点误当泛化。先读系统实证，再决定要优化视觉、语义、执行鲁棒，还是仅仅提高熟悉任务成功率。</p>
+    <div class="lane"><div class="lane-label">系统实证</div><div class="chips"><a class="paper-chip" href="rl-vla-generalization.html">What Can RL Bring to VLA Generalization?</a></div></div>
+    <div class="lane"><div class="lane-label">开放环境基座</div><div class="chips"><a class="paper-chip" href="pi06-recap-rl.html">π₀.₆ / RECAP</a><a class="paper-chip" href="pi07-steerable-generalist.html">π₀.₇</a></div></div>
+  </section>
+
+  <section class="phase" id="online"><h2>§3 轻量在线 RL 与真机落地</h2><p>工程主流是保护预训练基座，只训练少量 residual、critic 或动作模块，并用人类介入和异步采样降低真机成本。</p>
+    <div class="lane"><div class="lane-label">分钟级适配</div><div class="chips"><a class="paper-chip" href="expo-ft.html">EXPO-FT</a><a class="paper-chip" href="rl-token.html">RL Token</a><a class="paper-chip" href="hil-serl.html">HIL-SERL</a></div></div>
+    <div class="lane"><div class="lane-label">离线 → 在线</div><div class="chips"><a class="paper-chip" href="bora.html">BORA</a><a class="paper-chip" href="rankq.html">RankQ</a><a class="paper-chip" href="dygro-vla.html">DyGRO-VLA</a><a class="paper-chip" href="learning-while-deploying.html">LWD</a></div></div>
+    <div class="lane"><div class="lane-label">系统与可靠性</div><div class="chips"><a class="paper-chip" href="rl-vla3.html">RL-VLA³</a><a class="paper-chip" href="chi0.html">χ₀</a></div></div>
+  </section>
+
+  <section class="phase" id="offline"><h2>§4 离线 RL 与小数据冷启动</h2><p>没有大量真机交互时，关键是只在数据支持范围内提取“哪些动作更好”，同时让算法尊重 VLA 的 action chunk 或 flow 表示。</p>
+    <div class="lane"><div class="lane-label">保守价值学习</div><div class="chips"><a class="paper-chip" href="iql.html">IQL</a><a class="paper-chip" href="awac.html">AWAC</a><a class="paper-chip" href="rankq.html">RankQ</a></div></div>
+    <div class="lane"><div class="lane-label">VLA 原生结构</div><div class="chips"><a class="paper-chip" href="arfm.html">ARFM</a><a class="paper-chip" href="co-rft.html">CO-RFT</a><a class="paper-chip" href="flowpro.html">FlowPRO</a></div></div>
+  </section>
+
+  <section class="phase" id="generative"><h2>§5 生成式动作头的原生 RL</h2><p>扩散与 flow 不是普通高斯 actor。DPPO 把去噪链视为内部 MDP；ReinFlow 用可学习噪声让确定性 flow 具备 likelihood 与探索。</p>
+    <div class="lane"><div class="lane-label">Diffusion</div><div class="chips"><a class="paper-chip" href="dppo.html">DPPO</a><a class="paper-chip" href="dsrl-latent-policy-rl.html">DSRL · Latent Steering</a></div></div>
+    <div class="lane"><div class="lane-label">Flow · 训练期</div><div class="chips"><a class="paper-chip" href="reinflow.html">ReinFlow</a><a class="paper-chip" href="arfm.html">ARFM</a><a class="paper-chip" href="sac-flow.html">SAC Flow</a><a class="paper-chip" href="pi-rl.html">πRL</a><a class="paper-chip" href="sa-vla.html">SA-VLA</a></div></div>
+    <div class="lane"><div class="lane-label">Flow · 推理期</div><div class="chips"><a class="paper-chip" href="qgf.html">QGF</a></div></div>
+  </section>
+
+  <section class="phase" id="self-improve"><h2>§6 自提升：RL 生成数据，或在世界模型里想象</h2><p>PLD 用 residual RL 发现失败并生成恢复数据，再蒸馏回 VLA；RISE 则把 rollout 搬进 compositional world model，用想象优势更新策略。</p>
+    <div class="lane"><div class="lane-label">数据与阶段闭环</div><div class="chips"><a class="paper-chip" href="self-improving-vla.html">PLD Self-Improving VLA</a><a class="paper-chip" href="stare-vla.html">STARE-VLA</a></div></div>
+    <div class="lane"><div class="lane-label">想象 RL</div><div class="chips"><a class="paper-chip" href="rise-compositional-world-model.html">RISE</a></div></div>
+  </section>
+
+  <section class="audit" id="audit"><h2>截图条目核验说明 · 2026-08-10 更新</h2><p>截图中的 11 个黄色名称现已全部对应到公开论文，并完成 PDF、Zotero 与独立精读页。两处二手写法已纠正：<code>STARF-VLA → STARE-VLA</code>；<code>Kai-0 → χ₀</code>。其余简称对应 <code>RL Token</code>、<code>SAC Flow</code>、<code>πRL</code>、<code>SA-VLA</code>、<code>FlowPRO</code>、<code>DSRL</code>、<code>QGF</code>、<code>RL-VLA³</code> 与 <code>LWD</code>。</p>
+    <table class="matrix"><thead><tr><th>截图写法</th><th>核验后的正式身份</th><th>路线定位</th></tr></thead><tbody><tr><td>DSRL</td><td>Steering Your Diffusion Policy with Latent Space RL</td><td>冻结 diffusion policy，学习潜噪声策略</td></tr><tr><td>QGF</td><td>Test-Time Gradient Guidance of Flow Policies</td><td>critic 只在推理时引导 flow</td></tr><tr><td>STARF-VLA</td><td>STARE-VLA</td><td>阶段级信用分配</td></tr><tr><td>Kai-0</td><td>χ₀</td><td>资源受限长程双臂可靠性</td></tr></tbody></table>
+  </section>
+</main></body></html>

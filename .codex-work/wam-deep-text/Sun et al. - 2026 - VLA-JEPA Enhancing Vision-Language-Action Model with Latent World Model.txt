@@ -1,0 +1,1059 @@
+                                         VLA-JEPA: Enhancing Vision-Language-Action Model
+                                         with Latent World Model
+                                         Jingwen Sun1,2,∗ , Wenyao Zhang3,5∗ , Zekun Qi4 , Shaojie Ren2,6 , Zezhi Liu2,7 , Hanxin Zhu1 , Guangzhong Sun1 , Xin
+                                         Jin2,5,† , Zhibo Chen1,2,†
+                                         1
+                                           University of Science and Technology of China 2 Zhongguancun Academy, Beijing, China 3 Shanghai Jiao
+                                         Tong University 4 Tsinghua University 5 Eastern Institute of Technology, Ningbo 6 University of Chinese
+                                         Academy of Sciences 7 Nankai University
+                                         ∗
+                                           Equal Contribution, † Corresponding author
+
+
+
+
+arXiv:2602.10098v2 [cs.RO] 14 Feb 2026
+                                             Pretraining Vision-Language-Action (VLA) policies on internet-scale video is appealing, yet current
+                                             latent-action objectives often learn the wrong thing: they remain anchored to pixel variation rather
+                                             than action-relevant state transitions, making them vulnerable to appearance bias, nuisance motion,
+                                             and information leakage. We introduce VLA-JEPA, a JEPA-style pretraining framework that sidesteps
+                                             these pitfalls by design. The key idea is leakage-free state prediction: a target encoder produces latent
+                                             representations from future frames, while the student pathway sees only the current observation—future
+                                             information is used solely as supervision targets, never as input. By predicting in latent space rather than
+                                             pixel space, VLA-JEPA learns dynamics abstractions that are robust to camera motion and irrelevant
+                                             background changes. This yields a simple two-stage recipe—JEPA pretraining followed by action-
+                                             head fine-tuning—without the multi-stage complexity of prior latent-action pipelines. Experiments on
+                                             LIBERO, LIBERO-Plus, SimplerEnv and real-world manipulation tasks show that VLA-JEPA achieves
+                                             consistent gains in generalization and robustness over existing methods.
+
+
+                                         Date: February 17, 2026
+                                         Code: https://github.com/ginwind/VLA-JEPA/
+                                         Project Page: https://ginwind.github.io/VLA-JEPA/
+                                         HuggingFace: https://huggingface.co/ginwind/VLA-JEPA/
+
+
+
+
+                                         1    Introduction                                           tor of pixel differences; it is a variable that captures
+                                                                                                     how the underlying state will evolve under interac-
+                                         Learning visuomotor policies from internet-scale            tion, i.e., action-relevant state transition semantics.
+                                         video has become an increasingly attractive route           When pretraining is misaligned with this goal, the
+                                         for robot learning [32, 31]. Compared to robot in-          downstream policy inherits representations that are
+                                         teraction data, which are costly and narrow in cov-         temporally predictive yet weakly tied to controllable
+                                         erage [21, 46], unlabeled videos are abundant and           structure—leading to brittle behavior, poor transfer,
+                                         diverse, offering rich demonstrations of temporally ex-     and inefficient fine-tuning.
+                                         tended change. This has motivated a growing body of
+                                         latent-action pretraining for Vision–Language–Action           Why latent-action pretraining often drifts away
+                                         (VLA) [10, 39, 9, 34]: rather than learning actions            from action semantics?
+                                         only from scarce control trajectories, they first learn
+                                                                                                     We identify four failure modes that repeatedly ap-
+                                         representations and transition structure from video,
+                                                                                                     pear in latent-action pretraining pipelines built on
+                                         then adapt them to downstream control [79, 13, 20].
+                                                                                                     unlabeled video:
+                                         However, we argue that today’s “latent action from          1. Pixel-level objectives bias representations toward ap-
+                                         video” objectives often do not learn what we actually          pearance, not action. A common strategy is to use
+                                         need for control. For an embodied agent, the most              “the future” as supervision—either by predicting
+                                         useful notion of “action” is not a compact descrip-            future pixels directly or by compressing frame-to-
+                                                             Together, these issues point to a single underlying
+     𝐸!                Projector                𝐸$!"#
+                                                  ···
+                                                             problem: many latent-action objectives remain im-
+                                                             plicitly anchored to pixel variation, and thus learn dy-
+                                                  L
+                     Latent                       ···
+                                                             namics that are predictive but not necessarily action-
+                     action                     𝐸!"#         centric [82]. For embodied control, we want a value-
+                                                             bearing latent state that discards nuisance appearance
+   V-JEPA                                       V-JEPA       while preserving factors governing state evolution un-
+                          VLA
+  Encoder                                      Encoder       der interaction [33, 62, 74, 36]. This motivates a
+                                                             key principle: predict future latent states that reflect
+                                                             action-relevant transition structure, while preventing
+     𝐼!                       𝐼!                 𝐼!"#        future information from leaking into the predictor.
+
+          Figure 1 VLA-JEPA model architecture               This aligns naturally with JEPA (Joint-Embedding
+                                                             Predictive Architectures) [4, 2, 1, 23], which replaces
+                                                             pixel reconstruction with latent-space alignment. By
+   frame changes into a latent variable interpreted          predicting representations rather than pixels, JEPA
+   as an action [79, 13, 86]. Even with compression          is inherently robust to low-level noise and encourages
+   mechanisms such as VQ-VAE [71], the supervision           semantic abstraction [30].
+   signal is frequently dominated by what changes vi-
+   sually: texture, illumination, background clutter,        Motivated by this perspective, we introduce VLA-
+   and viewpoint. These factors are high-variance            JEPA, a JEPA-style pretraining framework tailored
+   but low-control; they are easy to predict yet only        to VLA policies. As shown in Figure 1, the key design
+   weakly connected to the controllable degrees of           is leakage-free state prediction: during pretraining,
+   freedom that a policy must master.                        a target video encoder produces latent targets from
+                                                             future context (e.g., a short clip), while the latent
+2. Real-world videos amplify noisy motion. This mis-         action pathway receives only the current observation
+   match becomes especially pronounced on human              through a VLM backbone. A predictor maps the
+   videos and in-the-wild footage [32, 33], where cam-       history latent states and the latent action represen-
+   era motion and non-causal background changes              tations to future latent states, which is trained as
+   can be stronger than interaction-induced state            a latent world model using a JEPA alignment loss.
+   changes. Frame-difference-based latent-action ob-         Crucially, future frames are never provided as in-
+   jectives are then incentivized to encode these dom-       puts to the VLM backbone; instead, they are used
+   inant signals, turning the latent action into a delta-    solely to construct the training targets, eliminating
+   frame encoder of nuisance motion rather than a            the shortcut that causes latent-action collapse. This
+   representation of meaningful transition dynamics.         yields two benefits: (1) semantic robustness to camera
+3. Information leakage makes “latent action” collapse        motion and background changes, since supervision
+   into a shortcut. Several latent-action pipelines          operates in latent space rather than pixel space; (2)
+   model transitions by feeding both the current ob-         a streamlined two-stage pipeline—JEPA pretraining
+   servation and future observation into the same            followed by action-head fine-tuning—without intro-
+   module, or by allowing future context to influence        ducing auxiliary modules or redefining the learned
+   the learned action variable during training [79, 13].     representations. This work makes three contribu-
+   This design creates an easy shortcut: the latent          tions:
+   action can simply encode the future itself instead        • Analysis of latent-action pretraining pitfalls. We
+   of capturing how state transitions should be ex-            analyze why many future-supervision objectives
+   plained [82]. The resulting “action” becomes se-            (including compressed frame-difference latent ac-
+   mantically empty—useful for matching training               tions) remain pixel-tethered, becoming biased to-
+   losses, but not a meaningful factor for control.            ward appearance, vulnerable to nuisance motion in
+4. Multi-stage training pipelines are complex and fragile.     real-world videos, and prone to information leakage
+   To stabilize training and mitigate the above issues,        when future context enters the learner.
+   many approaches rely on three-stage (or more) pro-        • VLA-JEPA: leakage-free, state-level JEPA pretraining.
+   cedures: representation pretraining, latent-action          We propose a JEPA-style latent predictive align-
+   learning/alignment, then policy learning [79, 19,           ment scheme that learns action-relevant transition
+   27]. These pipelines increase engineering complex-          semantics by predicting and aligning future latent
+   ity, introduce stage-wise inconsistencies, and make         states—without pixel reconstruction, information
+   it harder to train and evaluate methods cleanly.            leakage and only one-stage pretraining pipeline.
+• Improved and robustness with a simpler workflow.          among others [57, 58]—such constraints inevitably
+  Across embodied control benchmarks (LIBERO,               bias the learned latent actions toward aligning with
+  LIBERO-Plus, SimplerEnv) and real-world set-              hand-crafted, visually defined priors rather than the
+  tings, VLA-JEPA yields consistent gains in robust-        true underlying controllable factors. Consequently,
+  ness, and generalization, while simplifying training      when such priors become mismatched in novel en-
+  relative to prior multi-stage latent-action pipelines.    vironments, the learned latent actions tend to fail
+                                                            systematically, and the latent spaces may align more
+                                                            with visual deltas than with actionable control sig-
+2     Related Works                                         nals, necessitating multi-stage training pipelines and
+                                                            additional alignment mechanisms [82]. On the con-
+2.1   Vision-Language-Action Models                         trary, our proposed VLA-JEPA learns action-relevant
+With the rapid advancement of Large Language Mod-           representations without relying on delta frame info
+els (LLMs) [50, 37, 6, 24, 77, 64] and large-scale          extraction, avoiding leakage and pixel shortcuts while
+robot datasets [59, 25, 38, 22], Vision-Language-           enabling single-stage end-to-end pretraining.
+Action (VLA) models have become a dominant
+paradigm in robot learning [39, 9, 76, 42]. The
+RT series [10, 92, 5] pioneered fine-tuning multi-          3     Methodology
+modal LLMs on robot demonstrations, and subse-
+quent works further improved manipulation and nav-          To address the limitations of existing approaches, we
+igation performance [39, 9, 66, 45, 85, 84, 63, 75].        introduce VLA-JEPA, a unified framework that en-
+However, most VLA methods rely heavily on large-            ables joint pre-training on both action-free and action-
+scale action-labeled robot data, which is costly and        labeled data. For action-free human videos, VLA-
+difficult to scale [72]. To reduce dependence on ex-        JEPA extracts latent actions from vision-language
+plicit action supervision, recent works introduce mul-      prior representations by optimizing a world-model-
+timodal Chain-of-Thought signals, such as hierarchi-        based state transition objective. Building upon this
+cal planning [5, 47, 65, 91, 35], subgoal or rollout pre-   foundation, we further integrate a flow-matching-
+diction [69, 87, 88, 73, 48, 17, 80, 52], object-centric    based action generator for robot demonstrations to
+conditioning [22, 34, 67, 90, 83, 54, 15] and latent        support precise end-effector trajectory generation.
+future embeddings or actions [12, 55, 86, 53, 89].          During fine-tuning, VLA-JEPA enables end-to-end
+Nevertheless, these approaches suffer from relying on       fusion of the two objectives, allowing the learned
+action-labeled data. In contrast, VLA-JEPA learns           state-transition dynamics to be effectively leveraged
+action-centric representations via latent predictive        for downstream robotic control.
+alignment, avoiding explicit future reconstruction and
+reducing the need for large-scale action supervision.       3.1   Model Backbone
+                                                            As shown in Figure 2, we adopt Qwen3-VL [3] as
+2.2   Latent action learning for robotics
+                                                            the core large vision-language model (VLM) in our
+To leverage large-scale videos without action labels,       framework. This VLM is built upon the Qwen3 [77]
+ILPO [26], LAPO [68] and Genie [11] propose using           and uses SigLIP-2 [70] as its vision encoder. It is well
+latent action for video games. For robot learning,          established that the world knowledge acquired by
+LAPA [79], IGOR [18], UniVLA [13], MotoGPT [20],            VLMs during large-scale pretraining, including image
+Adaworld [29], CoMo [78] and StaMo [51] extract dis-        understanding and key object detection, can be trans-
+crete or continuous motion tokens from frame tran-          ferred to robot control tasks. To distill continuous
+sitions, and pretrain VLA to predict these latent           latent action representations from the VLM, which en-
+actions before mapping them to real robot controls.         code state transition information for world modeling,
+To align the latent action to the real action space,        we introduce a set of learnable tokens that denoted as
+villa-x [19], XR-1 [27], CLAP [81] and VITA [56]            ⟨latenti ⟩ and ⟨action⟩, where i denotes the time step.
+propose that extract latent action from both robot          For instance, ⟨latent0 ⟩ represents the state transition
+and human video and use a unified codebook. How-            between s0 and s1 . To model state transitions in con-
+ever, since latent actions are often learned directly       tinuous videos, we encode pixel-level human videos
+from adjacent frames, models may exploit pixel-level        into time-step–aware feature sequences using an en-
+shortcuts and encode future-frame leakage. Although         coder architecture trained with V-JEPA2 [2], and
+some methods attempt to mitigate the above issues           employ a time-causal attention mechanism to cap-
+by constraining the latent action space—through             ture the correlations between the feature sequences
+optical-flow [14, 7], or object-centric constraints [41],   and the latent actions.
+  I. Human Video Pretraining                                                    𝑆መ𝑡+1
+                        𝑆𝑡                          Latent World Model                              Loss: Alignment
+
+                                                 Latent Action                                                  𝑆𝑡+1
+                    V-JEPA Encoder
+                                                    Large Language Model                             V-JEPA Encoder
+
+                                                                                                       Human Video
+                                                  Vision      Latent Action
+                     Human Video                 Encoder         Query
+
+ II. Robot Data Finetuning
+                                                                                        𝑆መ𝑡+1
+                                                 Latent World Model                                               Loss: Alignment
+               𝑆𝑡
+
+                                             Latent Action          Action Head                      𝐴መ 𝑡                    𝑆𝑡+1
+         V-JEPA Encoder                                                                                           V-JEPA Encoder
+                                                 Large Language Model                       Loss: Prediction
+                                                                                                                    Robot Video
+
+                                        Vision      Latent Action      Action                       𝐴𝑡
+          Robot Video                  Encoder         Query           Query                    Robot Action
+
+Figure 2 VLA-JEPA supports cross-domain training on both human videos and robot data, where human videos are
+trained using an alignment loss under the latent world modeling objective, while robot data are trained with a joint
+objective consisting of an alignment loss and a robot action prediction loss.
+
+
+3.2   Learning from Human Videos                                      representation at timestamp ti .
+To enable VLM to learn from human demonstration                       Latent Action Pretraining through World Modeling. To
+videos, we design a training framework that explic-                   encourage the learnable latent action tokens to cap-
+itly injects environment dynamics into the latent ac-                 ture state transition dynamics, we introduce a world
+tion tokens. Specifically, we consider a human video                  state prediction objective based on an auto-regressive
+dataset D = {(O0 , O1 , ..., Ov , ℓ)}, where ℓ denotes                transformer-based world model.
+the associated language instruction, and each Ov rep-
+                                                                      Formally, the VLM takes as input the multi-view
+resents a video captured from viewpoint v. Formally,
+                                                                      observations at the initial time step t0 , together with
+Ov = (Iv,t0 , Iv,t1 , ..., Iv,tn ), where Iv,ti denotes the
+                                                                      the language instruction ℓ. Conditioned on these in-
+video frame at time step ti from view v, and n is the
+                                                                      puts, the VLM maps a set of special learnable tokens
+total number of frames within a video.
+                                                                      ⟨latenti ⟩ into latent representations that summarize
+World State Encoder. Unlike traditional single-view                   the underlying world dynamics:
+video representation approaches, we encode diverse
+                                                                               zti = pVθ LM ⟨latenti ⟩ {Ij,t0 }vj=0 , ℓ ,  (2)
+                                                                                                                       
+observations from the same episode into a unified
+world state representation through a world state en-                  where zti denotes the latent representation associated
+coder. Specifically, we adopt a self-supervised V-                    with the i-th latent action token at time step ti .
+JEPA2 encoder as the single-view video state repre-
+sentation and integrate representations from multiple                 Subsequently, the unified representation zti is used to
+viewpoints via a concatenation operator. The en-                      condition the world model, providing additional con-
+coding process for each view and the subsequent                       text for state prediction. Formally, given the sequence
+aggregation across views are formulated as follows:                   of encoded world states st0:i and the corresponding
+                                                                      conditioning variables zt0:i , the world model predicts
+                                                                      the next chunk of states as:
+                       sti = ∥v F (Iv,ti )                   (1)
+                                                                                        st ˆ    = pW
+                                                                                                   θ
+                                                                                                     M
+                                                                                                       (st0:i , zt0:i ),            (3)
+where F (·) is the single-view video encoder (e.g.,
+                                                                                          1:i+1
+
+
+V-JEPA2), and ∥ denotes the vector concatenation                      where st ˆ  1:i+1 is the predicted world state chunk over
+operator. The resulting sti is the unified world-state                [t1 , ti+1 ].
+In practice, each special latent token ⟨latenti ⟩ is                    action to serve as a conditioning signal for embodied
+replicated K times in the input sequence to enable                      action generation, analogous to the roles of the initial
+variable-length latent action encoding, where K is a                    image observation Iv,t0 and the language instruction.
+tunable hyperparameter. The world model employs a                       Therefore, we append a set of learnable embodied
+time-causal attention mechanism. Within each time                       action tokens ⟨action⟩ after the latent action tokens.
+step, all latent action tokens and world state tokens                   Leveraging the causal attention mechanism of the
+attend to each other via bidirectional full attention.                  VLM, the model captures the dependencies among
+Across different time steps, attention is strictly causal:              ⟨action⟩, the latent action tokens, the initial visual
+tokens at time step t are allowed to attend only to                     observation, and the language instruction.
+tokens from time steps up to and including t, while
+                                                                        Formally, given the visual tokens {Ii,t0 }vi=0 at the
+attention to future time steps is masked out.
+                                                                        initial time step t0 , the language instruction l, and a
+From the perspective of joint-embedding predictive                      sequence of latent action tokens ⟨latenti ⟩, we obtain
+architecture [4, 2], our training objective can be in-                  a global action-conditioning representation
+terpreted as maximizing the evidence lower bound
+(ELBO) of the predictive log-likelihood in semantic                         za = pVθ LM (⟨action⟩ | {Ii,t0 }vi=0 , ℓ, ⟨latenti ⟩) ,   (6)
+space. Specifically, given the frozen V-JEPA2 encoder                   where za serves as an additional conditioning signal
+F (·) that produces target world states sti , and the                   for the flow-matching-based action head.
+world model pW    θ
+                    M
+                       conditioned on zti that predicts
+ŝti , the objective can be written as:                                 Conditional Flow-Matching Action Head. We adopt
+                                                                        conditional flow matching to model a distribution
+                             T
+                             X                                        over continuous action trajectories. Specifically, let
+log p(st1:T | zt0:T −1 ) ≥         Estk ∼F (·) log pθ (ŝtk | stk )     a0:H denote the ground-truth action sequence over
+                             k=1                                        a horizon H, and â0:H denote the predicted action
+                             − DKL F (·)∥pW M
+                                                                (4)     sequence generated by the learned flow. Following
+                                             
+                                          θ    ,
+                                                                        standard flow-matching formulations, we define a
+where F (·) serves as the frozen target encoder (with                   time-dependent interpolation
+stop-gradient), and pWθ
+                        M
+                            is the online predictor. In
+practice, since F (·) produces deterministic embed-                               at = (1 − t) ϵ + t a0:H ,      t ∼ U(0, 1),         (7)
+dings, the KL term vanishes, and the ELBO reduces
+                                                                        where ϵ ∼ N (0, I) is Gaussian noise. The action head
+to a reconstruction loss in the latent space.
+                                                                        parameterizes a vector field vθ (at , t | za ), conditioned
+Finally, we optimize the combined WM and VLM us-                        on za , which is trained to match the ground-truth
+ing a teacher-forcing objective. This enables the uni-                  conditional flow.
+fied representation zti informed by the world knowl-
+                                                                        The flow-matching objective is given by
+edge encoded in the VLM, in order to effectively
+characterize world state transitions. The world mod-
+                                                                                           h                                 i
+                                                                                                                           2
+                                                                         LFM = Ea0:H , ϵ, t vθ (at , t | za ) − (a0:H − ϵ) 2 , (8)
+eling loss is defined as:
+                      T
+                                                                        where vθ (·) denotes the predicted velocity field,
+                                                                        (a0:H − ϵ) is the target velocity induced by the linear
+                      X
+            LWM =            Estk ∼F (·) (ŝtk − stk ),         (5)
+                      k=1
+                                                                        interpolation, and ∥ · ∥2 is the ℓ2 norm.
+
+where stk denotes the ground-truth world state at                       At inference time, the learned vector field is inte-
+time tk , ŝtk is the corresponding prediction, and T is                grated from noise to data space to obtain the pre-
+the video prediction horizon.                                           dicted action trajectory â0:H , conditioned on the
+                                                                        action tokens za .
+3.3    Action Prediction with Joint Optimiza-                           In summary, the overall training objective for action-
+       tion Objectives                                                  labeled robot data is as follows:
+Action Token Conditioning. To leverage the latent                                            L = LFM + βLWM ,                         (9)
+action representations learned from video data for
+guiding action prediction, we design joint optimiza-                    where β is a tunable hyperparameter.
+tion objectives. Specifically, for multi-view RGB
+videos in the robot dataset, we adopt the same train-                   4     Experiments
+ing objective as in Equation 5 to fine-tune the latent
+action representations within the robot data domain.                    To evaluate the generalization and robustness of
+For practical action prediction, we intend the latent                   VLA-JEPA, we perform comprehensive simulation
+                           a. LIBERO                                                    b. LIBERO-Plus
+
+
+
+
+                   c. SimplerEnv Google Robot                                  d. SimplerEnv WidowX Robot
+
+
+
+
+                                                e. Real-World Franka Robot
+
+Figure 3 Experiments setup on LIBERO, LIBERO-Plus, SimplerEnv and real-world Franka robot. We evaluate
+VLA-JEPA on 3 simulation benchmarks and 1 real-world environment.
+
+
+Table 1 Comparison on the LIBERO benchmark. We report the task success rate for each suite and the average across
+all tasks. Each task is evaluated over 50 episodes (500 episodes per suite), and success rates are computed over these
+trials. Bold denotes the best performance, and italics denotes the second best.
+
+                                                                             LIBERO
+                 Method
+                                                Spatial      Object          Goal      LIBERO-10            Avg
+                 LAPA [79]                       73.8          74.6          58.8          55.4             65.7
+                 UniVLA [13]                     96.5          96.8          95.6          92.0             95.2
+                 OpenVLA-OFT [40]                97.6          98.4          97.9          94.5             97.1
+                 π0 [9]                          96.8          98.8          95.8          85.2             94.2
+                 π0 -Fast [61]                   96.4          96.8          88.6          60.2             85.5
+                 CoT-VLA [87]                    87.5          91.6          87.6          69.0             81.1
+                 WorldVLA [16]                   87.6          96.2          83.4          60.0             81.8
+                 villa-X [19]                    97.5          97.0          91.5          74.5             90.1
+                 GR00T N1 [8]                    94.4          97.6          93.0          90.6             93.9
+                 π0.5 [34]                       98.8          98.2          98.0          92.4             96.9
+                 VLA-JEPA                        96.2         99.6           97.2          95.8             97.2
+                    w/o human videos             94.8         99.6           95.8          94.0             96.1
+
+
+
+experiments utilizing two distinct simulation environ-            4.1    Implementation Details
+ments and three public benchmarks, Simpler-Env &
+LIBERO, along with real-world experiments cover-                  During the pretraining phase, we train all parame-
+ing both in-distribution and out-of-distribution set-             ters in the model except for the world state encoder.
+tings, as shown in Figure 3. We compare VLA-JEPA                  Specifically, we utilize Equation 5 as the training ob-
+against the latest VLA baselines that support pre-                jective and pretrain on the large-scale human action
+training with human videos as well as VLA baselines               dataset Something-Something-v2 [31], which contains
+pretrained solely on robot-collected data.                        220K human videos. The model supports simulta-
+neous pretraining of latent action using both robot        4.3   Simulation Evaluation
+action data and human videos without action labels.
+We also employ Equation 9 as the training objective        LIBERO. As presented in Table 1, VLA-JEPA achieves
+and pretrain on the large-scale action-labeled robot       state-of-the-art performance on 2 out of the 4 task
+dataset Droid [38], which consists of 76K high-quality     suites within the LIBERO benchmark, securing the
+demonstration trajectories.                                highest average success rate overall. We observe that
+                                                           other top-performing models on LIBERO, such as
+During fine-tuning, for both LIBERO and LIBERO-            OpenVLA-OFT and π0.5 , rely on extensive robot
+Plus, we use the LIBERO dataset, which includes            datasets for pre-training. In contrast, A achieves
+approximately 2K expert demonstrations collected           better performance using less training data. Further-
+in a simulation environment, without incorporat-           more, previous latent-action-based VLAs and VLAs
+ing the augmented dataset from LIBERO-Plus. For            trained on human videos, such as UniVLA, villa-X,
+SimplerEnv, we utilize the Fractal dataset and the         LAPA, and CoT-VLA, consistently underperform
+BridgeV2 dataset for post-training, corresponding          VLA-JEPA, which corroborates the limitations of
+to the two robot embodiment types in SimplerEnv.           such approaches discussed in Section 1.
+For the real-world experiments, we employ a dataset
+of 100 demonstrations collected across three distinct      SimplerEnv.    Table 2 reports the results on Sim-
+tasks for post-training. All experiments are con-          plerEnv. VLA-JEPA achieves the best performance
+ducted on 8 NVIDIA A100 GPUs. Detailed imple-              on 2 out of 4 tasks for both the Google Robot and
+mentation and protocols are provided in Appendix A.        the WidowX Robot. In particular, it attains the
+                                                           highest average success rate on the Google Robot
+                                                           and the second highest average success rate on the
+4.2   Simulation Setup and Baseline                        WidowX Robot. Since SimplerEnv does not provide
+Benchmarks. We conduct generalization experiments
+                                                           expert demonstrations, we observe that the quality
+on the LIBERO [49] and SimplerEnv [44] benchmarks.         of robot data plays a crucial role in performance on
+The LIBERO benchmark employs the Franka Emika              this benchmark. For example, LAPA extracts only
+Panda arm and comprises four task suites designed to       successful rollouts in SimplerEnv and uses them as
+facilitate research on lifelong learning in robotic ma-    expert demonstrations for training, and achieves the
+nipulation. SimplerEnv features WidowX and Google          second-highest success rate on the WidowX Robot
+Robot setups, offering diverse manipulation scenar-        with merely 100 rollouts. This is mainly because
+ios with varying lighting, colors, textures, and robot     training on successful rollouts effectively mitigates
+camera poses, thereby bridging the visual appear-          the real-to-sim gap. Villa-X, on the other hand, is
+ance gap between real and simulated environments.          trained on a large-scale collection of robot data and
+Furthermore, we conduct robustness experiments on          human videos, achieving the highest average success
+LIBERO-Plus [28], a large-scale benchmark designed         rate on the WidowX Robot. In comparison, while
+to systematically stress-test VLAs through perturbed       VLA-JEPA and other methods—such as UniVLA,
+tasks across seven dimensions.                             RoboVLMs, and Moto—all utilize less than 1% of the
+                                                           training data used by villa-X, VLA-JEPA attains the
+The three simulation environments correspond to (i)        most competitive experimental results. This demon-
+in-distribution scenarios in which policies, trained       strates the superiority of our pretraining method.
+using simulated expert data, are validated on in-
+distribution tasks in simulation (LIBERO), (ii) out-       LIBERO-Plus.      As shown in Table 3, VLA-JEPA
+of-distribution scenarios involving a real-to-sim gap,     achieves the best performance on 5 out of 7 perturba-
+in which policies are trained using real-world data        tions in LIBERO-Plus. It demonstrates a substantial
+and evaluated in simulation (SimplerEnv), and (iii)        advantage over UniVLA, which is trained on human
+out-of-distribution scenarios in which policies, trained   videos, and OpenVLA-OFT, π0 , and other meth-
+using simulated expert data, are validated on out-of-      ods trained on large amounts of robot data. This
+distribution tasks in simulation (LIBERO-Plus).            indicates that latent actions, learned through our pre-
+                                                           training approach, possess a level of world knowledge
+Baselines. We primarily compare VLA-JEPA with              representation comparable to that encoded by text
+previous latent-action VLAs, future-prediction VLAs,       data. In particular, we find that VLA-JEPA demon-
+as well as state-of-the-art open-source VLAs including     strates a significant advantage over all baselines under
+Moto [20], LAPA [79], UniVLA [13], villa-X [19], CoT-      perturbations in Language, Light, Background, and
+VLA [87], WorldVLA [16], RoboVLMs [43], GR00T              Layout, which verifies that our latent action can ef-
+N1 [8], OpenVLA-OFT [40], π0 [9], π0 -Fast [61], and       fectively handle task-agnostic disturbances, thereby
+π0.5 [34].                                                 achieving a more robust and generalized policy.
+Table 2 Comparison on the SimplerEnv benchmark. We report the average success rate for each individual task under
+the visual matching setting in both SimplerEnv-WidowX Robot and SimplerEnv-Google Robot. ∗ denotes that the
+method is trained on in-distribution expert demonstrations collected in simulation environment. All other methods are
+trained on subsets of the OXE dataset.
+
+                                            Google Robot                                    WidowX Robot
+  Method
+                            Pick     Move     Drawer     Place      Avg      Spoon     Carrot    Block    Eggplant    Avg
+        ∗
+  LAPA [79]                   -        -          -          -      -        70.8       45.8     54.2       58.3      57.3
+  villa-x [19]              81.7     55.4       38.4       4.2     44.9      48.3       24.2     19.2       71.7      40.8
+  UniVLA [13]                 -        -          -          -      -          -          -        -         -        42.7
+  RoboVLMs [43]             77.3     61.7       43.5       24.1    51.7      45.8       20.8      4.2       79.2      37.5
+  GR00T N1 [8]               0.7      1.9        2.9        0.0    1.4        1.4        0.0      0.0       13.9       3.8
+  MoTo [20]                 74.0     60.4       43.1         -      -          -          -        -         -          -
+  OpenVLA-OFT [40]            -        -          -          -      -        34.2       30.0     30.0       72.5      41.8
+  π0 [9]                    72.7     65.3       38.3         -      -        29.1         0      16.6       62.5      40.1
+  π0 -Fast [61]             75.3     67.5       42.9         -      -        29.1       21.9     10.8       66.7      48.3
+  VLA-JEPA                  88.3     64.1       59.3       49.1    65.2      75.0       70.8     12.5       70.8      57.3
+     w/o human videos       85.3     66.7       75.5       86.1    78.4      75.0       54.2     20.8       79.2      57.3
+
+
+
+Table 3 Comparison on the LIBERO-Plus benchmark. We report the average success rate across each perturbation
+dimension, where each perturbation includes the four task suites from the original LIBERO benchmark.
+
+                                                                     LIBERO-Plus
+      Method
+                               Camera        Robot     Language      Light     Background       Noise    Layout    Avg
+      UniVLA [13]                   1.8       46.2       69.6        69.0            81.0       21.2      31.9     42.9
+      OpenVLA-OFT [40]             56.4       31.9       79.5        88.7            93.3       75.8      74.2     69.6
+      π0 [9]                       13.8        6.0       58.8        85.0            81.4       79.0      68.9     53.6
+      π0 -Fast [61]                65.1       21.6       61.0        73.2            73.2       74.4      68.8     61.6
+      WorldVLA [16]                0.1        27.9       41.6        43.7            17.1       10.9      38.0     25.0
+      VLA-JEPA                     63.3       67.1       85.4        95.6            93.6       66.3      85.1     79.5
+         w/o human videos          40.3       55.7       72.9        88.2            70.5       38.2      74.6     62.9
+
+
+
+4.4   Real-world Experiments
+
+For real-world experiments, we designed table-top
+manipulation tasks using a Franka Research 3 arm
+equipped with a Robotiq 2F-85 gripper. We collected
+100 human demonstration trajectories for training,
+which include 3 picking and placing tasks. In align-
+ment with the simulation experiments and extending
+beyond in-distribution task evaluation, we introduce
+two OOD experimental protocols to rigorously assess
+the model’s generalization capability and robustness
+for physical deployment. The first OOD protocol                           Figure 4 Real World Experimental Results
+involves executing tasks not present in the training
+data, validating the model’s ability to acquire and
+transfer fundamental skills. The second protocol re-              As shown in Figure 4, VLA-JEPA achieves state-
+quires executing tasks seen during training but with              of-the-art performance under both the ID and the
+randomized object layouts, thereby emulating the                  object layout OOD settings, demonstrating a clear
+cluttered scenarios typical of real-world table-top ma-           advantage over both π0 and π0.5 . In the task OOD
+nipulation tasks. For fair comparison, we finetune π0             setting, it attains the second-best result. During
+and π0.5 on collected demonstration datasets. The                 real-world deployment, we observed that the general-
+detailed task settings can be found in Appendix B.                ization capability of VLA-JEPA is less robust than
+that of π0.5 , yet it produces execution trajectories
+that are significantly more stable and reliable. Specif-
+ically, π0.5 more accurately follows instructions to
+contact the target object compared to VLA-JEPA.
+However, its position control frequently violates the
+safety boundaries of the robot arm, leading to execu-
+tion failures. In contrast, VLA-JEPA, due to its lack
+of fine-grained reasoning over textual instructions, is
+prone to grasping objects that do not align with the
+command. Nevertheless, it rarely breaches the robot
+arm’s safety constraints.
+In addition, VLA-JEPA acquires the skill of repeated
+grasping, i.e., reopening the gripper to attempt an-       Figure 5 Effect of the proportion of human video data in
+other grasp after a failure, which is not observed         pre-training on success rates across different perturbation
+                                                           dimensions on the LIBERO-Plus benchmark.
+in π0 or π0.5 . We attribute this to the abundance
+of repeated-grasping knowledge present in human
+videos, whereas this skill does not require additional
+                                                           stable and reliable policy.
+physical dynamics knowledge. In contrast, robot data
+rarely contain demonstrations specifically designed        Figure 5 illustrates how the success rates across dif-
+for repeated grasping. A corresponding demonstra-          ferent perturbation dimensions on the LIBERO-Plus
+tion can be found in the Appendix B.                       benchmark vary as the proportion of human videos in
+                                                           the pre-training data increases. These results further
+4.5   Further Analysis and Ablation Study                  corroborate our hypothesis that human video data
+                                                           primarily enhances the robustness and stability of
+In this section, we investigate the following questions    the VLA model by strengthening its existing skill
+under the multi-view setting to thoroughly evaluate        repertoire, rather than introducing new action exe-
+the ability of our model:                                  cution capabilities. Moreover, as the scale of human
+Q1: What impact does human video have? Tables 1, 2, 3      video data increases, the robustness of the resulting
+present a comparison of VLA-JEPA pretrained                policy consistently improves.
+with human videos versus without such pretraining,         Q2: What is the impact of unified pretraining?
+demonstrating that ablating the human video com-
+ponent from the pre-training data does not lead to         According to Section 4.3, the experimental results
+a significant performance drop across LIBERO and           demonstrate that our unified pretraining method con-
+SimplerEnv benchmarks. Interestingly, even pretrain-       sistently outperforms the previous two-stage pretrain-
+ing without human videos can lead to higher success        ing paradigm. In addition, to more clearly analyze the
+rates on SimplerEnv. This indicates that, for ID sce-      information captured by latent action tokens, we visu-
+nario and real-to-sim gap OOD scenario, high-quality       alize the attention weights from latent action tokens
+expert demonstrations are more critical for ensuring       to image tokens in the internal attention maps of three
+model performance compared to human videos.                VLAs—LAPA, UniVLA, and VLA-JEPA—under
+                                                           simulated, human-video, and real-world robot im-
+On the LIBERO-Plus benchmark, human demonstra-
+                                                           age inputs. For a fair comparison, all methods are
+tion videos provide substantial performance gains.
+                                                           evaluated using pretrained-only checkpoints, without
+Our analysis suggests that this is because human
+                                                           any fine-tuning on either simulated or real data.
+videos lack effective information about action trajec-
+tories, preventing VLA models from directly learning       As shown in Figure 6, the latent actions of LAPA fo-
+the physical dynamics of robotic actions. Instead, the     cus on excessively dense visual information, which re-
+primary benefit lies in enhancing the robustness and       sults in the inclusion of too many operation-irrelevant
+stability of the model’s pre-existing skills, such as      details, such as unrelated objects on the desktop. We
+repeated grasping. This process closely resembles hu-      attribute this to the leakage of information during
+man skill acquisition from observation: when a person      the pretraining stage, leading to the degradation of
+learns a skill by watching a video, the first attempt is   latent actions into compressed representations of the
+unlikely to succeed, and proficiency is achieved only      target images, a point further analyzed in Section 1.
+after repeated trials that establish the correspondence    In contrast, UniVLA alleviates this issue through
+between the observed video knowledge and the un-           task-relevant textual guidance, yet its overemphasis
+derlying physical dynamics, ultimately leading to a        on semantics causes attention to operation-irrelevant
+                     LIBERO           LIBERO-Plus            Human Video     Human Video       Real-world Third View Real-world Wrist View
+                      T=10               T=10                   T=13            T=25                   T=18                  T=18
+
+
+
+
+  VLA-JEPA
+
+
+
+
+  LAPA
+
+
+
+
+   UniVLA
+
+
+
+
+Figure 6 Visualization of the attention weight matrix of latent action tokens attending to image tokens.
+
+
+
+background elements in the images, such as the sta-                        when the video horizon is close to the predefined
+tionary pen in human videos or the texture of the                          action horizon, which indicates that latent actions
+tablecloth in real-world wrist-view recordings.                            are effective for embodied action generation. When
+                                                                           T is too small, the encoded information is insufficient,
+By comparison, we focus more precisely on the opera-
+                                                                           leading to inferior performance, particularly on long-
+tion, for instance, the robotic arm, the hand, and the
+                                                                           horizon tasks. In contrast, an excessively large T
+objects to be manipulated. This demonstrates that
+                                                                           introduces redundant information. It yields the best
+the unified pretraining approach simplifies the train-
+                                                                           results on the goal-oriented task suite with relatively
+ing pipeline while improving training effectiveness by
+                                                                           simple objectives, but performs worst on the spatial
+reducing the impact of task-irrelevant information.
+                                                                           task suite that requires fine-grained manipulation.
+Table 4 Comparison of VLA-JEPA on the LIBERO bench-
+mark with different numbers of future video horizon.
+                                                                           5    Conclusion
+             T    Spatial     Object      Goal      10     Avg
+                                                                           This paper proposes VLA-JEPA, a unified pretrain-
+              4    95.0        99.2       95.8      89.0   94.8
+                                                                           ing framework that learns latent actions from both
+              8    94.8        99.8       95.8      94.0   96.1
+                                                                           human and robot videos via latent world modeling.
+             16    92.8        98.8       98.0      92.2   95.5
+                                                                           Extensive experiments and analyses reveal that ex-
+                                                                           isting latent action pretraining methods suffer from
+Q3: How does the number of future video horizon affect                     information leakage and representation degeneration,
+performance?                                                               which hinder the learning of meaningful temporal dy-
+                                                                           namics. In contrast, VLA-JEPA effectively mitigates
+We aim for latent actions to capture the motion dy-
+                                                                           these issues and enables the model to capture gen-
+namics between consecutive frames, such that the
+                                                                           uine inter-frame dynamics. As a result, VLA-JEPA
+number of latent action tokens is always equal to the
+                                                                           achieves competitive performance in both simula-
+number of frames minus one. We vary the number
+                                                                           tion benchmarks and real-world robotic experiments.
+of future video horizon T ∈ {4, 8, 16} to investigate
+                                                                           We further believe that the human-video pretraining
+the impact of dynamic information on the perfor-
+                                                                           paradigm introduced by VLA-JEPA is highly scal-
+mance. For a fair comparison, all models are directly
+                                                                           able, and can be naturally extended by incorporating
+fine-tuned on the LIBERO dataset, with all other
+                                                                           robot data and text-based reasoning data, thereby
+hyperparameters kept the same in the comparison.
+                                                                           further improving the generalization and robustness
+As shown in Table 4, the model achieves its best                           of VLA models.
+Acknowledgement                                               [8] Johan Bjorck, Fernando Castañeda, Nikita Cherni-
+                                                                  adev, Xingye Da, Runyu Ding, Linxi Fan, Yu Fang,
+This work is supported by the Zhongguancun                        Dieter Fox, Fengyuan Hu, Spencer Huang, et al.
+Academy, (Grant No.s C20250302)                                   Gr00t n1: An open foundation model for generalist
+                                                                  humanoid robots. arXiv preprint, 2025.
+                                                              [9] Kevin Black, Noah Brown, Danny Driess, Adnan
+References                                                        Esmail, Michael Equi, Chelsea Finn, Niccolo Fusai,
+                                                                  Lachy Groom, Karol Hausman, Brian Ichter, et al.
+[1] Mahmoud Assran, Quentin Duval, Ishan Misra, Piotr             pi0: A vision-language-action flow model for general
+    Bojanowski, Pascal Vincent, Michael Rabbat, Yann              robot control. arXiv preprint, 2024.
+    LeCun, and Nicolas Ballas. Self-supervised learn-
+    ing from images with a joint-embedding predictive        [10] Anthony Brohan, Noah Brown, Justice Carbajal,
+    architecture, 2023.                                           Yevgen Chebotar, Joseph Dabis, Chelsea Finn,
+                                                                  Keerthana Gopalakrishnan, Karol Hausman, Alexan-
+[2] Mido Assran, Adrien Bardes, David Fan, Quentin                der Herzog, Jasmine Hsu, Julian Ibarz, Brian Ichter,
+    Garrido, Russell Howes, Matthew Muckley, Ammar                Alex Irpan, Tomas Jackson, Sally Jesmonth, Nikhil J.
+    Rizvi, Claire Roberts, Koustuv Sinha, Artem Zholus,           Joshi, Ryan Julian, Dmitry Kalashnikov, Yuheng
+    et al. V-jepa 2: Self-supervised video models en-             Kuang, Isabel Leal, Kuang-Huei Lee, Sergey Levine,
+    able understanding, prediction and planning. arXiv            Yao Lu, Utsav Malla, Deeksha Manjunath, Igor Mor-
+    preprint arXiv:2506.09985, 2025.                              datch, Ofir Nachum, Carolina Parada, Jodilyn Per-
+[3] Shuai Bai, Yuxuan Cai, Ruizhe Chen, Keqin Chen,               alta, Emily Perez, Karl Pertsch, Jornell Quiambao,
+    Xionghui Chen, Zesen Cheng, Lianghao Deng, Wei                Kanishka Rao, Michael S. Ryoo, Grecia Salazar, Pan-
+    Ding, Chang Gao, Chunjiang Ge, Wenbin Ge, Zhi-                nag R. Sanketi, Kevin Sayed, Jaspiar Singh, Sumedh
+    fang Guo, Qidong Huang, Jie Huang, Fei Huang,                 Sontakke, Austin Stone, Clayton Tan, Huong T.
+    Binyuan Hui, Shutong Jiang, Zhaohai Li, Ming-                 Tran, Vincent Vanhoucke, Steve Vega, Quan Vuong,
+    sheng Li, Mei Li, Kaixin Li, Zicheng Lin, Jun-                Fei Xia, Ted Xiao, Peng Xu, Sichun Xu, Tianhe Yu,
+    yang Lin, Xuejing Liu, Jiawei Liu, Chenglong Liu,             and Brianna Zitkovich. RT-1: robotics transformer
+    Yang Liu, Dayiheng Liu, Shixuan Liu, Dunjie Lu,               for real-world control at scale. In Robotics: Science
+    Ruilin Luo, Chenxu Lv, Rui Men, Lingchen Meng,                and Systems XIX, Daegu, Republic of Korea, July
+    Xuancheng Ren, Xingzhang Ren, Sibo Song, Yu-                  10-14, 2023, 2023.
+    chong Sun, Jun Tang, Jianhong Tu, Jianqiang Wan,         [11] Jake Bruce, Michael D Dennis, Ashley Edwards, Jack
+    Peng Wang, Pengfei Wang, Qiuyue Wang, Yuxuan                  Parker-Holder, Yuge Shi, Edward Hughes, Matthew
+    Wang, Tianbao Xie, Yiheng Xu, Haiyang Xu, Jin Xu,             Lai, Aditi Mavalankar, Richie Steigerwald, Chris
+    Zhibo Yang, Mingkun Yang, Jianxin Yang, An Yang,              Apps, et al. Genie: Generative interactive environ-
+    Bowen Yu, Fei Zhang, Hang Zhang, Xi Zhang,                    ments. In Forty-first International Conference on
+    Bo Zheng, Humen Zhong, Jingren Zhou, Fan Zhou,                Machine Learning, 2024.
+    Jing Zhou, Yuanzhi Zhu, and Ke Zhu. Qwen3-vl
+    technical report. CoRR, abs/2511.21631, 2025.            [12] Qingwen Bu, Jisong Cai, Li Chen, Xiuqi Cui, Yan
+                                                                  Ding, Siyuan Feng, Shenyuan Gao, Xindong He,
+[4] Adrien Bardes, Quentin Garrido, Jean Ponce, Xinlei            Xu Huang, Shu Jiang, et al. Agibot world colosseo:
+    Chen, Michael Rabbat, Yann LeCun, Mido Assran,                A large-scale manipulation platform for scalable and
+    and Nicolas Ballas. V-jepa: Latent video prediction           intelligent embodied systems. arXiv preprint, 2025.
+    for visual representation learning. 2023.
+                                                             [13] Qingwen Bu, Yanting Yang, Jisong Cai, Shenyuan
+[5] Suneel Belkhale, Tianli Ding, Ted Xiao, Pierre Ser-           Gao, Guanghui Ren, Maoqing Yao, Ping Luo, and
+    manet, Quon Vuong, Jonathan Tompson, Yevgen                   Hongyang Li. Univla: Learning to act anywhere with
+    Chebotar, Debidatta Dwibedi, and Dorsa Sadigh. Rt-            task-centric latent actions. arXiv preprint, 2025.
+    h: Action hierarchies using language. arXiv preprint,
+    2024.                                                    [14] Xizhou Bu, Jiexi Lyu, Fulei Sun, Ruichen Yang,
+                                                                  Zhiqiang Ma, and Wei Li. Laof: Robust latent action
+[6] Lucas Beyer, Andreas Steiner, André Susano Pinto,             learning with optical flow constraints. arXiv preprint
+    Alexander Kolesnikov, Xiao Wang, Daniel Salz,                 arXiv:2511.16407, 2025.
+    Maxim Neumann, Ibrahim Alabdulmohsin, Michael
+    Tschannen, Emanuele Bugliarello, et al. Paligemma:       [15] Junhao Cai, Zetao Cai, Jiafei Cao, Yilun Chen, Zeyu
+    A versatile 3b vlm for transfer. arXiv preprint, 2024.        He, Lei Jiang, Hang Li, Hengjie Li, Yang Li, Yufei
+                                                                  Liu, et al. Internvla-a1: Unifying understanding, gen-
+[7] Hongzhe Bi, Hengkai Tan, Shenghao Xie, Zeyuan                 eration and action for robotic manipulation. arXiv
+    Wang, Shuhe Huang, Haitian Liu, Ruowen Zhao, Yao              preprint arXiv:2601.02456, 2026.
+    Feng, Chendong Xiang, Yinze Rong, et al. Motus:
+    A unified latent action world model. arXiv preprint      [16] Jun Cen, Chaohui Yu, Hangjie Yuan, Yuming Jiang,
+    arXiv:2512.13030, 2025.                                       Siteng Huang, Jiayan Guo, Xin Li, Yibing Song,
+    Hao Luo, Fan Wang, et al. Worldvla: Towards                   Zhen Zhao, Zhiyuan Xu, et al. Xr-1: Towards versa-
+    autoregressive action world model. arXiv preprint,            tile vision-language-action models via learning uni-
+    2025.                                                         fied vision-motion representations. arXiv preprint
+                                                                  arXiv:2511.02776, 2025.
+[17] Jiayi Chen, Wenxuan Song, Pengxiang Ding, Ziyang
+     Zhou, Han Zhao, Feilong Tang, Donglin Wang, and          [28] Senyu Fei, Siyin Wang, Junhao Shi, Zihao Dai,
+     Haoang Li. Unified diffusion vla: Vision-language-            Jikun Cai, Pengfang Qian, Li Ji, Xinzhe He, Shiduo
+     action model via joint discrete denoising diffusion           Zhang, Zhaoye Fei, Jinlan Fu, Jingjing Gong, and
+     process. arXiv preprint arXiv:2511.01718, 2025.               Xipeng Qiu. Libero-plus: In-depth robustness analy-
+                                                                   sis of vision-language-action models. arXiv preprint
+[18] Xiaoyu Chen, Junliang Guo, Tianyu He, Chuheng
+                                                                   arXiv:2510.13626, 2025.
+     Zhang, Pushi Zhang, Derek Cathera Yang, Li Zhao,
+     and Jiang Bian. Igor: Image-goal representations         [29] Shenyuan Gao, Siyuan Zhou, Yilun Du, Jun Zhang,
+     are the atomic control units for foundation models            and Chuang Gan. Adaworld: Learning adaptable
+     in embodied ai. arXiv preprint arXiv:2411.00785,              world models with latent actions. In Forty-second
+     2024.                                                         International Conference on Machine Learning.
+[19] Xiaoyu Chen, Hangxing Wei, Pushi Zhang, Chuheng          [30] Quentin Garrido, Tushar Nagarajan, Basile Terver,
+     Zhang, Kaixin Wang, Yanjiang Guo, Rushuai Yang,               Nicolas Ballas, Yann LeCun, and Michael Rabbat.
+     Yucen Wang, Xinquan Xiao, Li Zhao, et al. villa-x:            Learning latent action world models in the wild.
+     Enhancing latent action modeling in vision-language-          arXiv preprint arXiv:2601.05230, 2026.
+     action models. arXiv preprint, 2025.
+                                                              [31] Raghav Goyal, Samira Ebrahimi Kahou, Vincent
+[20] Yi Chen, Yuying Ge, Yizhuo Li, Yixiao Ge, Mingyu
+                                                                   Michalski, Joanna Materzynska, Susanne Westphal,
+     Ding, Ying Shan, and Xihui Liu. Moto: Latent
+                                                                   Heuna Kim, Valentin Haenel, Ingo Fruend, Peter
+     motion token as the bridging language for robot
+                                                                   Yianilos, Moritz Mueller-Freitag, et al. The" some-
+     manipulation. arXiv preprint, 2024.
+                                                                   thing something" video database for learning and
+[21] Cheng Chi, Zhenjia Xu, Chuer Pan, Eric Cousineau,             evaluating visual common sense. In ICCV, 2017.
+     Benjamin Burchfiel, Siyuan Feng, Russ Tedrake, and
+     Shuran Song. Universal manipulation interface: In-       [32] Kristen Grauman, Andrew Westbury, Eugene Byrne,
+     the-wild robot teaching without in-the-wild robots.           Zachary Chavis, Antonino Furnari, Rohit Girdhar,
+     In Proceedings of Robotics: Science and Systems               Jackson Hamburger, Hao Jiang, Miao Liu, Xingyu
+     (RSS), 2024.                                                  Liu, et al. Ego4d: Around the world in 3,000 hours
+                                                                   of egocentric video. In CVPR, 2022.
+[22] Shengliang Deng, Mi Yan, Songlin Wei, Haixin Ma,
+     Yuxin Yang, Jiayi Chen, Zhiqi Zhang, Taoyu Yang,         [33] Yucheng Hu, Yanjiang Guo, Pengchao Wang, Xi-
+     Xuheng Zhang, Heming Cui, et al. Graspvla: a                  aoyu Chen, Yen-Jen Wang, Jianke Zhang, Koushil
+     grasping foundation model pre-trained on billion-             Sreenath, Chaochao Lu, and Jianyu Chen. Video
+     scale synthetic action data. arXiv preprint, 2025.            prediction policy: A generalist robot policy with
+                                                                   predictive visual representations. arXiv preprint,
+[23] Matthieu Destrade, Oumayma Bounou, Quentin Le                 2024.
+     Lidec, Jean Ponce, and Yann LeCun. Value-guided
+     action planning with jepa world models, 2025.            [34] Physical Intelligence, Kevin Black, Noah Brown,
+                                                                   James Darpinian, Karan Dhabalia, Danny Driess,
+[24] Runpei Dong, Chunrui Han, Yuang Peng, Zekun                   Adnan Esmail, Michael Equi, Chelsea Finn, Niccolo
+     Qi, Zheng Ge, Jinrong Yang, Liang Zhao, Jianjian              Fusai, et al. pi0.5: a vision-language-action model
+     Sun, Hongyu Zhou, Haoran Wei, Xiangwen Kong,                  with open-world generalization. arXiv preprint, 2025.
+     Xiangyu Zhang, Kaisheng Ma, and Li Yi. Dream-
+     LLM: Synergistic multimodal comprehension and            [35] Yuheng Ji, Huajie Tan, Jiayu Shi, Xiaoshuai Hao,
+     creation. In ICLR, 2024.                                      Yuan Zhang, Hengyuan Zhang, Pengwei Wang,
+                                                                   Mengdi Zhao, Yao Mu, Pengju An, Xinda Xue, Qing-
+[25] Frederik Ebert, Yanlai Yang, Karl Schmeckpeper,
+                                                                   hang Su, Huaihai Lyu, Xiaolong Zheng, Jiaming Liu,
+     Bernadette Bucher, Georgios Georgakis, Kostas
+                                                                   Zhongyuan Wang, and Shanghang Zhang. Robo-
+     Daniilidis, Chelsea Finn, and Sergey Levine. Bridge
+                                                                   brain: A unified brain model for robotic manip-
+     data: Boosting generalization of robotic skills with
+                                                                   ulation from abstract to concrete. In IEEE/CVF
+     cross-domain datasets. arXiv preprint, 2021.
+                                                                   Conference on Computer Vision and Pattern Recogni-
+[26] Ashley Edwards, Himanshu Sahni, Yannick                       tion, CVPR 2025, Nashville, TN, USA, June 11-15,
+     Schroecker, and Charles Isbell. Imitating latent poli-        2025, pages 1724–1734. Computer Vision Foundation
+     cies from observation. In International conference            / IEEE, 2025.
+     on machine learning, pages 1755–1763. PMLR, 2019.
+                                                              [36] Yueru Jia, Jiaming Liu, Shengbang Liu, Rui Zhou,
+[27] Shichao Fan, Kun Wu, Zhengping Che, Xinhua                    Wanhe Yu, Yuyang Yan, Xiaowei Chi, Yandong Guo,
+     Wang, Di Wu, Fei Liao, Ning Liu, Yixue Zhang,                 Boxin Shi, and Shanghang Zhang. Video2act: A dual-
+     system video diffusion policy with robotic spatio-           laws in imitation learning for robotic manipulation.
+     motional modeling, 2025.                                     arXiv preprint, 2024.
+[37] Siddharth Karamcheti, Suraj Nair, Ashwin Bal-            [47] Fanqi Lin, Ruiqian Nai, Yingdong Hu, Jiacheng
+     akrishna, Percy Liang, Thomas Kollar, and Dorsa               You, Junming Zhao, and Yang Gao. Onetwovla: A
+     Sadigh. Prismatic vlms: Investigating the design              unified vision-language-action model with adaptive
+     space of visually-conditioned language models. arXiv          reasoning. arXiv preprint, 2025.
+     preprint, 2024.
+                                                              [48] Minghui Lin, Pengxiang Ding, Shu Wang, Zifeng
+[38] Alexander Khazatsky, Karl Pertsch, Suraj Nair, Ash-           Zhuang, Yang Liu, Xinyang Tong, Wenxuan Song,
+     win Balakrishna, Sudeep Dasari, Siddharth Karam-              Shangke Lyu, Siteng Huang, and Donglin Wang.
+     cheti, Soroush Nasiriany, Mohan Kumar Srirama,                Hif-vla: Hindsight, insight and foresight through mo-
+     Lawrence Yunliang Chen, Kirsty Ellis, et al. Droid:           tion representation for vision-language-action models.
+     A large-scale in-the-wild robot manipulation dataset.         arXiv preprint arXiv:2512.09928, 2025.
+     arXiv preprint, 2024.
+                                                              [49] Bo Liu, Yifeng Zhu, Chongkai Gao, Yihao Feng,
+[39] Moo Jin Kim, Karl Pertsch, Siddharth Karamcheti,              Qiang Liu, Yuke Zhu, and Peter Stone. LIBERO:
+     Ted Xiao, Ashwin Balakrishna, Suraj Nair, Rafael              benchmarking knowledge transfer for lifelong robot
+     Rafailov, Ethan Foster, Grace Lam, Pannag Sanketi,            learning. In Alice Oh, Tristan Naumann, Amir
+     et al. Openvla: An open-source vision-language-               Globerson, Kate Saenko, Moritz Hardt, and Sergey
+     action model. arXiv preprint, 2024.                           Levine, editors, NeurIPS, 2023.
+
+[40] Moo Jin Kim, Chelsea Finn, and Percy Liang. Fine-        [50] Haotian Liu, Chunyuan Li, Qingyang Wu, and
+     tuning vision-language-action models: Optimizing              Yong Jae Lee. Visual instruction tuning. NeurIPS,
+     speed and success. arXiv preprint, 2025.                      2023.
+
+[41] Albina Klepach, Alexander Nikulin, Ilya Zisman,          [51] Mingyu Liu, Jiuhe Shu, Hui Chen, Zeju Li, Canyu
+     Denis Tarasov, Alexander Derevyagin, Andrei Pol-              Zhao, Jiange Yang, Shenyuan Gao, Hao Chen, and
+     ubarov, Nikita Lyubaykin, and Vladislav Kurenkov.             Chunhua Shen. Stamo: Unsupervised learning of
+     Object-centric latent action learning.    CoRR,               generalizable robot motion from compact state rep-
+     abs/2502.09680, 2025.                                         resentation. arXiv preprint arXiv:2510.05057, 2025.
+
+[42] Haozhan Li, Yuxin Zuo, Jiale Yu, Yuhao Zhang,            [52] Zhuoyang Liu, Jiaming Liu, Jiadong Xu, Nuowei
+     Zhaohui Yang, Kaiyan Zhang, Xuekai Zhu, Yuchen                Han, Chenyang Gu, Hao Chen, Kaichen Zhou, Ren-
+     Zhang, Tianxing Chen, Ganqu Cui, Dehui Wang,                  rui Zhang, Kai Chin Hsieh, Kun Wu, et al. Mla: A
+     Dingxiang Luo, Yuchen Fan, Youbang Sun, Jia Zeng,             multisensory language-action model for multimodal
+     Jiangmiao Pang, Shanghang Zhang, Yu Wang, Yao                 understanding and forecasting in robotic manipula-
+     Mu, Bowen Zhou, and Ning Ding. Simplevla-rl: Scal-            tion. arXiv preprint arXiv:2509.26642, 2025.
+     ing VLA training via reinforcement learning. CoRR,       [53] Zhuoyang Liu, Jiaming Liu, Hao Chen, Ziyu Guo,
+     abs/2509.09674, 2025.                                         Chengkai Hou, Chenyang Gu, Jiale Yu, Xiangju
+[43] Xinghang Li, Peiyan Li, Minghuan Liu, Dong Wang,              Mi, Renrui Zhang, Zhengping Che, et al. Last
+     Jirong Liu, Bingyi Kang, Xiao Ma, Tao Kong, Hanbo             _{0}: Latent spatio-temporal chain-of-thought for
+     Zhang, and Huaping Liu. Towards generalist robot              robotic vision-language-action model. arXiv preprint
+     policies: What matters in building vision-language-           arXiv:2601.05248, 2026.
+     action models. arXiv preprint, 2024.                     [54] Qi Lv, Weijie Kong, Hao Li, Jia Zeng, Zherui Qiu,
+                                                                   Delin Qu, Haoming Song, Qizhi Chen, Xiang Deng,
+[44] Xuanlin Li, Kyle Hsu, Jiayuan Gu, Oier Mees, Karl
+                                                                   and Jiangmiao Pang. F1: A vision-language-action
+     Pertsch, Homer Rich Walke, Chuyuan Fu, Ishikaa
+                                                                   model bridging understanding and generation to
+     Lunawat, Isabel Sieh, Sean Kirmani, Sergey Levine,
+                                                                   actions. arXiv preprint arXiv:2509.06951, 2025.
+     Jiajun Wu, Chelsea Finn, Hao Su, Quan Vuong, and
+     Ted Xiao. Evaluating real-world robot manipulation       [55] Jiangran Lyu, Ziming Li, Xuesong Shi, Chaoyi Xu,
+     policies in simulation. In Pulkit Agrawal, Oliver             Yizhou Wang, and He Wang. Dywa: Dynamics-
+     Kroemer, and Wolfram Burgard, editors, CoRL,                  adaptive world action model for generalizable non-
+     2024.                                                         prehensile manipulation. arXiv preprint, 2025.
+[45] Zhixuan Liang, Yizhuo Li, Tianshuo Yang, Chengyue        [56] Xiangkai Ma, Lekai Xing, Han Zhang, Wenzhong
+     Wu, Sitong Mao, Liuao Pei, Xiaokang Yang, Jiang-              Li, and Sanglu Lu. Unifying perception and ac-
+     miao Pang, Yao Mu, and Ping Luo. Discrete diffusion           tion: A hybrid-modality pipeline with implicit visual
+     vla: Bringing discrete diffusion to action decoding in        chain-of-thought for robotic action generation. arXiv
+     vision-language-action policies. arXiv preprint, 2025.        preprint arXiv:2511.19859, 2025.
+[46] Fanqi Lin, Yingdong Hu, Pingyue Sheng, Chuan             [57] Alexander Nikulin, Ilya Zisman, Denis Tarasov,
+     Wen, Jiacheng You, and Yang Gao. Data scaling                 Nikita Lyubaykin, Andrei Polubarov, Igor Kiselev,
+    and Vladislav Kurenkov. Latent action learning re-             inverse dynamics models are scalable learners for
+    quires supervision in the presence of distractors. In          robotic manipulation. ICLR, 2024.
+    Forty-second International Conference on Machine
+                                                              [70] Michael Tschannen, Alexey Gritsenko, Xiao Wang,
+    Learning, ICML 2025, Vancouver, BC, Canada, July
+                                                                   Muhammad Ferjad Naeem, Ibrahim Alabdulmohsin,
+    13-19, 2025, volume 267 of Proceedings of Machine
+                                                                   Nikhil Parthasarathy, Talfan Evans, Lucas Beyer,
+    Learning Research. PMLR / OpenReview.net, 2025.
+                                                                   Ye Xia, Basil Mustafa, et al. Siglip 2: Multilingual
+[58] Alexander Nikulin, Ilya Zisman, Albina Klepach,               vision-language encoders with improved semantic un-
+     Denis Tarasov, Alexander Derevyagin, Andrei Pol-              derstanding, localization, and dense features. arXiv
+     ubarov, Lyubaykin Nikita, and Vladislav Kurenkov.             preprint arXiv:2502.14786, 2025.
+     Vision-language models unlock task-centric latent
+                                                              [71] Aaron Van Den Oord, Oriol Vinyals, et al. Neural
+     actions, 2026.
+                                                                   discrete representation learning. NeurIPS, 2017.
+[59] Abby O’Neill, Abdul Rehman, Abhinav Gupta,
+                                                              [72] Yihao Wang, Pengxiang Ding, Lingxiao Li, Can Cui,
+     Abhiram Maddukuri, Abhishek Gupta, Abhishek
+                                                                   Zirui Ge, Xinyang Tong, Wenxuan Song, Han Zhao,
+     Padalkar, Abraham Lee, Acorn Pooley, Agrim Gupta,
+                                                                   Wei Zhao, Pengxu Hou, et al. Vla-adapter: An effec-
+     Ajay Mandlekar, et al. Open x-embodiment: Robotic
+                                                                   tive paradigm for tiny-scale vision-language-action
+     learning datasets and rt-x models. arXiv preprint,
+                                                                   model. arXiv preprint arXiv:2509.09372, 2025.
+     2023.
+                                                              [73] Yuqi Wang, Xinghang Li, Wenxuan Wang, Junbo
+[60] William Peebles and Saining Xie. Scalable diffusion
+                                                                   Zhang, Yingyan Li, Yuntao Chen, Xinlong Wang,
+     models with transformers. In ICCV, 2023.
+                                                                   and Zhaoxiang Zhang. Unified vision-language-
+[61] Karl Pertsch, Kyle Stachowicz, Brian Ichter, Danny            action model. arXiv preprint, 2025.
+     Driess, Suraj Nair, Quan Vuong, Oier Mees, Chelsea       [74] Youpeng Wen, Junfan Lin, Yi Zhu, Jianhua Han,
+     Finn, and Sergey Levine. Fast: Efficient action tok-          Hang Xu, Shen Zhao, and Xiaodan Liang. Vidman:
+     enization for vision-language-action models. arXiv            Exploiting implicit dynamics from video diffusion
+     preprint, 2025.                                               model for effective robot manipulation. NeurIPS,
+[62] Video Generation Pretraining. Disentangled robot              2024.
+     learning via separate for-ward and inverse dynamics      [75] Wei Wu, Fan Lu, Yunnan Wang, Shuai Yang, Shi
+     pretraining. .                                                Liu, Fangjing Wang, Qian Zhu, He Sun, Yong Wang,
+[63] Video Generation Pretraining. Disentangled robot              Shuailei Ma, et al. A pragmatic vla foundation model.
+     learning via separate for-ward and inverse dynamics           arXiv preprint arXiv:2601.18692, 2026.
+     pretraining. .                                           [76] Kechun Xu, Zhenjie Zhu, Anzhe Chen, Shuqi Zhao,
+[64] Zekun Qi, Runpei Dong, Shaochen Zhang, Haoran                 Qing Huang, Yifei Yang, Haojian Lu, Rong Xiong,
+     Geng, Chunrui Han, Zheng Ge, Li Yi, and Kaisheng              Masayoshi Tomizuka, and Yue Wang. Seeing to
+     Ma. Shapellm: Universal 3d object understanding               act, prompting to specify: A bayesian factoriza-
+     for embodied interaction. In ECCV, 2024.                      tion of vision language action policy. arXiv preprint
+                                                                   arXiv:2512.11218, 2025.
+[65] Zekun Qi, Wenyao Zhang, Yufei Ding, Runpei Dong,
+     Xinqiang Yu, Jingwen Li, Lingyun Xu, Baoyu Li,           [77] An Yang, Anfeng Li, Baosong Yang, Beichen Zhang,
+     Xialin He, Guofan Fan, et al. Sofar: Language-                Binyuan Hui, Bo Zheng, Bowen Yu, Chang Gao,
+     grounded orientation bridges spatial reasoning and            Chengen Huang, Chenxu Lv, et al. Qwen3 technical
+     object manipulation. arXiv preprint, 2025.                    report. arXiv preprint arXiv:2505.09388, 2025.
+
+[66] Delin Qu, Haoming Song, Qizhi Chen, Yuanqi Yao,          [78] Jiange Yang, Yansong Shi, Haoyi Zhu, Mingyu Liu,
+     Xinyi Ye, Yan Ding, Zhigang Wang, JiaYuan Gu,                 Kaijing Ma, Yating Wang, Gangshan Wu, Tong He,
+     Bin Zhao, Dong Wang, et al. Spatialvla: Explor-               and Limin Wang. Como: Learning continuous la-
+     ing spatial representations for visual-language-action        tent motion from internet videos for scalable robot
+     model. arXiv preprint, 2025.                                  learning. arXiv preprint, 2025.
+
+[67] Kanchana Ranasinghe, Xiang Li, Cristina Mata,            [79] Seonghyeon Ye, Joel Jang, Byeongguk Jeon, Sejune
+     Jongwoo Park, and Michael S Ryoo. Pixel motion                Joo, Jianwei Yang, Baolin Peng, Ajay Mandlekar,
+     as universal representation for robot control. arXiv          Reuben Tan, Yu-Wei Chao, Bill Yuchen Lin, et al.
+     preprint, 2025.                                               Latent action pretraining from videos. arXiv preprint,
+                                                                   2024.
+[68] Dominik Schmidt and Minqi Jiang. Learning to
+                                                              [80] Bozhou Zhang, Nan Song, Jingyu Li, Xiatian Zhu,
+     act without actions. In The Twelfth International
+                                                                   Jiankang Deng, and Li Zhang. Future-aware end-
+     Conference on Learning Representations.
+                                                                   to-end driving: Bidirectional modeling of trajec-
+[69] Yang Tian, Sizhe Yang, Jia Zeng, Ping Wang, Dahua             tory planning and scene evolution. arXiv preprint
+     Lin, Hao Dong, and Jiangmiao Pang. Predictive                 arXiv:2510.11092, 2025.
+[81] Chubin Zhang, Jianan Wang, Zifeng Gao, Yue Su,          fan Welker, Ayzaan Wahid, Quan Vuong, Vincent
+     Tianru Dai, Cai Zhou, Jiwen Lu, and Yansong             Vanhoucke, Huong T. Tran, Radu Soricut, Anikait
+     Tang. Clap: Contrastive latent action pretraining for   Singh, Jaspiar Singh, Pierre Sermanet, Pannag R.
+     learning vision-language-action models from human       Sanketi, Grecia Salazar, Michael S. Ryoo, Krista Rey-
+     videos, 2026.                                           mann, Kanishka Rao, Karl Pertsch, Igor Mordatch,
+                                                             Henryk Michalewski, Yao Lu, Sergey Levine, Lisa
+[82] Chuheng Zhang, Tim Pearce, Pushi Zhang, Kaixin
+                                                             Lee, Tsang-Wei Edward Lee, Isabel Leal, Yuheng
+     Wang, Xiaoyu Chen, Wei Shen, Li Zhao, and Jiang
+                                                             Kuang, Dmitry Kalashnikov, Ryan Julian, Nikhil J.
+     Bian. What do latent action models actually learn?
+                                                             Joshi, Alex Irpan, Brian Ichter, Jasmine Hsu, Alexan-
+     arXiv preprint arXiv:2506.15691, 2025.
+                                                             der Herzog, Karol Hausman, Keerthana Gopalakr-
+[83] Jianke Zhang, Yanjiang Guo, Yucheng Hu, Xiaoyu          ishnan, Chuyuan Fu, Pete Florence, Chelsea Finn,
+     Chen, Xiang Zhu, and Jianyu Chen. Up-vla: A             Kumar Avinava Dubey, Danny Driess, Tianli Ding,
+     unified understanding and prediction model for em-      Krzysztof Marcin Choromanski, Xi Chen, Yevgen
+     bodied agent. arXiv preprint, 2025.                     Chebotar, Justice Carbajal, Noah Brown, Anthony
+                                                             Brohan, Montserrat Gonzalez Arenas, and Kehang
+[84] Jiazhao Zhang, Kunyu Wang, Shaoan Wang, Ming-           Han. RT-2: vision-language-action models transfer
+     han Li, Haoran Liu, Songlin Wei, Zhongyuan Wang,        web knowledge to robotic control. In CoRL, 2023.
+     Zhizheng Zhang, and He Wang. Uni-navid: A video-
+     based vision-language-action model for unifying em-
+     bodied navigation tasks. arXiv preprint, 2024.
+[85] Jiazhao Zhang, Kunyu Wang, Rongtao Xu, Gengze
+     Zhou, Yicong Hong, Xiaomeng Fang, Qi Wu,
+     Zhizheng Zhang, and He Wang. Navid: Video-based
+     vlm plans the next step for vision-and-language nav-
+     igation. Robotics: Science and Systems, 2024.
+[86] Wenyao Zhang, Hongsi Liu, Zekun Qi, Yunnan Wang,
+     Xinqiang Yu, Jiazhao Zhang, Runpei Dong, Jiawei
+     He, He Wang, Zhizheng Zhang, et al. Dreamvla: A
+     vision-language-action model dreamed with compre-
+     hensive world knowledge. arXiv preprint, 2025.
+[87] Qingqing Zhao, Yao Lu, Moo Jin Kim, Zipeng Fu,
+     Zhuoyang Zhang, Yecheng Wu, Zhaoshuo Li, Qianli
+     Ma, Song Han, Chelsea Finn, et al. Cot-vla: Vi-
+     sual chain-of-thought reasoning for vision-language-
+     action models. arXiv preprint, 2025.
+[88] Haoyu Zhen, Xiaowen Qiu, Peihao Chen, Jincheng
+     Yang, Xin Yan, Yilun Du, Yining Hong, and Chuang
+     Gan. 3d-vla: A 3d vision-language-action generative
+     world model. arXiv preprint, 2024.
+[89] Linqing Zhong, Yi Liu, Yifei Wei, Ziyu Xiong, Mao-
+     qing Yao, Si Liu, and Guanghui Ren. Acot-vla:
+     Action chain-of-thought for vision-language-action
+     models. arXiv preprint arXiv:2601.11404, 2026.
+[90] Zhide Zhong, Haodong Yan, Junfeng Li, Xiangchen
+     Liu, Xin Gong, Tianran Zhang, Wenxuan Song, Jiayi
+     Chen, Xinhu Zheng, Hesheng Wang, et al. Flowvla:
+     Visual chain of thought-based motion reasoning
+     for vision-language-action models. arXiv preprint
+     arXiv:2508.18269, 2025.
+[91] Zhongyi Zhou, Yichen Zhu, Minjie Zhu, Junjie Wen,
+     Ning Liu, Zhiyuan Xu, Weibin Meng, Ran Cheng,
+     Yaxin Peng, Chaomin Shen, et al. Chatvla: Unified
+     multimodal understanding and robot control with
+     vision-language-action model. arXiv preprint, 2025.
+[92] Brianna Zitkovich, Tianhe Yu, Sichun Xu, Peng Xu,
+     Ted Xiao, Fei Xia, Jialin Wu, Paul Wohlhart, Ste-
+A     Implementation Details
+A.1   VLA-JEPA Architecture
+VLM Backbone. We use Qwen3-VL-2B as the VLM backbone, which is implemented as a dense Transformer.
+Its vision encoder consists of a Vision Transformer and 3D convolutional modules. To capture physical
+dynamics, we adopt a V-JEPA2 encoder checkpoint together with a randomly initialized predictor as the
+latent world model, whose action inputs are the latent action tokens produced by the VLM. To enable the
+VLM to output time-aware latent actions and embodied actions, we designed latent action tokens ⟨latenti ⟩
+and an embodied action token ⟨action⟩, which are incorporated as additional tokens into the vocabulary of
+Qwen3-VL. When generating the latent action tokens, we repeat the same latent action token ⟨latenti ⟩ K
+times to strengthen the model’s attention to the latent action tokens, where K = 24/T , T denotes the future
+video horizon, and 24 is the empirically optimal value.
+Latent World Model. To let the latent action tokens to capture the physical dynamics between frames, we adopt
+an auto-regressive Transformer as the architecture of the world model with a time-causal attention mechanism.
+Specifically, within a single time step, the K latent action tokens and the N image latent tokens attend to
+each other bidirectionally, whereas across different time steps, attention between tokens is constrained to be
+causal.
+Table 5 Configuration of the Latent World Model.
+
+
+                             Parameter                                     Value
+                             Transformer Layers                            12
+                             Attention heads                               8
+                             Image token dimension                         2048
+                             Number of image tokens per time step          256
+                             Action token dimension                        2048
+                             Number of action tokens per time step         3
+                             Number of view                                2
+                             Future video horizon                          8
+
+Action Head. To generate future actions conditioned on latent action embeddings, we adopt a flow matching-
+based Transformer architecture, DiT-B [60], as our action head. DiT-B is conditioned on an embodied action
+token sequence formed by repeating the action token 32 times, where 32 is the empirically optimal value.
+
+Table 6 Configuration of the Action head.
+
+
+                                    Parameter                  Value
+                                    Transformer Layers         16
+                                    Attention heads            12
+                                    Token dimension            1024
+                                    State dimension            8
+                                    Action dimension           7
+                                    Future action horizon      7
+                                    Positional encoding        Learnable
+                                    Denoising timesteps        4
+
+
+A.2   Training Details
+We preprocess all training datasets following a unified pipeline. Observation images used as inputs to the
+VLM are resized to 224×224. Video clips used by the world-state encoder are resized to 256×256 to be
+consistent with the hyperparameter settings described in the previous subsection. For models pretrained with
+joint-position control (e.g. π0 ), we use joint-space delta positions as actions and apply min–max normalization
+to map them into [0, 1]. For models pretrained with end-effector control (e.g., VLA-JEPA), we use both
+end-effector delta positions and delta axis–angle representations as actions, which are likewise min–max
+normalized to [0, 1] All gripper commands are binarized to {0, 1}. To handle multi-view observations, when
+     𝜋0
+
+
+
+
+     𝜋0.5
+
+
+
+
+  VLA-JEPA
+
+
+
+
+Figure 7 Comparison of three models (π0 , π0.5 , VLA-JEPA) under the object-layout OOD setting.
+
+fewer than two camera views are available, we duplicate the world-state representation and concatenate the
+two copies. When more than two views are available, we select two of the available views and use them as the
+world-state representation.
+During training, we use a batch size of 32 and train on 8 GPUs in parallel, resulting in a global batch size of
+256. We adopt a cosine learning-rate schedule with linear warmup, with a peak learning rate of 1e-5 for the
+VLM and the latent world model, and 1e-4 for action head. For the pretraining datasets, ssv2 and droid, we
+jointly train the model for 50K steps. For the simulation datasets, we continue training for 30K steps starting
+from the last pretrained checkpoint. For the real-world datasets, we further fine-tune the model for 20K steps,
+also initialized from the last pretrained checkpoint.
+
+
+B    Real-world Experiments Details
+Our real-world setup consists of a Franka Research 3 robotic arm, a Robotiq 2F-85 gripper, and three Intel
+RealSense D435 cameras, including two third-person views and one wrist-mounted view. The collected expert
+demonstrations involve picking and placing grapes, apples, mangoes, and oranges from a table into a plate
+or a bowl. In the following experiments, each task is executed for 10 independent trials, and we report the
+average success rate over all trials.
+For task-level OOD evaluation in real-world experiments, we consider the following tasks: (i) picking up
+bananas from the table and placing them into a bowl, (ii) picking up peaches from the table and placing them
+onto a plate, and (iii) picking up grapes from the table and placing them onto the top level of a shelf.
+We observe that, for the banana-picking task, both π0.5 and VLA-JEPA achieve approximately a 50% success
+rate. For the peach-picking task, due to the irregular shape of peaches, the robot frequently violates the
+predefined safety boundaries during execution. For the final task, since shelves are not present in the training
+data, none of the models can successfully place the end-effector at the top level. However, compared with
+π0 and π0.5 , which directly collide with the shelf, VLA-JEPA exhibits a qualitatively different behavior by
+approaching the target from the rear side of the shelf and lifting the end-effector to a higher position. Although
+the task is still not successfully completed, this behavior indicates that VLA-JEPA possesses improved task
+generalization ability compared with the baselines.
+For object-layout–level OOD evaluation in real-world experiments, we randomly select three tasks from the
+training set and randomly shuffle the object layouts to assess the robustness and generalization capability of
+the models.
+As shown in Figure 7, we observe that both π0 and π0.5 fail to reattempt grasping after an unsuccessful grasp,
+since the training data do not contain demonstrations of repeated grasping behaviors, i.e., reopening the
+gripper and regrasping after a failure. Consequently, when a grasp fails, these two policies do not actively
+release the gripper, as they have not learned the action of opening the gripper to reattempt a grasp. In
+contrast, VLA-JEPA, which is pretrained on human videos and thus exposed to repeated grasping behaviors,
+is able to immediately open the gripper and attempt to grasp again after a failure. We argue that repeated
+grasping does not require learning additional physical dynamics; instead, it mainly requires the model to learn
+when to perform a regrasp action. Once this temporal decision is learned, the policy can internally map it to
+its own physical dynamics and execute the corresponding motion. This observation highlights one of the key
+advantages of pretraining on human videos.
+

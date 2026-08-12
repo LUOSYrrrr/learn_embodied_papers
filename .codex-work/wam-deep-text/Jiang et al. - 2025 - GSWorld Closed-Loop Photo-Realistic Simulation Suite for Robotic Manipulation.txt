@@ -1,0 +1,735 @@
+                                                           GSWorld: Closed-Loop Photo-Realistic Simulation Suite
+                                                                        for Robotic Manipulation
+                                               Guangqi Jiang∗1         Haoran Chang∗1,2 Ri-Zhao Qiu1 Yutong Liang1 Mazeyu Ji1                                    Jiyue Zhu1
+                                                                             Zhao Dong3 Xueyan Zou1 Xiaolong Wang1
+                                                                               1 UC San Diego, 2 UC Los Angeles, 3 Meta
+
+                                                                            *Equal Contributions https://3dgsworld.github.io
+
+
+
+                                                                                                               GSWorld Construction
+
+
+
+
+arXiv:2510.20813v1 [cs.RO] 23 Oct 2025
+                                                                                                               Real to Simulation
+                                                                                                               Reconstruction
+                                                                                                                                                                           Reset &
+                                                                                                                                                                           Re-plan
+
+
+                                                                                                               GSWorld Applications
+                                                                                                               Simulation to Real                  (a) DAgger Corrective Data:
+                                                                                                               Alignment                               Pick up the yellow bottle.
+
+
+
+
+                                                 YCB                  DTC               Custom
+                                                                                                                (b) RL (Rendered):                   (c) Imitation (Rendered):
+                                              Metric-scale Scene and Object Renderings                         Put the cans on the deck.        Pick up the spoon & put it on cut board.
+
+                                         Fig. 1: GSWorld leverages 3DGS reconstruction to render photo-realistic robot scenes, supports multiple policy learning
+                                         recipes in the simulation, and realizes zero-shot sim2real transfer. GSWorld also applies to policy visual benchmarking and
+                                         virtual teleoperation for data collection.
+
+                                            Abstract— This paper presents GSWorld, a robust, photo-                                        I. I NTRODUCTION
+                                         realistic simulator for robotics manipulation that combines
+                                         3D Gaussian Splatting with physics engines. Our framework                  Training manipulation policies typically relies on three
+                                         advocates ‘closing the loop’ of developing manipulation policies
+                                                                                                                 data sources—simulation, human videos, and real teleopera-
+                                         with reproducible evaluation of policies learned from real-robot
+                                         data and sim2real policy training without using real robots. To         tion—each presenting a distinct trade-off. While simulation
+                                         enable photo-realistic rendering of diverse scenes, we propose          provides a perfectly aligned action space for the robot, it
+                                         a new asset format, which we term GSDF (Gaussian Scene                  often suffers from many sim-to-real gaps. Human videos
+                                         Description File), that infuses Gaussian-on-Mesh representation         offer the benefit of photo-realistic scenes and real physics,
+                                         with robot URDF and other objects. With a streamlined
+                                                                                                                 but lack temporally aligned robot actions and operate in a
+                                         reconstruction pipeline, we curate a database of GSDF that
+                                         contains 3 robot embodiments for single-arm and bimanual                mismatched action space. Teleoperation successfully aligns
+                                         manipulation, as well as more than 40 objects. Combining                both perception and actions, yet its high cost and difficulty
+                                         GSDF with physics engines, we demonstrate several immediate             to scale are significant limitations.
+                                         interesting applications: (1) learning zero-shot sim2real pixel-to-        To resolve these trade-offs, we introduce GSWorld, a
+                                         action manipulation policy with photo-realistic rendering, (2)
+                                         automated high-quality DAgger data collection for adapting              closed-loop, photo-realistic simulation suite that couples 3D
+                                         policies to deployment environments, (3) reproducible bench-            Gaussian Splatting (3DGS) with physics to narrow both
+                                         marking of real-robot manipulation policies in simulation, (4)          the visual and action-space gaps for manipulation. “Closed-
+                                         simulation data collection by virtual teleoperation, and (5) zero-      loop” here means the same environment can be used to
+                                         shot sim2real visual reinforcement learning.                            train, evaluate, diagnose failures, and relabel, enabling rapid
+                                                                                                                 iteration: policies perceive photo-realistic renderings while
+                                                                                                                 issuing controls in the robot’s native space, all inside a
+simulator that mirrors real scenes closely enough to support         ing (IL). GSWorld supports multiple sim data collection
+zero-shot transfer and efficient adaptation. We demonstrate          methods, e.g. motion planning, teleoperation. IL policies
+that GSWorld enables a range of downstream applications              trained with GSWorld data can be directly deployed to the
+and, in particular, effective sim-to-real transfer for imitation     reconstructed real-world scenes.
+learning, reinforcement learning, and DAgger-style data col-       • Visual RL. GSWorld is designed to utilize parallel environ-
+lection.                                                             ments in the simulation to train RL policies. We provide
+    This closed-loop capability is powered by a bidirectional        an analysis to show that GSWorld reduces RL sim2real
+pipeline that ensures tight alignment between the physical           visual gaps.
+world and its digital twin. In the real-to-sim direction, our      • Closed-loop DAgger Learning with Visual Benchmarking.
+pipeline reconstructs a metric-accurate digital twin from            GSWorld shows reliable policy evaluation results in corre-
+short multi-view captures, sets an absolute scale with ArUco         lation with real-world deployments, contributing to using
+markers, and aligns the robot URDF to the scene via surface          DAgger to iteratively improve real-world policies.
+fitting (e.g., ICP). We then attach collision meshes and ma-
+terial properties to produce a versatile GSDF asset. The sim-                          II. R ELATED W ORK
+to-real direction is the reverse: policies trained in GSWorld         Robotics Simulation. With developments in computer
+deploy on hardware without interface translation because           graphics for rendering [54] and object material simula-
+their control and observation spaces match the robot’s native      tion [50], the robotics community has designed various
+APIs. Policies trained with both sim and real data can             physics engines [10, 13] and simulators [47, 56, 60] to
+be deployed in the sim to evaluate, detect failures, and           support various robotics tasks. Recently, more and more
+gather DAgger corrections, thus closing the iteration loop.        simulators have started to improve efficiency and fidelity.
+Achieving this sim-to-real alignment requires that the scene’s     For example, Mujoco-Jax [60] exploits just-in-time com-
+geometry, camera properties, and action semantics remain           pilers [18] to achieve impressive simulation efficiency in
+consistent across the real-to-sim divide. We measure the           Python. To improve rendering fidelity and reduce sim2real
+degree of this correspondence through a suite of metrics           visual gaps, recent papers have turned to sophisticated ray-
+evaluating the visual, geometric, and functional similarity        tracing techniques [54] and generative AI tools [39] to reduce
+between the two worlds.                                            the visual observation gap between simulation renderings and
+    With photo-realistic perception and native action-space        the real world. A recent ‘meta-simulator’, Roboverse [15],
+control in one loop, GSWorld supports zero-shot sim-to-            attempts to provides a unified simulation interface to make
+real for both visual imitation learning and visual RL, while       use of the advantages in individual simulators. This paper
+exploiting scalable parallelism to accelerate data genera-         focuses on improving the fidelity of simulation renderings
+tion and training. Its closed-loop DAgger workflow lets            by combining recent advances in 3D Gaussian Splatting and
+practitioners reproduce on-robot failures inside the digital       simulators.
+twin, step through them frame-by-frame, and collect targeted          Real2Sim (Real-to-Simulation). As an alternative to
+corrective labels with far less teleoperation overhead. Finally,   modeling basic physics and elements from the bottom-up
+GSWorld provides reproducible visual benchmarking: shared          in simulation, real2sim approaches take a different approach
+GSDF assets, fixed camera intrinsics/extrinsics, consistent        to build simulation assets by virtualizing real-world assets.
+lighting/materials, and standardized action semantics en-          Recent real2sim methods can be roughly divided into two
+able apples-to-apples comparisons across robots, scenes, and       categories: photo-realistic 3D reconstruction [1, 6, 17, 27,
+tasks—so improvements reflect algorithmic progress rather          34, 35, 44, 45, 53] and part-level (articulated) object under-
+than environmental variance.                                       standing [7, 11, 36, 52].
+    Existing GS-based simulators either target single-setup           Real2Sim (Real-to-Simulation) - Photo-realistic Ren-
+photo-realistic rendering, provide engine-tied pipelines with-     dering. Early method in Real2Sim reconstruction [44] use
+out a portable asset standard, or limit the reproducible           NeRFs [37], Diffusion [28] or Mesh [52] for photo-realistic
+cross-embodiment benchmarking and deployment-oriented              modeling. Due to the inherent implicit representation of
+on-policy data collection [5, 27, 38, 45]. While GSWorld           NeRFs, they often rely on surrogates such as deformation
+delivers an effective real-to-sim-to-real workflow that unifies    fields [21] to deform the visual renderings to accommodate
+photo-realistic 3DGS with contact-accurate physics, enabling       object motion, which is unnatural and inefficient. On the
+scalable cross-embodiment benchmarking, zero-shot imita-           other hand, mesh-based representations contain many arti-
+tion and reinforcement learning, and automated high-quality        facts [52] that lead to visual gap. Simpler [28] proposes
+DAgger data collection for continual deployment-time im-           to use generative modeling to advance reproducible bench-
+provement.                                                         marking [22, 24] by supporting photorealistic rendering.
+    In summary, our contributions are:                             However, Simpler requires expensive manual labor to match
+• A solid real-to-sim-to-real pipeline. Our robust real-to-sim-    green screen and textures, hindering its scalability. With
+   to-real pipeline accurately aligns the simulation with the      developments in 3DGS [26], a rasterization-based method,
+   real environment, enabling a wide range of subsequent           SplatSim [45] successfully combined 3DGS with PyBul-
+   applications.                                                   let [10] to build a photo-realistic simulator and demonstrated
+• Simulation Data Collection and Visual Imitation Learn-           zero-shot sim2real policy deployment. As 3DGS can be
+        Data Collection                                  GSWorld                                                Applications
+                                                                                            Sim.                        Sim. Privileged
+                                                                                            policy                           Info
+                                                                                                                                           Closed-loop
+                                                                                                                                          DAgger Training
+                                                                                            Real                           Reset &
+                                                    GSDF               Photo-Realistic      policy                         Re-plan
+                                                                         Rendering
+
+                                                                                                                                Deploy       Sim.
+
+       Robot Scene Scans          Align                                                                                                      Real.
+                                                                                                                       Policy
+                                  ment
+                                                                                                Zero-shot sim2real        Visual Benchmarking
+                       DTC
+                                                                                                                                          action
+                                                         Physics Simulation
+                       YCB                                   Backend
+                                                                                                                                     obs., reward
+                           …
+                                                                                                                          RL Agent                   GSWorld
+   Obj. Scans    Obj. Datasets                                                                 Virtual Teleoperation   Reinforcement Learning
+
+
+Fig. 2: GSWorld provides an interface on top of existing simulators to render photorealistic assets. Our GSDF assets are
+compatible with existing simulators to use standard formats for rendering visuals (e.g., depth, segmentation) and computing
+physics collisions. GSWorld provides a rendering wrapper on top of simulators to make the RGB rendering photo-realistic
+to support various domain randomization and applications.
+
+explicitly represented as ‘Gaussian Blobs’, the photo-realistic                                  III. M ETHOD
+appearance can be displaced consistently with object physics.       A. Problem Formulation
+However, SplatSim relies on manual 3D segmentation of
+both the robot arm and objects, which is overfitted to a single         We consider the problem of learning robot policies from
+scene. In parallel to the development of SplatSim, Embodied-        visual observations. Let Ssim denote simulated scene and
+GS [1] learns arm-object interaction without using physics          Greal denote the real scene Sreal reconstructed by 3DGS from
+engine in a single scene; Robo-GS [34] focuses on identify-         multiple RGB viewpoints V = Σvi . Greal can be used to
+ing physical parameters of individual objects from rendering;       render novel-view RGB images I gs = Greal (p, s), which
+and ManiGaussian [35] investigates optimizing Gaussian              enables photorealistic rendering of the scene under arbitrary
+representations from simulators with ideally synchronized           camera poses p and environment states s.
+multi-view information. Most recently, Re3Sim [17] extends              Our goal is to replace raw real-world RGB observations
+SplatSim [45] and found that the capability to perform              I real with 3DGS-rendered images I gs for downstream robot
+photo-realistic simulation leads to more robust manipulation        learning tasks, including IL, RL, and DAgger. Formally,
+policies with domain randomization and mixed simulation             at each time step t, the underlying state of the system is
+(e.g., non-photorealistic simulation assets with photo-realistic    represented as
+scenes). We continue to advance the progress in photo-                                   st = (qt , x1t , . . . , xnt ),      (1)
+realistic simulation by combining the latest advancements
+in 3DGS and introducing more 3DGS assets with a unified             where qt ∈ Rm denotes the robot’s joint position, and xkt
+asset format.                                                       represents the 6D pose of the k-th object in Sreal . We mainly
+   Real2Sim (Real-to-Simulation) - Others. Here we pro-             use joint position control for the robots. The robot receives
+vide a concise review of other progress in real2sim that            an observation
+is orthogonal to our method. Part-level (articulated) object
+understanding methods [7, 11, 36, 52] apply internet-scale                               ot = Itgs = Greal (pt , st ),                                     (2)
+pre-trained visual and language models [32, 46] to create
+                                                                     rendered from Greal given the current camera pose pt and
+physics and articulation of simulation assets from real-world       environment state st .
+observations. While these methods focus on understanding
+                                                                       In RL, the policy πθ is trained by interacting with the
+articulation of objects, recent methods have also worked on
+                                                                    environment and receiving rewards. In IL, the expert E pro-
+more challenging tasks such as estimating physics for de-
+                                                                    vides demonstrations τE = {(q1 , o1 , a1 ), . . . , (qT , oT , aT )},
+formable objects [25] and rigid contracts [42]. PhysTwin [25]
+                                                                    which are used to supervise πθ . In DAgger, πθ is iteratively
+optimizes physics models for elastic objects by assuming a
+                                                                    refined by collecting expert rollouts from previous failure
+Spring-Mass model and estimating physics parameters from
+                                                                    cases, getting τD . In all cases, the policy takes as input Itgs
+video observations. Scalable Real2Sim [42] is an advance-
+                                                                    instead of Itreal , and robot proprioceptions qt , i.e.,
+ment from previous physics estimation method [34], in which
+the authors built a pipeline that uses robot arm and camera                                   at ∼ πθ (Itgs , qt ).                                        (3)
+setups to automate estimation of rigid physics parameters
+including mass, center of mass, and inertia tensor [42].               At test time, the trained policy πθ must generalize to
+Liu et al. [30] proposes to optimize robot kinematics from          real-world observations I real , ensuring that GSWorld bridges
+differentiable rendering.                                           sim2real visual gap.
+B. Recipe for Real2Sim Reconstruction                            works [29, 61]. However, collecting DAgger data is hard as
+   This section describes how GSWorld creates GSDF assets        it requires reproducing scene setups for the model to ‘re-
+to construct photo-realistic scenes. Compared with existing      experience’ the failure case.
+work [17, 27, 34, 45, 59] that focus on constructing robots in      GSWorld provides an interface for automatic DAgger data
+a single scene, GSWorld is designed (1) with an easy-to-use      collection in simulation. Given the GSDF of the target
+streamlined procedure to reduce manual alignment efforts         deployment environment and tasks with scripted policies, we
+and (2) to incorporate recent advancements in 3DGS such          roll out the policies with GSWorld. For failure recordings
+as geometric accuracy [19].                                      Df = (s1 , . . . , sT ), we randomly sample recovery states
+     a) Collecting Training Views: To construct a scene          sr ∼ Df with a uniform sampler, where the task is still
+with a robot, we use both robot sensors (i.e., wrist cameras     achievable in sr , and run the motion planner to obtain
+and third-person cameras) and mobile phone cameras while         corrective data, as illustrated in Fig. 3.
+saving the current joint pose of robot during the scene
+capture.
+     b) Aligning Scale for Metric Representation: Existing
+real2sim2real methods [43, 45] relies on COLMAP [49],
+which introduces scale ambiguity. While such ambiguity can
+be dealt with manually for a single scene, it affects the
+scalability for multiple robot embodiments and scenes. To
+avoid manual scale alignment, we use a simple solution to
+include a printed ArUco marker [14, 23] on the tabletop                                                            Reset
+during the data collection (qualitative examples in Fig. 1).                                                        &
+The detected keypoints of ArUcO markers are projected                                                             Re-plan
+onto the point cloud formed by 3DGS. We then scale the
+point cloud using the known scales of the ArUcO marker. In
+addition, the ArUco marker helps identify the support surface
+in collision and estimate gravity direction.                     Fig. 3: DAgger Data Collection in Simulation. With privileged
+                                                                 information provided by simulation, we can record and relive the
+     c) Aligning Robots and Table: Given a metric-scale          failure cases during rollouts and generate corrective data for policy
+Greal of a static robot R and a metric-scale robot URDF          adaptation.
+in Ssim , we align the simulation joint position with the real
+world. Then, we sample and densify surface point clouds             To iteratively improve zero-shot sim2real policies, we
+from the visual mesh of the robot URDF. We then perform          collect data, evaluate policies, record failures, and recover,
+an ICP to compute the rigid transform TR,sim  gs
+                                                    : Greal =    resulting in an aggregated dataset τS :
+  gs
+TR,sim · Ssim . Compared to previous methods [45], our ICP                            τS = Σi (Qs , Os , As )i                    (4)
+has fewer degrees of freedom since the scale is fixed. Given
+the alignment, we use K-NN to segment robot links in Greal .      , where Qs , As denote simulation robot joint positions,
+                                                                 and action labels. Os = I gs is the GSWorld-rendered
+     d) Object Assets: Our prior reconstruction stage fo-
+                                                                 observations and i is the DAgger iteration.
+cuses on background and robot scans. For moveable objects
+                                                                   To improve policies trained with real-world data, we first
+O, we consider integrating existing large-scale datasets and
+                                                                 evaluate the polices and repeat the same loop, leading to
+supporting custom objects for generalizability. Specifically,
+                                                                 dataset τR :
+we use DTC [12] for its photo-realistic visual quality, and                        τR = (Qr , Or , Ar ) ∪ τS             (5)
+YCB [4]. For custom objects, we use 2DGS [19] to get
+the reconstruction Ogs and mesh reconstruction. Mass is            , where Qr , Or , Ar are collected in the real world by
+estimated by weighing. The unobserved bottom regions of          teleoperation.
+the object can be optionally inpainted using amodal re-                b) Visual Benchmarking.: Recent VLAs [3, 33, 40]
+construction [2, 55] or 3D object generation [31] method.        train generalist policies that work on many different robot
+                                                 gs              embodiments. Learning from extensive cross-embodiment
+Similarly, we use ICP to get the transform Tk,sim      for the
+               gs      gs                                        training data, these base models adapt to unseen robot
+k-th object: Ok = Tk,sim · Ok .
+                                                                 hardware and language instructions in a few-shot or even
+C. Applications - Closing the Loop for Developing Visual         zero-shot manner [3, 33]. However, due to their reliance
+Manipulation Policies                                            on real robot data during training, there does not exist a
+     a) Closed-loop DAgger Training: In the traditional          standardized visual manipulation benchmark that studies the
+imitation learning settings, policy weights are not updated      quality of the base models and their data sampling efficiency
+once they are trained and deployed. During deployment,           for novel embodiments.
+policies often run into failures. DAgger [48] is a solution         GSWorld provides a photo-realistic rendering interface to
+to this case where corrective data is used to train the model    address such an issue. With our GSDF assets, we provide
+to adapt to failure cases. DAgger data has been shown to         photo-realistic simulation of various scenes with different
+have much better data efficiency than plain data by previous     robot embodiments, and a wide selection of interactable
+                                                                                                 Place Box                  Pour Sauce
+objects. We define a range of manipulation tasks using
+ManiSkill [51] as the simulator backend. Moreover, we use                                        Stack Cans                 Arrange Cans
+image augmentation to further reduce the visual gap between
+sim and real.
+      c) Reinforcement Learning.: RL requires massive in-             Fig. 5: FR3 Task Visualizations. We design 4 real-world
+teraction between agents and the environments, usually with           robotic tasks that involve distinct manipulation skills and
+parallelism [51]. To better support RL, GSWorld optimizes             diverse objects on FR3.
+                                                                                    Align Cans               Grasp Banana        Tidy Table
+its implementation by only parallelizing 3DGS points that
+are linked with moving parts of the scene, i.e., robot R and
+objects O, and keeps other points cached with just one copy.
+This enables us to use a single GPU to run large parallelism          Fig. 6: xArm Task Visualizations. We design 3 manipula-
+to accelerate RL convergence.                                         tion tasks on xArm6.
+                      IV. E XPERIMENTS                                and data sizes to evaluate the performance of ‘good’ and
+    This section presents an empirical evaluation of GSWorld          ‘bad’ policies. Please kindly refer to our released codebase
+to demonstrate its effectiveness. Our experiments are de-             for full implementation details due to limited space.
+signed to address the following research questions:                        c) Manipulation Tasks Design: We designed the fol-
+• Zero-shot Sim2real Imitation Learning. Can GSWorld                  lowing table-top manipulation tasks to evaluate perfor-
+   effectively bridge the sim-to-real gap to enable zero-shot         mances, as shown in Fig. 5 and Fig. 6:
+   policy transfer?                                                   • Place Box. The bottle and the box are initialized randomly
+• Closed-loop Policy Improvement. Does access to a digital              within a 45 cm × 45 cm area. FR3 must pick up the bottle
+   twin of the target deployment environment increase sam-              and place it onto the box.
+   pling efficiency and enable continual improvement after            • Pour Sauce. The mustard bottle and the bread slice are put
+   policy deployment via DAgger?                                        within a 45 cm × 45 cm area. FR3 is required to pour the
+• Visual Benchmarking. Does performance in GSWorld                      sauce onto the bread slice.
+   correlate with real-world performance?                             • Stack Cans. Two cans are randomly placed within a
+
+• Virtual Teleoperation. Does GSWorld enable simulated                  45 cm × 45 cm area. FR3 must stack them.
+                                                                      • Arrange Cans. Two cans are randomly placed within a
+   data collection through human teleoperation?
+• Reinforcement Learning (RL). Can GSWorld narrow
+                                                                        20 cm × 15 cm area. A rack is randomly placed beside
+   down the sim2real visual gap for visual RL?                          them. FR3 is tasked with placing one object on the rack,
+                                                                        followed by placing the second object next to it.
+                                                                      • Align Cans. xArm needs to grasp one can and put it next
+           RealSense D435
+                                                                        to the other can.
+               FR 3
+                                                                      • Grasp Banana. xArm should grasp the banana and rotate
+            UMI Gripper                                                 it by 30 to 60 degrees along the z-axis.
+                                                                      • Tidy Table. xArm is required to pick up the kitchen spoon
+                             Front View     Wrist View
+                                                                        and place it onto the cutting board to clean the table.
+            RealSense D435   Side View      Wrist View
+  xArm6
+                                                                      A. Zero-shot Sim2real Imitation Learning
+                                                                         Fig. 7 shows the performances of policies trained with only
+                                                                      simulation data. We leverage the MPlib motion planner [51],
+                                                                      utilizing predefined motions and poses. For each task, we
+                                                                      collect 100 trajectories per iteration and train on the sum of
+Fig. 4: Real World Hardware Platforms. For FR3, we set up
+two cameras: a third-person camera positioned in front of the robot   all generated data. We can safely conclude that GSWorld al-
+(front view), and a wrist-mounted camera attached to the robot’s      lows zero-shot sim2real policy transfer and shows promising
+end effector (wrist view). For xArm6, we set up a third-person        success rates. More details are included in section IV-B.
+camera besides the robot (side view) and a wrist view.
+     a) Hardware Platforms: Though GSWorld scales to                  B. Closed-loop DAgger for Continuous Policy Improvement
+many robot embodiments, we consider three robot platforms                The data collection uses same method as the zero-shot
+for evaluation: a Franka Research 3 (FR3) robot with a UMI            sim2real learning. For sim2real, we collect 100 expert tra-
+gripper [9]; a UF xArm6 with a parallel gripper; and a                jectories for the initial iteration of DAgger training. In
+bimanual Galaxea R1 robot equipped with two 6-DoF arms.               subsequent iterations, we evaluate the current policy and
+     b) Experiment Protocol: In total, we evaluate GSWorld            identify all failed trajectories. For each failure, we reset the
+on 4 manipulation tasks on FR3 and 3 tasks on xArm.                   environment to a preceding state where the task remains solv-
+We also use R1 to demonstrate that GSWorld supports                   able, and collect additional corrective data using the motion
+virtual simulation teleoperation to collect data. For policy          planner starting from that state. This DAgger data collection
+implementations, we use ACT [62] and Pi0 [3] to show                  process is repeated for four additional iterations, with each
+GSWorld to be policy-agnostic. For visual benchmarking,               iteration generating 100 expert trajectories. As shown in
+we intentionally train policies with varying training settings        Figure 7, our DAgger-based approach leads to significant
+                80
+                                           Place Box                               70
+                                                                                                                 Pour Sauce                                                                                ACT [62]              Pi0 [3]
+                                  TfS-Real
+                75                DAGGER-Real
+                                  TfS-Sim                                          60                                                                                                                     real    sim         real     sim
+                70
+                                  DAGGER-Sim
+                65
+
+
+Success Rates
+                                                                                   50                                                                                                 Place Box          50.0%   44.0%    60.0%       52.0%
+                60
+                55                                                                 40
+                                                                                                                                                                                      Pour Sauce         40.0%   28.0%    60.0%       40.0%
+                50                                                                                                                                                                    Stack Cans         50.0%   42.0%    40.0%       32.0%
+                                                                                   30
+                45                                                                                                                                                                    Arrange Cans       60.0%   48.0%    60.0%       50.0%
+                40                                                                 20                                                                                                 Avg.               50.0%   41.0%    55.0%       43.5%
+                35
+                     100           200          300         400            500          100           200            300          400           500
+                                   Number of Demonstrations                                           Number of Demonstrations
+                                          Stack Cans                               80
+                                                                                                             Arrange Cans                                 TABLE I: Visual Benchmarking of Real-world Policies on
+                70                                                                                                                                        FR3. We show the evaluation performance in both sim and
+                                                                                   70
+                60                                                                                                                                        real of policies trained with only real-world data.
+
+Success Rates
+                                                                                   60
+                50
+                                                                                                                                                          rendering capabilities of 3DGS [26], we establish a bench-
+                                                                                   50
+                                                                                                                                                          marking framework that reflects real-world behaviors.
+                40                                                                 40
+
+                30                                                                 30                                                                                           1.0
+                                                                                                                                                                                       Model
+                     100           200          300
+                                   Number of Demonstrations
+                                                            400            500          100           200            300
+                                                                                                      Number of Demonstrations
+                                                                                                                                  400           500
+                                                                                                                                                                                0.9          ACT
+                                                                                                                                                                                             Pi0
+  Fig. 7: Closed-loop Sim2real DAgger Training on FR3.                                                                                                                          0.8
+
+
+
+
+                                                                                                                                                       Simulated Success Rate
+  Policies are trained with sim data and deployed in both sim
+  and real environments. DAgger consistently improves policy                                                                                                                    0.7
+  performances and outperforms training from scratch.                                                                                                                           0.6
+                                 Align Cans                 75
+                                                                       Grasp Banana                       110
+                                                                                                                           Tidy Table
+                80
+                             DAgger
+                                                                                                          100
+                                                                                                                                                                                0.5
+                                                            70
+                                                                                                            90
+
+
+
+Success Rates
+                70                                          65
+                                                                                                            80                                                                  0.4                                                    Task
+                60                                          60                                              70
+                                                                                                                                                                                                                                      Place Box
+                50                                          55
+                                                                                                            60                                                                  0.3                                                   Pour Sauce
+                                                                                                            50
+                                                            50
+                                                                                                            40
+                                                                                                                                                                                                                                      Stack Cans
+                40
+                                                            45                                              30
+                                                                                                                                                                                0.2                                                   Arrange Cans
+                     0     100    200    300    400   500        0   100     200    300       400   500          0   100    200    300   400     500
+                           Number of Demonstrations                  Number of Demonstrations                        Number of Demonstrations
+                                                                                                                                                                                       0.2         0.3     0.4     0.5         0.6         0.7       0.8
+  Fig. 8: Closed-loop Real2sim2real DAgger on xArm.                                                                                                                                                       Real Success Rate
+  DAgger can also be used to improve real-world policies.                                                                                                 Fig. 9: Visual Benchmarking with FR3. We roll out various
+  performance improvements across all four tasks, compared to                                                                                             policies in both real and sim. We intentionally use different
+  training from scratch (TfS) using only a supervised imitation                                                                                           policies and data sizes to show positive correlations of sim-
+  learning objective.                                                                                                                                     real performance regardless of the quality of the policies.
+     DAgger can also be applied to improve real-world policies.
+  Instead of starting from a randomly initialized policy, we can                                                                                          D. Virtual Teleoperation
+  do real2sim2real DAgger learning. First we train a real-world
+                                                                                                                                                             Simulation data can be used to scale up robot policy
+  ACT with a few demonstrations. Then we start from this
+                                                                                                                                                          learning [20, 58]. We show that through mouse and keyboard,
+  checkpoint and do DAgger in GSWorld. Fig 8 shows that
+                                                                                                                                                          we can collect teleoperation data in the simulation with real
+  GSWorld can improve performance after real-world policy
+                                                                                                                                                          renderings, as illustrated in Fig. 10.
+  deployment.
+     These results highlight the critical role of closed-loop
+  DAgger Training. Leveraging our photo-realistic digital twin,
+  researchers can collect essential corrective data that would
+  be extremely difficult to obtain in the real world, primarily
+  due to the challenges of precisely resetting objects to their
+  pre-failure states.
+                                                                                                                                                          Fig. 10: Galaxea R1 Virtual Teleoperation. We use a
+  C. Benchmarking                                                                                                                                         keyboard to teleop R1 and render photo-realistic videos.
+
+     In Fig. 9, we observe a strong correlation between simu-                                                                                             E. Visual Reinforcement Learning
+  lation and real-world performance across all evaluated tasks                                                                                               GSWorld is designed to support parallel environments so
+  and different policy architectures. This correlation indicates                                                                                          that we can use this to learn visual RL policies, which
+  that GSWorld can reliably predict real-world outcomes with-                                                                                             has great potential in robot learning [20, 41]. We trained
+  out requiring physical deployment of policies in the real                                                                                               asymmetric SAC [16] with GSWorld, where the critic sees
+  world scene. As shown in Table I, higher simulated per-                                                                                                 simulation-privileged information and the actor only uses
+  formance consistently corresponds to higher success rates                                                                                               robot joint position. As we aim to show that GSWorld can re-
+  in real-world experiments. By leveraging the photorealistic                                                                                             duce the visual gap for RL instead of acquiring good sim2real
+                                    Grasp Banana                                                                     Tidy Table
+                      GSWorld
+                      ManiSkill
+                                                                                                  GSWorld
+                                                                                                  ManiSkill
+                                                                                                                                                         [10]   E. Coumans and Y. Bai, Pybullet, a python module for
+                                                                                     0.8
+         0.4
+                                                                                                                                                                physics simulation for games, robotics and machine
+         0.3                                                                         0.6                                                                        learning, 2016.
+Reward   0.2                                                                Reward   0.4                                                                 [11]   T. Dai et al., “Automated creation of digital cousins
+         0.1                                                                         0.2
+                                                                                                                                                                for robust policy learning,” in CoRL, 2024.
+         0.0
+                                                                                                                                                         [12]   Z. Dong et al., “Digital twin catalog: A large-scale
+                                                                                     0.0
+               0.00     0.25      0.50   0.75   1.00
+                                     Training Steps (M)
+                                                       1.25   1.50   1.75                  0.00     0.25      0.50    0.75   1.00
+                                                                                                                 Training Steps (M)
+                                                                                                                                    1.25   1.50   1.75          photorealistic 3d object digital twin dataset,” arXiv
+                                                                                                                                                                preprint arXiv:2504.08541, 2025.
+ Fig. 11: SAC. Results are aggregated over 3 runs. Directly                                                                                              [13]   T. Erez, Y. Tassa, and E. Todorov, “Simulation tools
+ training from ManiSkill is also plotted for comparison.                                                                                                        for model-based robotics: Comparison of bullet, ha-
+                                                                                                                                                                vok, mujoco, ode and physx,” in ICRA, 2015.
+ VRL policies, we train with no domain randomization except                                                                                              [14]   S. Garrido-Jurado, R. Muñoz-Salinas, F. J. Madrid-
+ for color jittering for efficiency. We only use the third-person                                                                                               Cuevas, and M. J. Marı́n-Jiménez, “Automatic gener-
+ view since wrist camera shows significant gaps during RL                                                                                                       ation and detection of highly reliable fiducial markers
+ exploration. Our real-world success rates for Grasp Banana                                                                                                     under occlusion,” Pattern Recognition, 2014.
+ and Tidy Table are 30% and 20%, while baseline ManiSkill                                                                                                [15]   H. Geng et al., “Roboverse: Towards a uni-
+ reaches 0% and 5%, respectively. Training results are shown                                                                                                    fied platform, dataset and benchmark for scalable
+ in Fig. 11.                                                                                                                                                    and generalizable robot learning,” arXiv preprint
+                         V. C ONCLUSION                                                                                                                         arXiv:2504.18904, 2025.
+    In this work, we present a pipeline for constructing a                                                                                               [16]   T. Haarnoja, A. Zhou, P. Abbeel, and S. Levine,
+ photorealistic digital twin that delivers highly correlated                                                                                                    “Soft actor-critic: Off-policy maximum entropy deep
+ performance metrics between simulation and real-world de-                                                                                                      reinforcement learning with a stochastic actor,” in
+ ployments across different policy architectures and embod-                                                                                                     International conference on machine learning, Pmlr,
+ iments. Furthermore, we demonstrate that our environment                                                                                                       2018, pp. 1861–1870.
+ can efficiently collect corrective data at scale, enabling more                                                                                         [17]   X. Han et al., “Re3 sim: Generating high-fidelity simu-
+ effective policy training.                                                                                                                                     lation data via 3d-photorealistic real-to-sim for robotic
+                                                                                                                                                                manipulation,” arXiv preprint arXiv:2502.08645,
+                                                              R EFERENCES
+                                                                                                                                                                2025.
+    [1]                J. Abou-Chakra, K. Rana, F. Dayoub, and N. Suen-                                                                                  [18]   Y. Hu, T.-M. Li, L. Anderson, J. Ragan-Kelley, and
+                       derhauf, “Physically embodied gaussian splatting: A                                                                                      F. Durand, “Taichi: A language for high-performance
+                       visually learnt and physically grounded 3d represen-                                                                                     computation on spatially sparse data structures,” ACM
+                       tation for robotics,” in CoRL, 2024.                                                                                                     Transactions on Graphics (TOG), 2019.
+    [2]                W. Agnew et al., “Amodal 3d reconstruction for                                                                                    [19]   B. Huang, Z. Yu, A. Chen, A. Geiger, and S. Gao, “2d
+                       robotic manipulation via stability and connectivity,”                                                                                    gaussian splatting for geometrically accurate radiance
+                       in CoRL, 2021.                                                                                                                           fields,” in ACM SIGGRAPH, 2024.
+    [3]                K. Black et al., “π0 : A vision-language-action flow                                                                              [20]   T. Huang, G. Jiang, Y. Ze, and H. Xu, “Diffusion
+                       model for general robot control,” arXiv preprint                                                                                         reward: Learning rewards via conditional video dif-
+                       arXiv:2410.24164, 2024.                                                                                                                  fusion,” in European Conference on Computer Vision,
+    [4]                B. Calli et al., “Yale-cmu-berkeley dataset for robotic                                                                                  Springer, 2024, pp. 478–495.
+                       manipulation research,” The International Journal of                                                                              [21]   C. Jambon, B. Kerbl, G. Kopanas, S. Diolatzis, G.
+                       Robotics Research, vol. 36, no. 3, pp. 261–268, 2017.                                                                                    Drettakis, and T. Leimkühler, “Nerfshop: Interactive
+    [5]                T. Chen et al., “Robotwin 2.0: A scalable data gen-                                                                                      editing of neural radiance fields,” Proceedings of the
+                       erator and benchmark with strong domain randomiza-                                                                                       ACM on Computer Graphics and Interactive Tech-
+                       tion for robust bimanual robotic manipulation,” arXiv                                                                                    niques, 2023.
+                       preprint arXiv:2506.18088, 2025.                                                                                                  [22]   S. James, Z. Ma, D. R. Arrojo, and A. J. Davison,
+    [6]                Z. Chen et al., “Omnire: Omni urban scene reconstruc-                                                                                    “Rlbench: The robot learning benchmark & learning
+                       tion,” arXiv preprint arXiv:2408.16760, 2024.                                                                                            environment,” IEEE Robotics and Automation Letters,
+    [7]                Z. Chen et al., “Urdformer: A pipeline for constructing                                                                                  2020.
+                       articulated simulation environments from real-world                                                                               [23]   M. Ji, R.-Z. Qiu, X. Zou, and X. Wang, “Graspsplats:
+                       images,” in RSS, 2024.                                                                                                                   Efficient manipulation with 3d feature splatting,” in
+    [8]                X. Cheng, J. Li, S. Yang, G. Yang, and X. Wang,                                                                                          CoRL, 2024.
+                       “Open-television: Teleoperation with immersive active                                                                             [24]   G. Jiang, Y. Sun, T. Huang, H. Li, Y. Liang, and H. Xu,
+                       visual feedback,” arXiv preprint arXiv:2407.01512,                                                                                       “Robots pre-train robots: Manipulation-centric robotic
+                       2024.                                                                                                                                    representation from large-scale robot datasets,” arXiv
+    [9]                C. Chi et al., “Universal manipulation interface: In-                                                                                    preprint arXiv:2410.22325, 2024.
+                       the-wild robot teaching without in-the-wild robots,”                                                                              [25]   H. Jiang, H.-Y. Hsu, K. Zhang, H.-N. Yu, S. Wang, and
+                       arXiv preprint arXiv:2402.10329, 2024.                                                                                                   Y. Li, “Phystwin: Physics-informed reconstruction and
+       simulation of deformable objects from videos,” arXiv              via robotic pick-and-place setups,” arXiv preprint
+       preprint arXiv:2503.17973, 2025.                                  arXiv:2503.00370, 2025.
+[26]   B. Kerbl, G. Kopanas, T. Leimkühler, and G. Dret-         [43]   R.-Z. Qiu, G. Yang, W. Zeng, and X. Wang,
+       takis, “3d gaussian splatting for real-time radiance              “Language-driven physics-based scene synthesis and
+       field rendering.,” ACM Trans. Graph., vol. 42, no. 4,             editing via feature splatting,” in ECCV, 2024.
+       pp. 139–1, 2023.                                           [44]   D. Qu et al., “Livescene: Language embedding inter-
+[27]   X. Li et al., “Robogsim: A real2sim2real robotic                  active radiance fields for physical scene rendering and
+       gaussian splatting simulator,” arXiv preprint                     control,” arXiv preprint arXiv:2406.16038, 2024.
+       arXiv:2411.11839, 2024.                                    [45]   M. N. Qureshi, S. Garg, F. Yandun, D. Held, G.
+[28]   X. Li et al., “Evaluating real-world robot ma-                    Kantor, and A. Silwal, “Splatsim: Zero-shot sim2real
+       nipulation policies in simulation,” arXiv preprint                transfer of rgb manipulation policies using gaussian
+       arXiv:2405.05941, 2024.                                           splatting,” in 2025 IEEE International Conference
+[29]   H. Liu, S. Nasiriany, L. Zhang, Z. Bao, and Y. Zhu,               on Robotics and Automation (ICRA), IEEE, 2025,
+       “Robot learning on the job: Human-in-the-loop au-                 pp. 6502–6509.
+       tonomy and learning during deployment,” The Inter-         [46]   A. Radford et al., “Learning transferable visual models
+       national Journal of Robotics Research, 2022.                      from natural language supervision,” in ICML, 2021.
+[30]   R. Liu, A. Canberk, S. Song, and C. Von-                   [47]   E. Rohmer, S. P. Singh, and M. Freese, “V-rep: A
+       drick, “Differentiable robot rendering,” arXiv preprint           versatile and scalable robot simulation framework,” in
+       arXiv:2410.13851, 2024.                                           IROS, 2013.
+[31]   R. Liu, R. Wu, B. Van Hoorick, P. Tokmakov, S.             [48]   S. Ross, G. Gordon, and D. Bagnell, “A reduction
+       Zakharov, and C. Vondrick, “Zero-1-to-3: Zero-shot                of imitation learning and structured prediction to no-
+       one image to 3d object,” in ICCV, 2023.                           regret online learning,” in Proceedings of the four-
+[32]   S. Liu et al., “Grounding dino: Marrying dino with                teenth international conference on artificial intelli-
+       grounded pre-training for open-set object detection,”             gence and statistics, JMLR Workshop and Conference
+       in ECCV, 2024.                                                    Proceedings, 2011.
+[33]   S. Liu et al., “Rdt-1b: A diffusion foundation             [49]   J. L. Schonberger and J.-M. Frahm, “Structure-from-
+       model for bimanual manipulation,” arXiv preprint                  motion revisited,” in Proceedings of the IEEE con-
+       arXiv:2410.07864, 2024.                                           ference on computer vision and pattern recognition,
+[34]   H. Lou et al., Robo-gs: A physics consistent spatial-             2016, pp. 4104–4113.
+       temporal model for robotic arm with hybrid represen-       [50]   D. Sulsky, Z. Chen, and H. L. Schreyer, “A particle
+       tation, 2024.                                                     method for history-dependent materials,” Computer
+[35]   G. Lu, S. Zhang, Z. Wang, C. Liu, J. Lu, and Y. Tang,             methods in applied mechanics and engineering, 1994.
+       “Manigaussian: Dynamic gaussian splatting for multi-       [51]   S. Tao et al., “Maniskill3: Gpu parallelized robotics
+       task robotic manipulation,” in ECCV, 2024.                        simulation and rendering for generalizable embodied
+[36]   Z. Mandi, Y. Weng, D. Bauer, and S. Song,                         ai,” arXiv preprint arXiv:2410.00425, 2024.
+       “Real2code: Reconstruct articulated objects via code       [52]   M. Torne et al., “Reconciling reality through simula-
+       generation,” arXiv preprint arXiv:2406.08474, 2024.               tion: A real-to-sim-to-real approach for robust manip-
+[37]   B. Mildenhall, P. P. Srinivasan, M. Tancik, J. T. Bar-            ulation,” arXiv preprint arXiv:2403.03949, 2024.
+       ron, R. Ramamoorthi, and R. Ng, “Nerf: Representing        [53]   Y. Weng et al., “Neural implicit representation for
+       scenes as neural radiance fields for view synthesis,”             building digital twins of unknown articulated objects,”
+       Communications of the ACM, vol. 65, no. 1, pp. 99–                in CVPR, 2024.
+       106, 2021.                                                 [54]   T. Whitted, “An improved illumination model for
+[38]   Y. Mu et al., “Robotwin: Dual-arm robot benchmark                 shaded display,” in Proceedings of the 6th annual
+       with generative digital twins,” in Proc. IEEE/CVF                 conference on Computer graphics and interactive
+       Conf. on Computer Vision and Pattern Recognition                  techniques, 1979, p. 14.
+       (CVPR), 2025, pp. 27 649–27 660.                           [55]   T. Wu, C. Zheng, F. Guan, A. Vedaldi, and T.-J. Cham,
+[39]   S. Nasiriany et al., “Robocasa: Large-scale simulation            “Amodal3r: Amodal 3d reconstruction from occluded
+       of everyday tasks for generalist robots,” arXiv preprint          2d images,” arXiv preprint arXiv:2503.13439, 2025.
+       arXiv:2406.02523, 2024.                                    [56]   F. Xiang et al., “Sapien: A simulated part-based inter-
+[40]   Octo Model Team et al., “Octo: An open-source                     active environment,” in Proceedings of the IEEE/CVF
+       generalist robot policy,” in Proceedings of Robotics:             conference on computer vision and pattern recogni-
+       Science and Systems, 2024.                                        tion, 2020, pp. 11 097–11 107.
+[41]   G. Pan et al., “Roboduet: Learning a cooperative pol-      [57]   R. Yan, J. Fu, S. Yang, L. Paulsen, X. Cheng, and X.
+       icy for whole-body legged loco-manipulation,” IEEE                Wang, “ACE-f: A cross embodiment foldable system
+       Robotics and Automation Letters, 2025.                            with force feedback for dexterous teleoperation,” in
+[42]   N. Pfaff, E. Fu, J. Binagia, P. Isola, and R. Tedrake,            1st Workshop on Robot Hardware-Aware Intelligence,
+       “Scalable real2sim: Physics-aware asset generation                2025.
+[58]   R. Yang et al., Egovla: Learning vision-language-
+       action models from egocentric human videos, 2025.
+[59]   S. Yang et al., “Novel demonstration generation with
+       gaussian splatting enables robust one-shot manipula-
+       tion,” arXiv preprint arXiv:2504.13175, 2025.
+[60]   K. Zakka et al., “Mujoco playground,” arXiv preprint
+       arXiv:2502.08844, 2025.
+[61]   X. Zhang, M. Chang, P. Kumar, and S. Gupta, “Dif-
+       fusion meets dagger: Supercharging eye-in-hand imi-
+       tation learning,” in RSS, 2024.
+[62]   T. Z. Zhao, V. Kumar, S. Levine, and C. Finn, “Learn-
+       ing fine-grained bimanual manipulation with low-cost
+       hardware,” arXiv preprint arXiv:2304.13705, 2023.
+                         A PPENDIX                                          b) Real-world Evaluation: Real-world validation con-
+A. Neural Rendering Background                                         sisted of 10 experimental trials per policy, each with ran-
+                                                                       domized initial conditions. Consistent with the simulation
+   Point and surface splatting methods represent a scene
+                                                                       protocol, partial success metrics were implemented. The
+explicitly via a mixture of 2D or 3D Gaussian ellipsoid. In
+                                                                       observational framework maintained parity with the simula-
+the case of Gaussian Splatting, the geometry is represented
+                                                                       tion environment, utilizing visual inputs from two RealSense
+as a collection of 3D Gaussian, each being the tuple {X , Σ}
+                                                                       D435i cameras.
+where X ∈ R3 is the centroid of the Gaussian and Σ is
+                                                                            c) Policy Learning Implementation: In our paper we
+its covariance matrix in the world frame. This gives the
+                                                                       use two policy architectures, i.e., ACT [62] and PI0 [3]. For
+probability density function
+                                                                       ACT, we adopted the original PyTorch implementation but
+                                   1                                   replaced the visual backbone from ResNet-18 to DinoV2
+               G(X , Σ) = exp − X ⊤ Σ−1 X .               (6)
+                                   2                                   ViT-S, similar to OpenTV [8]. We used 42 batch size, an
+Gaussian splatting decomposes it into a scaling matrix S and           SGD optimizer with a constant 0.0001 learning rate for
+a rotation matrix R via Σ = RSS⊤ R⊤ . The color informa-               50 000 iterations to train the policy. The rest of the training
+tion in the texture is encoded with a spherical harmonics              hyperparameters are consistent with the original ACT paper.
+map ci = SHϕ (di ), which is conditioned on the viewing                For the PI0 [3] model, we adopted the implementation on
+direction ϕ.                                                           LeRobot. We used the publicly available PI0-base model
+   To optimize for features, existing methods tend to append           weights for initialization. For the training, we freeze the
+an additional vector fi ∈ Rd to each Gaussian, which is                visual and language backbone and train only the action
+rendered in a view-independent manner because the seman-               expert. The optimization was done with an SGD optimizer
+tics of an object shall remain the same regardless of view             with a constant 0.0001 learning rate for 50 000 iterations with
+directions. The rasterization procedure starts with culling            a batch size of 10.
+the mixture by removing points that lay outside the camera                  d) DAGGER Detailed Performance: In this section we
+frustum. The remaining Gaussians are projected to the image            provide the numerical results in Figure 7, which is shown in
+plane according to the projection matrix W of the camera,              Table II.
+which is then sorted from low to high using the distance
+                                                                       C. Gaussian Splatting Training
+from the virtual camera origin. This projection also induces
+the following transformation on the covariance matrix Σ:                    a) Implementation: Our pipeline is compatible with
+                     ′
+                                                                       any kind of gaussian splitting implementation. For simplicity,
+                   Σ = J W Σ W ⊤ J⊤ ,                            (7)   we use the official one [26] and their default code im-
+where J is the Jacobian of the projection matrix W. We can             plementation without modifying anything. We take around
+then render both the color and the visual features with the            100 and 300 pictures for object and robot reconstruction,
+splatting algorithm:                                                   respectively. The model is trained with points initialized with
+                                             i−1
+                                                                       Colmap [49], and saved at iteration 7000 and 30000.
+          {F̂, ˆ
+                     X                       Y
+              C} =         {fi , ci } · αi         (1 − αj ) ,   (8)   D. GSWorld Data Collection
+                     i∈N                     j=1                             a) Simulation: We primarily rely on motion planning
+                                                                   ′
+where αi is the opacity of the Gaussian conditioned on Σ               for data collection due to its fully automated nature. The task
+and the indices i ∈ N are in the ascending order determined            is decomposed into several subtasks, each associated with
+by their distance to the camera origin.                                a specific motion. The robot executes these motions using
+  Following the convention [43], GSWorld assumes that per-             MPlib.
+gaussian feature vector fi is isotropic. The rendered depth,              Our framework also supports data collection via teleop-
+images, and features are then supervised using L2 loss.                eration in simulation. We employ a built-in click-and-drag
+                                                                       teleoperation system provided by ManiSkill [51], which is
+B. More Experimental Details                                           operated using a keyboard and mouse. This system allows
+     a) Simulation Evaluation: We evaluated each task                  users to define keyframes and utilize a motion planner to
+across 25 random seeds in simulation. At the initiation of             achieve the desired robot pose.
+each episode, objects were randomly configured. A partial                    b) Real World: For real-world data collection, we
+success criterion was established, awarding half credit for            utilize a VR-based teleoperation system. The interface in-
+completing intermediate steps (e.g., successfully picking up           cludes an HTC Vive controller and base station, which
+an object or placing one can on the rack). Episodes for                track 6-DOF hand movements that are mapped to the robot
+the placing box, pouring sauce, and stacking cans tasks                arm’s end-effector pose. Integration with the HTC Vive is
+were limited to 500 time steps, while arranging cans was               achieved using the triad-openvr package in conjunction with
+allocated 800 time steps due to its extended task horizon.             SteamVR. A position-velocity controller is implemented to
+The control framework employed joint position control. The             ensure accurate tracking of the controller’s transmitted poses.
+policy architecture accepted dual visual image inputs and the          This setup enables efficient collection of demonstration tra-
+robot’s proprioceptive data, subsequently generating target            jectories, including both state and observation data. For the
+joint positions as action outputs.                                     xArm6 platform, we use ACE-F [57].
+                                                                 Place Box                         Pour Sauce
+
+                                                     Iter 1 Iter 2 Iter 3 Iter 4 Iter 5 Iter 1 Iter 2 Iter 3 Iter 4 Iter 5
+
+                                train from scratch 40%      44%     48%   60%    68%    28%    28%     36%    44%    52%
+                         sim
+                                dagger             40%      52%     64%   68%    76%    28%    36%     48%    52%    64%
+
+                                train from scratch 40%      40%     50%   50%    65%    20%    20%     25%    30%    40%
+                         real
+                                dagger             40%      50%     55%   65%    70%    20%    25%     35%    40%    50%
+
+                                                                 Stack Cans                      Arrange Cans
+
+                                                     Iter 1 Iter 2 Iter 3 Iter 4 Iter 5 Iter 1 Iter 2 Iter 3 Iter 4 Iter 5
+
+                                train from scratch 40%      44%     48%   48%    60%    32%    36%     44%    52%    60%
+                         sim
+                                dagger             40%      56%     60%   80%    88%    32%    40%     46%    60%    72%
+
+                                train from scratch 30%      40%     45%   50%    60%    30%    30%     40%    45%    55%
+                         real
+                                dagger             30%      45%     50%   60%    70%    30%    35%     50%    60%    65%
+
+                                                                                     Avg.
+
+                                                        Iter 1        Iter 2        Iter 3         Iter 4        Iter 5
+
+                                train from scratch       35%           38%           44%           51%           60%
+                         sim
+                                dagger                   35%           46%          54.5%          65%           75%
+
+                                train from scratch       30%          32.5%          40%          43.75%         55%
+                         real
+                                dagger                   30%         38.75%         47.5%         56.25%        63.75%
+
+
+
+TABLE II: Performance comparison between ACT and Pi0 methods with different training approaches (train from scratch
+vs. dagger) across various manipulation tasks and iterations (success rates in %).
+
+
+E. GSWorld Usage example
+  Our pipeline is highly compatible with the gym interface.
+GSWorld can be enabled by as few as one line of code, which
+add a wrapper layer on any existing environment. Below we
+show a code example to use GSWorld.
+
+   env = gym.make(
+      env_id,
+      robot_uids=args.robot_uid,
+      obs_mode=args.obs_mode,
+      control_mode=args.control_mode,
+      render_mode=args.render_mode,
+      reward_mode="dense",
+      human_render_camera_configs=dict(
+          ,→ shader_pack=args.shader),
+      viewer_camera_configs=dict(shader_pack=
+          ,→ args.shader),
+      max_episode_steps=args.ep_len,
+   )
+
+   env = GSWorldWrapper(
+      env=env,
+      gs_cfg=args.gs_cfg,
+      device="cuda",
+   )
+
+   # Then treat the env as the gym env.
+   # Pixel observations are rendered with 3
+       ,→ DGS.
+   obs, _ = env.reset()
+   obs, reward, terminated, truncated, info =
+       ,→ env.step(action)
+

@@ -813,7 +813,7 @@ flowchart TB
         <div class="math-block">
           $$A^{\tau_0} \sim \mathcal{N}(0, I), \qquad \tau_0 = 0$$
           <span class="math-label">shape: $[50, \text{action\_dim}]$ · 起点设在纯噪声端</span>
-        </div>
+        </div><div class="math-explain"><div class="me-title">推理为什么从纯噪声开始</div><dl><dt>$A^{\tau_0}$</dt><dd>尚未生成的完整动作块，而不是机器人当前动作。</dd><dt>$\mathcal N(0,I)$</dt><dd>为每个时间步和动作维度提供独立标准高斯初值。</dd><dt>$\tau_0=0$</dt><dd>位于 flow 路径的噪声端；后续积分逐步走向数据端。</dd><dt>[50, action_dim]</dt><dd>一次生成未来 50 个控制步，所有步在同一张量中联合建模。</dd></dl><p><strong>所以：</strong>随机初值提供多模态候选，条件速度场再把它运输到与观测一致的动作分布。</p></div>
         <p style="margin-top:8px;">
           $A^{\tau_0}$ 相当于 flow matching 里的 <strong>$x_0$（纯噪声端）</strong>；
           真实干净动作 $A_\text{clean}$（训练时的 ground truth）对应 <strong>$x_1$</strong>。
@@ -889,7 +889,7 @@ flowchart TB
           <div class="math-block">
             $$\tau_{k+1} = \tau_k + 0.1$$
             <span class="math-label">flow timestep 同步前进</span>
-          </div>
+          </div><div class="math-explain"><div class="me-title">时间变量怎样与 Euler 更新同步</div><dl><dt>$\tau_k$</dt><dd>第 k 次调用 action expert 时的连续 flow 时间。</dd><dt>0.1</dt><dd>十步求解器的固定步长，因此第十步到达数据端附近。</dd><dt>$\tau_{k+1}$</dt><dd>下一次速度预测同时看到更新后的动作 latent 与新的时间位置。</dd></dl><p><strong>所以：</strong>只更新动作而不更新时间会反复查询同一个向量场切片，积分路径就不再成立。</p></div>
         </div>
 
         <div class="callout blue">
@@ -948,7 +948,7 @@ flowchart TB
         <div class="math-block">
           $$A = [\,\mathbf{a}_t,\ \mathbf{a}_{t+1},\ \ldots,\ \mathbf{a}_{t+49}\,]$$
           <span class="math-label">shape: $[50, \text{action\_dim}]$ · flow matching 里的 $x_1$（目标分布样本）</span>
-        </div>
+        </div><div class="math-explain"><div class="me-title">真实动作块是 flow 的目标样本</div><dl><dt>$\mathbf a_{t:t+49}$</dt><dd>数据集中连续 50 步目标动作，保留跨步相关性。</dd><dt>$A$</dt><dd>flow matching 的数据端样本；训练不是逐步独立回归。</dd><dt>[50, action_dim]</dt><dd>时间长度与每步控制维度共同组成生成空间。</dd></dl><p><strong>所以：</strong>π0 学的是动作块联合分布，因此 action horizon 会同时影响平滑性、延迟和闭环重规划频率。</p></div>
         <p style="margin-top:8px;">
           这就是 flow matching 里的 <strong>$x_1$</strong>（目标分布的样本）。同一个样本还包含
           $o_t$（当时的观测：图像 + 语言 + 状态）。
@@ -1030,7 +1030,7 @@ flowchart TB
         <div class="math-block">
           $$u(A^\tau \mid A) = \varepsilon - A$$
           <span class="math-label">Eq. · flow matching 的目标速度场</span>
-        </div>
+        </div><div class="math-explain"><div class="me-title">目标速度场的方向</div><dl><dt>$\varepsilon$</dt><dd>从标准高斯采样的噪声端点。</dd><dt>$A$</dt><dd>真实动作数据端点。</dd><dt>$u(A^\tau\mid A)$</dt><dd>线性概率路径上应拟合的恒定方向；符号取决于论文把时间定义为数据→噪声还是噪声→数据。</dd></dl><p><strong>所以：</strong>训练和推理必须使用一致的时间方向；若推理从噪声走向动作，就要按对应符号积分。</p></div>
 
         <p>这是 flow matching 的核心定义。怎么推出来的：</p>
         <ul style="line-height:1.9;">

@@ -46,9 +46,40 @@
     hotspots.forEach(h => h.classList.toggle('active', h.dataset.id === id));
     const target = wrap.querySelector('.hotspot[data-id="' + id + '"]');
     if (target && panel) {
+      const rawBody = target.dataset.body || '';
+      const probe = document.createElement('div');
+      probe.innerHTML = rawBody;
+      const rawLength = (probe.textContent || '').trim().length;
+      const group = wrap.dataset.hotspotGroup;
+      let linkedStep = null;
+      if (group) {
+        document.querySelectorAll('.step-walker[data-hotspot-group="' + group + '"] .sw-step[data-hotspot]').forEach(step => {
+          if (!linkedStep && step.dataset.hotspot === id) linkedStep = step;
+        });
+      }
+
+      // Older pages often stored only a one-line label in data-body even though the
+      // corresponding Step Walker already contains a real explanation.  In that
+      // case the hotspot panel should teach from the full step instead of repeating
+      // the label.  Rich, hand-written hotspot bodies remain authoritative.
+      let body = rawBody;
+      if (linkedStep && rawLength < 180) {
+        const heading = linkedStep.querySelector('h3, h4');
+        const directParagraphs = Array.from(linkedStep.children)
+          .filter(el => el.tagName === 'P')
+          .map(el => el.outerHTML)
+          .join('');
+        const beginner = linkedStep.querySelector('.step-beginner');
+        body = '<div class="hp-linked-detail">' +
+          (rawLength ? '<p class="hp-summary"><strong>图上这一处：</strong>' + rawBody + '</p>' : '') +
+          (heading ? '<div class="hp-step-title">' + heading.innerHTML + '</div>' : '') +
+          directParagraphs +
+          (beginner ? beginner.outerHTML : '') +
+          '</div>';
+      }
       panel.innerHTML =
         '<div class="hp-title">📍 ' + (target.dataset.title || ('点 ' + id)) + '</div>' +
-        '<div>' + (target.dataset.body || '') + '</div>';
+        '<div>' + body + '</div>';
     }
   }
   function initHotspotWrap(wrap) {

@@ -1,0 +1,705 @@
+                                                                   CoT-VLA: Visual Chain-of-Thought Reasoning for
+                                                                          Vision-Language-Action Models
+
+                                                          Qingqing Zhao1,2,* Yao Lu1 Moo Jin Kim2 Zipeng Fu2
+                                          Zhuoyang Zhang3 Yecheng Wu1,3 Zhaoshuo Li1 Qianli Ma1 Song Han1,3 Chelsea Finn2
+                                                                                       †                  †               †
+                                              Ankur Handa1 Ming-Yu Liu Donglai Xiang1 Gordon Wetzstein2      Tsung-Yi Lin1
+
+
+
+
+arXiv:2503.22020v1 [cs.CV] 27 Mar 2025
+                                                                                    1            2                             3
+                                                                                        NVIDIA       Stanford University           MIT
+
+
+                                                                    Abstract
+
+                                         Vision-language-action models (VLAs) have shown potential
+                                         in leveraging pretrained vision-language models and diverse
+                                         robot demonstrations for learning generalizable sensorimo-
+                                         tor control. While this paradigm effectively utilizes large-
+                                         scale data from both robotic and non-robotic sources, cur-
+                                         rent VLAs primarily focus on direct input–output mappings,
+                                         lacking the intermediate reasoning steps crucial for complex
+                                         manipulation tasks. As a result, existing VLAs lack tem-
+                                         poral planning or reasoning capabilities. In this paper, we
+                                         introduce a method that incorporates explicit visual chain-of-
+                                         thought (CoT) reasoning into vision-language-action models
+                                         (VLAs) by predicting future image frames autoregressively
+                                         as visual goals before generating a short action sequence
+                                         to achieve these goals. We introduce CoT-VLA, a state-of-
+                                         the-art 7B VLA that can understand and generate visual and
+                                         action tokens. Our experimental results demonstrate that
+                                         CoT-VLA achieves strong performance, outperforming the
+                                         state-of-the-art VLA model by 17% in real-world manipu-
+                                         lation tasks and 6% in simulation benchmarks. Videos are
+                                         available at: https://cot-vla.github.io/.
+
+                                                                                                             Figure 1. Comparison between vanilla VLA and CoT-VLA
+                                         1. Introduction                                                     frameworks. Prior VLA models (top) directly predict robot ac-
+                                                                                                             tions from task inputs without explicit reasoning steps and only
+                                         Recent advances in robot learning have demonstrated impres-         use action-annotated robot demonstration data for training. Unlike
+                                         sive progress in training policies that can act across diverse      vanilla VLAs, CoT-VLA (bottom) can also leverage action-less
+                                         tasks and environments [1, 3, 5, 12, 14, 18, 29, 36, 44, 45,        datasets like EPIC-KITCHEN-100 [27] to enhance subgoal image
+                                         48, 54, 59, 63, 66, 70, 76, 78]. One promising direction is         generation ability, unlocking the potential of using abundant un-
+                                         vision-language-action (VLA) models, which leverage the             labeled video data to improve VLA’s visual reasoning capability.
+                                         rich understanding capabilities of pretrained vision-language       CoT-VLA first generates a subgoal image as an intermediate rea-
+                                         models (VLMs) to map natural language instructions and              soning step, and then generate a short action sequence to achieve
+                                         visual observations to robot actions [12, 29, 48]. By training      the subgoal. We outline the robot arm for better visualization.
+                                         VLMs on robot demonstrations, VLAs inherit their ability to
+                                         understand diverse scenes, objects, and natural language in-
+                                                                                                              structions, leading to better generalization capabilities when
+                                           * Work done during an internship at NVIDIA.                        fine-tuned for downstream testing scenarios. While these ap-
+                                           † Equal Advising                                                   proaches have shown impressive results, they typically map
+directly from observations to actions without explicit inter-     attention mechanism improve the model’s performance.
+mediate reasoning steps that could improve interpretability          Through extensive experiments in both simulation bench-
+and, potentially, performance.                                    marks [37] and real-world experiments[48, 60], we demon-
+    In the language domain, chain-of-thought (CoT) prompt-        strate that our visual chain-of-thought reasoning helps im-
+ing has emerged as a powerful technique for improving the         prove policy performance compared to prior VLA ap-
+reasoning capabilities of large language models (LLMs)            proaches. Our key contributions include:
+by encouraging step-by-step thinking [62, 75]. Apply-             • We introduce a method of visual chain-of-thought reason-
+ing these concepts to robotics presents exciting opportu-           ing through subgoal image generation as an intermediate
+nities for grounding reasoning in text, visual observations,        reasoning step for robotic control.
+and physical actions. Recent works have made progress             • We introduce a system CoT-VLA that incorporates visual
+in this direction by incorporating intermediate reasoning           chain-of-thought reasoning, and a hybrid attention mech-
+steps like language descriptions, keypoints, or bounding            anism that combines causal attention for pixel and text
+boxes [15, 44, 45, 63]. These intermediate representations          generation and full attention for action prediction.
+capture abstracted states of scenes, objects, and tasks and of-   • We conduct comprehensive evaluations in both simulation
+ten require additional pre-processing pipelines. In our work,       and the real world, demonstrating that visual chain-of-
+we explore subgoal images as an intermediate reasoning step         thought reasoning improves VLA performance, and our
+before action generation. These images capture the state of         system achieves state-of-the-art performance across multi-
+the model’s reasoning process and are naturally available           ple robot platforms and tasks.
+within robot demonstration datasets. While prior work has
+explored subgoal generation and goal-conditioned imitation        2. Related Work
+learning [2, 11, 46, 55], to the best of our knowledge, our       Chain-of-Thought (CoT) Reasoning CoT reasoning has
+approach is the first to integrate these concepts with VLAs       gained prominence in natural language processing, particu-
+as intermediate chain-of-thought reasoning steps.                 larly for enabling models to perform complex, multi-step rea-
+    We propose visual chain-of-thought reasoning for VLAs,        soning tasks by breaking down problem-solving into sequen-
+a new method that uses subgoal image generation as a form         tial, explainable steps. Early work on CoT reasoning [62] has
+of chain-of-thought reasoning for robotic tasks. Rather than      demonstrated the effectiveness of prompting large language
+directly predicting actions, our method first generates a sub-    models to generate intermediate reasoning steps before ar-
+goal image that represents the robot’s planned state in pixel     riving at a final answer. Extending this paradigm to the
+space, and then conditions its action on both the current ob-     visual domain, researchers have explored multimodal chain-
+servation and the generated subgoal image. This approach          of-thought methods, where visual information is processed
+allows the model to “think visually” about how to accom-          iteratively in a stepwise fashion to reason about future out-
+plish a task before acting. By using the subgoal image as         comes or states, including generating bounding boxes [53],
+intermediate reasoning step, we leverage information that         intermediate image infillments using Stable Diffusion [50]
+already exists in robot manipulation data with minimal pre-       or standard Python packages [24], or generating CLIP em-
+processing required. Furthermore, since subgoal image gen-        beddings [22]. Recently, CoT reasoning has been explored
+eration does not require action annotations, this unlocks the     in embodied applications. It can generate textual plans for
+potential of using abundant video data for improved visual        multi-stage execution [44, 45], point trajectories [63], label
+reasoning and understanding.                                      bounding boxes of objects and gripper positions as addi-
+    We build our CoT-VLA system that leverages visual             tional observations [44], generate future image trajectories
+chain-of-thought reasoning upon recent advances in unified        for open-loop following [35, 47], and generate fine-grained
+multimodal foundation models that can understand and gen-         reward guidance for reinforcement learning [76]. In this
+erate text and images [39, 58, 61, 67, 69]. We train our base     work, we introduce Visual-CoT reasoning for robotic ma-
+model [67] on both the Open X-Embodiment dataset [48]             nipulation, where predicted subgoal images serve as inter-
+and action-less video datasets [20, 27], and then fine-tune       mediate reasoning steps for closed-loop action generation.
+the model on task demonstrations collected on downstream          This approach leverages demonstration videos as natural
+robot setups used for deployment and evaluation. We design        intermediate reasoning states without requiring additional
+a hybrid attention mechanism for CoT-VLA: we use causal           annotations.
+attention with next-token prediction for text and image gener-
+ation, and leverage full attention to predict all action dimen-   Vision-Language-Action Models Large pretrained vision-
+sions at once. Additionally, inspired by recent advances in       language models (VLMs) [9, 28, 38] have emerged as a
+robot learning [10, 17, 77], we predict sequences of actions      powerful tool for robot learning, and recent works have
+(action chunking) rather than a single action at each timestep.   explored various approaches to integrate them into robot
+We demonstrate that both action chunking and the hybrid           systems. Several works utilize VLMs as intermediate
+Figure 2. Overview of CoT-VLA framework. We build our model on VILA-U [67], a generative multimodal model pretrained on
+interleaved text–image data. The base model then trains on robot demonstrations [48] and action-less videos [20, 27]. During deployment,
+given a visual observation and a text instruction, the model performs visual chain-of-thought reasoning by generating a subgoal image (upper
+blue) with causal attention. It then generates a short action sequence with full attention (a1 · · · an ) for robot execution. The system operates
+in a closed-loop control manner by capturing new observations after executing predicted action sequences.
+
+
+components for perception and control, leveraging their                     3.1. Visual Chain-of-Thought Reasoning
+strong semantic understanding and reasoning capabilities
+                                                                            We consider two types of training data for VLA pretrain-
+to decompose complex tasks [21, 26, 34, 56], detect ob-
+                                                                            ing: robot demonstrations dataset Dr and action-less videos
+jects [19, 25], or generate dense rewards [13, 40, 74] or
+                                                                            dataset Dv . Robot demonstrations are represented as Dr =
+goals [2, 11, 15, 46, 47, 55, 71, 80]. Some approaches in-
+                                                                            {(l, a1...T , s1...T )}, where l denotes the natural language
+corporate VLMs [4, 49, 64] into end-to-end trainable poli-
+                                                                            instruction, a1...T = {a1 , ..., aT } denotes the sequence of
+cies by using them as pretrained backbone for better visuo-
+                                                                            robot actions, and s1...T = {s1 , ..., sT } denotes the visual
+language representation [12, 29, 41, 48, 59]. Most relevant
+                                                                            observations as a sequence of images. Action-less videos
+to our work are recent approaches that fine-tune pretrained
+                                                                            Dv = {(l, s1...T )} consist of language descriptions and im-
+VLMs on robot demonstration data for direct action pre-
+                                                                            ages without action annotations.
+diction [12, 29, 48]. These VLAs demonstrate improved
+generalization to novel objects, environments, and natural
+language instructions through pretraining on internet-scale                 VLA: Vanilla VLA approaches fine-tune a pretrained
+vision-language datasets, providing a promising direction                   VLM, Pθ , on Dr , learning to predict actions ât+1 directly
+for transferring visual and language knowledge to robotic                   from the current observation st and language instruction l
+control tasks. However, most existing VLAs do not lever-                    (Figure 1, top):
+age the step-by-step reasoning capabilities demonstrated in                                           \mathbf {\hat {a}}_{t} \sim P_\theta (\mathbf {a}_{t}|\mathbf {s}_t,l)                                                                                                                                                                                                                 (1)
+large language models, which have been shown to signifi-
+cantly improve performance across various tasks [62]. In the                CoT-VLA: Our key insight is to incorporate explicit visual
+past, researchers have used chain-of-thought reasoning on                   reasoning before action generation. As illustrated in Figure 2,
+language instructions or intermediate keypoints/bounding                    our approach operates in two sequential phases:
+boxes for robotics [6, 13, 45, 63]. We introduce visual chain-
+of-thought reasoning to the VLA frameworks, using subgoal                                                            \mathbf {\hat {s}}_{t+n} \sim P_\theta (\mathbf {s}_{t+n}|\mathbf {s}_t,l) \label {eq:cot} \\ \{\mathbf {\hat {a}}_t, ..., \mathbf {\hat {a}}_{t+m}\} \sim P_\theta (\{\mathbf {a}_t, ..., \mathbf {a}_{t+m}|\mathbf {s}_t,l,&\mathbf {{s}}_{t+n}) \label {eq:cotvla}
+images as intermediate reasoning steps before action genera-                                                                                                                                                                                                                                                                                                                                 (3)
+tion.
+                                                                            where we first predict a subgoal image ŝt+n , n frames ahead,
+3. CoT-VLA                                                                  as an intermediate visual reasoning step (Equation 2). Then
+                                                                            we generates a sequence of m actions to achieve this subgoal
+In this section, we present our visual chain-of-thought rea-                state (Equation 3). This enables the model to “think visually”
+soning framework for VLAs. We begin with the formulation                    first by explicitly reasoning about desired future states before
+of our method (3.1), followed by a detailed description of                  predicting the actions. The visual reasoning step, Equation
+the system architecture (3.2). We then explain our training                 (2), is trained on both robot demonstrations Dr and action-
+procedures (3.3) and outline the deployment strategy for                    less videos Dv , and the action generation step, Equation (3),
+downstream tasks (3.3).                                                     is trained on robot demonstrations Dr only.
+                                                                       Visual Tokens Prediction For subgoal image generation,
+                                                                       each training sequence is of form (l, st , st+n ). We follow
+                                                                       the training objective used in [67]. At each visual position
+                                                                       j, the depth transformer, Pδ , autoregressively predicts D
+                                                                       residual tokens (kj1 , ..., kjD ) based on the LLM-generated
+                                                                       code embedding hj . The training objective for visual tokens
+                                                                       is then formulated as:
+
+                                                                                          \mathcal {L}_{\text {visual}} = -\sum _{j} \sum _{d=1}^D \log P_\delta (k_{jd}|k_{j,<d})                   (4)
+
+
+                                                                       where j indexes the positions containing visual tokens. For
+                                                                       a more detailed explanation of this loss function, we refer
+                                                                       readers to [67], Section 3.2.
+Figure 3. Hybrid attention mechanism in CoT-VLA. We use
+causal attention for image or text generation and full attention for
+                                                                       Action Tokens Prediction For action prediction, each
+action generation. [x], [θ] and [g] are special tokens for parallel
+decoding of actions.
+                                                                       training sequence takes the form (l, st , st+n , at , ..., at+m ).
+                                                                       Each action ai is represented by 7 tokens, with each action
+                                                                       dimension independently discretized. Following [29], we
+3.2. The Base Vision-Language Model                                    map each continuous action dimension into 256 discrete bins,
+                                                                       with bin widths determined by uniformly dividing the inter-
+To enable the visual reasoning capabilities described in Equa-         val between the 1st and 99th percentiles of the training data’s
+tion (2), we build upon VILA-U [67], an unified multimodal             action distribution. We repurpose the 256 least frequently
+foundation model capable of both understanding and gener-              used tokens in the text tokenizer’s vocabulary as action bin
+ating image and text tokens.                                           tokens. Unlike prior works [12, 29, 48], we employ full at-
+    VILA-U unifies video, image, and language understand-              tention for processing and predicting action tokens, enabling
+ing through an autoregressive next-token prediction frame-             all action tokens to interact with each other. This attention
+work. At its core is a unified vision tower that encodes               mechanism is illustrated in Figure 3. During training, we
+visual inputs as discrete tokens aligned with textual informa-         minimize the cross-entropy loss for action predictions:
+tion. This enables autoregressive image and video generation
+while significantly enhancing the understanding capabilities                     \mathcal {L}_{\text {action}} = -\sum _{i=1}^{m}\log P_\theta (\mathbf {a}_{t}...\mathbf {a}_{t+m}|l,s_t,s_{t+n})   (5)
+of VLMs that leverage discrete visual features. VILA-U
+utilizes residual quantization [32] to improve the representa-
+tional capacity of discrete visual features - incorporating a          Given a batch of input sequences, The overall training objec-
+depth transformer, as introduced in RQ-VAE [32], to gradu-             tive combines the action and visual losses:
+ally predict the residual tokens. The extracted visual features                                                 \mathcal {L} = \mathcal {L}_{\text {action}}+\mathcal {L}_{\text {visual}}           (6)
+are then passed through a projector before being processed
+by the LLM backbone. The base model is trained on mul-
+                                                                       Pretraining Phase We pretrain CoT-VLA on both robot
+timodal pairs including [image, text], [text, image], [video,
+                                                                       demonstrations Dr and action-less videos Dv as described
+text], and [text, video]. We use the VILA-U model trained on
+                                                                       in Section 3.1. For robot demonstrations, we curate a sub-
+256 × 256 resolution images, where each image is encoded
+                                                                       set of the Open X-Embodiment dataset [48] (OpenX). Fol-
+into 16 × 16 × 4 tokens with a residual depth of 4 [32]. For
+                                                                       lowing the pre-processing pipeline established in Open-
+detailed information about VILA-U training and architecture,
+                                                                       VLA [29], we select and process datasets with third-
+we refer readers to [67].
+                                                                       person camera views and single-arm end-effector control
+3.3. Training Procedures                                               (7-DoF). For action-less videos Dv , we incorporate the
+                                                                       EPIC-KITCHENS [27] and Something-Something V2 [20]
+We pretrain the base 7B VILA-U model on a combination of               datasets. All images are processed at 256 × 256 resolu-
+robot demonstrations Dr and action-less videos Dv . During             tion. For visual reasoning, we use subgoal images at future
+training, we optimize three components, the LLM backbone,              timestep n uniformly sampled from a dataset-specific range
+projector, and depth transformer, while keeping the vision             [nl , nu ], where nl and nu define the lower and upper bounds
+tower fixed. Our training objective has two key components:            of the prediction horizon. We use an action chunk size of
+subgoal image generation with causal attention (2) and action          10. For complete dataset specifications and training hyper-
+generation with full attention (3).                                    parameters, please refer to the supplementary material.
+                                      Average (↑)        Spatial (↑)        Object (↑)       Goal (↑)         Long (↑)
+          Diffusion Policy           72.4 ± 0.7%        78.3 ± 1.1%       92.5 ± 0.7%      68.3 ± 1.2%      50.5 ± 1.3%
+          Octo fine-tuned            75.1 ± 0.6%        78.9 ± 1.0%       85.7 ± 0.9%      84.6 ± 0.9%      51.1 ± 1.3%
+          OpenVLA fine-tuned         76.5 ± 0.6%        84.7 ± 0.9%       88.4 ± 0.8%      79.2 ± 1.0%      53.7 ± 1.3%
+          CoT-VLA-7B (ours)         81.13 ± 0.6 %       87.5 ± 1.4%       91.6 ± 0.5%      87.6 ± 0.6%      69.0 ± 0.8%
+
+Table 1. LIBERO benchmark experimental results. For each task suite (Spatial, Object, Goal, Long), we report the average success
+rate and standard error across 3 seeds with 500 episodes each. CoT-VLA achieves the best or competitive performance across all LIBERO
+benchmarks suites compared to baseline approaches. The bolded entries correspond to highest success rates while underlined entries
+correspond to second-highest.
+
+Adaptation Phase for Downstream Closed-Loop Deploy-                    4.1. Experimental Setup
+ment For adaptation to downstream tasks, we fine-tune
+                                                                       We conduct evaluations across three complementary settings:
+our pretrained model using task-specific robot demonstra-
+                                                                       the LIBERO benchmark [37] for evaluation in simulation
+tion data Dr collected on the target robot setups. During this
+                                                                       environments, the Bridge-V2 platform [60] with its dataset
+phase, we optimize the LLM backbone, projector, and depth
+                                                                       of 45k robot demonstrations, and the Franka-Tabletop setup
+transformer while keeping the vision tower frozen, main-
+                                                                       with a stationary, table-mounted Franka Emika Panda robot
+taining the same training setup as the pretraining stage. The
+                                                                       with limited 10 to 150 robot demonstrations for each testing
+resulting model can execute new manipulation tasks based
+                                                                       scenario.
+on natural language commands l. Algorithm 1 describes our
+robot control procedure at test time.
+                                                                       LIBERO Simulation Benchmark We perform evalua-
+                                                                       tion on LIBERO [37], a simulation benchmark comprising
+Algorithm 1 CoT-VLA test-time closed-loop control
+                                                                       four distinct task suites: LIBERO-Spatial, LIBERO-Object,
+Require: CoT-VLA Model Pθ , initial state sobs    0 , language         LIBERO-Goal, and LIBERO-Long. Each suite contains 10
+  instruction l                                                        diverse tasks with 50 human-teleoperated demonstrations
+  t←0                                                                  per task, aiming to evaluate the robot’s comprehension of
+  while True do                                                        spatial relationships, object interactions, and task-specific
+       sample ŝt+n ∼ Pθ (st+n | l, sobs
+                                     t )                               objectives. We follow the same preprocessed pipeline as
+       sample [ât , .., ât+m ]  ∼      Pθ (at , .., at+m   |         in [29]: (1) removing pause intervals from trajectories, (2)
+  l, sobs
+      t   , st+n )                                                     standardizing image resolution to 256×256 pixels, and (3)
+       for j = 0 to m do                                               applying a 180-degree rotation to all images.
+             execute ât+j
+       end for
+                                                                       Bridge-V2 Real-Robot Experiments We use a 6-DoF
+       t←t+m+1
+                                                                       WidowX robotic arm, following the experimental setup
+       sobs
+        t ← robot observation                                          from Bridge-V2 [60]. Our training data has 45k language-
+  end while
+                                                                       annotated trajectories from the Bridge-V2 dataset, encom-
+                                                                       passing diverse manipulation tasks. While the dataset was
+4. Experiments                                                         incorporated into the pretraining phase alongside OpenX, we
+                                                                       performed additional task-specific fine-tuning exclusively on
+We evaluate the effectiveness of our approach and our sys-             Bridge-V2 until achieving a training action prediction accu-
+tem through a set of experiments spanning both simulation              racy threshold of 95%. Following [29], we evaluate on four
+benchmarks and real-world robot manipulation tasks. Our                tasks designed in [29] to evaluate visual robustness (varying
+experiments aim to addresses following questions:                      distractors), motion generalization (novel object positions),
+• How does our system perform compared to state-of-the-art             semantic generalization (unseen language instruction), and
+  baselines across multiple benchmarks and embodiments?                language grounding (instruction following).
+  (Section 4.2)
+• What is the impact of pretraining, visual chain-of-thought           Franka-Tabletop Real-Robot Experiments We use a sta-
+  reasoning and hybrid attention on task performance? (Sec-            tionary, table-mounted Franka Emika Panda 7-DoF robot
+  tion 4.3)                                                            arm denoted as Franka-Tabletop. The setup is not seen
+• To what extent does improved generalization in visual                during the pretraining stage and is designed to assess our
+  reasoning enhance the action prediction capabilities? (Sec-          model’s adaptation capability to novel real-world environ-
+  tion 4.4)                                                            ments with small amounts of robot demonstrations. We
+Figure 4. Franka-Tabletop comparisons. Evaluation across six distinct manipulation tasks, with separate models trained per task. Left:
+Representative initial states for each task setup. Right: Task-specific success rates and cross-task averages for our method and baselines.
+CoT-VLA achieves best average performance and demonstrates strong capabilities in both single-instruction and multi-instruction scenarios.
+
+perform evaluations across 6 tasks: 3 narrow domain single-             ability by first reasoning visually about the desired actions
+instruction tasks for and 3 diverse multi-instruction tasks             via language-grounded subgoal generation, and then predict-
+outlined in Figure 4 and introduced in [29]. For each task,             ing the relevant actions for achieving the goal.
+the dataset contains between 10 and 150 demonstrations.
+
+                                                                        Bridge-V2 We evaluate CoT-VLA and baselines on the
+Baselines We evaluate our approach against four state-of-
+                                                                        Bridge-V2 benchmark across four generalization categories
+the-art baselines. Diffusion Policy [10], a state-of-the-art
+                                                                        identified in [29]: visual generalization (“put eggplant into
+imitation learning algorithm, is trained from scratch for each
+                                                                        pot” with cluttered environments), motion generalization
+test scenario in LIBERO and Franka-Tabletop. The imple-
+                                                                        (“put carrot on plate” with height variations), semantic gen-
+mentation incorporates action chunking and proprioception
+                                                                        eralization (“take purple grapes out of pot”), and language
+while conditioning on DistilBERT [52] language embed-
+                                                                        grounding (“put eggplant or red bottle into pot”). We report
+dings. OpenVLA [29] is an open-source VLA model that
+                                                                        the quantitative results in Table 2, where each task is tested
+fine-tunes pretrained vision-language models on the OpenX
+                                                                        with 10 trials. SUSIE [2] generates visually higher-quality
+dataset; and Octo [59] is a generalist model pretrained on
+                                                                        goal images through its diffusion prior (see Section 5 for a
+OpenX without VLM initialization. For both OpenVLA
+                                                                        detailed discussion on our limitations) but achieves lower
+and Octo, we use their published checkpoints for Bridge-V2
+                                                                        success rates on tasks involving novel objects or requiring
+evaluations and fine-tune them for our LIBERO and Franka-
+                                                                        complex language grounding. Compared to OpenVLA [29],
+Tabletop experiments. SUSIE [2], a two-stage approach,
+                                                                        CoT-VLA shows slightly lower success rates in visual and
+combines instruction-guided image editing for goal gener-
+                                                                        language generalization tasks due to grasping failures from
+ation with a goal-conditioned policy for action generation.
+                                                                        action chunking (see Section 5) rather than errors in visual
+We evaluate SUSIE using their published checkpoint on
+                                                                        reasoning. However, CoT-VLA demonstrates competitive
+Bridge-V2.
+                                                                        performance across all four generalization categories over-
+4.2. Evaluations Results                                                all, achieving comparable or better results to baseline ap-
+                                                                        proaches.
+LIBERO We present quantitative results in Table 1, where
+each method is evaluated over 500 trials per task suite, with
+3 random seeds. Success rates are reported with means                   Franka-Tabletop We present quantitative results in Ta-
+and standard error. Qualitative examples of our method’s                ble 4 and example execution trajectories in Figure 5. In
+reasoning and execution trajectories are illustrated in Fig-            this experiment, models are fine-tuned on a relatively small
+ure 5. Results demonstrate that CoT-VLA effectively adapts              set of demonstrations. While Diffusion Policy achieves top
+to tasks in the LIBERO simulation environment, achieving                performance on single-instruction tasks (e.g., “put corn in
+best or competitive performance compared to baseline ap-                bowl”), its performance degrades on multi-instruction tasks
+proaches. By analyzing rollout videos of failure cases, we              involving diverse objects and complex language instructions.
+found that baseline methods occasionally overfit to visual              Models pretrained on the OpenX dataset - Octo, OpenVLA,
+cues while disregarding language instructions. Specifically,            and CoT-VLA - demonstrate better adaptation and perfor-
+when initial states appear visually similar across different            mance on multi-instruction tasks where language grounding
+tasks (e.g., in LIBERO-Spatial), baseline methods execute               is critical. Overall, CoT-VLA achieves the highest aver-
+a different task compared to the commanded task in some                 age performance compared to baseline approaches, showing
+episodes. CoT-VLA exhibits better instruction following                 improvements in both single and multi-instruction scenarios.
+Figure 5. Task execution examples for LIBERO, Bridge-V2, and Franka-Tabletop using CoT-VLA. For each task: Left: text instruction
+(l) and initial state (sobs
+                        0 ). Middle: generated intermediate goal states (ŝt ) demonstrating visual chain-of-thought reasoning, where each
+goal image is conditioned on both the instruction and the most recent observation. Right: final state (sobs
+                                                                                                        T ) upon task completion. Complete
+execution trajectories are available in the supplementary video.
+
+
+4.3. Ablation Study                                                       Category       SUSIE      Octo    OpenVLA         CoT-VLA
+Visual CoT, Hybrid Attention, and Action Chunking                         Visual          30%       35%         75%            65%
+We conduct comprehensive ablation studies on two LIBERO                   Motion          10%       10%         45%            60%
+benchmark suites: LIBERO-Spatial and LIBERO-Goal. We                      Semantic        20%        0%         40%            50%
+evaluate four model variants: VLA - a baseline implementa-                Language        40%       40%         75%            70%
+tion following the standard VLA framework [29], with the
+same VILA-U backbone but without chain-of-thought rea-                 Table 2. Bridge-V2 Comparison. Success rates across four gener-
+soning and action chunking; + action chunking - extending              alization categories, with 10 trials per category and partial credit
+the vanilla VLA to predict action sequences of length m; +             scoring following [29]. Visual: “put eggplant into pot” with clut-
+                                                                       tered environments; Motion: “put carrot on plate” with height
+hybrid attention - further adding full attention mechanisms
+                                                                       variations; Semantic: “take purple grapes out of pot”; Language:
+for action sequence prediction, as illustrated in Figure 3; and        “put eggplant or red bottle into pot”.
++ CoT (ours): our complete approach with hybrid attention
+mechanism and visual chain-of-thought reasoning.
+   As shown in Figure 6, both benchmark suites demonstrate              Pretraining Our training pipeline has two stages, pretrain-
+that action sequence prediction consistently outperforms                ing VILA-U on the OpenX dataset augmented with action-
+single-action prediction. The addition of hybrid attention              less video data (Section 3.3), and task-specific post-training
+mechanisms further improves performance. Our CoT-VLA                    on robot demonstration data. To assess the importance of
+achieves the best results validating the effectiveness of visual        our pretraining stage, we conduct ablation studies on the
+chain-of-thought reasoning for VLA tasks.                               Franka-Tabletop setup. We report the quantitative results
+                                                                       models show promising directions for improving visual rea-
+                                                                       soning capabilities with scaling.
+
+                                                                                                          Sub-task 1     Sub-task 2
+                                                                          Generated Goal Images              20%             0%
+                                                                          Ground-truth Goal Images           60%            40%
+
+                                                                       Table 3. Better visual reasoning helps. Success rates compar-
+                                                                       ing CoT-VLA using generated versus ground-truth goal images
+                                                                       on out-of-distribution tasks. Results demonstrate that improved
+                                                                       visual reasoning (simulated by ground-truth goals) leads to better
+                                                                       task performance, suggesting that advances in goal generation can
+                                                                       translate to improved action execution.
+
+                                                                       5. Conclusion, Limitations and Future Work
+Figure 6. Ablation studies of CoT-VLA components. a) Results
+on LIBERO-Spatial and LIBERO-Goal benchmarks demonstrate               In this work, we introduce CoT-VLA, bridging vision-
+the effectiveness of three components: action chunking, hybrid         language-action models with chain-of-thought reasoning by
+attention, and visual chain-of-thought reasoning. b) Pretraining ab-   introducing intermediate visual goals as explicit reasoning
+lation experiments on Franka-Tabletop show performance improve-        steps. Rather than using abstract representations like bound-
+ments from the OpenX and action-less video pretraining process.
+                                                                       ing boxes or keypoints, we propose using subgoal images
+                                                                       sampled from videos as an interpretable and effective inter-
+in Figure 6. Our results show that CoT-VLA with our pre-               mediate representation. We build our system upon VILA-U,
+training stage achieves a 46.7% relative improvement, from             demonstrating strong performance across diverse robotic
+53.7% to 78.8%, compared to directly fine-tuning the base              manipulation tasks.
+VILA-U model on Franka-Tabletop demonstrations, demon-                     While our approach demonstrates effectiveness, there
+strating better downstream task adaptation.                            are certain limitations. First, generating intermediate im-
+                                                                       age tokens during inference introduces significant compu-
+4.4. Better Visual Reasoning Helps
+                                                                       tational overhead compared to direct action generation ap-
+Unlike prior VLAs that only use robot demonstration data               proaches. Our method requires generating 256 image to-
+Dr during training, CoT-VLA also leverages action-less                 kens before action tokens, leading to a 7× slowdown on
+video data Dv for pretraining through its intermediate vi-             average with an action chunk size of 10. While action
+sual chain-of-thought reasoning steps. This enables learning           chunking and parallel decoding improve inference speed,
+of both dynamics and instruction following from captioned              image generation remains the primary bottleneck. Recent
+videos alone, which are substantially more abundant than               advancement in fast image generation or fast LLM inference
+robot demonstrations. To investigate how visual reasoning              techniques could potentially improve the throughput of the
+capabilities transfer to robot performance, we conduct an              model [7, 31, 33, 57, 73] and be integrated into our system.
+ablation study on the Franka-Tabletop setup using novel,               Second, our autoregressive image generation produces lower
+long-horizon tasks that combine two unseen subtasks. We                visual quality compared to state-of-the-art diffusion-based
+design two tasks – (1) “move the green scallion to the apple-          models. Recent advances in unified multimodal models
+covered book” and (2) “move the green cauliflower to the               [61, 65, 69, 79] suggest promising directions for improve-
+bear-covered book” – that are challenging for our model’s              ments. Additionally, while effective, our action chunking ap-
+out-of-distribution generalization. For each task, we col-             proach can introduce discontinuous actions between chunks
+lect one demonstration trajectory to obtain ground-truth goal          and lacks high-frequency feedback during execution. These
+images. We evaluate each task across 5 trials under two con-           limitations could be addressed through temporal smooth-
+ditions: (1) CoT-VLA using its generated goal images and               ing techniques and per-step prediction approaches similar to
+(2) CoT-VLA using ground-truth goal images from the col-               those proposed in [10]. Finally, while CoT-VLA leverages
+lected demonstrations. As shown in Table 3, using ground-              action-less video data during pretraining, current computa-
+truth goal images improves the absolute success rate by 40%            tional constraints limit its ability to achieve visual-reasoning
+for both tasks. This performance boost suggests that ad-               generalization for entirely new tasks. Looking forward, we
+vances in visual reasoning and goal image generation could             believe recent advances in video/image generation and world
+directly translate to better robotic task performance. While           models [15, 23, 30, 68, 72] present promising opportunities
+our method still struggles with out-of-distribution subgoal            to enhance generalization capabilities through improved vi-
+generation, recent advances in large-scale video and image             sual reasoning and predictive modeling.
+References                                                                 embodied multimodal language model. arXiv preprint
+                                                                           arXiv:2303.03378, 2023. 1, 3, 4
+ [1] Homanga Bharadhwaj, Debidatta Dwibedi, Abhinav Gupta,            [13] Yuqing Du, Ksenia Konyushkova, Misha Denil, Akhil Raju,
+     Shubham Tulsiani, Carl Doersch, Ted Xiao, Dhruv Shah, Fei             Jessica Landon, Felix Hill, Nando de Freitas, and Serkan Cabi.
+     Xia, Dorsa Sadigh, and Sean Kirmani. Gen2act: Human                   Vision-language models as success detectors. arXiv preprint
+     video generation in novel scenarios enables generalizable             arXiv:2303.07280, 2023. 3
+     robot manipulation. arXiv preprint arXiv:2409.16283, 2024.
+                                                                      [14] Yilun Du, Mengjiao Yang, Pete Florence, Fei Xia, Ayzaan
+     1
+                                                                           Wahid, Brian Ichter, Pierre Sermanet, Tianhe Yu, Pieter
+ [2] Kevin Black, Mitsuhiko Nakamoto, Pranav Atreya, Homer                 Abbeel, Joshua B Tenenbaum, et al. Video language planning.
+     Walke, Chelsea Finn, Aviral Kumar, and Sergey Levine. Zero-           arXiv preprint arXiv:2310.10625, 2023. 1
+     shot robotic manipulation with pretrained image-editing dif-     [15] Yilun Du, Sherry Yang, Bo Dai, Hanjun Dai, Ofir Nachum,
+     fusion models. arXiv preprint arXiv:2310.10639, 2023. 2, 3,           Josh Tenenbaum, Dale Schuurmans, and Pieter Abbeel. Learn-
+     6                                                                     ing universal policies via text-guided video generation. Ad-
+ [3] Anthony Brohan, Noah Brown, Justice Carbajal, Yevgen                  vances in Neural Information Processing Systems, 36, 2024.
+     Chebotar, Joseph Dabis, Chelsea Finn, Keerthana Gopalakr-             2, 3, 8
+     ishnan, Karol Hausman, Alex Herzog, Jasmine Hsu, et al.          [16] Frederik Ebert, Yanlai Yang, Karl Schmeckpeper, Bernadette
+     Rt-1: Robotics transformer for real-world control at scale.           Bucher, Georgios Georgakis, Kostas Daniilidis, Chelsea Finn,
+     arXiv preprint arXiv:2212.06817, 2022. 1                              and Sergey Levine. Bridge data: Boosting generalization
+ [4] Mathilde Caron, Hugo Touvron, Ishan Misra, Hervé Jégou,             of robotic skills with cross-domain datasets. arXiv preprint
+     Julien Mairal, Piotr Bojanowski, and Armand Joulin. Emerg-            arXiv:2109.13396, 2021. 1
+     ing properties in self-supervised vision transformers. In Pro-   [17] Zipeng Fu, Qingqing Zhao, Qi Wu, Gordon Wetzstein, and
+     ceedings of the IEEE/CVF international conference on com-             Chelsea Finn. Humanplus: Humanoid shadowing and imita-
+     puter vision, pages 9650–9660, 2021. 3                                tion from humans. arXiv preprint arXiv:2406.10454, 2024.
+ [5] Chi-Lam Cheang, Guangzeng Chen, Ya Jing, Tao Kong, Hang               2
+     Li, Yifeng Li, Yuxiao Liu, Hongtao Wu, Jiafeng Xu, Yichu         [18] Zipeng Fu, Tony Z. Zhao, and Chelsea Finn. Mobile aloha:
+     Yang, et al. Gr-2: A generative video-language-action model           Learning bimanual mobile manipulation with low-cost whole-
+     with web-scale knowledge for robot manipulation. arXiv                body teleoperation. In Conference on Robot Learning (CoRL),
+     preprint arXiv:2410.06158, 2024. 1                                    2024. 1
+ [6] Boyuan Chen, Zhuo Xu, Sean Kirmani, Brain Ichter, Dorsa          [19] Samir Yitzhak Gadre, Mitchell Wortsman, Gabriel Ilharco,
+     Sadigh, Leonidas Guibas, and Fei Xia. Spatialvlm: Endowing            Ludwig Schmidt, and Shuran Song. Cows on pasture: Base-
+     vision-language models with spatial reasoning capabilities.           lines and benchmarks for language-driven zero-shot object
+     In Proceedings of the IEEE/CVF Conference on Computer                 navigation. In Proceedings of the IEEE/CVF Conference
+     Vision and Pattern Recognition (CVPR), pages 14455–14465,             on Computer Vision and Pattern Recognition, pages 23171–
+     2024. 3                                                               23181, 2023. 3
+ [7] Junyu Chen, Han Cai, Junsong Chen, Enze Xie, Shang Yang,         [20] Raghav Goyal, Samira Ebrahimi Kahou, Vincent Michal-
+     Haotian Tang, Muyang Li, Yao Lu, and Song Han. Deep com-              ski, Joanna Materzynska, Susanne Westphal, Heuna Kim,
+     pression autoencoder for efficient high-resolution diffusion          Valentin Haenel, Ingo Fruend, Peter Yianilos, Moritz Mueller-
+     models. arXiv preprint arXiv:2410.10733, 2024. 8                      Freitag, et al. The” something something” video database for
+ [8] Lawrence Yunliang Chen, Simeon Adebola, and Ken Gold-                 learning and evaluating visual common sense. In Proceed-
+     berg. Berkeley UR5 demonstration dataset. https://                    ings of the IEEE international conference on computer vision,
+     sites.google.com/view/berkeley- ur5/home.                             pages 5842–5850, 2017. 2, 3, 4, 1
+     1                                                                [21] Huy Ha, Pete Florence, and Shuran Song. Scaling up and
+ [9] Xi Chen, Xiao Wang, Lucas Beyer, Alexander Kolesnikov,                distilling down: Language-guided robot skill acquisition. In
+     Jialin Wu, Paul Voigtlaender, Basil Mustafa, Sebastian Good-          Conference on Robot Learning, pages 3766–3777. PMLR,
+     man, Ibrahim Alabdulmohsin, Piotr Padlewski, et al. Pali-3            2023. 3
+     vision language models: Smaller, faster, stronger. arXiv         [22] William Harvey and Frank Wood. Visual chain-of-thought
+     preprint arXiv:2310.09199, 2023. 2                                    diffusion models. arXiv preprint arXiv:2303.16187, 2023. 2
+[10] Cheng Chi, Zhenjia Xu, Siyuan Feng, Eric Cousineau, Yilun        [23] Anthony Hu, Lloyd Russell, Hudson Yeo, Zak Murez, George
+     Du, Benjamin Burchfiel, Russ Tedrake, and Shuran Song.                Fedoseev, Alex Kendall, Jamie Shotton, and Gianluca Cor-
+     Diffusion policy: Visuomotor policy learning via action diffu-        rado. Gaia-1: A generative world model for autonomous
+     sion. The International Journal of Robotics Research, page            driving. arXiv preprint arXiv:2309.17080, 2023. 8
+     02783649241273668, 2023. 2, 6, 8                                 [24] Yushi Hu, Weijia Shi, Xingyu Fu, Dan Roth, Mari Ostendorf,
+[11] Yiming Ding, Carlos Florensa, Pieter Abbeel, and Mariano              Luke Zettlemoyer, Noah A Smith, and Ranjay Krishna. Visual
+     Phielipp. Goal-conditioned imitation learning. Advances in            sketchpad: Sketching as a visual chain of thought for multi-
+     neural information processing systems, 32, 2019. 2, 3                 modal language models. arXiv preprint arXiv:2406.09403,
+[12] Danny Driess, Fei Xia, Mehdi SM Sajjadi, Corey Lynch,                 2024. 2
+     Aakanksha Chowdhery, Brian Ichter, Ayzaan Wahid, Jonathan        [25] Chenguang Huang, Oier Mees, Andy Zeng, and Wolfram
+     Tompson, Quan Vuong, Tianhe Yu, et al. Palm-e: An                     Burgard. Visual language maps for robot navigation. In 2023
+     IEEE International Conference on Robotics and Automation        [37] Bo Liu, Yifeng Zhu, Chongkai Gao, Yihao Feng, Qiang
+     (ICRA), pages 10608–10615. IEEE, 2023. 3                             Liu, Yuke Zhu, and Peter Stone. Libero: Benchmarking
+[26] Wenlong Huang, Chen Wang, Yunzhu Li, Ruohan Zhang, and               knowledge transfer for lifelong robot learning. arXiv preprint
+     Li Fei-Fei. Rekep: Spatio-temporal reasoning of relational           arXiv:2306.03310, 2023. 2, 5, 1
+     keypoint constraints for robotic manipulation. arXiv preprint   [38] Haotian Liu, Chunyuan Li, Qingyang Wu, and Yong Jae Lee.
+     arXiv:2409.01652, 2024. 3                                            Visual instruction tuning. Advances in neural information
+[27] Georgios Kapidis, Ronald Poppe, Elsbeth Van Dam, Lu-                 processing systems, 36, 2024. 2
+     cas Noldus, and Remco Veltkamp.             Egocentric hand     [39] Jiasen Lu, Christopher Clark, Sangho Lee, Zichen Zhang,
+     track and object-based human action recognition. In                  Savya Khosla, Ryan Marten, Derek Hoiem, and Aniruddha
+     2019 IEEE SmartWorld, Ubiquitous Intelligence & Com-                 Kembhavi. Unified-io 2: Scaling autoregressive multimodal
+     puting, Advanced & Trusted Computing, Scalable Com-                  models with vision language audio and action. In Proceedings
+     puting & Communications, Cloud & Big Data Comput-                    of the IEEE/CVF Conference on Computer Vision and Pattern
+     ing, Internet of People and Smart City Innovation (Smart-            Recognition, pages 26439–26455, 2024. 2
+     World/SCALCOM/UIC/ATC/CBDCom/IOP/SCI), pages 922–               [40] Yecheng Jason Ma, William Liang, Guanzhi Wang, De-An
+     929. IEEE, 2019. 1, 2, 3, 4                                          Huang, Osbert Bastani, Dinesh Jayaraman, Yuke Zhu, Linxi
+[28] Siddharth Karamcheti, Suraj Nair, Ashwin Balakrishna, Percy          Fan, and Anima Anandkumar. Eureka: Human-level reward
+     Liang, Thomas Kollar, and Dorsa Sadigh. Prismatic vlms: In-          design via coding large language models. arXiv preprint
+     vestigating the design space of visually-conditioned language        arXiv: Arxiv-2310.12931, 2023. 3
+     models. arXiv preprint arXiv:2402.07865, 2024. 2                [41] Arjun Majumdar, Karmesh Yadav, Sergio Arnaud, Jason Ma,
+[29] Moo Jin Kim, Karl Pertsch, Siddharth Karamcheti, Ted                 Claire Chen, Sneha Silwal, Aryan Jain, Vincent-Pierre Berges,
+     Xiao, Ashwin Balakrishna, Suraj Nair, Rafael Rafailov, Ethan         Tingfan Wu, Jay Vakil, et al. Where are we in the search for an
+     Foster, Grace Lam, Pannag Sanketi, et al. Openvla: An                artificial visual cortex for embodied intelligence? Advances
+     open-source vision-language-action model. arXiv preprint             in Neural Information Processing Systems, 36:655–677, 2023.
+     arXiv:2406.09246, 2024. 1, 3, 4, 5, 6, 7                             3
+[30] Dan Kondratyuk, Lijun Yu, Xiuye Gu, José Lezama, Jonathan      [42] Ajay Mandlekar, Yuke Zhu, Animesh Garg, Jonathan Booher,
+     Huang, Grant Schindler, Rachel Hornung, Vighnesh Birodkar,           Max Spero, Albert Tung, Julian Gao, John Emmons, An-
+     Jimmy Yan, Ming-Chang Chiu, et al. Videopoet: A large                chit Gupta, Emre Orbay, et al. Roboturk: A crowdsourcing
+     language model for zero-shot video generation. arXiv preprint        platform for robotic skill learning through imitation. In Con-
+     arXiv:2312.14125, 2023. 8                                            ference on Robot Learning, pages 879–893. PMLR, 2018.
+[31] Woosuk Kwon, Zhuohan Li, Siyuan Zhuang, Ying Sheng,                  1
+     Lianmin Zheng, Cody Hao Yu, Joseph E. Gonzalez, Hao             [43] Oier Mees, Jessica Borja-Diaz, and Wolfram Burgard.
+     Zhang, and Ion Stoica. Efficient memory management for               Grounding language with visual affordances over unstruc-
+     large language model serving with pagedattention. In Pro-            tured data. In 2023 IEEE International Conference on
+     ceedings of the ACM SIGOPS 29th Symposium on Operating               Robotics and Automation (ICRA), pages 11576–11582. IEEE,
+     Systems Principles, 2023. 8                                          2023. 1
+[32] Doyup Lee, Chiheon Kim, Saehoon Kim, Minsu Cho, and             [44] Zawalski Michał, Chen William, Pertsch Karl, Mees Oier,
+     Wook-Shin Han. Autoregressive image generation using resid-          Finn Chelsea, and Levine Sergey. Robotic control via
+     ual quantization. In Proceedings of the IEEE/CVF Conference          embodied chain-of-thought reasoning.           arXiv preprint
+     on Computer Vision and Pattern Recognition, pages 11523–             arXiv:2407.08693, 2024. 1, 2
+     11532, 2022. 4                                                  [45] Yao Mu, Qinglong Zhang, Mengkang Hu, Wenhai Wang,
+[33] Yaniv Leviathan, Matan Kalman, and Yossi Matias. Fast                Mingyu Ding, Jun Jin, Bin Wang, Jifeng Dai, Yu Qiao, and
+     inference from transformers via speculative decoding. In             Ping Luo. Embodiedgpt: Vision-language pre-training via
+     International Conference on Machine Learning, pages 19274–           embodied chain of thought. Advances in Neural Information
+     19286. PMLR, 2023. 8                                                 Processing Systems, 36, 2024. 1, 2, 3
+[34] Boyi Li, Yue Wang, Jiageng Mao, Boris Ivanovic, Sushant         [46] Ashvin V Nair, Vitchyr Pong, Murtaza Dalal, Shikhar Bahl,
+     Veer, Karen Leung, and Marco Pavone. Driving everywhere              Steven Lin, and Sergey Levine. Visual reinforcement learn-
+     with large language model policy adaptation. In Proceedings          ing with imagined goals. Advances in neural information
+     of the IEEE/CVF Conference on Computer Vision and Pattern            processing systems, 31, 2018. 2, 3
+     Recognition, pages 14948–14957, 2024. 3                         [47] Fei Ni, Jianye Hao, Shiguang Wu, Longxin Kou, Jiashun
+[35] Junbang Liang, Ruoshi Liu, Ege Ozguroglu, Sruthi Sudhakar,           Liu, Yan Zheng, Bin Wang, and Yuzheng Zhuang. Generate
+     Achal Dave, Pavel Tokmakov, Shuran Song, and Carl Von-               subgoal images before act: Unlocking the chain-of-thought
+     drick. Dreamitate: Real-world visuomotor policy learning via         reasoning in diffusion model for robot manipulation with
+     video generation. arXiv preprint arXiv:2406.16862, 2024. 2           multimodal prompts. In Proceedings of the IEEE/CVF Con-
+[36] Fanqi Lin, Yingdong Hu, Pingyue Sheng, Chuan Wen, Ji-                ference on Computer Vision and Pattern Recognition, 2024.
+     acheng You, and Yang Gao. Data scaling laws in imi-                  2, 3
+     tation learning for robotic manipulation. arXiv preprint        [48] Abby O’Neill, Abdul Rehman, Abhinav Gupta, Abhiram
+     arXiv:2410.18647, 2024. 1                                            Maddukuri, Abhishek Gupta, Abhishek Padalkar, Abraham
+     Lee, Acorn Pooley, Agrim Gupta, Ajay Mandlekar, et al.              [62] Jason Wei, Xuezhi Wang, Dale Schuurmans, Maarten Bosma,
+     Open x-embodiment: Robotic learning datasets and rt-x mod-               Fei Xia, Ed Chi, Quoc V Le, Denny Zhou, et al. Chain-of-
+     els. arXiv preprint arXiv:2310.08864, 2023. 1, 2, 3, 4                   thought prompting elicits reasoning in large language models.
+[49] Alec Radford, Jong Wook Kim, Chris Hallacy, Aditya                       Advances in neural information processing systems, 2022. 2,
+     Ramesh, Gabriel Goh, Sandhini Agarwal, Girish Sastry,                    3
+     Amanda Askell, Pamela Mishkin, Jack Clark, et al. Learning          [63] Chuan Wen, Xingyu Lin, John So, Kai Chen, Qi Dou, Yang
+     transferable visual models from natural language supervi-                Gao, and Pieter Abbeel. Any-point trajectory modeling for
+     sion. In International conference on machine learning, pages             policy learning. arXiv preprint arXiv:2401.00025, 2023. 1, 2,
+     8748–8763. PMLR, 2021. 3                                                 3
+[50] Daniel Rose, Vaishnavi Himakunthala, Andy Ouyang, Ryan              [64] Junjie Wen, Yichen Zhu, Jinming Li, Minjie Zhu, Kun Wu,
+     He, Alex Mei, Yujie Lu, Michael Saxon, Chinmay Sonar,                    Zhiyuan Xu, Ran Cheng, Chaomin Shen, Yaxin Peng, Feifei
+     Diba Mirza, and William Yang Wang. Visual chain of                       Feng, et al. Tinyvla: Towards fast, data-efficient vision-
+     thought: bridging logical gaps with multimodal infillings.               language-action models for robotic manipulation. arXiv
+     arXiv preprint arXiv:2305.02317, 2023. 2                                 preprint arXiv:2409.12514, 2024. 3
+                                                                         [65] Chengyue Wu, Xiaokang Chen, Zhiyu Wu, Yiyang Ma,
+[51] Erick Rosete-Beas, Oier Mees, Gabriel Kalweit, Joschka
+                                                                              Xingchao Liu, Zizheng Pan, Wen Liu, Zhenda Xie, Xingkai
+     Boedecker, and Wolfram Burgard. Latent plans for task-
+                                                                              Yu, Chong Ruan, et al. Janus: Decoupling visual encoding
+     agnostic offline reinforcement learning. In Conference on
+                                                                              for unified multimodal understanding and generation. arXiv
+     Robot Learning, pages 1838–1849. PMLR, 2023. 1
+                                                                              preprint arXiv:2410.13848, 2024. 8
+[52] V Sanh. Distilbert, a distilled version of bert: smaller, faster,   [66] Hongtao Wu, Ya Jing, Chilam Cheang, Guangzeng Chen,
+     cheaper and lighter. arXiv preprint arXiv:1910.01108, 2019.              Jiafeng Xu, Xinghang Li, Minghuan Liu, Hang Li, and
+     6                                                                        Tao Kong. Unleashing large-scale video generative pre-
+[53] Hao Shao, Shengju Qian, Han Xiao, Guanglu Song, Zhuo-                    training for visual robot manipulation. arXiv preprint
+     fan Zong, Letian Wang, Yu Liu, and Hongsheng Li. Visual                  arXiv:2312.13139, 2023. 1
+     cot: Unleashing chain-of-thought reasoning in multi-modal           [67] Yecheng Wu, Zhuoyang Zhang, Junyu Chen, Haotian Tang,
+     language models. arXiv preprint arXiv:2403.16999, 2024. 2                Dacheng Li, Yunhao Fang, Ligeng Zhu, Enze Xie, Hongxu
+[54] Mohit Shridhar, Lucas Manuelli, and Dieter Fox. Cliport:                 Yin, Li Yi, et al. Vila-u: a unified foundation model inte-
+     What and where pathways for robotic manipulation. In Con-                grating visual understanding and generation. arXiv preprint
+     ference on robot learning, pages 894–906. PMLR, 2022. 1                  arXiv:2409.04429, 2024. 2, 3, 4
+[55] Mohit Shridhar, Yat Long Lo, and Stephen James. Generative          [68] Jiannan Xiang, Guangyi Liu, Yi Gu, Qiyue Gao, Yuting Ning,
+     image as action models. arXiv preprint arXiv:2407.07875,                 Yuheng Zha, Zeyu Feng, Tianhua Tao, Shibo Hao, Yemin
+     2024. 2, 3                                                               Shi, et al. Pandora: Towards general world model with
+[56] Ishika Singh, Valts Blukis, Arsalan Mousavian, Ankit Goyal,              natural language actions and video states. arXiv preprint
+     Danfei Xu, Jonathan Tremblay, Dieter Fox, Jesse Thomason,                arXiv:2406.09455, 2024. 8
+     and Animesh Garg. Progprompt: Generating situated robot             [69] Jinheng Xie, Weijia Mao, Zechen Bai, David Junhao Zhang,
+     task plans using large language models. In 2023 IEEE In-                 Weihao Wang, Kevin Qinghong Lin, Yuchao Gu, Zhijie Chen,
+     ternational Conference on Robotics and Automation (ICRA),                Zhenheng Yang, and Mike Zheng Shou. Show-o: One single
+     pages 11523–11530. IEEE, 2023. 3                                         transformer to unify multimodal understanding and genera-
+                                                                              tion. arXiv preprint arXiv:2408.12528, 2024. 2, 8
+[57] Yang Song, Prafulla Dhariwal, Mark Chen, and Ilya Sutskever.
+     Consistency models. arXiv preprint arXiv:2303.01469, 2023.          [70] Jonathan Yang, Catherine Glossop, Arjun Bhorkar, Dhruv
+     8                                                                        Shah, Quan Vuong, Chelsea Finn, Dorsa Sadigh, and
+                                                                              Sergey Levine. Pushing the limits of cross-embodiment
+[58] Chameleon Team. Chameleon: Mixed-modal early-fusion
+                                                                              learning for manipulation and navigation. arXiv preprint
+     foundation models. arXiv preprint arXiv:2405.09818, 2024.
+                                                                              arXiv:2402.19432, 2024. 1
+     2
+                                                                         [71] Mengjiao Yang, Yilun Du, Kamyar Ghasemipour, Jonathan
+[59] Octo Model Team, Dibya Ghosh, Homer Walke, Karl Pertsch,                 Tompson, Dale Schuurmans, and Pieter Abbeel. Learn-
+     Kevin Black, Oier Mees, Sudeep Dasari, Joey Hejna, Tobias                ing interactive real-world simulators.        arXiv preprint
+     Kreiman, Charles Xu, et al. Octo: An open-source generalist              arXiv:2310.06114, 2023. 3
+     robot policy. arXiv preprint arXiv:2405.12213, 2024. 1, 3, 6        [72] Sherry Yang, Jacob Walker, Jack Parker-Holder, Yilun Du,
+[60] Homer Rich Walke, Kevin Black, Tony Z Zhao, Quan Vuong,                  Jake Bruce, Andre Barreto, Pieter Abbeel, and Dale Schu-
+     Chongyi Zheng, Philippe Hansen-Estruch, Andre Wang He,                   urmans. Video as the new language for real-world decision
+     Vivek Myers, Moo Jin Kim, Max Du, et al. Bridgedata v2: A                making. arXiv preprint arXiv:2402.17139, 2024. 8
+     dataset for robot learning at scale. In Conference on Robot         [73] Qihang Yu, Mark Weber, Xueqing Deng, Xiaohui Shen,
+     Learning, pages 1723–1736. PMLR, 2023. 2, 5, 1                           Daniel Cremers, and Liang-Chieh Chen. An image is worth 32
+[61] Xinlong Wang, Xiaosong Zhang, Zhengxiong Luo, Quan Sun,                  tokens for reconstruction and generation. arxiv: 2406.07550,
+     Yufeng Cui, Jinsheng Wang, Fan Zhang, Yueze Wang, Zhen                   2024. 8
+     Li, Qiying Yu, et al. Emu3: Next-token prediction is all you        [74] Wenhao Yu, Nimrod Gileadi, Chuyuan Fu, Sean Kirmani,
+     need. arXiv preprint arXiv:2409.18869, 2024. 2, 8                        Kuang-Huei Lee, Montse Gonzalez Arenas, Hao-Tien Lewis
+     Chiang, Tom Erez, Leonard Hasenclever, Jan Humplik, et al.
+     Language to rewards for robotic skill synthesis. arXiv preprint
+     arXiv:2306.08647, 2023. 3
+[75] Eric Zelikman, Yuhuai Wu, Jesse Mu, and Noah Goodman.
+     Star: Bootstrapping reasoning with reasoning. Advances in
+     Neural Information Processing Systems, 35:15476–15488,
+     2022. 2
+[76] Kaifeng Zhang, Zhao-Heng Yin, Weirui Ye, and Yang
+     Gao. Learning manipulation skills through robot chain-
+     of-thought with sparse failure guidance. arXiv preprint
+     arXiv:2405.13573, 2024. 1, 2
+[77] Tony Z Zhao, Vikash Kumar, Sergey Levine, and Chelsea
+     Finn. Learning fine-grained bimanual manipulation with low-
+     cost hardware. arXiv preprint arXiv:2304.13705, 2023. 2
+[78] Haoyu Zhen, Xiaowen Qiu, Peihao Chen, Jincheng Yang, Xin
+     Yan, Yilun Du, Yining Hong, and Chuang Gan. 3d-vla: A
+     3d vision-language-action generative world model. arXiv
+     preprint arXiv:2403.09631, 2024. 1
+[79] Chunting Zhou, Lili Yu, Arun Babu, Kushal Tirumala, Michi-
+     hiro Yasunaga, Leonid Shamis, Jacob Kahn, Xuezhe Ma,
+     Luke Zettlemoyer, and Omer Levy. Transfusion: Predict the
+     next token and diffuse images with one multi-modal model.
+     2024. 8
+[80] Enshen Zhou, Yiran Qin, Zhenfei Yin, Yuzhou Huang,
+     Ruimao Zhang, Lu Sheng, Yu Qiao, and Jing Shao. Mine-
+     dreamer: Learning to follow instructions via chain-of-
+     imagination for simulated-world control. arXiv preprint
+     arXiv:2403.12037, 2024. 3
+[81] Gaoyue Zhou, Victoria Dean, Mohan Kumar Srirama, Ar-
+     avind Rajeswaran, Jyothish Pari, Kyle Hatch, Aryan Jain,
+     Tianhe Yu, Pieter Abbeel, Lerrel Pinto, et al. Train offline,
+     test online: A real robot learning benchmark. In 2023 IEEE In-
+     ternational Conference on Robotics and Automation (ICRA),
+     pages 9197–9203. IEEE, 2023. 1
+[82] Xinghao Zhu, Ran Tian, Chenfeng Xu, Mingxiao Huo, Wei
+     Zhan, Masayoshi Tomizuka, and Mingyu Ding. Fanuc manip-
+     ulation: A dataset for learning-based manipulation with fanuc
+     mate 200id robot. https://sites.google.com/
+     berkeley.edu/fanuc-manipulation, 2023. 1
+[83] Yifeng Zhu, Abhishek Joshi, Peter Stone, and Yuke Zhu.
+     Viola: Imitation learning for vision-based manipulation with
+     object proposal priors. In Conference on Robot Learning,
+     pages 1199–1210. PMLR, 2023. 1
+                       CoT-VLA: Visual Chain-of-Thought Reasoning for
+                              Vision-Language-Action Models
+                                             Supplementary Material
+
+6. Implementation Details
+6.1. Data Details
+We select part of the Open X-Embodiment dataset [48] as our robot demonstration pre-training data, and Some-
+thing2Something [20], and EPIC-KITCHEN-100 [27] as our action-less video data. The ul and uu is upper bound and
+lower bound for predicted subgoal horizon. We manually set those number for each dataset.
+
+                                  Dataset                                Weight        ul   uu
+                                  Bridge [16, 60]                        24.14%         5   10
+                                  RT-1 [3]                                6.90%         5   10
+                                  TOTO [81]                              10.34%        20   24
+                                  VIOLA [83]                             10.34%        15   20
+                                  RoboTurk [42]                          10.34%         1    2
+                                  Jaco Play [43, 51]                     10.34%        10   15
+                                  Berkeley Autolab UR5 [8]               10.34%         5   10
+                                  Berkeley Fanuc Manipulation [82]       10.34%        10   15
+                                  Something2Something [20]                3.45%         5    7
+                                  EPIC-KITCHEN-100 [27]                   3.45%         5    7
+
+                                         Table 4. Dataset Weights and Hyperparameters
+
+
+6.2. Hyperparameters
+In this section, we list the important hyperparameters for our model pre-training and pose-training stage.
+
+                                             Hyperparameter        Pre-training
+                                             Learning Rate             1e-4
+                                             LR Scheduler          Cosine decay
+                                             Global Batch Size        2048
+                                             Image Resolution       256 × 256
+                                             Action Token Size          10
+                                             Epoch                      10
+
+                                           Table 5. Hyperparameters for pre-training
+
+   For fine-tuning on LIBERO [37] and Franka-Tabletop [29] experiments, we fine-tune the model (LLM backbone, projector,
+depth transformer) with constant learning rate 1e-5 for 150 epochs.
+6.3. Training
+We perform training on 12 A100 GPU nodes with 8 GPUs each. The pre-training with data mixture in 6.1 takes 11K A100
+GPU hours in total. The training cost for LIBERO and Franka-Tabletop fine-tuning is done on a single A100 GPU node for
+10-24 hours depends on the dataset size.
+

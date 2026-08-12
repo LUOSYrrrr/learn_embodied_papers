@@ -1,0 +1,119 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Classifier-Free Guidance：无分类器条件引导 · Paper Notes</title>
+  <link rel="stylesheet" href="../../assets/css/style.css">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16/dist/katex.min.css">
+  <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16/dist/katex.min.js"></script>
+  <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16/dist/contrib/auto-render.min.js" onload="renderMathInElement(document.body,{delimiters:[{left:'$$',right:'$$',display:true},{left:'$',right:'$',display:false}]})"></script>
+  <script src="../../assets/js/theme.js"></script><script src="../../assets/js/interactive.js" defer></script>
+</head>
+<body>
+  <nav class="nav"><a class="nav-logo" href="../../index.html">Paper Notes</a><div class="nav-links"><a href="ddim.html">← DDIM</a><a href="../../pdfs/generation/Ho和Salimans - 2022 - Classifier-Free Diffusion Guidance.pdf" target="_blank">📄 PDF</a></div></nav>
+  <div class="page"><div class="docs-layout">
+    <aside class="docs-sidebar-left">
+      <div class="ds-title">CFG · 条件控制</div>
+      <a class="ds-leaf-top" href="#tldr">§1 一句话</a>
+      <details open><summary>§2 为什么不要分类器</summary><a class="ds-leaf" href="#classifier">2.1 Classifier guidance</a><a class="ds-leaf" href="#joint-train">2.2 条件 dropout</a></details>
+      <details open><summary>§3 核心公式</summary><a class="ds-leaf" href="#equation">3.1 条件—无条件外推</a><a class="ds-leaf" href="#convention">3.2 两种 scale 记法</a><a class="ds-leaf" href="#algorithm">3.3 采样开销</a></details>
+      <a class="ds-leaf-top" href="#tradeoff">§4 忠实度—多样性</a>
+      <a class="ds-leaf-top" href="#limits">§5 局限</a>
+      <a class="ds-leaf-top" href="#wam">§6 对 WAM 的意义</a>
+      <a class="ds-leaf-top" href="#takeaway">§7 一页记住</a>
+    </aside>
+
+    <main class="docs-content">
+      <div class="docs-breadcrumb"><a href="../../index.html">paper-notes</a><span class="sep">/</span><a href="../wam-roadmap.html">world model</a><span class="sep">/</span>CFG · 2022</div>
+      <h1>Classifier-Free Diffusion Guidance</h1>
+      <p style="color:var(--text3);font-family:var(--font-mono);font-size:12px;margin-top:-12px;">Jonathan Ho, Tim Salimans · Google Research · arXiv:2207.12598</p>
+
+      <div class="cn-read"><div class="cn-label">先建立正确层级</div><p><strong>CFG 不是扩散训练目标，也不是采样器。</strong>它是条件采样时修改模型输出的方法：一个网络同时学会“有条件”和“无条件”去噪，推理时将两种预测沿差分方向外推。DDPM/DDIM 决定怎么走，CFG 决定条件把轨迹往哪里拉。</p></div>
+
+      <h2 id="tldr">§1 一句话：用“条件差分”代替外部分类器梯度</h2>
+      <div class="callout"><div class="callout-label">核心主张</div><p>训练时以小概率把条件 $c$ 替换为空条件 $\varnothing$；推理时同一个去噪器分别计算 $\epsilon_\theta(x_t,c)$ 与 $\epsilon_\theta(x_t,\varnothing)$，再放大二者之差，从而提升条件一致性。</p></div>
+      <details class="en-quote"><summary>展开原文 · Abstract</summary><div class="quote-body"><p>“We jointly train a conditional and an unconditional diffusion model.”</p><div class="quote-cite">— Abstract, p.1</div></div></details>
+
+      <div class="fig-interactive panel-below">
+        <div class="fig-block"><div class="hotspot-wrap" data-hotspot-group="cfg-grid"><img src="../../assets/figures/cfg/figure-1-guidance-grid.png" alt="CFG guidance strength sample grid"><div class="hotspot" data-id="weak" style="left:13%;top:39.5%;" data-title="弱引导：覆盖更广" data-body="左侧包含草地、混合动物和不典型构图；多样性高，但“malamute”类别忠实度较弱。"></div><div class="hotspot" data-id="middle" style="left:53.9%;top:39.5%;" data-title="中等引导：常用区域" data-body="类别特征更明显，同时仍保留姿态、背景和视角变化。最佳 FID 往往出现在较小引导强度，而非最大值。"></div><div class="hotspot" data-id="strong" style="left:86.9%;top:39.5%;" data-title="强引导：更像条件原型" data-body="样本越来越集中到典型哈士奇/雪橇犬外观；单样本更锐利，但模式覆盖下降。"></div></div><div class="fig-cap"><span class="fig-num">Fig 1 · p.1</span> 从左到右增大 CFG 强度。<span class="fig-cn">引导不是免费提升质量，而是在条件忠实度与分布覆盖之间移动工作点。</span></div></div><div class="hotspot-panel"></div>
+      </div>
+
+      <h2 id="classifier">§2 为什么要去掉分类器</h2>
+      <p>Classifier guidance 将扩散 score 与 $\nabla_{x_t}\log p(c|x_t)$ 相加。问题是这个分类器必须能处理所有噪声级别的 $x_t$，不能直接拿一个只见过干净图像的分类器即插即用；还会增加训练管线，并可能利用分类器指标的漏洞。</p>
+      <div class="module-grid">
+        <div class="module-card"><div class="module-card-name">CLASSIFIER GUIDANCE</div><div class="module-card-title">扩散模型 + 噪声分类器</div><div class="module-card-desc">需要额外模型和带噪分类训练，采样使用分类器输入梯度。</div></div>
+        <div class="module-card"><div class="module-card-name">CLASSIFIER-FREE</div><div class="module-card-title">一个扩散模型，两种条件模式</div><div class="module-card-desc">无需外部分类器；条件差分由生成模型自身提供。</div></div>
+      </div>
+
+      <h3 id="joint-train">2.2 条件 dropout：同一组参数学两项任务</h3>
+      <div class="step-walker">
+        <div class="sw-header"><div class="sw-title">CFG 训练与采样</div><div class="sw-controls"><button class="sw-btn prev">←</button><span class="sw-counter"></span><button class="sw-btn next">→</button></div></div>
+        <div class="sw-progress"><span class="sw-dot"></span><span class="sw-dot"></span><span class="sw-dot"></span><span class="sw-dot"></span></div>
+        <div class="sw-body">
+          <div class="sw-step"><h4>1. 正常构造带噪样本</h4><p>抽 $t$ 和 $\epsilon$，得到 $x_t$，监督目标仍是噪声预测；CFG 不改变 DDPM 式 loss。</p></div>
+          <div class="sw-step"><h4>2. 随机丢弃条件</h4><p>以 $p_{\text{uncond}}$ 将类别、文本或其他条件替换为 $\varnothing$。论文实验常用 0.1 或 0.2。</p></div>
+          <div class="sw-step"><h4>3. 一个网络同时学两种 score</h4><p>有条件 batch 学 $\epsilon_\theta(x_t,c)$；空条件 batch 学 $\epsilon_\theta(x_t,\varnothing)$。</p></div>
+          <div class="sw-step"><h4>4. 推理做两次前向并外推</h4><p>二者差值近似“条件把 score 推向哪里”，乘引导强度后加回无条件预测。</p></div>
+        </div>
+      </div>
+
+      <div class="quiz" data-correct="c" data-explain="训练时随机把条件替换为空条件，才能让同一个网络在推理时提供条件与无条件两种预测。" data-explain-wrong="CFG 的关键不是丢弃图像、时间步或噪声，而是丢弃条件。"><div class="q-label">理解检查</div><div class="q-text">CFG 训练时随机 dropout 的是什么？</div><div class="q-options"><button class="q-opt" data-k="a">带噪输入 $x_t$</button><button class="q-opt" data-k="b">时间步 $t$</button><button class="q-opt" data-k="c">条件 $c$</button><button class="q-opt" data-k="d">目标噪声 $\epsilon$</button></div><div class="q-feedback"></div></div>
+
+      <h2 id="equation">§3 核心公式：沿条件差分方向外推</h2>
+      <div class="math-block">$$\tilde\epsilon_\theta(x_t,c)=(1+w)\epsilon_\theta(x_t,c)-w\epsilon_\theta(x_t,\varnothing)$$<span class="math-label">Eq. 6 · p.4 · 论文记法</span></div>
+      <div class="math-explain"><div class="me-title">把公式改写成更直观的样子</div><dl>
+        <dt>$\epsilon_c$</dt><dd>带条件预测：同时包含“当前噪声应如何去掉”和“满足条件应往哪里走”。</dd>
+        <dt>$\epsilon_u$</dt><dd>无条件预测：只描述数据分布本身，不要求满足特定条件。</dd>
+        <dt>$\epsilon_c-\epsilon_u$</dt><dd>条件带来的方向差；放大它，相当于更强地追逐条件。</dd>
+        <dt>$w$</dt><dd>论文的额外引导权重；$w=0$ 已经得到条件预测，而不是无条件预测。</dd>
+      </dl></div>
+
+      <div class="math-block">$$\tilde\epsilon=\epsilon_u+s(\epsilon_c-\epsilon_u)$$<span class="math-label">现代实现常见记法 · $s=1+w$</span></div>
+      <div class="math-explain"><div class="me-title">把 guidance 看成一条可调方向</div><dl>
+        <dt>$\epsilon_u$</dt><dd>无条件基线，描述“像数据”的一般去噪方向。</dd>
+        <dt>$\epsilon_c-\epsilon_u$</dt><dd>条件带来的增量方向：在保持像真实样本的基础上，哪一部分变化会让结果更符合文本、类别或动作条件。</dd>
+        <dt>$s$</dt><dd>条件增量的放大倍数；$s=0$ 得到无条件结果，$s=1$ 等于普通条件预测，$s&gt;1$ 才是通常所说的加强 guidance。</dd>
+        <dt>$\tilde\epsilon$</dt><dd>最终送入采样器的噪声预测。增大 $s$ 往往提高条件一致性，但可能牺牲多样性并产生过饱和或轨迹不稳定。</dd>
+      </dl></div>
+      <h3 id="convention">3.2 最常见实现坑：scale 差 1</h3>
+      <div class="callout amber"><div class="callout-label">对照代码前先看公式</div><p>论文 $w=0$ 等于纯条件预测；常见代码 $s=0$ 等于无条件预测、$s=1$ 等于纯条件预测。因此别人说“guidance scale 7.5”时，通常指 $s$，不一定指论文里的 $w$。</p></div>
+
+      <h3 id="algorithm">3.3 采样开销：每一步通常两次网络前向</h3>
+      <div class="module-grid">
+        <div class="module-card"><div class="module-card-name">PASS 1</div><div class="module-card-title">空条件 $\varnothing$</div><div class="module-card-desc">得到 $\epsilon_u$，代表不指定任务时的数据方向。</div></div>
+        <div class="module-card"><div class="module-card-name">PASS 2</div><div class="module-card-title">真实条件 $c$</div><div class="module-card-desc">得到 $\epsilon_c$，再与无条件分支线性组合。</div></div>
+      </div>
+      <p>工程上常把有/无条件样本拼进 batch，一次批处理前向计算两组输出；FLOPs 和显存压力仍近似翻倍。CFG 可以与 DDPM、DDIM、ODE/flow sampler 组合，因为它修改的是每步模型预测。</p>
+
+      <h2 id="tradeoff">§4 引导强度不是“质量旋钮”，而是分布重加权</h2>
+      <div class="fig-interactive panel-below">
+        <div class="fig-block"><div class="hotspot-wrap" data-hotspot-group="cfg-gaussians"><img src="../../assets/figures/cfg/figure-2-gaussians.png" alt="CFG 对高斯混合分布的作用"><div class="hotspot" data-id="marginal" style="left:13%;top:45%;" data-title="无引导边缘分布" data-body="三个模式彼此重叠，覆盖完整但单个条件区分度较低。"></div><div class="hotspot" data-id="separate" style="left:51.9%;top:45%;" data-title="模式被拉开" data-body="引导放大条件相对无条件的 score 差，类别对应密度逐渐集中。"></div><div class="hotspot" data-id="sharp" style="left:86.9%;top:45%;" data-title="强引导变尖" data-body="条件模式更锐利，但模式内部的尾部概率被压低；这对应样本多样性下降。"></div></div><div class="fig-cap"><span class="fig-num">Fig 2 · p.2</span> 三高斯玩具例子。<span class="fig-cn">CFG 不只是“把图变清楚”，而是在数学上改变采样分布的形状。</span></div></div><div class="hotspot-panel"></div>
+      </div>
+
+      <div class="fig-block"><img src="../../assets/figures/cfg/figure-4-tradeoff.png" alt="CFG FID IS tradeoff"><div class="fig-cap"><span class="fig-num">Fig 4 · p.7</span> 不同 $p_{\text{uncond}}$ 下的 IS/FID 曲线。<span class="fig-cn">小幅引导先改善 FID；继续增大引导时 IS 上升而 FID 变差，说明忠实度提升伴随分布覆盖损失。</span></div></div>
+      <div class="module-grid">
+        <div class="module-card"><div class="module-card-name">SMALL $w$</div><div class="module-card-title">最佳 FID 区域</div><div class="module-card-desc">论文在不同设置中用 $w=0.1$ 或 $0.3$ 获得最佳 FID。</div></div>
+        <div class="module-card"><div class="module-card-name">LARGE $w$</div><div class="module-card-title">IS 继续提升</div><div class="module-card-desc">类别更典型，但 FID 单调恶化，样本颜色也可能过饱和。</div></div>
+        <div class="module-card"><div class="module-card-name">$p_{uncond}$</div><div class="module-card-title">0.1 / 0.2 更合适</div><div class="module-card-desc">只需一小部分容量学习无条件任务；0.5 会明显挤占条件训练。</div></div>
+        <div class="module-card"><div class="module-card-name">COMPUTE</div><div class="module-card-title">约 2× 去噪前向</div><div class="module-card-desc">无需分类器，但不代表推理没有额外成本。</div></div>
+      </div>
+
+      <h2 id="limits">§5 局限与风险</h2>
+      <div class="callout red"><div class="callout-label">强 CFG 的四个副作用</div><p><strong>多样性下降：</strong>罕见模式与条件边界样本更难出现。<br><strong>过饱和/伪影：</strong>外推超出模型训练分布。<br><strong>算力翻倍：</strong>每个采样步需要有/无条件输出。<br><strong>偏差放大：</strong>训练分布里被低估的模式会被引导进一步压低。</p></div>
+      <p>论文还提醒：条件与无条件网络给出的向量场是学习结果，其差值未必严格等于某个真实分类器的保守梯度。把它称为“隐式分类器”有直觉价值，但不要过度按精确概率公式解释。</p>
+
+      <h2 id="wam">§6 对 World Action Model / VLA 的意义</h2>
+      <div class="cn-read"><div class="cn-label">条件从类别扩展到控制</div><p>在 WAM 中，$c$ 可以是语言指令、过去观测、机器人本体状态、目标图像或动作。CFG 让模型在推理时调节“服从条件”与“保持自然世界先验”的力度，但前提是训练时真的见过空条件分支。</p></div>
+      <div class="module-grid">
+        <div class="module-card"><div class="module-card-name">语言到视频</div><div class="module-card-title">增强指令可见性</div><div class="module-card-desc">更强引导会让生成未来明显反映语言，但可能牺牲物理多样性。</div></div>
+        <div class="module-card"><div class="module-card-name">动作条件世界模型</div><div class="module-card-title">动作效果更突出</div><div class="module-card-desc">可放大“执行该动作”与自然演化之间的差分。</div></div>
+        <div class="module-card"><div class="module-card-name">策略生成</div><div class="module-card-title">任务条件 vs 行为先验</div><div class="module-card-desc">强引导更追目标，弱引导更像数据中的自然动作分布。</div></div>
+        <div class="module-card"><div class="module-card-name">闭环风险</div><div class="module-card-title">看起来听话 ≠ 可执行</div><div class="module-card-desc">视觉条件一致性不能代替动力学可行性和真实机器人成功率评测。</div></div>
+      </div>
+
+      <h2 id="takeaway">§7 一页记住</h2>
+      <div class="callout"><div class="callout-label">四句话</div><p><strong>训练：</strong>以小概率把条件置空，一个网络学两种预测。<br><strong>推理：</strong>放大 $\epsilon_c-\epsilon_u$。<br><strong>收益：</strong>无需带噪分类器，可连续调条件忠实度。<br><strong>代价：</strong>约两倍网络前向，并以多样性和分布覆盖换取更典型样本。</p></div>
+      <div class="callout blue"><div class="callout-label">扩散原理组完成</div><p><a href="ddpm.html">DDPM</a> 给训练地基，<a href="ddim.html">DDIM</a> 给快速采样，CFG 给条件控制。下一组按路线图进入 <strong>VAE → Latent Diffusion</strong>：解释为什么大分辨率视频/WAM 几乎都不愿直接在像素空间扩散。</p></div>
+    </main>
+  </div></div>
+</body></html>

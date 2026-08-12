@@ -1,0 +1,832 @@
+                                              FAWAM: Force-Aware World Action Models for
+                                                Closed-Loop Contact-Rich Manipulation
+                                                     Haotian He∗,1 , Zeyu Yan∗,2 , Qipeng Liu2 , Ning Guo2 , Wenzhao Lian2,†
+                                                                    ∗ Equal Contribution;† Corresponding author
+                                                                1
+                                                                 School of Mathematical Sciences, Peking University
+                                                          2
+                                                            School of Artificial Intelligence, Shanghai Jiao Tong University.
+                                                                    Project Page: https://fawam.github.io
+
+
+
+
+arXiv:2606.08555v2 [cs.RO] 12 Jun 2026
+                                                  Abstract: Force signals provide critical interaction cues for contact-rich robotic
+                                                  manipulation. However, existing methods mostly use force as an additional ob-
+                                                  servation modality, without fully exploiting its role in modeling future interaction
+                                                  dynamics or guiding execution-time feedback correction. In this paper, we pro-
+                                                  pose FAWAM, a force-aware world action model that incorporates force informa-
+                                                  tion at three levels: perception, prediction, and closed-loop execution. FAWAM
+                                                  first encodes historical 6-axis force/torque signals to modulate action generation,
+                                                  then jointly predicts future actions and end-effector wrenches to explicitly model
+                                                  contact evolution. It further introduces a residual correction module that uses
+                                                  the predicted wrench trajectory as an execution-time reference to refine actions
+                                                  online based on real-time force feedback. Real-world experiments across multi-
+                                                  ple contact-rich tasks show that FAWAM improves the average success rate by
+                                                  36.25% over vision-only baselines and 21.25% over existing force-aware base-
+                                                  lines, demonstrating the effectiveness of our force-aware framework for robust
+                                                  contact-rich manipulation.
+
+                                                  Keywords: World Action Model, Force-Aware Policy, Contact-Rich Manipula-
+                                                  tion
+
+                                         1   Introduction
+                                         Contact-rich manipulation tasks, such as wiping, peeling and pushing, are ubiquitous in human ac-
+                                         tivities and real-world robotic applications. These tasks require the robot to continuously regulate
+                                         its interaction with the environment. However, relying solely on visual observations are often in-
+                                         sufficient, since critical interaction states, such as weak contact, excessive pressure or jamming, are
+                                         difficult to infer from images. Consequently, force and tactile feedback provide essential comple-
+                                         mentary signals for capturing contact states that are ambiguous from vision alone [1, 2, 3, 4, 5].
+                                         Recent works [6, 7, 8, 9] have incorporated force sensing into visuomotor models and vision-
+                                         language-action (VLA) models, demonstrating improved performance on contact-rich tasks. How-
+                                         ever, these methods mainly use force as an additional observation modality for policy learn-
+                                         ing [4, 10], or introduce force feedback into low-level controllers for reactive control [11, 12].
+                                         Although these approaches partially compensate for the incompleteness and latency of visual ob-
+                                         servations, they do not explicitly model the evolution of future contact states, such as contact forces.
+                                         As a result, they lack predictive wrench references to guide execution-time corrections.
+                                         In contrast, humans performing contact-rich tasks continuously anticipate the contact outcomes
+                                         of their motions and adjust when sensed feedback deviates from expectation. This suggests that
+                                         contact-rich manipulation is not purely a reactive observation-to-action mapping, but also a proac-
+                                         tive prediction paradigm: the robot needs to anticipate how visual and contact states evolve under
+                                         its planned action sequence. World models [13, 14, 15, 16, 17], which capture future state evolu-
+                                         tion, provide a natural framework for contact prediction and contact-aware action generation. Yet,
+                                         prediction alone does not ensure robust execution. Predicted contact signals should further serve as
+online references during execution, allowing the robot to detect contact deviations and correct its
+actions before failures occur.
+Built upon these observations, we propose FAWAM, a Force-Aware World Action Model for
+contact-rich manipulation. As illustrated in Figure 1, FAWAM systematically leverages force sig-
+nals at three levels: contact-state estimation, consequence prediction and execution-time correction.
+Specifically, we design a Force-Envisioned Action Model that encodes recent force/torque histories
+for local contact-state estimation and jointly predicts future actions and end-effector force signals
+to model contact evolution. Further, during action chunk execution, we introduce a Force-Guided
+Residual Corrector that uses the discrepancy between predicted and sensed force feedback to re-
+fine subsequent actions online. This systematic force integration yields robust behaviors adaptable
+to dynamic environmental variations, validated by empirical results across multiple contact-rich ma-
+nipulation tasks.
+Our contributions are summarized as follows:
+• We propose FAWAM, a force-aware world action model that leverages force signals throughout
+  perception, prediction and execution levels to enable robust contact-rich manipulation.
+• We introduce a force-guided residual correction mechanism that uses the discrepancy between
+  predicted forces and sensed force feedback to correct actions during execution.
+• We validate our method on various contact-rich tasks, achieving 36.25% and 21.25% gains over
+  the best vision-only and force-aware baselines. Extensive experiments demonstrate the superiority
+  of our method and its robustness to external disturbances and diverse contact conditions.
+
+
+
+
+Figure 1: Comparison between force-conditioned prediction and our method. (left) Adding
+force as additional observation alone fails to correct contact deviation while (right) systematic force
+integration in three levels restores proper contact for successful wiping.
+
+
+
+2   Related Work
+
+Force-Aware Manipulation Policies. Recent works [6, 9, 15, 18, 19, 20] have explored various
+strategies to incorporate force signals into manipulation policies. FoAR [7] weights visual and
+force features with a future-contact predictor. ACP [10] learns spatiotemporal approximate com-
+pliance from demonstrations to limit contact force while preserving tracking. FACTR [21] uses
+force-attending curriculum training for contact-rich imitation learning. RDP [11] combines a low-
+frequency latent diffusion policy with a high-frequency fast policy for closed-loop force refinement.
+Force Policy [6] decouples force regulation and motion execution through an interaction frame for
+hybrid force-position control. Force-enhanced VLAs extend pretrained policy backbones with con-
+tact signals: ForceVLA [4] performs force fusion through a mixture-of-experts representation, while
+TA-VLA [8] studies auxiliary torque prediction for physically grounded features learning. Although
+these methods incorporate force feedback, they typically do not explicitly model the evolution of
+future contact-related force signals, nor do they use such predictions to guide closed-loop action
+correction during execution.
+
+
+                                                  2
+World Models for Action Generation. Benefiting from the ability to predict future dynamics,
+world action models have recently developed rapidly as a promising paradigm for robot policy
+learning [22, 13, 23, 24, 25, 26, 27, 28, 29, 30]. Existing works follow three directions. Two-
+stage methods separate video prediction from action decoding: VPP [31] extracts predictive features
+from intermediate video diffusion states, while mimic-video [15] shows that video prediction qual-
+ity closely influences policy quality. Joint-generation methods predict visual futures and actions to-
+gether: WorldVLA [32] shares parameters between world modeling and action prediction. Cosmos
+Policy [33] casts actions, proprioception, future states, and values as video-like tokens for planning.
+DreamZero [34] scales autoregressive video-action modeling for zero-shot and cross-embodiment
+generalization. Unified models [35, 36] further merge action generation, video generation, forward
+and inverse dynamics together: LingBot-VA [14] performs token-level video-action autoregression.
+Motus [16] learns embodiment-agnostic motion latents from optical flow. Despite these advances,
+existing methods mainly model visual or latent state evolution, leaving force-related prediction and
+correction underexplored.
+On-Policy Imitation and Corrective Data Aggregation. Behavior cloning is vulnerable to covari-
+ate shift, as policies are trained on expert-induced states but deployed under their own induced dis-
+tributions [37]. DAgger [38] reduces this mismatch by aggregating expert labels on learner-visited
+states, and robotic variants adapt this idea to interactive imitation learning through human inter-
+ventions and corrective demonstrations [39, 40, 41, 42, 43, 44, 45]. For contact-rich manipulation,
+interventions are more challenging because they must preserve ongoing contact and avoid abrupt
+force discontinuities. CR-DAgger [46] addresses these issues by collecting smooth delta corrections
+with force feedback through a compliant intervention interface. Such corrective data naturally aligns
+with residual policy learning, which adds learned residual actions to a nominal controller to correct
+local execution errors [47, 48, 49, 50, 51, 52]. This allows the base policy to preserve routine behav-
+ior while the residual module focuses on local execution errors. Building on this line, we focuses on
+integrating residual correction with force-aware policies for contact-rich manipulation.
+
+3     Method
+3.1   Overview
+
+Inspired by how humans sense, anticipate and react to contact during manipulation, we propose
+FAWAM, a closed-loop force-aware world action model for contact-rich tasks. As illustrated in
+Figure 2, FAWAM consists of a Force-Envisioned Action Model running at 1 Hz and a Force-
+Guided Residual Corrector running at 10 Hz. The Force-Envisioned Action Model encodes recent
+force/torque histories into compact contact features and injects them into action generation through
+AdaLN-Zero-style modulation. It also jointly predicts future action and force trajectories, encourag-
+ing the model to learn the coupling between robot motions and their contact consequences. During
+execution, the Force-Guided Residual Corrector uses the predicted force trajectory as guidance for
+online adaptation to unexpected contact changes within an action chunk. By comparing the predicted
+force reference with real-time force feedback, it provides timely residual corrections and improves
+execution-time robustness.
+
+3.2   Force-Envisioned Action Model
+
+To provide the world action model with local contact-state awareness, we encode recent high-
+frequency end-effector wrench histories into a compact contact feature. Let wt ∈ R6 denote the
+wrist force/torque measurement at time t, then the contact feature ct can be defined as
+                                      ct = Encf (wt−Hf +1:t ),                                     (1)
+where Encf is a lightweight MLP jointly trained with the action decoder.
+Building upon GE-Act [13], which decodes action trajectories from future visual latent represen-
+tations, we inject ct into the action generation pathway through force-conditioned AdaLN-Zero
+
+
+                                                  3
+Figure 2: Overview of FAWAM. FAWAM incorporates force signals through force-conditioned
+action generation, future force prediction, and online residual correction. (a) The Force-Envisioned
+Action Model conditions on visual, language and force inputs to jointly predict action chunks and
+future force trajectories. (b) The Force-Guided Residual Correction module learns from human
+interventions and corrects the base action online with a residual action and an intervention gate.
+
+                  (i)
+modulation. Let ut = (β msa , γ msa , gmsa , β mlp , γ mlp , gmlp ) denote the original AdaLN-Zero pa-
+rameters in the i-th action DiT block, including the shift, scale, and gate values for both attention
+and MLP branches. We predict a force-conditioned offset and add it to the original AdaLN-Zero
+parameters:
+                                      (i)     (i)           (i)
+                                    ūt = ut + MLPf (ct ).                                         (2)
+                             (i)
+The modulated parameters ūt are then used in the standard AdaLN-Zero computation of the action
+                                  (i)
+DiT block. The last layer of MLPf is zero-initialized, so the model initially recovers the original
+action decoder and gradually learns force-adaptive refinements during training.
+Beyond conditioning on historical wrenches, we further supervise the decoder to predict future
+wrenches. Instead of attaching an isolated force-prediction head, we replace the original action pro-
+jection with a joint linear projection that outputs concatenated action and wrench trajectories. This
+encourages the decoder to learn a shared representation for action generation and contact prediction,
+capturing the coupling between robot motions and their physical contact consequences.
+We adopt a two-stage training strategy. In the first stage, we fine-tune the video generation model
+based on GE-Base [13] with a latent-space flow-matching objective. Specifically, given historical
+multi-view visual latents It−K:t , language instruction Lt , and future visual latent sequence Ot =
+[It+1 , · · · , It+H ], we construct the interpolated input Ôα                   O
+                                                              t = αOt + (1 − α)ϵ , where α ∈ [0, 1]
+      O
+and ϵ ∼ N (0, I). The video generation model is optimized by
+                                                                              
+                                          O
+                                             
+                                                α
+                                                                
+                                                                         O
+                                                                            2
+                         Lstage1 = E vψ Ôt , α, Lt , It−K:t − Ot − ϵ            .               (3)
+                                                                             2
+In the second stage, we freeze the video world model and train the force-aware action decoder. Let
+õt denotes the visual feature from the adapted video world model, qt denote the proprioceptive state.
+We concatenate the future action trajectory At and future wrench trajectory Ft as Zt = [At , Wt ],
+and construct Ẑα                              Z        Z      A W
+                  t = αZt + (1 − α)ϵ with ϵ = [ϵ , ϵ ]. The decoder predicts the joint velocity
+   A     W      Z    α
+[v̂t , v̂t ] = vθ (Ẑt , α, õt , qt , ct ), then the action and force losses are defined as
+                          h                          2i                 h                    2i
+            Laction = E v̂tA − At − ϵA 2 , Lf orce = E v̂tW − Wt − ϵW 2 .                          (4)
+The final action-force training objective is Lstage2 = Laction + λF Lf orce , where λF balances the
+action generation and force prediction. This formulation enables the decoder to learn future motion
+generation together with wrench prediction under the same flow-matching framework.
+
+
+                                                  4
+3.3     Force-Guided Residual Correction
+
+The action chunk generated by the action decoder is executed open-loop within its horizon, making
+it difficult to react to unexpected contact variations, such as insufficient pressure, excessive force or
+sudden resistance. Therefore, we introduce a lightweight force-guided residual corrector that runs
+at 10 Hz and adjusts the remaining actions within the current chunk.
+
+3.3.1    Residual Corrector Design
+
+The residual model takes base action chunk, predicted wrench reference and real-time wrench feed-
+back as inputs and outputs residual action corrections. Specifically, we use the same force encoder
+as the world action model to encode recent wrench histories into the contact feature ct , with the
+encoder frozen during residual training. To expose contact deviations explicitly, we compute the
+wrench tracking error
+                                                          pred
+                               ew            meas
+                                t−He +1:t = wt−He +1:t − wt−He +1:t ,                                (5)
+
+where wmeas denotes the measured 6D force/torque feedback, wpred denotes the predicted wrench
+trajectory and He denotes the history window used to compute the wrench tracking error. We also
+provide the residual model with the upcoming base action chunk abase
+                                                                  t+1:t+Hp and predicted future
+                pred
+wrench chunk wt+1:t+H   p
+                          , which serve as previews of the intended motion and contact evolution.
+The current proprioceptive state qt is included to account for the robot configuration.
+Since residual corrections should only be applied when necessary, we introduce a gating head that
+predicts a scalar residual gate gtres . At inference time, the gate is converted into a binary activation
+mask κt ∈ {0, 1}, where κt = 1 if gtres > τ and κt = 0 otherwise. We manually set a conservative
+threshold τ = 0.8 to prevent the residual model from perturbing nominal executions. The gate
+is trained with both intervention and non-intervention segments, as described in Sec. 3.3.2. The
+correction process is formulated as
+                                                                                          
+                                                                              pred
+              ∆ares
+                  t+1:t+Hr , gt
+                               res
+                                   = Resϕ ew                      base
+                                                t−He +1:t , ct , at+1:t+Hp , wt+1:t+Hp , qt ,         (6)
+                      acor         base            res
+                       t+1:t+Hr = at+1:t+Hr + κt ∆at+1:t+Hr ,                                        (7)
+
+where acor
+       t+1:t+Hr denotes the corrected action sequence and Resϕ is implemented as a three-layer
+MLP for real-time inference.
+
+3.3.2    Correction Dataset Collection and Training
+
+We collect correction data with FACTR [21], a force-feedback leader-follower teleoperation system.
+The follower arm remains under impedance control for safe and compliant contact, while the leader
+arm tracks the policy-generated command during autonomous execution rather than mirroring the
+follower feedback. This keeps the command stream continuous when switching to human interven-
+tion, reducing action drift and force-feedback vibration. When abnormal contact is observed, the
+operator corrects the remaining action chunk through the leader arm. Then, the difference between
+the corrected command and the base policy command is recorded as the residual target.
+The training set contains both intervention segments and non-intervention policy rollouts. For non-
+intervention samples, the residual target is set to zero and the gate label is set to 0. For intervention
+samples, the gate label is set to 1. Each training batch contains a balanced mix of intervention and
+non-intervention samples, encouraging the model to correct abnormal executions while preserving
+nominal base-policy behavior. The residual corrector is trained with
+                                 h                                              i
+                                                     2
+                      Lres = E ∆ares − ∆agt 2 + λgate BCE (gtres , yt ) ,                             (8)
+
+where ∆agt is the ground-truth residual correction, yt ∈ {0, 1} indicates whether the sample comes
+from human intervention, and λgate balances the residual regression and gate classification losses.
+
+
+                                                   5
+Figure 3: Contact-rich tasks. Each task is evaluated under diverse contact conditions induced by
+controlled changes in surface inclination, table height, or the position of the sand-filled box.
+
+
+4     Experimental Results
+
+4.1   Experimental Setup
+
+Hardware Platform. All real-world experiments are conducted on a Franka Research 3 (FR3),
+a 7-DoF robotic arm. An ATI Axia80-M8 6-axis force/torque sensor is mounted at the wrist to
+measure interaction wrenches. Visual observations are captured by three Intel RealSense D435i
+cameras, including one wrist-mounted camera and two static third-person cameras from the front
+and top views. For demonstration collection and human intervention, we build a force-feedback
+leader-follower teleoperation system based on FACTR [21]. Force feedback from the follower arm
+is mapped to the leader arm as joint torques, allowing the operator to perceive contact forces during
+teleoperation. A system overview is provided in Appendix A.1.
+Tasks and Data Collection. We evaluate our method on four contact-rich manipulation tasks: Erase
+Whiteboard, Peel Cucumber, Pivot Box and Wipe Vase, as shown in Figure 3. These tasks require
+sustained physical contact and force-sensitive execution under varying contact conditions. To im-
+prove data diversity, we introduce controlled variations for each task: changing the inclination angles
+of the whiteboard and vase, varying the table height for cucumber peeling, and changing the position
+of the sand-filled box for box pivoting. For each task, the base action model and all baseline policies
+are trained on the same 90 demonstrations. The residual corrector in FAWAM is trained with 20
+additional human-intervention episodes that provide residual correction targets. Multi-view camera
+observations and proprioceptive states are recorded at 30 Hz, while 6-axis force/torque measure-
+ments are recorded at 120 Hz.
+Baselines and Evaluation. We compare FAWAM with both vision-only and force-aware policy
+baselines. For vision-only baselines, we evaluate π0.5 [53] and GE-Act [13]. π0.5 is a generalist
+vision-language-action model without force input, while GE-Act is the vision-only backbone of
+FAWAM, using the same action prediction pipeline but without any force-related components. For
+force-aware baselines, we compare against ForceVLA [4] and TA-VLA [8]. ForceVLA incorporates
+historical force signals as an additional observation modality, while TA-VLA further uses force
+prediction as an auxiliary objective. For each method, we perform 20 evaluation trials per task,
+with a maximum duration of 60 seconds for each trial. Detailed training settings are provided in
+Appendix A.1.
+
+4.2   Main Experiment Results
+
+As shown in Table 1, FAWAM consistently outperforms both vision-only and force-aware baselines
+across all tasks, achieving an average success rate of 85%. Without access to contact information,
+vision-only policies achieve average success rates below 50% across the four tasks. Force-aware
+baselines improve performance to 63.75% by incorporating force measurements or auxiliary force
+prediction. Notably, FAWAM without residual correction still achieves an average success rate of
+
+
+                                                  6
+Table 1: Real-world evaluation results. Avg. SR denotes average success rate. FAWAM w/o Res
+denotes our base policy without residual correction.
+
+                       Policy                    Erase Board               Peel Cucumber                Pivot Box                    Wipe Vase              Avg. SR
+                    π0.5 [53]                            9/20                           8/20                10/20                      11/20                 47.50%
+                   GE-Act [13]                            9/20                          10/20                9/20                      11/20                 48.75%
+                  ForceVLA [4]                           11/20                          14/20               13/20                      13/20                 63.75%
+                   TA-VLA [8]                            10/20                          17/20               14/20                      10/20                 63.75%
+          FAWAM w/o. Res                                 14/20                          15/20               16/20                      14/20                 73.75%
+           FAWAM (ours)                                  15/20                          19/20               17/20                      17/20                 85.00%
+
+
+                                                                        59.0
+                  60                                                                  56.3               Base            Obs         Obs+Obj         Res          Full
+
+
+       Time (s)
+                            47.9                                               45.4
+                                          38.2 39.6                                                             42.6                    42.6 38.5
+                                                                 37.9                               38.7 40.0          37.8                         37.2
+                  40               35.2                                                      36.3                                                          34.7 31.8
+                                                      29.3
+                                                                                                                              23.2
+                  20
+
+                   0
+                                Erase board                       Peel cucumber                          Pivot box                          Wipe vase
+
+
+Figure 4: Execution time comparison. Lower values indicate faster completion with less inefficient
+contact adjustment.
+
+
+73.75% without additional correction data, showing that the proposed force-envisioned action model
+already provides a strong base policy. The residual corrector further improves execution robustness
+by compensating for contact deviations during deployment.
+
+4.3   Ablation Study
+
+To analyze the role of different
+force-related designs in FAWAM, Table 2: Ablation study. Obs: force-conditioned observation.
+we conduct ablation studies in Ta- Pre: force-action joint prediction. Res: residual correction.
+ble 2. Here, Obs denotes adding        Obs Pre Res Erase Board Peel Cucumber Pivot Box Wipe Vase Avg. SR
+
+wrench histories to the observa-                        9/20        10/20       9/20    11/20    48.75%
+                                        ✓              12/20        12/20       9/20    12/20    56.25%
+tion, Pre denotes the joint action-     ✓ ✓            14/20        15/20      16/20    14/20    73.75%
+force prediction and Res denotes                 ✓     12/20        15/20      12/20    15/20    67.50%
+                                        ✓ ✓ ✓          15/20        19/20      17/20    17/20    85.00%
+the residual correction module.
+For the Res-only variant, no predicted wrench reference is available; therefore, the residual cor-
+rector only uses sensed force feedback as an additional input. We provide implementation details in
+Appendix A.2. Simply adding force signals to the observation yields only a 7.5% improvement, sug-
+gesting that passive force conditioning is insufficient. Building on force-conditioned observations,
+joint action-force prediction brings a further 17.5% improvement, indicating that future wrench
+prediction encourages physically grounded action representations. Residual correction alone also
+improves performance by 18.75%, but remains below the full model without force-aware represen-
+tation learning and predicted wrench guidance. Overall, these results show that joint prediction and
+residual correction provide complementary benefits beyond integrating force observation alone.
+Figure 4 further compares the average execution time of different variants. The full model com-
+pletes tasks faster than all ablated variants, suggesting that force-guided residual correction helps
+adjust actions in time according to sensed and predicted forces, leading to smoother task comple-
+tion. Detailed task-wise analysis is provided in Appendix A.3.
+
+4.4   Robustness under Execution-Time Perturbations
+
+To further evaluate the role of the force-guided correction model, we test whether the policy
+can recover from unexpected contact changes during execution. Specifically, we manually in-
+troduce perturbations in four tasks: tilting the board during erasing, changing the cucumber
+
+                                                                                               7
+Figure 5: Perturbation rollouts comparison. With perturbations, force-guided residual correction
+help FAWAM recover stable contact, while the model without correction fails to adapt.
+
+                                                             Table 3: Results under perturbations.
+height during peeling, moving the sand-filled box during                      Erase   Peel     Slice  Wipe
+pivoting, and changing the tail height of the vase during          Policy     board cucumber cucumber vase
+wiping. For each perturbation setting, we conduct five w/o. Correction model 0/5       2/5      0/5   1/5
+real-world trials. As shown in the Table 3, adding the w/. Correction model 3/5        5/5      4/5   4/5
+
+correction model consistently improves robustness under perturbations. Figure 5 shows representa-
+tive perturbation rollouts. Without the correction model, the policy executes action chunks largely
+open-loop and fails to adapt to contact changes, causing jamming in board erasing and toppling in
+box pivoting. In contrast, the correction model uses discrepancies between predicted and sensed
+wrench to adjust subsequent actions, recover stable contact, and complete the task. Additional per-
+turbation examples are provided in Appendix A.4. These results show that force prediction alone is
+insufficient under execution-time disturbances, while the correction model closes the loop by turning
+force discrepancies into corrective behavior.
+
+
+5   Conclusion
+
+In this paper, we present FAWAM, a force-aware world action model for robust contact-rich manip-
+ulation. Instead of treating force as merely an additional observation modality, FAWAM uses force
+as both a predictive signal for contact-aware action generation and a corrective signal for execution-
+time feedback. We instantiate this idea with a Force-Envisioned Action Model and a Force-Guided
+Residual Corrector. Real-world experiments show that FAWAM achieves an 85.0% average success
+rate, improving over the strongest vision-only and force-aware baselines by 36.25% and 21.25%,
+respectively. Ablation studies show that action-force prediction and residual correction bring com-
+plementary improvements, while perturbation experiments show that force-guided residual updates
+help recover from unexpected contact changes. These results highlight the importance of using force
+in both prediction and online correction for robust contact-rich manipulation.
+
+
+6   Limitation
+
+Despite the improved robustness, our method still has several limitations. First, due to the lack of
+large-scale video datasets with synchronized force/torque signals, our current framework does not
+integrate force into the video generation model, but instead couples actions and wrenches in the ac-
+tion branch. Second, the residual corrector is trained from a limited number of human intervention
+episodes, which may not cover diverse failure modes and limits recovery under large deviations.
+More diverse correction data under richer perturbations and failure scenarios may improve the cor-
+rection performance. Finally, end-effector wrench prediction provides only indirect contact infor-
+mation. We plan to address this in future work by integrating explicit contact-state representations,
+
+
+                                                   8
+such as local contact frames and dense tactile signals, to provide more direct and generalized action
+guidance.
+
+References
+ [1] M. A. Lee, Y. Zhu, K. Srinivasan, P. Shah, S. Savarese, L. Fei-Fei, A. Garg, and J. Bohg.
+     Making sense of vision and touch: Self-supervised learning of multimodal representations for
+     contact-rich tasks. In 2019 International conference on robotics and automation (ICRA), pages
+     8943–8950. IEEE, 2019.
+ [2] Z. Zhao, S. Haldar, J. Cui, L. Pinto, and R. Bhirangi. Touch begins where vision ends: Gener-
+     alizable policies for contact-rich manipulation, 2025.
+ [3] Y. Zheng, S. Gu, W. Li, Y. Zheng, Y. Zang, S. Tian, X. Li, C. Hao, C. Gao, S. Liu, et al.
+     Omnivta: Visuo-tactile world modeling for contact-rich robotic manipulation. arXiv preprint
+     arXiv:2603.19201, 2026.
+ [4] J. Yu, H. Liu, Q. Yu, J. Ren, C. Hao, H. Ding, G. Huang, G. Huang, Y. Song, P. Cai, C. Lu,
+     and W. Zhang. ForceVLA: Enhancing vla models with a force-aware moe for contact-rich
+     manipulation, 2025.
+ [5] C. Chen, Z. Yu, H. Choi, M. Cutkosky, and J. Bohg. Dexforce: Extracting force-informed
+     actions from kinesthetic demonstrations for dexterous manipulation. IEEE Robotics and Au-
+     tomation Letters, 2025.
+ [6] H. Fang, S. Tang, M. Mei, H. Qin, Z. He, J. Chen, Y. Feng, C. Wang, W. Liu, Z. He, C. Lu, and
+     S. Wang. Force policy: Learning hybrid force-position control policy under interaction frame
+     for contact-rich manipulation, 2026.
+ [7] Z. He, H. Fang, J. Chen, H.-S. Fang, and C. Lu. FoAR: Force-aware reactive policy for contact-
+     rich robotic manipulation, 2024.
+ [8] Z. Zhang, H. Xu, Z. Yang, C. Yue, Z. Lin, H.-a. Gao, Z. Wang, and H. Zhao. TA-VLA:
+     Elucidating the design space of torque-aware vision-language-action models. In 9th Annual
+     Conference on Robot Learning, 2025.
+ [9] Z. Sun, Y. Wang, D. Held, and Z. Erickson. Force-constrained visual policy: Safe robot-
+     assisted dressing via multi-modal sensing. IEEE Robotics and Automation Letters, 9(5):4178–
+     4185, 2024.
+[10] Y. Hou, Z. Liu, C. Chi, E. Cousineau, N. Kuppuswamy, S. Feng, B. Burchfiel, and S. Song.
+     Adaptive compliance policy: Learning approximate compliance for diffusion guided control,
+     2024.
+[11] H. Xue, J. Ren, W. Chen, G. Zhang, Y. Fang, G. Gu, H. Xu, and C. Lu. Reactive diffusion
+     policy: Slow-fast visual-tactile policy learning for contact-rich manipulation, 2025.
+[12] Y. Li, P. Tang, W. Zhang, C. Zhu, Y. Duan, W. Shi, X. Zhang, Z. Yang, J. Ji, and Y. Zhang.
+     FAVLA: A force-adaptive fast-slow vla model for contact-rich robotic manipulation, 2026.
+[13] Y. Liao, P. Zhou, S. Huang, D. Yang, S. Chen, Y. Jiang, Y. Hu, J. Cai, S. Liu, J. Luo, et al. Genie
+     envisioner: A unified world foundation platform for robotic manipulation. arXiv preprint
+     arXiv:2508.05635, 2025.
+[14] L. Li, Q. Zhang, Y. Luo, S. Yang, R. Wang, F. Han, M. Yu, Z. Gao, N. Xue, X. Zhu, Y. Shen,
+     and Y. Xu. Causal world modeling for robot control, 2026.
+[15] J. Pai, L. Achenbach, V. Montesinos, B. Forrai, O. Mees, and E. Nava. mimic-video: Video-
+     action models for generalizable robot control beyond vlas. arXiv preprint arXiv:2512.15692,
+     2025.
+
+
+                                                   9
+[16] H. Bi, H. Tan, S. Xie, Z. Wang, S. Huang, H. Liu, R. Zhao, Y. Feng, C. Xiang, Y. Rong, et al.
+     Motus: A unified latent action world model. arXiv preprint arXiv:2512.13030, 2025.
+
+[17] T. Yuan, Z. Dong, Y. Liu, and H. Zhao. Fast-wam: Do world action models need test-time
+     future imagination? arXiv preprint arXiv:2603.16666, 2026.
+
+[18] T. Buamanee, M. Kobayashi, Y. Uranishi, and H. Takemura. Bi-act: Bilateral control-based
+     imitation learning via action chunking with transformer. In 2024 IEEE International Confer-
+     ence on Advanced Intelligent Mechatronics (AIM), pages 410–415. IEEE, 2024.
+
+[19] J. Seo, A. Kruthiventy, S. Lee, M. Teng, S. Choi, X. Zhang, J. Choi, and R. Horowitz. Equicon-
+     tact: A hierarchical se (3) vision-to-force equivariant policy for spatially generalizable contact-
+     rich tasks. arXiv preprint arXiv:2507.10961, 2025.
+
+[20] B. Zhou, R. Jiao, Y. Li, X. Yuan, F. Fang, and S. Li. Admittance visuomotor policy learning
+     for general-purpose contact-rich manipulations. IEEE Transactions on Industrial Electronics,
+     2025.
+
+[21] J. J. Liu, Y. Li, K. Shaw, T. Tao, R. Salakhutdinov, and D. Pathak. FACTR: Force-attending
+     curriculum training for contact-rich policy learning, 2025.
+
+[22] D. Hafner, J. Pasukonis, J. Ba, and T. Lillicrap. Mastering diverse domains through world
+     models, 2023.
+
+[23] S. Wang, J. Shi, Z. Fu, X. He, F. Liu, C. Yang, Y. Zhou, Z. Fei, J. Gong, J. Fu, M. Z. Shou,
+     X. Huang, X. Qiu, and Y.-G. Jiang. World action models: The next frontier in embodied ai,
+     2026.
+
+[24] Y. Shen, F. Wei, Z. Du, Y. Liang, Y. Lu, J. Yang, N. Zheng, and B. Guo. Videovla: Video
+     generators can be generalizable robot manipulators. Advances in neural information processing
+     systems, 38:95597–95621, 2026.
+
+[25] B. Hou, G. Li, J. Jia, T. An, X. Guo, S. Leng, H. Geng, Y. Ze, T. Harada, P. Torr, et al. World
+     model for robot learning: A comprehensive survey. arXiv preprint arXiv:2605.00080, 2026.
+
+[26] J. Lyu, Z. Li, X. Shi, C. Xu, Y. Wang, and H. Wang. Dywa: Dynamics-adaptive world ac-
+     tion model for generalizable non-prehensile manipulation. In Proceedings of the IEEE/CVF
+     International Conference on Computer Vision, pages 11058–11068, 2025.
+
+[27] X. Liu, Z. Bai, H. Ci, K. Y. Ma, and M. Z. Shou. World-vla-loop: Closed-loop learning of
+     video world model and vla policy. arXiv preprint arXiv:2602.06508, 2026.
+
+[28] A. L. Chandra, I. Nematollahi, C. Huang, T. Welschehold, W. Burgard, and A. Valada. Diwa:
+     Diffusion policy adaptation with world models. In Conference on Robot Learning, pages 3378–
+     3400. PMLR, 2025.
+
+[29] R. Zheng, J. Wang, S. Reed, J. Bjorck, Y. Fang, F. Hu, J. Jang, K. Kundalia, Z. Lin, L. Magne,
+     et al. Flare: Robot learning with implicit world modeling. In Conference on Robot Learning,
+     pages 3952–3971. PMLR, 2025.
+
+[30] A. Ye, B. Wang, C. Ni, G. Huang, G. Zhao, H. Li, H. Li, J. Li, J. Lv, J. Liu, et al. Gigaworld-
+     policy: An efficient action-centered world–action model. arXiv preprint arXiv:2603.17240,
+     2026.
+
+[31] Y. Hu, Y. Guo, P. Wang, X. Chen, Y.-J. Wang, J. Zhang, K. Sreenath, C. Lu, and J. Chen.
+     Video prediction policy: A generalist robot policy with predictive visual representations. arXiv
+     preprint arXiv:2412.14803, 2024.
+
+
+                                                  10
+[32] J. Cen, C. Yu, H. Yuan, Y. Jiang, S. Huang, J. Guo, X. Li, Y. Song, H. Luo, F. Wang, et al.
+     Worldvla: Towards autoregressive action world model. arXiv preprint arXiv:2506.21539,
+     2025.
+[33] M. J. Kim, Y. Gao, T.-Y. Lin, Y.-C. Lin, Y. Ge, G. Lam, P. Liang, S. Song, M.-Y. Liu, C. Finn,
+     and J. Gu. Cosmos policy: Fine-tuning video models for visuomotor control and planning,
+     2026.
+[34] S. Ye, Y. Ge, K. Zheng, S. Gao, S. Yu, G. Kurian, S. Indupuru, Y. L. Tan, C. Zhu, J. Xi-
+     ang, A. Malik, K. Lee, W. Liang, N. Ranawaka, J. Gu, Y. Xu, G. Wang, F. Hu, A. Narayan,
+     J. Bjorck, J. Wang, G. Kim, D. Niu, R. Zheng, Y. Xie, J. Wu, Q. Wang, R. Julian, D. Xu, Y. Du,
+     Y. Chebotar, S. Reed, J. Kautz, Y. Zhu, L. Fan, and J. Jang. World action models are zero-shot
+     policies, 2026.
+[35] S. Li, Y. Gao, D. Sadigh, and S. Song.          Unified video action model.     arXiv preprint
+     arXiv:2503.00200, 2025.
+[36] C. Zhu, R. Yu, S. Feng, B. Burchfiel, P. Shah, and A. Gupta. Unified world models: Cou-
+     pling video and action diffusion for pretraining on large robotic datasets. arXiv preprint
+     arXiv:2504.02792, 2025.
+[37] S. Seo, B.-J. Lee, J. Lee, H. Hwang, H. Yang, and K.-E. Kim. Mitigating covariate shift in
+     behavioral cloning via robust stationary distribution correction. In Advances in Neural Infor-
+     mation Processing Systems, volume 37, 2024.
+[38] S. Ross, G. J. Gordon, and J. A. Bagnell. A reduction of imitation learning and structured
+     prediction to no-regret online learning. In Proceedings of the Fourteenth International Confer-
+     ence on Artificial Intelligence and Statistics, volume 15 of Proceedings of Machine Learning
+     Research, pages 627–635, 2011.
+[39] M. Kelly, C. Sidrane, K. Driggs-Campbell, and M. J. Kochenderfer. Hg-dagger: Interactive
+     imitation learning with human experts. In 2019 International Conference on Robotics and
+     Automation (ICRA), pages 8077–8083. IEEE, 2019.
+[40] J. Spencer, S. Choudhury, M. Barnes, M. Schmittle, M. Chiang, P. Ramadge, and S. Srinivasa.
+     Learning from interventions: Human-robot interaction as both explicit and implicit feedback.
+     In Robotics: Science and Systems, 2020.
+[41] A. Mandlekar, D. Xu, R. Martı́n-Martı́n, Y. Zhu, L. Fei-Fei, and S. Savarese. Human-in-the-
+     loop imitation learning using remote teleoperation, 2020.
+[42] H. Liu, S. Nasiriany, L. Zhang, Z. Bao, and Y. Zhu. Robot learning on the job: Human-in-
+     the-loop autonomy and learning during deployment. The International Journal of Robotics
+     Research, 2022.
+[43] R. Hoque, A. Balakrishna, C. Putterman, M. Luo, D. S. Brown, D. Seita, B. Thananjeyan,
+     E. Novoseller, and K. Goldberg. LazyDAgger: Reducing context switching in interactive
+     imitation learning. In IEEE International Conference on Automation Science and Engineering,
+     pages 502–509, 2021.
+[44] R. Hoque, A. Balakrishna, E. Novoseller, A. Wilcox, D. S. Brown, and K. Goldberg.
+     ThriftyDAgger: Budget-aware novelty and risk gating for interactive imitation learning, 2021.
+[45] P. Wu, Y. Shentu, Q. Liao, D. Jin, M. Guo, K. Sreenath, X. Lin, and P. Abbeel. Robocopi-
+     lot: Human-in-the-loop interactive imitation learning for robot manipulation. arXiv preprint
+     arXiv:2503.07771, 2025.
+[46] X. Xu, Y. Hou, C. Xin, Z. Liu, and S. Song. Compliant residual DAgger: Improving real-
+     world contact-rich manipulation with human corrections. In Advances in Neural Information
+     Processing Systems, 2025.
+
+
+                                                11
+[47] T. Johannink, S. Bahl, A. Nair, J. Luo, A. Kumar, M. Loskyll, J. A. Ojea, E. Solowjow, and
+     S. Levine. Residual reinforcement learning for robot control. In IEEE International Conference
+     on Robotics and Automation, pages 6023–6029, 2019.
+[48] L. Ankile, A. Simeonov, I. Shenfeld, M. Torne, and P. Agrawal. From imitation to refinement:
+     Residual RL for precise assembly, 2024.
+
+[49] X. Yuan, T. Mu, S. Tao, Y. Fang, M. Zhang, and H. Su. Policy decorator: Model-agnostic
+     online refinement for large policy model, 2024.
+[50] T. He, J. Gao, W. Xiao, Y. Zhang, Z. Wang, J. Wang, Z. Luo, G. He, N. Sobanbab, C. Pan,
+     et al. Asap: Aligning simulation and real-world physics for learning agile humanoid whole-
+     body skills. arXiv preprint arXiv:2502.01143, 2025.
+[51] S. Haldar, J. Pari, A. Rai, and L. Pinto. Teach a robot to fish: Versatile imitation from one
+     minute of demonstrations. arXiv preprint arXiv:2303.01497, 2023.
+[52] I. Guzey, Y. Dai, B. Evans, S. Chintala, and L. Pinto. See to touch: Learning tactile dexterity
+     through visual incentives. In 2024 IEEE International Conference on Robotics and Automation
+     (ICRA), pages 13825–13832. IEEE, 2024.
+[53] P. Intelligence, K. Black, N. Brown, J. Darpinian, K. Dhabalia, D. Driess, A. Esmail, M. Equi,
+     C. Finn, N. Fusai, et al. π0.5 : A vision-language-action model with open-world generalization.
+     arXiv preprint arXiv:2504.16054, 2025.
+
+
+
+
+                                                12
+A     Appendix
+A.1   Hardware and Training Details
+
+Hardware. Figure 6 shows the physical layout of the follower robot, FACTR leader robot, and
+RealSense cameras. The RealSense RGB streams are recorded at 640 × 480. During training, each
+frame is resized to 256 × 192 before being fed to the video world model. The ATI wrist force/torque
+sensor records 6-axis wrenches at 120 Hz. We apply a second-order Butterworth low-pass filter with
+a 10 Hz cutoff to suppress high-frequency sensor noise. For each policy query, the force encoder
+uses the most recent 0.5 s of wrench history, corresponding to 60 force/torque frames.
+
+Training. Training is performed on 8 NVIDIA A100 GPUs. For video generation model fine-
+tuning and force-aware action decoder training stages, the total batch size is 64 and gradient accu-
+mulation is 1. Both stages use bfloat16 mixed precision, DeepSpeed ZeRO-2, gradient clipping with
+norm 1.0, and a constant-with-warmup learning-rate schedule with 1,000 warmup steps. We use
+AdamW with β1 = 0.9, β2 = 0.95, ϵ = 10−8 , and weight decay 10−5 . The video world model is
+fine-tuned for 30,000 steps with the learning rate 3 × 10−5 . We then freeze the video world model
+and train the force-aware action decoder for 30,000 steps with the learning rate 1.5 × 10−4 . We
+use λF = 1 to balance the action and future-wrench prediction losses. The force encoder is imple-
+mented as a three-layer MLP with a hidden width of 256 and is trained together with the force-aware
+action decoder.
+The residual corrector is trained separately as a dual-head MLP with the frozen force encoder trained
+in the Force-Envisioned action model. Its inputs include the 60-frame filtered wrench history, pre-
+dicted future wrench chunk, upcoming base action chunk, past wrench-tracking error, and current
+proprioceptive state. The MLP uses two shared hidden layers of width 256 with GELU activations
+and dropout 0.1, followed by a residual-action head and a gate head. We train it with a balanced
+batch of 128 samples containing 64 intervention and 64 non-intervention samples for 500 epochs.
+We train the residual corrector using AdamW with a learning rate of 3×10−4 , β1 = 0.9, β2 = 0.999,
+ϵ = 10−8 , and a weight decay of 10−6 . The gate loss weight is manually set to λgate = 1.
+
+
+
+
+Figure 6: Experimental environment. The setup consists of a Franka robot for task execution,
+a FACTR leader robot for force-feedback teleoperation, and multiple Intel RealSense cameras for
+multi-view visual observation.
+
+A.2   Residual-Only Ablation Details
+
+The Res-only ablation isolates the effect of residual correction without the predicted wrench guid-
+ance used by the full model in Sec. 3.3.1. Since this variant does not include joint action-force
+prediction, it has no predicted wrench trajectory and therefore cannot construct either the future
+wrench preview or the measured-predicted wrench tracking error. We train a separate residual-only
+
+
+                                                 13
+corrector that takes only the contact feature ct , the upcoming base action chunk, and the current
+proprioceptive state as inputs:
+                                                                     
+                                                   ro      base
+                          ∆aro           ro
+                             t+1:t+Hr , gt = Resϕ ct , at+1:t+Hp , qt ,                        (9)
+                                acor         base        ro  ro
+                                 t+1:t+Hr = at+1:t+Hr + κt ∆at+1:t+Hr ,                            (10)
+where the superscript ro denotes the residual-only ablation, ct is encoded from the recent measured
+wrench history using the same frozen force encoder, and κro                                     ro
+                                                              t is obtained by thresholding gt with
+the same gate threshold as the full residual corrector. The correction target, residual gate labels, and
+intervention-based training protocol remain the same as those in Sec. 3.3.2.
+
+A.3   Task-Wise Ablation-Time Analysis
+
+Figure 4 complements the success-rate results in Table 2 by showing how different force-related
+components affect execution efficiency. The timing results should not be interpreted in isolation,
+since a shorter rollout can also arise from brittle open-loop behavior or early task termination. In-
+stead, they are most informative when considered together with task success. Across the four tasks,
+the full FAWAM model achieves the best combination of high success rate and low completion time,
+indicating that the proposed force-aware prediction and residual correction do not merely improve
+robustness, but also reduce inefficient recovery behaviors during contact-rich execution.
+The task-wise trends reveal how the benefit arises. On Erase Board, maintaining stable normal
+contact is critical; variants without force-guided correction often lose contact or apply inappropriate
+pressure, causing repeated re-contact attempts. The full model completes the task faster by using
+force histories and residual updates to maintain consistent wiping pressure. On Peel Cucumber,
+some ablated variants appear faster, but their lower success rates suggest that they often follow
+stereotyped motions without reliably adapting to local height and contact variations. In contrast,
+FAWAM trades a small amount of local adjustment for substantially better task completion. On Pivot
+Box, execution time is sensitive to whether the push direction and contact force produce effective
+object rotation. Joint action-force prediction helps generate physically consistent pushes, while
+residual correction prevents small force errors from accumulating into ineffective contacts. On Wipe
+Vase, the curved surface requires continuous adaptation of contact pressure and tangential motion;
+the full model benefits from both sensed force histories and predicted wrench references to avoid
+prolonged slipping or over-pressing. Overall, the execution-time gains come from closing the loop
+around contact dynamics rather than simply producing faster nominal trajectories.
+
+A.4   Additional Perturbation Examples
+
+We provide additional qualitative visualizations for the perturbation and correction experiments in
+Figures 7–10.
+
+
+
+
+                                                  14
+ｗ／ｏ Ｃｏｒｒｅｃｔｉｏｎ
+
+
+
+
+ｗ／Ｃｏｒｒｅｃｔｉｏｎ
+
+
+
+
+                Figure 7: Comparative Correction Experiments for Erase Board.
+
+
+
+
+ｗ／ｏ Ｃｏｒｒｅｃｔｉｏｎ
+
+
+
+
+ｗ／ Ｃｏｒｒｅｃｔｉｏｎ
+
+
+
+
+           Figure 8: Comparative Correction Experiments for Peel Cucumber.
+
+
+
+
+                                             15
+      ｗ／ｏ Ｃｏｒｒｅｃｔｉｏｎ
+
+
+
+
+      ｗ／Ｃｏｒｒｅｃｔｉｏｎ
+
+
+
+
+                       Figure 9: Comparative Correction Experiments for Pivot Box.
+
+
+
+
+      ｗ／ｏ Ｃｏｒｒｅｃｔｉｏｎ
+
+
+
+
+      ｗ／Ｃｏｒｒｅｃｔｉｏｎ
+
+
+
+
+                     Figure 10: Comparative Correction Experiments for Wipe Vase.
+
+
+A.5    Additional Visualization Supplement
+
+Figures 11–14 complement the ablation study in Table 2 with qualitative visual examples. They
+present representative executions across the four contact-rich tasks, illustrating the role of joint
+force-action prediction and online residual correction in maintaining stable contact, adapting to local
+geometric changes and recovering from interaction errors.
+
+
+
+
+                                                   16
+ Figure 11: Ablation qualitative supplement for Erase Board.
+
+
+
+
+Figure 12: Ablation qualitative supplement for Peel Cucumber.
+
+
+
+
+                             17
+Figure 13: Ablation qualitative supplement for Pivot Box.
+
+
+
+
+Figure 14: Ablation qualitative supplement for Wipe Vase.
+
+
+
+
+                           18
+A.6   Additional Analysis on Residual Activation Threshold
+
+In this analysis, we evaluate the effect of different
+residual activation thresholds τ . A smaller τ makes
+the residual gate easier to activate, so residual cor-
+rections are more frequently added to the base ac-
+tion chunk. We test τ ∈ {0, 0.2, 0.5, 0.8, 0.99} on
+the Peel Cucumber and Wipe Vase tasks. As shown
+in the Figure 15, overly small thresholds lead to
+lower success rates, suggesting that frequent resid-
+ual activation may unnecessarily perturb nominal
+base-policy execution. Increasing τ improves per-
+formance by making correction more selective. In
+particular, τ = 0.8 achieves the best or near-best per-
+formance on both tasks, indicating that sparse resid-      Figure 15: Success rate under different τ .
+ual activation is beneficial. However, when τ is too high, the residual branch becomes overly con-
+servative and may fail to trigger necessary corrections, leading to a performance drop. Overall, these
+results suggest that using a relatively high but not overly strict activation threshold is important for
+effectively exploiting the residual correction module.
+
+
+
+
+                                                  19
+

@@ -1,0 +1,1085 @@
+                                         Unified World Models: Coupling Video and Action
+                                         Diffusion for Pretraining on Large Robotic Datasets
+                                               Chuning Zhu† , Raymond Yu† , Siyuan Feng‡ , Benjamin Burchfiel‡ , Paarth Shah‡ , and Abhishek Gupta†
+                                                            † Paul G. Allen School of Computer Science and Engineering, University of Washington
+                                                                                              ‡ Toyota Research Institute
+
+
+
+                                            Abstract—Imitation learning has emerged as a promising            imitation learning making maximal use of the available large-
+                                         approach towards building generalist robots. However, scaling        scale datasets?
+
+
+
+
+arXiv:2504.02792v3 [cs.RO] 23 May 2025
+                                         imitation learning for large robot foundation models remains            While imitation learning methods learn a mapping from
+                                         challenging due to its reliance on high-quality expert demonstra-
+                                         tions. Meanwhile, large amounts of video data depicting a wide       states to optimal actions, they do not explicitly capture tem-
+                                         range of environments and diverse behaviors are readily avail-       poral dynamics that are naturally present in demonstration tra-
+                                         able. This data provides a rich source of information about real-    jectories or videos. An alternative paradigm that can leverage
+                                         world dynamics and agent-environment interactions. Leveraging        such dynamics information is that of world modeling: learning
+                                         this data directly for imitation learning, however, has proven       approximate models of how the world changes over time.
+                                         difficult due to the lack of action annotation. In this work, we
+                                         present Unified World Models (UWM), a framework that allows          Commonly instantiated as predicting the future observations
+                                         for leveraging both video and action data for policy learning.       given current observations (and actions), world models can
+                                         Specifically, a UWM integrates an action diffusion process and a     be trained from large scale robotic datasets [35, 46], but
+                                         video diffusion process within a unified transformer architecture,   also from alternative sources of data such as uncurated “play”
+                                         where independent diffusion timesteps govern each modality. By       data [13] or even action-free data such as videos. A variety
+                                         controlling each diffusion timestep, UWM can flexibly represent
+                                         a policy, a forward dynamics, an inverse dynamics, and a video       of world modeling techniques, such as video diffusion mod-
+                                         generator. Through simulated and real-world experiments, we          els [23] or latent state-space modeling [32], have shown
+                                         show that: (1) UWM enables effective pretraining on large-           impressive results on realistic generation of future frames.
+                                         scale multitask robot datasets with both dynamics and action         However, it is not yet clear how the ability of these world
+                                         predictions, resulting in more generalizable and robust policies     models to capture temporal dynamics can be brought to bear
+                                         than imitation learning, (2) UWM naturally facilitates learn-
+                                         ing from action-free video data through independent control          on improving the robustness and generalization of robotic
+                                         of modality-specific diffusion timesteps, further improving the      controllers synthesized via imitation learning.
+                                         performance of finetuned policies. Our results suggest that UWM         In this work, we propose a new diffusion-based learning
+                                         offers a promising step toward harnessing large, heterogeneous       framework that unifies imitation learning and world modeling,
+                                         datasets for scalable robot learning, and provides a simple          incorporating knowledge of temporal dynamics gleaned from
+                                         unification between the often disparate paradigms of imitation
+                                         learning and world modeling. Videos and code are available at        large robotic datasets into imitation learning policies. Our key
+                                         https://weirdlabuw.github.io/uwm/                                    insight is to integrate an action diffusion process and an image
+                                                                                                              diffusion process into a single diffusion transformer model
+                                                               I. I NTRODUCTION                               conditioned on independent diffusion timesteps. Leveraging a
+                                                                                                              connection between diffusion noise at different timesteps of
+                                            Imitation learning provides a simple and scalable way             the forward diffusion noising process and partial masking, this
+                                         to imbue autonomous robots with complex behaviors using              allows for flexible sampling from a number of distributions
+                                         human demonstrations [6, 26, 11, 49]. Imitation learning via         simply by manipulating the diffusion timesteps independently
+                                         supervised learning, often referred to as behavior cloning           at inference time. For example, to draw a sample from the
+                                         (BC), has shown remarkable success due to the advent of              policy, one can “mask out” the image diffusion process by
+                                         powerful multimodal generative models such as diffusion [22]         fixing the image diffusion timestep to T . Similarly, one can
+                                         or flow-based models [28]. With these methods, acquiring new         sample from the forward dynamics model by fixing the action
+                                         behaviors amounts to collecting demonstrations and fitting a         diffusion timestep to 0, inferring next observations given cur-
+                                         generative model to the action distributions given observations.     rent observations and “clean” actions. Same holds for inverse
+                                         However, despite showing robust and reliable behavior within         dynamics models and unconditional video prediction models
+                                         the training distribution, these methods can be brittle when         into the future. This yields a simple, unified diffusion model
+                                         tasked beyond this distribution. A natural solution to syn-          that can serve as a policy, dynamics model, video predictor or
+                                         thesizing robust and generalizable controllers with imitation        inverse model (Fig 1).
+                                         learning is to scale up the number of high-quality, on-robot            Concretely, a UWM consists of a coupled score model that
+                                         demonstrations collected through robotic teleoperation. But          predicts action scores and future image scores, conditioned on
+                                         this data scaling process is expensive and time-consuming.           the current image and separate diffusion timesteps for action
+                                         A natural question arises - are prevalent methodologies for          and future image. During training, the timesteps are sampled
+                           Forward Dynamics                                                                                    Policy
+
+
+
+                                                                    Unified World Model
+                                    !
+                                𝑝(𝑜 |𝑜, 𝑎)                                                                                     𝑝(𝑎|𝑜)
+
+
+
+
+                                                                𝜖!%    𝜖"%     𝜖#%      𝜖$%   𝜖!&'   𝜖"&'   𝜖#&'   𝜖$&'
+                                                     𝑡%
+
+                                                                             Diffusion Transformer
+                                                     𝑡&'
+                            Inverse Dynamics                                                                              Video Prediction
+                                                                𝑎!     𝑎"      𝑎#       𝑎$    𝑜′!    𝑜′"    𝑜′#    𝑜′$
+
+
+
+
+                                𝑝(𝑎|𝑜, 𝑜′)
+                                                                                                                              𝑝(𝑜′|𝑜)
+                                                      Current Obs             Actions                Future Obs
+
+
+
+
+Fig. 1. Unified World Models integrates action and video diffusion in a unified transformer architecture controlled by modality-specific diffusion timesteps.
+The model can be trained on large robotics datasets and then flexibly perform a variety of different inferences at test time. This enables improved robustness
+and generalization for imitation learning.
+
+independently at random, exposing the model to different                                  A. Diffusion Models
+combinations of action and image noises. During inference,                                   Denoising Diffusion Probabilistic Models (DDPMs) [22] are
+UWM enables flexible sampling from various distributions by                               a family of generative models that define a forward noising
+manipulating the diffusion timesteps independently. In particu-                           process and a learned reverse denoising process to generate
+lar, a UWM can generate samples from (1) forward dynamics,                                samples from a complex, multimodal data distribution. Let
+(2) inverse dynamics (3) marginal action distribution (policy),                           p(x0 ) denote the data distribution from which a number
+(4) marginal image distribution (video generative model).                                 of samples are available. In the forward diffusion process,
+We show that this learning framework leads to improved                                    the data x0 ∼ p(x0 ) is gradually corrupted by iteratively
+policies compared to standard imitation learning since, (1) the                           adding Gaussian noise over T steps through a Markov chain
+unified architecture enables feature sharing between actions                              according to a variance schedule {βt }Tt=1 . Concretely, the
+and pixels, resulting in additional supervision from the same                             forward process is defined as
+data, (2) the model captures all combinations of marginal and                                                    p                  
+conditional distributions, acquiring an understanding of the                              q(xt | xt−1 ) = N xt | 1 − βt xt−1 , βt I , t = 1, . . . , T.
+causal relationship between actions and images, (3) the model                             After T steps, xT is nearly an isotropic Gaussian [22]. The
+can learn from broader data modalities such as action-free                                corresponding reverse process aims to map xT back to a clean
+videos.                                                                                   sample x0 from the data distribution by iteratively denoising.
+   We demonstrate the effectiveness of UWM through a set                                  While the exact reverse conditional q(xt−1 | xt ) is generally
+of experiments across both simulation and real-world robotic                              intractable, one can learn a parametrized approximation,
+manipulation tasks. We show that UWM is capable of extract-                                                                                  
+ing knowledge from multitask robotic datasets, and further                                             p(xt−1 | xt ) = N µ(xt , t), Σ(xt , t) ,
+leveraging action-free video data to improve its generalization                           In practical settings, the variance Σ(xt , t) is set to a simple
+to out-of-distribution conditions. These models are able to flex-                         time varying constant σt2 I. As shown in prior work [3], the
+ibly perform a variety of test-time inference, while retaining                            optimal mean under MLE is:
+strong performance of both policy and dynamics prediction.                                                                                           !
+Through this investigation of UWM, we take a step towards                                                          1               βt
+                                                                                                    µ(xt , t) = √       xt − √           E [ϵx |xt ]
+bridging the gap between policies and world models for robot                                                       αt           1 − ᾱt
+learning.                                                                                                                     Qt
+                                                                                          where αt = 1 − βt and ᾱt = i=1 αi and ϵx is the Gaus-
+                         II. P RELIMINARIES                                               sian noise injected into xt . To approximate this conditional
+                                                                                          expectation E [ϵx |xt ], DDPMs train a neural network sθ using
+   Unified world models build on the framework of denoising                               a variant of denoising score matching:
+diffusion probabilistic models [22] and their application to                                                            h                     i
+problems in robotic control [11].                                                                         min Ex0 , t, ϵ ∥ sθ (xt , t) − ϵ ∥22 ,
+                                                                                                                   θ
+              √         √                    Qt
+where xt = ᾱt x0 + 1 − ᾱt ϵ and ᾱt = i=1 (1−βi ). Intu-            next observation, and (4) a video prediction model p(o′ |o)
+itively, this “score function” predicts the noise added at each       that predicts marginal future observations given current ones.
+step using a simple regression objective. This learned noise          While these models have each seen use in different contexts,
+prediction network sθ (xt , t) can then directly parameterize         they are largely considered to be disparate fields of study. In
+the reverse diffusion process as                                      this work, we show that these are many sides of the same dice;
+                           1            βt                            they can be unified into a single model to benefit each other.
+                                              sθ (xt , t)), σt2 I
+                                                                  
+    pθ (xt−1 | xt ) = N √ (xt − √
+                           αt         1 − ᾱt                         B. Unified World Models via Coupled Video-Action Diffusion
+   Given this reverse diffusion model, samples can approxi-              The core idea of a UWM is to develop a single diffu-
+mately be drawn from the data distribution using a simple             sion model that can be trained on samples from the joint
+“denoising procedure”. Starting with a sample xT ∼ N (0, I)           distribution of data p(o, a, o′ ) and used to flexibly perform
+drawn from Gaussian noise, new samples are iteratively drawn          inference for the policy p(a|o), the dynamics model p(o′ |o, a),
+from pθ (xt−1 | xt ) until a “clean sample” x0 is obtained. This      the inverse model p(a|o, o′ ) and the video prediction model
+procedure allows for the representation of complex multimodal         p(o′ |o), with minimal modifications to test-time inference.
+distributions where performing MLE tractably is challenging.             We start by instantiating a joint diffusion model that inte-
+      a) Conditional Generation with Diffusion Models: While          grates next observation prediction o′ and action prediction a
+the above-mentioned generative modeling process is uncon-             into a single diffusion model conditioned on current observa-
+ditional, diffusion models can be naturally extended to con-          tion o. This can naturally be done by parameterizing a joint
+ditional settings. Consider a setting where multivariate data         noise prediction network sθ (o, at , o′t , t) that approximates a
+(x0 , z0 ) ∼ p(x0 , z0 ) is available, and the conditional distri-    conditional expectation over both action and next observation
+bution p(x0 |z0 ) must be modeled. In these settings, a bulk          noise E [ϵa , ϵo′ |o, at , o′t , ], with ϵa , ϵo′ referring to noise on
+of the machinery from above can be reused, simply with an             actions and next observations, and t referring to the coupled
+additional conditioning variable. The forward process remains         timestep of the joint diffusion process.1 However, training such
+identical, while the reverse process is modified as                   a joint noise prediction network [20] sθ (o, at , o′t , t) does not
+                                                                      accomplish flexible inference since it can only sample from
+                        1         βt                                  the joint distribution of (a, o′ ).
+                                         E [ϵx |xt , z0 ]), σt2 I
+                                                                  
+p(xt−1 | xt , z0 ) = N √ (xt − √
+                        αt       1 − ᾱt                                 For flexible inference, we can leverage a connection be-
+   In this case, the expectation E [ϵx |xt , z0 ] can be approx-      tween diffusion time-steps and masking - noising input to-
+imated using a conditional noise prediction network that is           kens by setting the inference timestep for diffusion appropri-
+also trained with denoising score matching:                           ately can naturally induce a form of partial masking. Time-
+                                      h                          i    steps closer to T (fully noised) indicate full masking, while
+        min E(x0 ,z0 )∼p(x0 ,z0 ) t, ϵ ∥ sθ (xt , z0 , t) − ϵ ∥22 ,   timesteps closer to 0 (unnoised) indicate no masking. Based
+         θ
+                                                                      on this key insight, UWM modifies the joint diffusion process
+                         III. M ETHOD                                 mentioned above and decouples the timesteps between that of
+   In this section, we introduce Unified World Models as a            the diffusion processes of next observation prediction to′ and
+way to incorporate temporal dynamics into diffusion-based             that of action prediction ta in a joint noise prediction network
+action prediction models, proving a bridge between the often          sθ . This separation of time steps allows for independent
+disparate worlds of imitation learning and world modeling.            control of to′ and ta during training and inference, which gives
+                                                                      rise to flexible inference capabilities.
+A. Problem Setup
+                                                                         Concretely, a UWM models a coupled noise prediction
+   We build on typical sequential decision making settings,           network sθ (o, ata , o′to′ , ta ,hto′ ) that approximates  a conditional
+assuming access to a dataset of (observation, action, next-                                                                 i
+                                                                      expectation over noise E ϵa , ϵo′ |o, ata , o′to′ , with ϵa , ϵo′ re-
+observation) pairs De = {(oi , ai , o′i )}Ni=1 provided by an
+expert demonstrator. For the sake of exposition, we will              ferring to noise on next observations and actions, and ta and
+assume that the environment is Markovian in observations o. In        to′ referring to the decoupled steps of the diffusion process
+addition to this action-labeled dataset, we may also have access      with respect to actions and next-observations respectively.
+to an action-free dataset Daf = {(oi , oi+1 )}M                       The ability to set diffusion timesteps independently allows
+                                              i=1 . The question
+becomes - how can we extract the most learning signal out of          for marginalization and conditioning of different variables.
+these datasets for synthesizing robot controllers?                    Fixing the timestep for either ta or to′ to T marginalizes the
+   In this context, several different models may be desired:          corresponding variable a, o′ , while setting the timestep to 0
+(1) a policy p(a|o) (often referred to as π(a|o)) that samples        performs conditioning. By setting timestep to′ = T , the joint
+optimal actions to execute at a particular observation, (2)           model is approximating the expectation E [ϵa , ϵo′ , |o, ata , o′T ].
+a dynamics model p(o′ |o, a) that samples future observa-             Since o′T is approximately an isotropic Gaussian, this reduces
+tions, given a current observation and action, (3) an inverse           1 It is important to note that throughout this section o will refer to the current
+model p(a|o, o′ ) that predicts what distribution of actions          observation, o′t will refer to timestep t in the diffusion process for the next
+can transition between a current observation and a desired            observation, and at will refer to timestep t in the diffusion process for action.
+                  Unified World Model Training                                              Marginal Inference (Policy)                          Conditional Inference (Inverse Dynamics)
+
+
+
+
+                 Encoder                                                          Encoder                                                             Encoder
+                                    Decoder       Unpatchify                                          Decoder                                                     Decoder
+
+
+                                              UWM                                                               UWM                                                         UWM
+     𝑡!                                                               𝑡!                                                                   𝑡!
+                                    Encoder         Patchify                                          Encoder             Patchify                                Encoder          Patchify
+    𝑡"#                                                               𝑡"#                                                                  𝑡"#
+  Robot data: random 𝑡# , 𝑡!"                                          Marginalization via                                                   Conditioning via
+    Video data: set 𝑡# = 𝑇                                                  𝑡!" = 𝑇                                                              𝑡!" = 0
+
+
+
+
+Fig. 2. Unified World Model training and inference pipeline. The left panel shows UWM pretraining on robot trajectories with actions and co-training on
+action-free videos by masking out actions using diffusion timesteps. The right panel illustrates marginal and conditional inference modes, corresponding to
+the policy and the inverse dynamics.
+
+
+
+to E [ϵa |o, ata ], which represents a policy p(a|o), thereby per-                                              2) Video Prediction Model To sample from the video
+forming marginalization. Similarly, setting the timestep to′ =                                                     prediction model p(o′ |o), we marginalize out the action
+0 reduces the approximated distribution to E [ϵa |o, ata , o′ ]                                                    a by setting ta = T and aT ∼ N (0, I). We perform
+which corresponds to an inverse model p(a|o, o′ ), thereby                                                         the reverse diffusion process on next observations going
+performing conditioning. Simply setting combinations of ta                                                         from to′ = T, . . . , 1 with o′T ∼ N (0, I):
+and to′ allows for flexible inference of policies, dynamics                                                                                                                          
+                                                                                                                                      1                βt
+models, inverse models, and video prediction from the same                                                                   o′t−1 = √        o′t − √         sθ (o, aT , o′t , T, t)
+                                                                                                                                      αt              1 − ᾱt                                 (3)
+model.
+   This suggests a training recipe using a simple modification                                                                      + σ t δt ,      δt ∼ N (0, I)
+to the standard denoising objective [22]. To train a joint noise                                                3) Forward Dynamics To sample from the forward dy-
+prediction diffusion model (ϵθa , ϵθo′ ) = sθ (o′to′ , ata , o, ta , to′ ),                                        namics model p(o′ |o, a), we condition on a particular
+we independently sample action timestep ta and next obser-                                                         action a by setting ta = 0 and a0 = a. We perform
+vation timestep to′ , draw noisy action and next-observation                                                       the reverse diffusion process on next observations going
+samples from their respective distributions, and train the                                                         from to′ = T, . . . , 1 with o′T ∼ N (0, I):
+coupled conditional score model conditioned on the current
+observation with a standard denoising objective across both                                                                        1
+                                                                                                                                           
+                                                                                                                                                        βt
+                                                                                                                                                                                          
+actions and next-observations:                                                                                            o′t−1 = √             o′t − √           sθ (o, a, o′t , 0, t)
+                         h                                             i                                                               αt                  1 − ᾱt                            (4)
+ ℓ(θ) = E (o,a,o′ )∼D wa ∥ ϵθa − ϵa ∥22 +wo′ ∥ ϵθo′ − ϵo′ ∥22 ,                                                                      + σt δt ,           δt ∼ N (0, I)
+                ta ,to′ ∼U (0,T )
+                ϵa ,ϵo′ ∼N (0,1)                                                                                4) Inverse Dynamics To sample from the inverse dynamics
+                                                                                                  (1)              model p(a|o, o′ ), we condition on a particular next
+            where               ϵθa , ϵθo′ = sθ (o, ata , o′to′ , ta , to′ ),                                      observation o′ by setting to′ = 0 and o0 = o. We
+                                             p            p                                                        perform the reverse diffusion process on actions going
+                                     ata = ᾱta a + 1 − ᾱta ϵa ,
+                                                                                                                   from ta = T, . . . , 1 with aT ∼ N (0, I):
+                                    o′to′ = ᾱto′ o′ + 1 − ᾱto′ ϵo′ .
+                                             p               p
+                                                                                                                                                                        
+where wa and wo′ are weights chosen to trade off between the                                                                  1              βt                  ′
+                                                                                                                      at−1 = √       at − √         sθ (o, at , o , t, 0)
+action prediction and next-observation prediction objectives.                                                                  αt           1 − ᾱt                                           (5)
+Intuitively, this training paradigm exposes the model to all                                                                + σt δt ,     δt ∼ N (0, I)
+combinations of noise levels of the modalities. At inference,
+we can flexibly draw samples from various distributions by                                                   This simple modification to the standard diffusion training
+controlling the timesteps ta and to′ as follows:                                                          paradigm allows a single model to be trained, benefiting from
+   1) Policy To sample from the policy p(a|o), we marginalize                                             feature sharing between different models of action and future
+       out the next observation o′ by setting to′ = T and o′T ∼                                           observation prediction. This model can then be flexibly used
+       N (0, I). We perform the reverse diffusion process on                                              for inference with just the choice of timesteps, making it a
+       actions going from ta = T, . . . , 1 with aT ∼ N (0, I):                                           versatile, general-purpose decision-making model.
+
+                                                                                                        C. Architecture
+                     1               βt                                                                      We model the UWM as a diffusion transformer as shown
+             at−1 = √        at − √         sθ (o, at , o′T , t, T )
+                      αt            1 − ᾱt                           (2)                                 in Fig. 2 and 3. The model predicts actions and observation
+                   + σt δ t ,     δt ∼ N (0, I)                                                           noises ϵa and ϵo′ given current observations o, noisy actions
+                                                                                                                Pretraining Dataset (DROID)
+                             𝜖$       𝜖"#
+
+
+
+
+                                     Gate
+                                                                                                                Cotraining Dataset (DROID)
+                              Feed Forward
+
+                                  Scale, Shift
+
+                                                             ×𝑵
+                                                                                                                   Finetuning Datasets
+                                     Gate
+
+                              Multi-Headed
+                              Self-Attention
+
+                                  Scale, Shift                                    Stack-Bowls   Block-Cabinet           Paper-Towel           Hang-Towel   Rice-Cooker
+
+
+
+                                                                             Fig. 4.      Visualization of datasets used for pretraining and finetuning.
+                                                                             The pretraining and cotraining dataset consists of diverse tasks performed
+             Concat         𝑎!!      𝑜′!"#       registers                   by Franka robots in various environments to ensure broad generalization
+                                                                             capabilities. The finetuning datasets include five tasks, each designed to
+         𝑜    𝑡$      𝑡"#                                                    evaluate task-specific performance under controlled conditions.
+
+
+Fig. 3. A single Unified World Model (UWM) block consists of a transformer
+block with observations and diffusion timesteps conditioning via adaptive    actions are distinct modalities that can benefit from having
+layer norm. In addition, we add randomly initialized register tokens which   an intermediary medium to exchange information. However,
+allows for better multi-modal feature sharing.
+                                                                             since all output embeddings of the diffusion transformer are
+                                                                             meaningful noise predictions, there is no room for such com-
+                                                                             munication. The registers can store information from either
+ata , noisy observations o′to′ , action timestep ta , and observa-
+                                                                             modality, which can then be retrieved in subsequent trans-
+tion timestep to . The actions are action chunks of length ha .
+                                                                             former layers. We demonstrate the effectiveness of registers
+The current observations o and next observations o′ are frame-
+                                                                             in our ablation experiments in Section IV-D.
+stacked observations of length ho from nc camera views.
+   To condition the model on current observations, we encode                 D. Training Paradigms
+each frame from each camera view using a ResNet-18 [21]                         In this work, we evaluate the effectiveness of UWM as a
+encoder to obtain an nembd dimension feature. the features are               pretraining method for learning the dynamics information from
+concatenated to form an embedding of size nc · ho · nembd .                  large multitask robotic datasets. To train a UWM on robot
+The diffusion timesteps are encoded using a shared sinusoidal                data, we sample sequences of observations and actions from
+timestep encoder from [22], resulting in two timestep em-                    the dataset, construct (o, a, o′ ) tuples, sample random diffusion
+beddings. These timestep embeddings are concatenated with                    timesteps ta , to′ ∼ U(0, T ), and optimize the denoising score
+the image features, and the combined features are used to                    matching objective in Eq. 1.
+condition the transformer via Adaptive Layer Normalization                      Moreover, UWM naturally enables co-training on action-
+(AdaLN) [33].                                                                free video data by using diffusion timesteps for masking.
+   The context of the diffusion transformer consists of action               Given action-free video samples, instead of sampling the
+embeddings and image embeddings. The action embeddings                       action timestep randomly, we fix the action timestep to T ,
+are obtained by encoding the action chunk per-timestep using                 impute the missing actions with random noise ϵa ∈ N (0, 1),
+a shallow MLP. For image diffusion, we adopt the latent diffu-               optimize the same loss in Eq. 1. We validate the effectiveness
+sion paradigm [36] and encode full-size (224, 224, 3) images                 of co-training on videos in our experiments in Section. IV-B.
+into (28, 28, 4) latent images using a frozen SDXL VAE [34].
+We then patchify the latent images using a spatiotemporal                                                 IV. E XPERIMENTS
+patchifier of size (4, 4, 2). These image patch embeddings are                  In this section, we examine the following research ques-
+then concatenated with the action embeddings and passed into                 tions: (1) can UWM effectively learn from large robotic
+the transformer backbone. The image noising and denoising                    datasets as a pretraining paradigm? (2) can UWM further
+processes are performed in the latent space, and the final image             benefit from additional video data without action labels in a
+sample is decoded using the same VAE to generate full-size                   co-training paradigm? (3) what are the key design choices that
+images.                                                                      contribute to UWM’s performance. We answer these questions
+   Empirically, we found that adding redundant tokens that                   through a number of real robot experiments with a Franka
+are eventually discarded (i.e. registers [14]) helps with model              robot using the DROID [25] manipulation platform, as well
+performance. We hypothesize that this is because images and                  as simulated experiments in the LIBERO [29] benchmark.
+                  Stack-Bowls                 Block-Cabinet                  Paper-Towel                  Hang-Towel                    Rice-Cooker
+
+
+
+
+   Start
+
+
+
+
+   End
+
+
+
+
+   OOD
+
+
+
+
+Fig. 5. Setup for real robot tasks: Stack-Bowls, Block-Cabinet, Paper-Towel, Hang-Towel, and Rice-Cooker. The first row illustrates the initial configurations
+for each task. The second row demonstrates successful task completions. The third row highlights the out-of-distribution (OOD) configurations designed to
+evaluate the robustness of each method.
+
+
+A. Baselines                                                                       3) GR1 [45] is a video-action transformer model that pre-
+  We compare UWM to the following baselines throughout                                dicts actions and future image observations conditioned
+our experiments. Detailed descriptions of each baseline are                           on current image observations. Unlike other baselines,
+deferred to Appendix A.                                                               GR1 does not model a distribution over data using
+                                                                                      a diffusion process. Instead, it directly regresses the
+  1) Diffusion Policy (DP) [11] is a behavior cloning method
+                                                                                      actions and images by minimizing a least squares loss.
+      that fits a conditional diffusion model to a dataset of
+                                                                                      We compare to GR1 to validate the effectiveness of
+      expert observation-action data. We extend the framework
+                                                                                      diffusion as a pretraining objective relative to regression.
+      to the pretraining-finetuning setting by fitting a model
+                                                                                      GR1 supports co-training on videos by masking the
+      to the behavior distribution of a multitask dataset and
+                                                                                      action tokens with a learned mask token.
+      then finetuning it to the task-specific demonstrations.
+      We compare to DP as a baseline to validate the effec-
+                                                                                B. Real Robot Experiments
+      tiveness of the additional supervisory signals in UWM.
+      To minimize the discrepancy from UWM, we adopt a                             1) Setup: To evaluate UWM and baselines as pretraining
+      diffusion transformer backbone similar to [15] instead                    methods, we leverage the DROID dataset [25] as a source
+      of the original UNet architecture [10].                                   of pretraining data. The DROID dataset is a diverse dataset
+  2) PAD [19] is a video-action diffusion model that learns                     consisting of robot trajectories collected across various insti-
+      a joint distribution of actions and future observations                   tutions and operators, covering a large variety of tasks, camera
+      conditioned on current observations. The key conceptual                   positions and backgrounds in natural settings. We curate a
+      difference between PAD and UWM is the decoupling                          pretraining dataset by sampling a subset of 2000 trajectories
+      of timesteps between actions and next-observations. In                    from the DROID dataset based on location (Fig 4, top row).
+      addition, PAD conditions the model on the current                         For methods that support co-training on video data (e.g. GR-
+      observations by concatenating the clean latents of the                    1, PAD, and UWM), we additionally evaluate their capability
+      current observations to the noisy latents of the next                     of learning from action-free videos. To this end, we sample
+      observations along the channel dimension, similar to [7].                 another 2000 trajectories from the rest of the DROID dataset
+      PAD supports co-training on videos by masking the                         and remove their action annotations to use as videos (Fig 4,
+      action tokens with a learned mask token.                                  middle row).
+                                                                    TABLE I
+                                      E VALUATION R ESULTS ACROSS R EAL ROBOT TASKS (P RETRAIN / C OTRAIN )
+
+                              Stack-Bowls                Block-Cabinet                                         Paper-Towel                      Hang-Towel            Rice-Cooker
+ (Pretrain / Cotrain)       ID         OOD              ID         OOD                                       ID         OOD                ID           OOD                ID
+ UWM (Ours)             0.86 / 0.92   0.76 / 0.84   0.76 / 0.84   0.60 / 0.72                      0.78 / 0.86         0.78 / 0.84    0.82 / 0.86    0.64 / 0.76       0.60 / 0.65
+ DP                     0.48 / –      0.36 / –      0.60 / –      0.26 / –                         0.52 / –            0.48 / –       0.64 / –       0.28 / –          0.35 / –
+ PAD                    0.08 / 0.20   0.08 / 0.12   0.00 / 0.00   0.00 / 0.00                      0.42 / 0.42         0.34 / 0.44    0.52 / 0.54    0.30 / 0.38       0.00 / 0.00
+ GR1                    0.66 / 0.62   0.48 / 0.38   0.66 / 0.74   0.44 / 0.64                      0.60 / 0.46         0.60 / 0.46    0.66 / 0.66    0.48 / 0.44       0.40 / 0.25
+
+
+
+   To evaluate the efficacy of the pretrained models, we                                               1.0         Average Success Rates Across Tasks and Settings
+construct five different real-world tasks (shown in Fig 5) using
+the portable manipulation platform proposed in DROID [25].                                             0.8
+The tasks involve different kinds of robotic manipulation:
+
+
+
+                                                                                Average Success Rate
+   • Stack-Bowls involves picking up the pink bowl and
+                                                                                                       0.6
+      stacking it on top of the blue bowl.
+   • Block-Cabinet involves opening the cabinet, grasping a
+                                                                                                       0.4
+      small red block from the table, and placing it in the
+      cabinet.
+   • Paper-Towel involves precisely grasping a paper towel                                             0.2
+      roll from the cabinet and placing it upright on a wooden
+      stand on the table.                                                                              0.0
+                                                                                                               Pretrain Cotrain   Pretrain Cotrain   Pretrain      Pretrain Cotrain
+   • Hang-Towel (deformable object) involves grasping a                                                            UWM                 GR1             DP               PAD
+      towel by the corner and hanging it on a hook attached to
+      the cabinet.                                                                Fig. 6. Average success rates across all real robot tasks and in-distribution
+   • Rice-Cooker (long horizon) involves pouring a cup of                         and out-of-distribution settings. UWM exhibits strong performance and can
+                                                                                  further improve by co-training from action-free videos.
+      rice into the inner pot of a rice cooker, and putting the
+      inner pot in the rice cooker.
+Each of these tasks involves positional and visual generaliza-                    accurately capture the expert policy’s distribution. We find that
+tion, and requires reasonably precise robotic manipulation. We                    UWM achieves the highest success rates across all five tasks
+curate the finetuning datasets by teleoperating the robot and                     among the methods, surpassing the best baseline by as much
+collecting a dataset of expert trajectories.                                      as 20%. This demonstrates the strength of coupled action-
+   We train all methods on the pretraining / co-training datasets                 video diffusion in absorbing rich dynamic information from
+for 100K steps and then finetune to the evaluation tasks                          multitask datasets. In particular, since the model is trained to
+(task-specific parameters shown in Table. VI.) For cotraining                     capture all possible conditional and marginal distributions, it
+experiments, we mix up the robot and video datasets and                           is instilled with an understanding of the causal relationship
+sample batches uniformly from the mixture dataset, where                          between actions and image observations, explaining its supe-
+each batch may contain action-labeled and action-free data.                       rior performance compared to joint prediction models such
+We then apply the method-specific masking techniques and                          as GR1 and PAD. GR1 consistently outputs the second best
+optimize the cotraining loss. For each task, we evaluate in                       results, establishing a strong baseline performance for deter-
+scenarios approximately similar to those encountered during                       ministic regressive models. Diffusion Policies fail to leverage
+data collection (referred to as in-distribution), and we also con-                the rich and dynamic pixel information in the pretraining
+struct an out-of-distribution evaluation setting by introducing                   datasets, being inefficient at learning from diverse multitask
+distractions that are unseen in the finetuning dataset, as shown                  trajectories. PAD achieves the lowest success across the board.
+in Fig 5. To ensure statistically significant evaluation, we test                 We attribute its low performance largely to the conditioning
+each task on a fixed set of randomly chosen initialization                        via concatenation. Compared to UWM which takes in image
+positions. We provide details for the task-specific setups in                     features preprocessed by an encoder, PAD takes in raw pixels,
+Appendix C1.                                                                      thus needing to incorporate the feature extraction in the same
+   2) Discussion: We report the results on the real robot exper-                  transformer model. This limits its performance at accurately
+iments in Table I and the average performance in Figure 6. For                    capturing the conditional action distribution without expanding
+each method an task, we provide results in the in-distribution                    model capacity.
+(ID) and out-of-distribution (OOD) scenarios. Furthermore, for                       We then examine the OOD scenarios. This set of experi-
+methods that support co-training on videos, we additionally                       ments tests the models’ robustness to distribution shifts. We
+report the results of co-trained models (separated by ”/”).                       find that all models experience performance drops in the
+   We first examine the pretraining results in the in-distribution                presence of visual distractions. This is especially pronounced
+setting. This set of experiments reflect the models’ ability to                   in Stack-Bowls, Block-Cabinet, and Hang-Towel. In the Paper-
+                                                               TABLE II
+                                                  E VALUATION ON LIBERO BENCHMARK .
+
+                                   Book-Caddy     Soup-Cheese    Bowl-Drawer          Moka-Moka          Mug-Mug            Average
+                      UWM (Ours)    0.91 ± 0.07    0.93 ± 0.01    0.80 ± 0.02           0.68 ± 0.02      0.65 ± 0.01       0.79 ± 0.11
+                      DP            0.73 ± 0.10    0.88 ± 0.02    0.77 ± 0.02           0.65 ± 0.03      0.53 ± 0.05       0.71 ± 0.12
+                      PAD           0.78 ± 0.04    0.47 ± 0.04    0.74 ± 0.05           0.59 ± 0.08      0.25 ± 0.04       0.57 ± 0.19
+                      GR1           0.77 ± 0.03    0.65 ± 0.05    0.62 ± 0.03           0.46 ± 0.04      0.38 ± 0.05       0.58 ± 0.14
+
+
+
+                                                                                                          Pretraining Dataset (LIBERO-90)
+Towel task, the models seem unaffected by the visual distrac-
+tions, potentially due to the task not requiring the models to
+pay attention to the table top when grasping the paper towel.
+Despite a slight performance drop compared to the ID setting,
+we find UWM to outperform the baselines, showcasing strong
+robustness under distribution shifts.                                                                    Finetuning Datasets (LIBERO-10)
+
+   Finally, we test the methods’ potential to scale with videos
+by cotraining with action-free videos. Results are reported after
+the / in each entry of Table I. We find UWM to consistently
+improve performance when exposed to additional videos dur-                      Book-Caddy       Soup-Cheese        Bowl-Drawer          Moka-Moka   Mug-Mug
+
+ing pretraining. This suggests using diffusion time steps for
+masking as an effective strategy for co-training on multimodal         Fig. 7.     Visualization of the LIBERO datasets. The pretraining dataset
+                                                                       (LIBERO-90) consists of 90 tasks sampled across the kitchen, living room, and
+data. While GR1 is able to learn from videos by masking                study scenes. The finetuning datasets (LIBERO-10) consist of 10 tasks used
+the actions with a learnable token, we found mixed results of          for evaluation. Tasks from LIBERO-10 are fine-tuned and evaluated under
+the cotrained model. In Stack-Bowls, Paper-Towel, and Rice-            distribution shifts, with unseen initializations and modified configurations.
+Cooker, the cotrained GR1 model is worse than the pretrained
+model, which implies that incorporating videos dilutes the
+action learning signal. While PAD showcases weak positive              to its use of pixel reconstruction as an auxiliary signal and
+transfer as a result of cotraining, its baseline performance is        the independent diffusion timesteps instilling the model with
+suboptimal. In Table. IV, we perform evaluations in a larger           a causal understanding of actions and observations.
+set of OOD scenarios and found video cotraining to provide                Although our method showed an improvement over base-
+significant gains in those settings.                                   lines, we note that the improvement in OOD scenarios is less
+                                                                       than the real world experiments. We hypothesize this to be an
+C. Simulated Experiments                                               artifact of current simulations having simpler dynamics than
+                                                                       what we see in the real world.
+   To validate these findings in standard community bench-
+mark settings, we evaluate the methods on the LIBERO [29]              D. Analysis and Ablation Experiments
+simulation benchmark. The LIBERO-100 benchmark con-                       In this section, we conduct analysis and ablation experi-
+sists of 90 training environments across multiple scenes and           ments to help understand the various components and design
+10 evaluation environments, each with accompanying expert              choices in UWM. We provide additional experiments in Ap-
+demonstrations. We combine the demonstrations from the 90              pendix. D.
+training environments to construct a multitask training dataset,          1) Forward Dynamics: To examine the world modeling
+and finetune on a random subset of the evaluation environ-             component of UWM, we visualize the forward dynamics
+ments, shown in Fig 7. To evaluate the methods’ generalization         prediction of UWM on simulated and real-world domains.
+capabilities, we introduce distribution shifts to evaluation           To generate samples from the forward dynamics model, we
+environments by enlarging the range of initialization for all          perform image diffusion while fixing the action diffusion
+objects and removing objects from the scene. The details for           timestep to 0 and setting the action tokens to be the ground
+this setup is described in Appendix C4.                                truth actions. As shown in Fig. 8, UWM accurately predicts the
+   We pretrain each method on the multitask dataset for 100K           image observations conditioned on actions, closely resembling
+gradient steps, and finetune on the downstream tasks for 10K           the ground truth image observations. This implies that UWM
+gradient steps. We finetune 3 random seeds for each method on          can effectively model the conditional distribution.
+each environment, and evaluate on 50 different initializations.           2) Inverse Dynamics: We evaluate the inverse dynamics
+Table II reports the average success rates across initializations      mode of UWM on trajectory tracking, where we provide a
+with confidence intervals across random seeds. UWM achieves            reference expert trajectory and query the inverse dynamics
+the highest success rates across the evauation tasks in the            model to track it. Specifically, for each reference trajectory, we
+out-of-distribution setting. DP achieves the second highest            reset the simulation environment to match the exact initial state
+performance, followed by GR1 and PAD. These results imply              of this trajectory. At each step, we take the ground truth future
+that UWM effectively learns from large robotic datasets, due           observations from the trajectory and use the inverse dynamics
+     Current Obs           Predicted Next Obs            True Next Obs
+
+
+
+
+                                                                                    In-distribution            (L1, L2) lighting           (B1) background
+
+
+
+
+                                                                             (B2) surface + background         (C1) large items            (C2) small items
+
+
+                                                                            Fig. 9. Visualization of categorized out-of-distribution (OOD) settings. We
+                                                                            construct scenes with varied lighting conditions, backgrounds, and clutter to
+                                                                            analyze the models’ generalization patterns.
+
+                                                                                                        TABLE IV
+                                                                                   OOD P ERFORMANCE ON S TACK -B OWLS AND B LOCK -C ABINET
+
+                                                                                                  Stack-Bowls                       Block-Cabinet
+                                                                                     UWM (Co)        UWM (Pre)       DP       UWM (Co)  UWM (Pre)             DP
+
+Fig. 8.    Visualization of the forward dynamics predictions. The model      L1          4/5             4/5         2/5            5/5         5/5           3/5
+accurately predicts the robot and object poses conditioned on the initial    L2          3/5             2/5         2/5            4/5         0/5           0/5
+observation and actions.                                                     B1          4/5             3/5         3/5            4/5         3/5           2/5
+                                                                             B2          3/5             1/5         2/5            1/5         0/5           0/5
+                                                                             C1          3/5             2/5         2/5            0/5         0/5           0/5
+                             TABLE III                                       C2          4/5             3/5         1/5            1/5         0/5           0/5
+                 T RAJECTORY T RACKING E XPERIMENTS
+                                                                             All        21/30         15/30         12/30          15/30        8/30          6/30
+                                          Book-Caddy       Soup-Cheese
+   Policy (1000 steps)                     1.00 ± 0.00      0.97 ± 0.01
+   Policy (trajectory length)              0.47 ± 0.02      0.26 ± 0.02                                  V. R ELATED W ORK
+   Inverse dynamics (trajectory length)    0.65 ± 0.01      0.55 ± 0.02
+                                                                                  a) Imitation Learning: Imitation learning (IL) for
+                                                                            robotics is a paradigm in which robots learn to perform tasks
+                                                                            by learning behaviors from experts, typically via teleoperation.
+mode of a finetuned UWM to generate corresponding actions.                  A common approach within the imitation learning family
+Table III shows the results of tracking 50 trajectories from                is behavior cloning, where supervised learning techniques
+the LIBERO training datasets. We find that given the same                   are applied to replicate expert actions from the provided
+time limit as the trajectory length, the inverse dynamics model             demonstrations. In particular, these methods are useful for
+achieves a higher success rate than the policy. This implies that           tasks with well defined inputs such as manipulation.
+actions generated by the inverse dynamics adhere more closely                  One common challenge for problems cast in the BC frame-
+to the reference trajectory. We note that while the policies                work is the inability to fit multi-modal action distributions
+deviate from the reference trajectories, they eventually recover            [37]. Previous methods have attempted to solve this by at-
+and solve the tasks given enough time.                                      tempting to fit multiple pre-defined distributions [31], using
+   3) Categorized OOD Experiments: We evaluate UWM and                      architectures amenable to modeling high-dimensional distri-
+DP in several more out-of-distribution (OOD) settings to study              butions [38, 27, 49, 50], and more recently, generative models
+their generalization patterns. As shown in Fig. 9, we construct             such as diffusion [11]. Diffusion models, in particular, have
+scenes with varied lighting conditions (including static and                shown to scale favorably to both a large number of demon-
+Disco lights), backgrounds, and clutter. For each scene, we                 strations [40, 6], and dexterous behaviors [15]. Although
+randomly select 5 initializations to evaluate. Results in Table.            the diffusion framework has shown the ability to scale, at
+IV show that across the board, UWM cotrained on videos                      their core, these formulations rely on access to high quality
+(co) is significantly more robust than both UWM (pre) and                   action data. Despite recent efforts from the community to
+DP pretrained on robot data.                                                open source large amounts of data [25, 12], the magnitudes of
+   4) Real-World Learning from Scratch: To study UWM’s                      readily available data pales in comparison to the internet scale
+ability to scale with pretraining, we train UWM and DP on the               data that is used to train state of the art foundation models
+task-specific expert demonstrations from scratch for the same               such as LLMs (Large Language Models) and VLMs (Vision
+number of steps as the finetuning stage of the experiments in               Language Models). Alternative formulations to scaling robotic
+Table. I. As shown in Fig. 10, we find that UWM and DP                      policies focus on leveraging pre-trained foundation models
+perform similarly when trained from scratch. However, UWM                   in order to leverage their common-sense reasoning [26, 43]
+scales from pretraining more effectively than DP.                           using autoregressive techniques. Although these efforts are
+               1.0
+                              Stack-Bowls                 Block-Cabinet          fusion perspective on image and text generation. Their results
+                        UWM
+                        DP                                                       show that by having flexible control of each modality, and thus
+               0.8
+                                                                                 controlling the marginal, conditional, and joint probabilities,
+
+
+Success Rate
+               0.6                                                               the model is able to do share features and show an increased
+               0.4
+                                                                                 performance for each individual modality. Our framework
+                                                                                 builds upon the core insight from this work and studies this
+               0.2                                                               from the perspective of joint video and action modeling.
+               0.0                                                                  Finally, recent efforts exist in order to combine advantages
+                     From scratch     Pretrained   From scratch     Pretrained
+                                                                                 from both autoregressive and more continuous approaches.
+                                                                                 [51] combines the ability to do both autoregressive language
+ Fig. 10. Training models from scratch vs finetuning pretrained models. UWM
+ scales more effectively with pretraining than DP.                               generation and diffusion based image generation in one frame-
+                                                                                 work. Their framework shows efficient scalability and feature
+                                                                                 sharing. [10] also provides an alternative way to bridge the gap
+ promising, they are still heavily reliant on access to high                     between autoregressive and diffusion techniques. Although the
+ quality action data and focus on increasing generalization.                     framework provides a mechanism for doing flexible inference
+      b) Learning from Videos: In order to scale large robot                     that combines the capabilities of continuous and discrete
+ foundation models, an appealing approach lies in leveraging                     approaches, the multi-modal feature sharing capabilities have
+ video as a source of abundant data. Video data, however,                        not been shown yet.
+ does not contain explicit actions and may contain a significant
+ cross-embodiment gap. In order to address these issues, hand-                                         VI. D ISCUSSION
+ engineered solutions are often used in order to extract semantic
+ information and map this information to the physical robot.                        In this work, we present Unified World Models, a diffusion
+ For example, [42, 47] both use keypoints to map actions from                    based framework that unifies policy learning and world mod-
+ video models to the robots themselves. Alternative methods                      eling into a single flexible framework. We instantiate UWM
+ use predicted future points and maps these to rigid body                        with a coupled conditional diffusion process using separate
+ transforms explicitly in order to transfer from internet trained                timesteps for actions and future observations. During training,
+ videos to robots [5]. Other work often explicitly track human                   the model is exposed to all combinations of timesteps cov-
+ hand trajectories and and contact patches in order to leverage                  ering various conditional and marginal distributions, instilling
+ data from human videos [41, 2].                                                 the model with an understanding of the causal relationship
+    An alternative approach to leveraging video data relies on                   between actions and future observations. This distinguishes
+ large scale pre-training on robot video datasets. For example,                  UWM from traditional imitation learning approaches, which
+ [44, 48] use an autoregressive style prediction to pre-train a                  often lack a nuanced understanding of causal dependencies.
+ video and language model which is then fine-tuned on robot                      Moreover, the independent diffusion timesteps allow for a nat-
+ actions in a second stage. Other approaches use diffusion                       ural connection between noising and partial masking, enabling
+ models in order to predict and supervise on dense future                        the use of action-free videos for co-training, as well as for
+ frames combined with an action diffusion transformer [24].                      marginalization and conditioning of the variables by appro-
+ These use a two-stage process that relies on fine-tuning pre-                   priately setting timesteps. The resulting model is then able
+ trained vision models that may not contain robot information.                   to flexibly perform inference as a policy, a video prediction
+ Most importantly, by using a decoupled architecture, they                       model, a forward dynamics model, and an inverse dynamics
+ limit the feature sharing capabilities between the video and                    model. We show through a thorough experimental evaluation
+ action data. Closest in spirit to our approach is PAD [20]                      that UWM provides significant gains over imitation learning
+ which trains a joint video-action model using diffusion as                      across the board by enhancing large scale pretraining from
+ its core mechanism. Their approach, however, uses a shared                      robotic datasets.
+ diffusion time step between all the modalities which we
+ hypothesize leads to a sub-optimal shared representation that                                        VII. L IMITATIONS
+ lacks a causal understanding between the underlying video and
+ action models. We show that by having independent diffusion                        While UWM shows promising results, there are several
+ timesteps, our policy performs better in both in distribution                   avenues for future investigation. Firstly, the proposed model
+ and out of distribution scenarios.                                              does not yet learn from large scale human videos, bridg-
+      c) Unified Inference: Unified multi-modal models for                       ing the embodiment gap. Additionally, while UWM shows
+ both decision making and general inference have recently                        an improvement on action prediction, the forward dynamics
+ become an emerging topic due to the potential of feature                        reconstruction may often contain artifacts which may reduce
+ sharing between modalities. [9] explores this topic from the                    efficacy when planning with this model. We believe this can be
+ perspective of decision making and shows that masking tokens                    addressed by incorporating the latest progress in the generative
+ is an effective way to share information across the decision                    model literature. Finally, we expect to see further improvement
+ making process itself. [4] studies this problem from the dif-                   by leveraging denser video prediction.
+                   ACKNOWLEDGEMENTS                                    Proceedings of the IEEE Conference on Computer Vision
+  We thank members of the WEIRD lab at UW and the Toyota               and Pattern Recognition (CVPR), July 2017.
+Research Institute for thoughtful discussions during the course    [9] Micah Carroll, Orr Paradise, Jessy Lin, Raluca
+of this work. CZ was supported by funding from the Toyota              Georgescu, Mingfei Sun, David Bignell, Stephanie Mi-
+Research Institute and NSF Grant No. 2212310 during the                lani, Katja Hofmann, Matthew Hausknecht, Anca Dra-
+course of this work.                                                   gan, and Sam Devlin. Unimask: Unified inference in
+                                                                       sequential decision problems, 2022. URL https://arxiv.
+                        R EFERENCES                                    org/abs/2211.10869.
+ [1] Jean-Baptiste Alayrac, Jeff Donahue, Pauline Luc, An-        [10] Boyuan Chen, Diego Marti Monso, Yilun Du, Max
+     toine Miech, Iain Barr, Yana Hasson, Karel Lenc, Arthur           Simchowitz, Russ Tedrake, and Vincent Sitzmann. Diffu-
+     Mensch, Katie Millicah, Malcolm Reynolds, Roman                   sion forcing: Next-token prediction meets full-sequence
+     Ring, Eliza Rutherford, Serkan Cabi, Tengda Han, Zhi-             diffusion, 2024. URL https://arxiv.org/abs/2407.01392.
+     tao Gong, Sina Samangooei, Marianne Monteiro, Ja-            [11] Cheng Chi, Siyuan Feng, Yilun Du, Zhenjia Xu, Eric
+     cob Menick, Sebastian Borgeaud, Andrew Brock, Aida                Cousineau, Benjamin Burchfiel, and Shuran Song. Dif-
+     Nematzadeh, Sahand Sharifzadeh, Mikolaj Binkowski,                fusion policy: Visuomotor policy learning via action
+     Ricardo Barreira, Oriol Vinyals, Andrew Zisserman, and            diffusion. In Proceedings of Robotics: Science and
+     Karen Simonyan. Flamingo: a visual language model                 Systems (RSS), 2023.
+     for few-shot learning. In Proceedings of the 36th Inter-     [12] Embodiment Collaboration.          Open x-embodiment:
+     national Conference on Neural Information Processing              Robotic learning datasets and rt-x models, 2024. URL
+     Systems, NIPS ’22, Red Hook, NY, USA, 2022. Curran                https://arxiv.org/abs/2310.08864.
+     Associates Inc. ISBN 9781713871088.                          [13] Zichen Jeff Cui, Yibin Wang, Nur Muhammad Mahi
+ [2] Shikhar Bahl, Russell Mendonca, Lili Chen, Unnat Jain,            Shafiullah, and Lerrel Pinto. From play to policy: Condi-
+     and Deepak Pathak. Affordances from human videos                  tional behavior generation from uncurated robot data. In
+     as a versatile representation for robotics, 2023. URL             International Conference on Learning Representations,
+     https://arxiv.org/abs/2304.08488.                                 2023.
+ [3] Fan Bao, Chongxuan Li, Jun Zhu, and Bo Zhang.                [14] Timothée Darcet, Maxime Oquab, Julien Mairal, and
+     Analytic-dpm: an analytic estimate of the optimal reverse         Piotr Bojanowski. Vision transformers need registers. In
+     variance in diffusion probabilistic models. In Interna-           The Twelfth International Conference on Learning Rep-
+     tional Conference on Learning Representations, 2022.              resentations, 2024. URL https://openreview.net/forum?
+ [4] Fan Bao, Shen Nie, Kaiwen Xue, Chongxuan Li, Shi                  id=2dnO3LLiJ1.
+     Pu, Yaole Wang, Gang Yue, Yue Cao, Hang Su, and Jun          [15] Sudeep Dasari, Oier Mees, Sebastian Zhao, Mohan Ku-
+     Zhu. One transformer fits all distributions in multi-modal        mar Srirama, and Sergey Levine. The ingredients
+     diffusion at scale, 2023. URL https://arxiv.org/abs/2303.         for robotic diffusion transformers.       arXiv preprint
+     06555.                                                            arXiv:2410.10088, 2024.
+ [5] Homanga Bharadhwaj, Roozbeh Mottaghi, Abhinav                [16] Jia Deng, Wei Dong, Richard Socher, Li-Jia Li, Kai Li,
+     Gupta, and Shubham Tulsiani. Track2act: Predicting                and Li Fei-Fei. Imagenet: A large-scale hierarchical
+     point tracks from internet videos enables generalizable           image database. In 2009 IEEE Conference on Computer
+     robot manipulation, 2024. URL https://arxiv.org/abs/              Vision and Pattern Recognition, pages 248–255, 2009.
+     2405.01527.                                                       doi: 10.1109/CVPR.2009.5206848.
+ [6] Kevin Black, Noah Brown, Danny Driess, Adnan Es-             [17] Alexey Dosovitskiy, Lucas Beyer, Alexander Kolesnikov,
+     mail, Michael Equi, Chelsea Finn, Niccolo Fusai,                  Dirk Weissenborn, Xiaohua Zhai, Thomas Unterthiner,
+     Lachy Groom, Karol Hausman, Brian Ichter, Szymon                  Mostafa Dehghani, Matthias Minderer, Georg Heigold,
+     Jakubczak, Tim Jones, Liyiming Ke, Sergey Levine,                 Sylvain Gelly, Jakob Uszkoreit, and Neil Houlsby. An
+     Adrian Li-Bell, Mohith Mothukuri, Suraj Nair, Karl                image is worth 16x16 words: Transformers for im-
+     Pertsch, Lucy Xiaoyang Shi, James Tanner, Quan Vuong,             age recognition at scale.       In International Confer-
+     Anna Walling, Haohuan Wang, and Ury Zhilinsky. π0 :               ence on Learning Representations, 2021. URL https:
+     A vision-language-action flow model for general robot             //openreview.net/forum?id=YicbFdNTTy.
+     control, 2024. URL https://arxiv.org/abs/2410.24164.         [18] Raghav Goyal, Samira Ebrahimi Kahou, Vincent Michal-
+ [7] Andreas Blattmann, Tim Dockhorn, Sumith Kulal, Daniel             ski, Joanna Materzynska, Susanne Westphal, Heuna Kim,
+     Mendelevitch, Maciej Kilian, Dominik Lorenz, Yam                  Valentin Haenel, Ingo Fruend, Peter Yianilos, Moritz
+     Levi, Zion English, Vikram Voleti, Adam Letts, Varun              Mueller-Freitag, et al. The” something something” video
+     Jampani, and Robin Rombach. Stable video diffusion:               database for learning and evaluating visual common
+     Scaling latent video diffusion models to large datasets,          sense. In Proceedings of the IEEE international con-
+     2023. URL https://arxiv.org/abs/2311.15127.                       ference on computer vision, pages 5842–5850, 2017.
+ [8] Joao Carreira and Andrew Zisserman. Quo vadis, action        [19] Yanjiang Guo, Yucheng Hu, Jianke Zhang, Yen-Jen
+     recognition? a new model and the kinetics dataset. In             Wang, Xiaoyu Chen, Chaochao Lu, and Jianyu Chen.
+     Prediction with action: Visual policy learning via joint     [26] Moo Jin Kim, Karl Pertsch, Siddharth Karamcheti, Ted
+     denoising process. In The Thirty-eighth Annual Confer-            Xiao, Ashwin Balakrishna, Suraj Nair, Rafael Rafailov,
+     ence on Neural Information Processing Systems, 2024.              Ethan Foster, Grace Lam, Pannag Sanketi, Quan Vuong,
+[20] Yanjiang Guo, Yucheng Hu, Jianke Zhang, Yen-Jen                   Thomas Kollar, Benjamin Burchfiel, Russ Tedrake, Dorsa
+     Wang, Xiaoyu Chen, Chaochao Lu, and Jianyu Chen.                  Sadigh, Sergey Levine, Percy Liang, and Chelsea Finn.
+     Prediction with action: Visual policy learning via joint          Openvla: An open-source vision-language-action model.
+     denoising process, 2024. URL https://arxiv.org/abs/2411.          arXiv preprint arXiv:2406.09246, 2024.
+     18179.                                                       [27] Seungjae Lee, Yibin Wang, Haritheja Etukuru, H. Jin
+[21] Kaiming He, X. Zhang, Shaoqing Ren, and Jian Sun.                 Kim, Nur Muhammad Mahi Shafiullah, and Lerrel Pinto.
+     Deep residual learning for image recognition. 2016 IEEE           Behavior generation with latent actions, 2024. URL
+     Conference on Computer Vision and Pattern Recogni-                https://arxiv.org/abs/2403.03181.
+     tion (CVPR), pages 770–778, 2015. URL https://api.           [28] Yaron Lipman, Ricky T. Q. Chen, Heli Ben-Hamu,
+     semanticscholar.org/CorpusID:206594692.                           Maximilian Nickel, and Matt Le. Flow matching for
+[22] Jonathan Ho, Ajay Jain, and Pieter Abbeel. Denoising              generative modeling. In International Conference on
+     diffusion probabilistic models, 2020.                             Learning Representations, 2023.
+[23] Jonathan Ho, Tim Salimans, Alexey Gritsenko, William         [29] Bo Liu, Yifeng Zhu, Chongkai Gao, Yihao Feng, qiang
+     Chan, Mohammad Norouzi, and David J Fleet. Video                  liu, Yuke Zhu, and Peter Stone. LIBERO: Benchmarking
+     diffusion models. arXiv preprint arXiv:2204.03458,                knowledge transfer for lifelong robot learning. In Thirty-
+     2022.                                                             seventh Conference on Neural Information Processing
+[24] Yucheng Hu, Yanjiang Guo, Pengchao Wang, Xiaoyu                   Systems Datasets and Benchmarks Track, 2023. URL
+     Chen, Yen-Jen Wang, Jianke Zhang, Koushil Sreenath,               https://openreview.net/forum?id=xzEtNSuDJk.
+     Chaochao Lu, and Jianyu Chen. Video prediction policy:       [30] Ilya Loshchilov and Frank Hutter. Decoupled weight de-
+     A generalist robot policy with predictive visual represen-        cay regularization. In International Conference on Learn-
+     tations, 2024. URL https://arxiv.org/abs/2412.14803.              ing Representations, 2019. URL https://openreview.net/
+[25] Alexander Khazatsky, Karl Pertsch, Suraj Nair, Ash-               forum?id=Bkg6RiCqY7.
+     win Balakrishna, Sudeep Dasari, Siddharth Karam-             [31] Ajay Mandlekar, Danfei Xu, Josiah Wong, Soroush
+     cheti, Soroush Nasiriany, Mohan Kumar Srirama,                    Nasiriany, Chen Wang, Rohun Kulkarni, Li Fei-Fei,
+     Lawrence Yunliang Chen, Kirsty Ellis, Peter David                 Silvio Savarese, Yuke Zhu, and Roberto Martı́n-Martı́n.
+     Fagan, Joey Hejna, Masha Itkina, Marion Lepert,                   What matters in learning from offline human demon-
+     Yecheng Jason Ma, Patrick Tree Miller, Jimmy Wu,                  strations for robot manipulation. In arXiv preprint
+     Suneel Belkhale, Shivin Dass, Huy Ha, Arhan Jain, Abra-           arXiv:2108.03298, 2021.
+     ham Lee, Youngwoon Lee, Marius Memmel, Sungjae               [32] Yuta Oshima, Shohei Taniguchi, Masahiro Suzuki, and
+     Park, Ilija Radosavovic, Kaiyuan Wang, Albert Zhan,               Yutaka Matsuo. Ssm meets video diffusion models:
+     Kevin Black, Cheng Chi, Kyle Beltran Hatch, Shan                  Efficient long-term video generation with structured state
+     Lin, Jingpei Lu, Jean Mercat, Abdul Rehman, Pan-                  spaces. arXiv preprint arXiv:2403.07711, March 2024.
+     nag R Sanketi, Archit Sharma, Cody Simpson, Quan             [33] William Peebles and Saining Xie.            Scalable dif-
+     Vuong, Homer Rich Walke, Blake Wulfe, Ted Xiao,                   fusion models with transformers.          arXiv preprint
+     Jonathan Heewon Yang, Arefeh Yavary, Tony Z. Zhao,                arXiv:2212.09748, 2022.
+     Christopher Agia, Rohan Baijal, Mateo Guaman Cas-            [34] Dustin Podell, Zion English, Kyle Lacey, Andreas
+     tro, Daphne Chen, Qiuyu Chen, Trinity Chung, Jaimyn               Blattmann, Tim Dockhorn, Jonas Müller, Joe Penna, and
+     Drake, Ethan Paul Foster, Jensen Gao, David Antonio               Robin Rombach. SDXL: Improving latent diffusion mod-
+     Herrera, Minho Heo, Kyle Hsu, Jiaheng Hu, Donovon                 els for high-resolution image synthesis. In The Twelfth
+     Jackson, Charlotte Le, Yunshuang Li, Kevin Lin, Roy               International Conference on Learning Representations,
+     Lin, Zehan Ma, Abhiram Maddukuri, Suvir Mirchandani,              2024. URL https://openreview.net/forum?id=di52zR8xgf.
+     Daniel Morton, Tony Nguyen, Abigail O’Neill, Rosario         [35] NVIDIA Research.             Cosmos world foundation
+     Scalise, Derick Seale, Victor Son, Stephen Tian, Emi              model platform for physical ai.           arXiv preprint
+     Tran, Andrew E. Wang, Yilin Wu, Annie Xie, Jingyun                arXiv:2501.03575, January 2025.
+     Yang, Patrick Yin, Yunchu Zhang, Osbert Bastani, Glen        [36] Robin Rombach, Andreas Blattmann, Dominik Lorenz,
+     Berseth, Jeannette Bohg, Ken Goldberg, Abhinav Gupta,             Patrick Esser, and Björn Ommer. High-resolution image
+     Abhishek Gupta, Dinesh Jayaraman, Joseph J Lim, Ji-               synthesis with latent diffusion models, 2021.
+     tendra Malik, Roberto Martı́n-Martı́n, Subramanian Ra-       [37] Stephane Ross and Drew Bagnell. Efficient reduc-
+     mamoorthy, Dorsa Sadigh, Shuran Song, Jiajun Wu,                  tions for imitation learning. In Yee Whye Teh and
+     Michael C. Yip, Yuke Zhu, Thomas Kollar, Sergey                   Mike Titterington, editors, Proceedings of the Thirteenth
+     Levine, and Chelsea Finn. Droid: A large-scale in-                International Conference on Artificial Intelligence and
+     the-wild robot manipulation dataset, 2024. URL https:             Statistics, volume 9 of Proceedings of Machine Learning
+     //arxiv.org/abs/2403.12945.                                       Research, pages 661–668, Chia Laguna Resort, Sardinia,
+     Italy, 13–15 May 2010. PMLR. URL https://proceedings.            Lee, Jianfeng Gao, Luke Zettlemoyer, Dieter Fox, and
+     mlr.press/v9/ross10a.html.                                       Minjoon Seo. Latent action pretraining from videos,
+[38] Nur Muhammad Mahi Shafiullah, Zichen Jeff Cui, Ar-               2024. URL https://arxiv.org/abs/2410.11758.
+     iuntuya Altanzaya, and Lerrel Pinto. Behavior trans-        [49] Tony Z. Zhao, Vikash Kumar, Sergey Levine, and
+     formers: Cloning k modes with one stone, 2022. URL               Chelsea Finn. Learning fine-grained bimanual manip-
+     https://arxiv.org/abs/2206.11251.                                ulation with low-cost hardware, 2023. URL https://arxiv.
+[39] Jiaming Song, Chenlin Meng, and Stefano Ermon. De-               org/abs/2304.13705.
+     noising diffusion implicit models. In International         [50] Tony Z. Zhao, Jonathan Tompson, Danny Driess, Pete
+     Conference on Learning Representations, 2021. URL                Florence, Kamyar Ghasemipour, Chelsea Finn, and
+     https://openreview.net/forum?id=St1giarCHLP.                     Ayzaan Wahid. Aloha unleashed: A simple recipe for
+[40] Octo Model Team, Dibya Ghosh, Homer Walke, Karl                  robot dexterity, 2024. URL https://arxiv.org/abs/2410.
+     Pertsch, Kevin Black, Oier Mees, Sudeep Dasari, Joey             13126.
+     Hejna, Tobias Kreiman, Charles Xu, Jianlan Luo,             [51] Chunting Zhou, Lili Yu, Arun Babu, Kushal Tiru-
+     You Liang Tan, Lawrence Yunliang Chen, Pannag San-               mala, Michihiro Yasunaga, Leonid Shamis, Jacob Kahn,
+     keti, Quan Vuong, Ted Xiao, Dorsa Sadigh, Chelsea                Xuezhe Ma, Luke Zettlemoyer, and Omer Levy. Trans-
+     Finn, and Sergey Levine. Octo: An open-source gener-             fusion: Predict the next token and diffuse images with
+     alist robot policy, 2024. URL https://arxiv.org/abs/2405.        one multi-modal model, 2024. URL https://arxiv.org/abs/
+     12213.                                                           2408.11039.
+[41] Chen Wang, Linxi Fan, Jiankai Sun, Ruohan Zhang,
+     Li Fei-Fei, Danfei Xu, Yuke Zhu, and Anima Anand-
+     kumar. Mimicplay: Long-horizon imitation learning by
+     watching human play, 2023. URL https://arxiv.org/abs/
+     2302.12422.
+[42] Chuan Wen, Xingyu Lin, John So, Kai Chen, Qi Dou,
+     Yang Gao, and Pieter Abbeel. Any-point trajectory
+     modeling for policy learning, 2024. URL https://arxiv.
+     org/abs/2401.00025.
+[43] Junjie Wen, Yichen Zhu, Jinming Li, Minjie Zhu, Kun
+     Wu, Zhiyuan Xu, Ning Liu, Ran Cheng, Chaomin Shen,
+     Yaxin Peng, Feifei Feng, and Jian Tang. Tinyvla: To-
+     wards fast, data-efficient vision-language-action models
+     for robotic manipulation, 2024. URL https://arxiv.org/
+     abs/2409.12514.
+[44] Hongtao Wu, Ya Jing, Chilam Cheang, Guangzeng Chen,
+     Jiafeng Xu, Xinghang Li, Minghuan Liu, Hang Li, and
+     Tao Kong. Unleashing large-scale video generative pre-
+     training for visual robot manipulation, 2023. URL https:
+     //arxiv.org/abs/2312.13139.
+[45] Hongtao Wu, Ya Jing, Chilam Cheang, Guangzeng Chen,
+     Jiafeng Xu, Xinghang Li, Minghuan Liu, Hang Li, and
+     Tao Kong. Unleashing large-scale video generative pre-
+     training for visual robot manipulation. In The Twelfth
+     International Conference on Learning Representations,
+     2024.
+[46] Jialong Wu, Shaofeng Yin, Ningya Feng, Xu He, Dong
+     Li, Jianye Hao, and Mingsheng Long. ivideogpt: Inter-
+     active videogpts are scalable world models. In Advances
+     in Neural Information Processing Systems, 2024.
+[47] Haoyu Xiong, Quanzhou Li, Yun-Chun Chen, Homanga
+     Bharadhwaj, Samarth Sinha, and Animesh Garg. Learn-
+     ing by watching: Physical imitation of manipulation
+     skills from human videos, 2021. URL https://arxiv.org/
+     abs/2101.07241.
+[48] Seonghyeon Ye, Joel Jang, Byeongguk Jeon, Sejune Joo,
+     Jianwei Yang, Baolin Peng, Ajay Mandlekar, Reuben
+     Tan, Yu-Wei Chao, Bill Yuchen Lin, Lars Liden, Kimin
+                                                                                                          TABLE V
+                             A PPENDIX                                                               H YPERPARAMETERS
+A. Additional Implementation Details
+                                                                               Parameter                       Value
+   1) Model Architecture: We base our implementation                           Model
+of UWM on the diffusion transformer architecture with                          Observation Length ho           2
+AdaLN conditioning [33]. The inputs to the model are                           Observation Encoder             ResNet-18
+                                                                               Image VAE                       SDXL
+(o, ata , o′to′ , ta , to′ ), where o := {oi0:ho }ni=1
+                                                    c
+                                                       is a sequence of        Image Shape                     [224, 224, 3]
+observations from nc camera views, ata := aho :ho +ha is a                     Latent Image Shape              [28, 28, 4]
+sequence of noisy actions, o′to′ := {oiho +ha :2ho +ha }ni=1     c
+                                                                    is a       Patch Shape                     [4, 4, 2]
+                                                                               Action Length ha                16
+sequence of noisy observations from each camera view after                     Rollout Length h′a              8
+the actions, and ta , t′o are diffusion timesteps. The current                 Embed Dim                       768
+observations are encoded into features {ϕi0:ho }ni=1         c
+                                                                using a        Timestep Embed Dim              512
+                                                                               Depth                           12
+ResNet-18 [21] encoder, which is initialized the using Ima-                    Num Heads                       12
+geNet [16] pretrained weights and updated throughout training.                 MLP Ratio                       4
+The timesteps ta and to′ are encoded into features ψa , ψo′ via                QKV Bias                        True
+                                                                               Num Registers Nr                8
+a sinusoidal embedding network [22]. The image features are
+flattened and concatenated with the timestep embeddings and                    Diffusion
+                                                                               Beta Schedule                   squaredcos cap v2
+used to condition each transformer block via AdaLN layers                      Num Training Diffusion Steps    100
+[33].                                                                          Num Inference Diffusion Steps   10
+   The input sequence to the transformer consists of encoded                   Sampler                         DDIM
+                                                                               Clip Sample                     True
+tokens from ata , o′to′ and additional register tokens r1:Nr .
+The actions are encoded to tokens using a shallow MLP                          Training
+                                                                               Batch Size (Distributed)        36 × 4 (pretraining)
+encoder share across timesteps. For images, we follow the                                                      36 × 2 (finetuning)
+latent diffusion paradigm [36] and downsample the raw image                    Optimizer                       AdamW
+observations into latent space using a frozen VAE from Stable                  Learning Rate                   1e−4
+                                                                               Weight Decay                    1e−6
+Diffusion XL [34]. The image latents are patchified into patch                 Betas                           [0.9, 0.999]
+embeddings using a 3D convolution layer. We concatenate                        Epsilon                         1e−8
+the action embeddings, the image patch embeddings, and                         LR Schedule                     constant (pretraining)
+                                                                                                               cosine w/ warmup (finetuning)
+the learnable register tokens along the sequence dimension                     LR Warmup Steps                 1000
+and pass them as input to the transformer model. We add                        Action Loss Weight wa           1.0
+a learnable positional embedding to the inputs to encode                       Image Loss Weight wo′           1.0
+positional information. To decode action and image noise
+predictions from the model outputs, we take the respective
+tokens (discarding registers) and decode then using shallow
+                                                                           to ta = T , and impute the missing actions with random actions
+MLP networks. Note that the image noise predictions are in
+                                                                           drawn from the unit Gaussian distribution. The action diffusion
+the latent space, and we only decode the final image prediction
+                                                                           loss is computed across all samples in a batch (both robot
+at the end of the sampling procedure.
+                                                                           samples and video samples).
+   2) Training and Inference Details: Given a transition tuple
+(o, a, o′ ) from sampled from the dataset, we first apply random              We optimize the model using the AdamW [30] optimizer.
+cropping and augmentations to the image observations. The                  For pretraining experiments, we use a constant learning rate.
+cropping and augmentation parameters are kept temporally                   For finetuning experiments, we use a cosine annealed learning
+consistent across o and o′ but differ from camera view to                  rate with warmup. We sample from the reverse diffusion
+camera view. We then sample action and observation diffusion               processes using the DDIM [39] sampler to speed up inference.
+timesteps ta , t′o independently from the uniform distribution             At deployment, we execute the the first h′a action predictions
+U[0, T ). These are used to sample noisy actions ata and                   and replan. We provide all model and training hyperparameters
+observations o′t′o according to the forward diffusion process.             in Table V.
+The tuple (o, ata , o′to′ , ta , to′ ) is passed as input to the model,       Tips for Tuning UWM While UWM is generally stable
+which outputs the action and observation noise predictions                 with respect to hyperparameters, we find that for pretraining on
+ϵa , ϵo′ . We train the model by optimizing the diffusion loss             highly multimodal datasets, increasing the number of registers
+outlined in Eq. 1.                                                         helps improve performance. For new datasets, we recommend
+   To co-train the model on video data, we combine a robot                 trying the default hyperparameters first and then tuning the
+dataset and a video dataset to get a mixture dataset and sample            number of registers for potential performance gains.
+batches of transition tuples from the mixture dataset uniformly              3) Training Compute: Training a UWM on the DROID
+at random. Each batch contains a mixture of video data and                 dataset for 100K gradient steps with the hyperparameters
+action data. For the action-free video samples in each batch,              shown in Table V takes 24 hours on 4 NVIDIA A100 GPUs
+we manually set the corresponding action diffusion timesteps               using Pytorch DDP.
+                                                                                                             TABLE VI
+                                                                                                    TASK -S PECIFIC PARAMETERS
+
+                                                                                                   # demos   # finetuning steps   # eval conditions
+                                                 Eval Camera                       Stack-Bowls       50            10K                   50
+                                                                                   Block-Cabinet     50            10K                   50
+                                                                                   Paper-Towel      100            20K                   50
+                                                                                   Hang-Towel        50            10K                   50
+                                                                                   Rice-Cooker      150            50K                   20
+
+
+                                  Wrist camera
+                                                    Scene camera 2              evaluation. The robot operates at a control frequency of 10
+                                                                                Hz, allowing us to have responsive and smooth task execution.
+         Scene camera 1
+                                                                                The action space is defined by a delta end-effector (EE) pose,
+                                                                                which specifies incremental positional and rotational adjust-
+                                                                                ments relative to the current pose. Additionally, the gripper
+Fig. 11. Setup of the robot experiments. We adopt the DROID [25] setup
+which consists of two scene cameras and one wrist camera. We use an             state is represented using a single continuous dimension, where
+additional evaluation camera to track the initialization of evaluation seeds.   0 indicates the gripper is open and 1 indicates the gripper is
+                                                                                closed.
+                                                                                   2) Tasks: We provide a detailed description of each real-
+B. Baseline Details                                                             world task shown in Fig. 5 and the task-specific settings in
+   1) Diffusion Policies: We base our implementation of dif-                    Table VI.
+fusion policies on the UWM model. We remove the image                             • Stack-Bowls: the robot needs to pick up the red bowl on
+tokens, image diffusion timestep, and registers and keep ev-                        the counter and place it in the blue bowl. The positions
+erything else identical. This is equivalent to the Transformer                      of the bowls are randomized across the counter top. A
+version of the original diffusion policy [11] and similar to the                    rollout is successful if the red bowl is placed securely
+architecture in [15].                                                               inside the blue bowl. For the OOD setup, we open the
+   2) PAD: We base our implementation of PAD on the UWM                             top cabinet, the bottom drawer, and place unseen objects
+model, replacing coupled action-image diffusion with joint                          on the counter and stovetop.
+diffusion, and condition the model by concatenating the clean                     • Block-Cabinet: the robot needs to (1) open the left
+current observations to the noisy future observation predictions                    cabinet door by grasping the handle, and (2) pick up
+along the channel dimension. The diffusion timestep is still                        the red block from the counter top and place it on the
+passed into the transformer via AdaLN. While the original                           bottom level of the cabinet. The position of the red block
+PAD [20] method predicts consecutive actions and future                             is randomized across the counter. A rollout is successful
+frames, we adapt it to predict sequences of actions and the                         if the block is placed securely in the cabinet. For the
+following observations (same as UWM) to isolate the effect                          OOD setup, we open the bottom drawer and place unseen
+of key design differences such as joint video-action diffusion                      objects on the counter and stovetop.
+and conditioning method.                                                          • Paper-Towel: the robot is tasked to take out a paper towel
+   3) GR1: We use a custom implementation of the GR1                                placed in the open cabinet and place it vertically on a base
+model adapted to have the same input-output format as UWM.                          plate on the counter. The position of the paper towel is
+Instead of regressing consecutive actions and observations,                         randomized across the cabinet shelf, and position of the
+we predict a sequence of actions and the following image                            base plate is randomized across the counter top. Success
+observations. GR1 conditions on the current observations by                         is counted if the paper towel is placed securely on the
+passing the ViT encoded observation tokens through a Per-                           base plate and does not topple. For the OOD setup, we
+ceiver resampler from Flamingo [1], and then concatenating                          open the bottom drawer and place unseen objects on the
+the resulting tokens to the input sequence of the transformer                       counter and stovetop.
+model. The rest of input sequence for the transformer consists                    • Hang-Towel: the robot is tasked to pick up a towel from
+of learnable action and observation tokens. The output tokens                       the counter and hang it on a hook on the cabinet. The
+are passed into respective decoders (MLP for actions, DiT                           position and shape of the towel are randomized during
+decoder for image patches) to regress the modalities.                               data collection. For evaluation, we fold the towel carefully
+                                                                                    to ensure standardization (Fig. 12). A rollout is successful
+C. Additional Details on Real-World Experiments                                     if the towel hangs on the hook and does not slip off. For
+  1) Robot Setup: We conduct real-world experiments using a                         the OOD setup, we open the bottom drawer and place
+Franka Panda robot in the DROID [25] setup. As shown in Fig.                        unseen objects on the counter and stovetop.
+11 the robot’s observation space consists of two scene cameras                    • Rice-Cooker:      this is a multistage task that involves
+and a wrist camera (visualized in Fig. 13. We additionally                          (1) picking up a cup of rice, (2) pouring the rice into
+mount an overhead camera to track the initializations during                        the bowl, (3) placing the cup back on the counter, (4)
+             Misaligned                             Aligned
+                                                                               In-Distribution
+
+
+
+                                                                               Standard OOD
+
+
+
+                                                                                    Lighting 1
+
+
+
+                                                                                    Lighting 2
+
+
+
+                                                                                Background 1
+
+Fig. 12. Screenshots of the evaluation tracker. The tracker overlays the
+reference initial frame to the current frame. The same interface is used to     Background 2
+tracker the initialization for all real robot tasks.
+
+
+                                                                                     Clutter 1
+     picking up the bowl and placing it in the rice cooker.
+     The positions of all objects are randomized. A rollout is
+     successful if there is minimal spill of rice and the bowl
+                                                                                     Clutter 2
+     is placed securely in the rice cooker. We find this task
+     to be particularly challenging and hence only evaluate on
+     20 initializations that are close to the dataset distribution.           Fig. 13. Visualization of the robot’s perspective in in-distribution, standard
+     We do not evaluate this task in OOD settings.                            out-of-distribution (Table. I), and categorized out-of-distribution (Table. IV)
+                                                                              scenarios.
+   3) Evaluation Protocol: To ensure fairness of real-robot
+evaluations, we use an overhead camera and a Python program
+to systematically track randomizations. As shown in Fig. 12,                  robot to complete various tasks across different scenes. The
+the program overlays the reference frame onto the current                     LIBERO-100 benchmark consists of 100 tasks distributed
+frame, so the user can adjust the objects to match the ref-                   across three scenes (kitchen, living room, study), each with
+erence frame. All tasks except Rice-Cooker are evaluated on                   50 accompanying expert demonstrations. The 100 tasks are
+50 randomly generated configurations. We find Rice-Cooker                     split into 90 tasks for training (LIBERO-90) and 10 tasks for
+particularly challengeing and evaluate on 20 configurations                   evaluation (LIBERO-10)
+close to the data distribution. To mitigate the effects of camera                For our experiments, we use the combined LIBERO-90
+shake due to the mounting mechanism, each method is given                     dataset as the pretraining data, totaling 4500 trajectories. We
+three attempts per initialization, making for a more robust                   evaluate on a random subset of 5 tasks from LIBERO-10. For
+evaluation across trials.                                                     each task, we finetune the pretrained models on 50 expert
+   4) Failure Modes: We provide a description of some com-                    demonstrations. To evaluate the generalization capabilities
+mon failure modes in the real-world experiments. Although we                  of the methods, we modify the simulation configuration to
+utilized three cameras to maximize coverage (Fig. 13), certain                introduce distribution shifts during the evaluation. Specifically,
+angles resulted in objects being visible to only one camera.                  we increased the initialization range of each object by 0.03
+These limited viewpoints made some initializations more                       to generate unseen initializations and removed background
+challenging for the robot to complete the tasks successfully.                 objects to introduce visual distribution shifts. Visualizations
+Additionally, variability in object behavior contributed to task              of the evaluation environments are shown in Fig 7, and we
+failures. For instance, in the Paper-Towel task, the robot often              provide a description of the evaluation tasks below.
+places the paper towel on the wooden platform, but the angle                     1) Book-Caddy: the robot needs to pick up the book from
+of placement may cause the paper towel to topple over. In                           the table top and place it in the back of a caddy.
+the Stack-Bowls task, a source of failure for baseline methods                   2) Soup-Cheese: the robot needs to place the alphabet soup
+is their inability in distinguishing between the blue bowl and                      and the cheese in the basket in sequence.
+the distractor when attempting to locate the blue bowl after                     3) Bowl-Drawer: the robot needs to pick up the bowl, place
+picking up the pink bowl. This issue does not occur with our                        it in the bottom drawer, and close the drawer.
+proposed method.                                                                 4) Moka-Moka: the robot needs to pick up the two Moka
+   5) Simulated Environments: LIBERO [29] is a simulated                            cups from the table and place them on the electric stove.
+robotic benchmark designed to evaluate lifelong learning                         5) Mug-Mug: the robot needs to place the left mug in the
+algorithms. It involves controlling a 7-DoF Franka Panda                            left plate and place the right mug in the right plate.
+                           TABLE VII                                                 Internet Video Dataset (Kinetics 400 and Something-Something v2)
+                  A BLATION OF DESIGN CHOICES
+
+                               Book-Caddy          Soup-Cheese
+        UWM w/ 8 registers        0.88 ± 0.04       0.90 ± 0.02
+        UWM w/ 4 registers        0.83 ± 0.05       0.86 ± 0.03
+        UWM w/o registers         0.81 ± 0.07       0.85 ± 0.03
+        Cross attention UWM       0.78 ± 0.05       0.86 ± 0.04          Fig. 14.   Visualization of Internet video dataset. We curate the dataset
+                                                                         by combining human activity videos from Kinetics-400 [8] and Something-
+                          TABLE VIII                                     Something-v2 [18].
+               A BLATION OF L EARNING O BJECTIVES
+
+                                     Stack-Bowls      Block-Cabinet      v2 [18] dataset in the training, which contain video clips of
+    UWM Reconstruct Future Obs           0.86               0.76         human activities (Fig. 14). Since the DROID setup has 3
+    UWM Reconstruct Current Obs          0.70               0.66         camera views, we use random crops of the same video to
+    DP (No Reconstruction)               0.48               0.60         impute the missing camera views. Results in Table IX indicate
+                                                                         that cotraining on Internet videos shows some improvement
+                           TABLE IX
+                C OTRAINING ON I NTERNET V IDEOS                         on training only on robot data, but cotraining with in-domain
+                                                                         robot videos still performs better. We expect these gains to be
+                                        Stack-Bowls      Block-Cabinet   amplified in more challenging tasks and testing conditions.
+  UWM Robot Data + Robot Videos             0.92                  0.84
+  UWM Robot Data + Internet Videos          0.88                  0.80
+  UWM Robot Data                            0.86                  0.76
+
+
+
+D. Additional Experiments
+   1) Ablations of Design Choices: To understand the effect
+of UWM’s design choices, we conduct ablation studies on two
+simulated tasks from the LIBERO environment. Specifically,
+we want to (1) understand the effect of registers on task per-
+formance, and (2) compare the use of AdaLN for observation
+conditioning with cross attention [17]. For each model, we
+train them on the single-task datasets from scratch (without
+pretraining), and evaluate on 50 initializations across 3 seeds.
+   Results in Table VII show that adding registers to the trans-
+former help improve the model performance. We hypothesize
+that adding registers facilitate the exchange of information
+between actions and latent image patches, which are distinct
+modalities. We also found that replacing AdaLN conditioning
+with cross attention results in worse performance. One possible
+explanation is that action prediction tasks benefit more from
+AdaLN’s global modulation than from the per-token local
+modulation provided by cross-attention. We note that this
+finding may not apply to other modalities such as language.
+   2) Ablation of Learning Objectives: To evaluate whether
+the performance gain of UWM is a result of dynamics predic-
+tion or pure reconstruction, we pretrain a UWM to reconstruct
+the current observations instead of the future observations.
+This incentivizes the model to learn about image features, but
+not about temporal dynamics. Table. VIII shows that while
+reconstructing the current observations improves upon the
+base DP architecture with no image reconstruction, we find it
+advantageous to reconstruct future observations. This indicates
+that our model benefits from predicting dynamics rather than
+purely just image features.
+   3) Learning from Internet videos: We evaluate whether
+UWM can leverage knowledge from Internet videos by includ-
+ing a mixture of Kinetics-400 [8] and Something-Something-
+

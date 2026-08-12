@@ -1,0 +1,995 @@
+                                                                            Unified Video Action Model
+                                                                              Shuang Li          Yihuai Gao                Dorsa Sadigh              Shuran Song
+                                                                                                           Stanford University
+                                                                                        https://unified-video-action-model.github.io/
+
+
+                                                                                                   Input          Policy           Video Model       Forward Dynamics Inverse Dynamics       Policy+Planner
+                                          Action         Observation
+                                                                                     Input        Video    Ot-1     Ot     Ot+1   Ot-1   Ot   Ot+1     Ot-1   Ot   Ot+1   Ot-1   Ot   Ot+1   Ot-1   Ot   Ot+1
+
+                                                    Joint Sequence Model                          Action At-1
+                                                                                                          t-1
+                                                                                                                    At
+                                                                                                                     t
+                                                                                                                           At+1
+                                                                                                                            t+1
+                                                                                                                                  At-1
+                                                                                                                                   t-1
+                                                                                                                                         At
+                                                                                                                                          t
+                                                                                                                                              At+1
+                                                                                                                                               t+1
+                                                                                                                                                       At-1
+                                                                                                                                                        t-1
+                                                                                                                                                              At
+                                                                                                                                                               t
+                                                                                                                                                                   At+1
+                                                                                                                                                                    t+1
+                                                                                                                                                                          At-1
+                                                                                                                                                                           t-1
+                                                                                                                                                                                 At
+                                                                                                                                                                                  t
+                                                                                                                                                                                      At+1
+                                                                                                                                                                                       t+1
+                                                                                                                                                                                             At-1 At
+                                                                                                                                                                                              t-1  t
+                                                                                                                                                                                                         At+1
+                                                                                                                                                                                                          t+1
+
+
+
+
+arXiv:2503.00200v3 [cs.RO] 24 Apr 2025
+                                                        Joint Latent                 Predicted
+                                                                                                                                               Uniﬁed Video Action Model
+
+                                            Action Diffusion       Video Diffusion                Output
+                                                                                     Mask         Video                                       Ot+1                 Ot+1                                  Ot+1
+
+                                           Action        Observation                              Action            At     At+1                                           At-1   At                 At   At+1
+
+                                                     (a) UVA Overview                                              (b) Random masked training supports ﬂexible Input-Output conﬁguration
+
+                                         Fig. 1: Unified Video Action Model. (a) UVA features a joint video-action latent representation and decoupled video-action decoding. The
+                                         joint latent representation effectively models the underlying relationships between video and action sequences, while the decoupled diffusion
+                                         enables high-speed action inference by bypassing video generation. (b) By leveraging masked training, UVA supports flexible input-output
+                                         combinations for actions and videos. This versatility allows the model to function as a robot policy, video model, forward or inverse dynamics
+                                         model, or even a combined policy and video planner—all within a unified framework.
+
+                                            Abstract—A unified video and action model holds significant                       A key challenge lies in the inherent mismatch between the
+                                         promise for robotics, where videos provide rich scene infor-                         requirements of action and video generation. Action modeling
+                                         mation for action prediction, and actions provide dynamics                           demands high temporal speed to capture dense, fine-grained
+                                                   t-k fort video
+                                         information           t+k prediction. However, effectively combining
+                                         video generation and action prediction remains challenging, and                      motions, while video generation requires high spatial resolu-
+                                         current video generation-based methods struggle to match the                         tion to produce high-fidelity visual outputs, which often results
+                                         performance of direct policy learning in action accuracy and                         in slower processing speeds.
+                                         inference speed. To bridge this gap, we introduce the Unified
+                                         Video Action model (UVA), which jointly optimizes video and
+                                                                                                                                 Previous policy learning approaches have struggled to bal-
+                                         action predictions to achieve both high accuracy and efficient                       ance these conflicting requirements, often focusing on one
+                                         action inference. The key lies in learning a joint video-action                      aspect at the expense of the other. For instance, action only
+                                         latent representation and decoupling video-action decoding. The                      methods like [10, 25, 51] bypass video generation entirely.
+                                         joint latent representation bridges the visual and action domains,                   While such approaches reduce computational complexity, they
+                                         effectively Full
+                                                      modeling the relationship between video and action
+                                         sequences. Dynamics
+                                                      Meanwhile, the decoupled decoding, powered by two
+                                                                                                                              overlook the benefits of video generation – adding observation
+                                         lightweight diffusion heads, enables high-speed action inference                     supervision helps the model learn scene dynamics, which
+                                         by bypassing video generation during inference. Such a uni-                          reduces overfitting to action history and enhances robustness
+                                         fied framework further enables versatile functionality through                       to visual disturbances. On the other hand, video generation
+                                         masked input training. By selectively masking actions or videos, a                   methods such as [14, 28] often first generate high-resolution
+                                         single model can tackle diverse functions beyond policy learning,
+                                         such as forward and inverse dynamics modeling and video
+                                                                                                                              videos and then predict actions based on the generated videos.
+                                         generation. Via an extensive set of experiments, we demonstrate                      While this hierarchical approach can utilize existing video
+                                         that UVA can serve as a general-purpose solution for a wide range                    models, it also introduces significant drawbacks, including
+                                         of robotics tasks without compromising performance compared                          slower processing speeds and the propagation of errors from
+                                         to methods tailored for specific applications. Results are best                      the generated video into action prediction.
+                                         viewed on our website.
+                                                                                                                                To address these limitations, we propose UVA, a Unified
+                                                                   I. I NTRODUCTION                                           Video and Action Model designed to simultaneously model
+                                            A unified video and action model that jointly learns an                           videos and actions – capturing the underlying interactions be-
+                                         agent’s actions and their effects on visual observations holds                       tween visuals and actions to enhance task understanding, while
+                                         great promise for robotics – videos provide rich environmental                       maintaining high-speed action prediction during inference. We
+                                         context for predicting actions, while actions reveal how inter-                      propose the following three design choices to achieve this:
+                                         actions drive visual changes, enabling more accurate modeling                           1) Unified Latent Video-Action Representation: UVA
+                                         of real-world dynamics. However, despite its promise, previous                       introduces a unified latent representation that integrates both
+                                         approaches have often failed to fully realize this potential.                        visual and action data. Unlike traditional video generation
+based policy methods which rely on a hierarchical video                                    II. R ELATED W ORK
+and action generation, UVA is trained simultaneously with                There is a rich literature on video generation where the dom-
+supervision from both video and action data. This enables             inant approach includes diffusion-based methods [3, 4, 18, 21–
+the model to capture the intricate dynamics shared between            23, 37–40] or autoregressive-based methods [13, 17, 45–
+the visual and action domains with reduced computational              47, 50]. Our model utilizes the ideas from both of these
+overhead. Utilizing the rich scene information encoded in the         techniques, as we will discuss in section III. Another line
+latent representation unlocks UVA’s superior performance in           of related work involves the use of masked training in robot
+understanding complex environments and delivering precise             learning. In this section, we will review both video generation
+action predictions.                                                   and masked training approaches used in robotics.
+   2) Decoupled Video-Action Diffusion for Fast Inference:
+                                                                      Video Generation for Policy Learning: Video models aid
+To further enhance efficiency and achieve inference speed
+                                                                      policy learning by simulating task dynamics and predicting
+comparable to action-only methods, UVA decouples video
+                                                                      future states. Models like [14, 28] leverage video generation
+generation from action prediction. During training, the model
+                                                                      techniques to produce high-quality videos, which are then used
+employs two lightweight diffusion heads to decode video
+                                                                      for action prediction. PAD [19] jointly trains video generation
+observations and actions from the unified latent space. At
+                                                                      and action prediction; however, it cannot predict future ac-
+inference, this decoupling allows the system to bypass video
+                                                                      tions independently of future image generation, resulting in
+generation entirely, directly utilizing the latent representation
+                                                                      slower inference. The work by [49] leverages video models to
+for fast action prediction. This design enables real-time policy
+                                                                      generate object flow as an intermediate representation, which
+deployment without sacrificing performance, as it still retains
+                                                                      captures physical interactions and is used to predict actions
+the rich representations learned during training from both
+                                                                      for skill transfer across different robotic embodiments and
+visual motions and robot action trajectories.
+                                                                      environments. In [24], a video diffusion model is fine-tuned
+   3) Mask Training for Flexibility: The ability to predict
+                                                                      on robotics tasks, with the latent representations from the pre-
+both videos and actions through unified representations further
+                                                                      dicted videos serving as inputs to a policy network for action
+unlocks the potential to perform a diverse set of functions
+                                                                      prediction. Existing approaches that utilize video generation
+using masked training. UVA can handle versatile functions that
+                                                                      for policy learning often suffer from slow inference speeds,
+go beyond traditional policy learning by masking inputs and
+                                                                      making them impractical for real-world applications. Addition-
+outputs as needed, as illustrated in Figure 1. This versatility en-
+                                                                      ally, these methods often require auxiliary components, such
+ables the model to tackle complex scenarios, such as operating
+                                                                      as low-level policies [14] or image-tracking techniques [49],
+as a forward or inverse dynamics model, learning effectively
+                                                                      to extract actions from the generated videos. As a result, the
+from video-only datasets where action labels are unavailable,
+                                                                      final action accuracy suffers from compounded errors in video
+or simultaneously performing both low-level control and high-
+                                                                      generation and action prediction.
+level planning.
+   We evaluate UVA on seven publicly available benchmarks             Video Generation as Dynamics Models: Video models can
+to assess its diverse capabilities. UVA outperforms or matches        serve as dynamics models by predicting future states condi-
+state-of-the-art approaches, demonstrating particularly strong        tioned on current observations and actions, enabling robots to
+performance in multi-task settings. For instance, UVA outper-         simulate and plan tasks. GameGen-X [9] introduces a diffu-
+forms the best baseline by 20% in success rate on PushT Mul-          sion transformer model for generating and controlling open-
+titask [10, 16] and by 5% on Libero10 [30]. The experiments           world game videos, enabling interactive simulations. Genie [5]
+show that UVA can serve as a general-purpose framework                utilizes a foundation world model to transform static images
+for different robotics tasks without compromising performance         into interactive 3D environments, providing rich simulations
+compared to methods tailored for specific applications. In sum,       for embodied agents. Additionally, [43] demonstrates how
+the unified video action model is:                                    diffusion models can act as real-time game engines, gener-
+                                                                      ating dynamic and interactive scenarios to facilitate decision
+  • Capable: UVA matches the state-of-the-art approaches              making. These advancements highlight the versatility of video
+    that are tailored for robot policy learning [10, 25] or           generation models in robotic applications. In this work, we
+    planning [14], especially for multi-task learning.                propose a unified video and action model, showcasing its
+  • Practical: The use of decoupled diffusion heads elim-             ability to address both policy learning and dynamics modeling
+    inates the need for video generation during policy in-            within a single framework.
+    ference, and the use of lightweight diffusion heads re-           Masked Training: Recent works in robotics have explored
+    duces the costs of the denoising process. As a result,            masked training techniques [31, 34, 48]. For example, Liu
+    UVA achieves a similar speed as Diffusion Policy [10],            et al. [31] and Wu et al. [48] randomly mask observations
+    making it practical for robot applications.                       and actions and reconstruct the missing portions. Their results
+  • Versatile: Beyond policy learning, UVA can also serve             show that masked training improves generalization to down-
+    as a forward dynamics model for planning, as an inverse           stream tasks and enables the model to be used for various
+    dynamics model to generate actions, a video generation            applications. However, these methods primarily rely on low-
+    model, or a combined policy and video planner.                    dimensional state observations rather than videos, which are
+                             Repeat to    Flatten as N tokens                                                            Joint
+                             get N tokens                                                                                Latent   Each
+   Flatten as N tokens                                                                                                                           Video        ϵ&
+                                                                                                                                  Latent
+                                                                                                                                                Diffusion
+                                                                                                                                  Token
+                                     L
+
+
+
+
+                                                                             Temporal-wise Concatenation
+                                                                                                                                               Noisy O$!"# Future Observation Ot+1
+
+
+
+                                                         1 2 3 4 … 3 4
+                                 …
+                         2
+                   1                                                                                                       …
+
+
+
+                                                                                                           Transformer
+                                                                                                                                                                           …
+                                                       …                 …                                                                                             2          L
+                                                                                                                                  All            Action
+     History      History   Masked Future                                                                                         Latent        Diffusion     ϵ%   1
+
+   Observation Action Chunk  Observation                                                                                          Token    …                            Future
+                                                    Channel-wise                                                          Zt+1
+     Ot-h+1            At-h              Ot+1         Concat                                                                                     Noisy At              Actions At
+         …                   …              …                                                                             …                                                  …
+
+           …                  …                 …                                                                         …                                                     …
+
+              Ot                 At-1           Ot+h                                                                      Zt+h                                                 Ot+h, At+h-1
+
+Fig. 2: Network Architecture. Given historical observations {Ot−h+1 , . . . , Ot } and corresponding action chunks {At−h , . . . , At−1 }, the
+model predicts future observations {Ot+1 , . . . , Ot+h } and actions {At , . . . , At+h−1 }. Each image observation is represented as a sequence of
+N tokens, and each image corresponds to an action chunk with L actions sampled at a higher frequency. During training, future observations
+are used with randomly masked tokens, while at inference time, the model starts from an empty image to predict the complete image. History
+observations, actions, and masked future observations are combined, passed through a Transformer, and decoded into actions and videos
+using diffusion heads.
+
+more natural but harder to predict. Radosavovic et al. [34]                                                      As shown in Figure 2, our method encodes the history of
+first pretrain a model to predict actions or observations using                                               observations and actions (§III-A), along with masked future
+masked training and then finetune the model or use a linear                                                   observations (§III-B), and passes them to the Transformer
+probe for downstream tasks. Their work focuses solely on                                                      [44]. For the masked observations, we randomly mask tokens
+action prediction results. In contrast, our method does not                                                   within the future observation frames during training and train
+require finetuning for downstream tasks and can be directly                                                   the model to reconstruct them. During inference, the model
+applied to various functions beyond policy learning, such as                                                  generates the full set of tokens, starting from an empty
+video generation, forward dynamics, and inverse dynamics.                                                     sequence. In §III-C, we then discuss the choice of decoupling
+                                                                                                              video-action diffusion for fast inference addressing the high
+               III. U NIFIED V IDEO ACTION M ODEL                                                             temporal speed demand of robot policies.
+   In robotics, we are interested in learning generalizable
+policies that map observations to actions. However, this ob-                                                  A. Encode History
+jective often tends to overfit the training data, thereby limiting                                               We first process the historical image observations through
+the ability of learned policies to adapt to new scenarios.                                                    a pre-trained VAE encoder (kl-f16) [35] to obtain their latent
+In contrast, video generation [4, 36] demonstrates strong                                                     representations. Each image is encoded into a latent map of
+generalization to novel scenes and supports training on datasets                                              dimensions Rw×h×c , where w and h represent the width and
+without actions. However, effectively leveraging video data for                                               height, and c is the latent dimension. The map is then flattened
+policy learning presents challenges such as the ability to match                                              and processed by a fully-connected (FC) layer, projecting each
+the high temporal speed required for outputting dense, fine-                                                  element into a d-dimensional latent vector. Thus, each image
+grained motions. In this section, we discuss our approach to                                                  is represented as a sequence of N visual tokens, each with
+leveraging video-generation methods for robotics tasks.                                                       d-dimensional features.
+Problem Statement: Given a sequence of image observations                                                        For history actions, we use a higher sampling frequency
+{Ot−h+1 , . . . , Ot } and action chunks {At−h , . . . , At−1 },                                              compared to observations, as observations typically exhibit
+where h is the history horizon, our goal is to pre-                                                           redundancy and minimal changes over short time intervals.
+dict the future actions {At , . . . , At+h′ −1 } and observations                                             Each image observation (e.g., Ot−h+1 ) corresponds to L
+{Ot+1 , . . . , Ot+h′ }, where h′ is the future horizon. Each                                                 actions within an action chunk (e.g., At−h ). We repeat the
+action chunk, e.g., At ∈ RL×m consists of L actions, and each                                                 action chunk M times to match the number of visual tokens
+action has m dimensions. We set h = h′ in the experiments.                                                    as shown in Figure 2. The repeated sequence is then passed
+For simplicity, we refer to both as h in the following sections.                                              through an FC layer, and converted into a sequence of N
+   We first introduce the model with complete video and                                                       action tokens, each with a d-dimensional latent representation.
+action inputs and outputs (§III-A-§III-C). We then discuss                                                    These history visual and action tokens serve as conditions for
+how masked training can flexibly learn from any combination                                                   predicting future observations and actions.
+of video and action data (§III-D), enabling UVA to perform
+various functions, including policy learning, video generation,                                               B. Masked Autoencoder for Observation Prediction
+forward and inverse dynamics, and integrated policy and                                                         Our work is closely related to [8, 27]. Their method focuses
+planning.                                                                                                     on image generation conditioned on class labels. It begins by
+generating a subset of visual tokens for the image and then         generation helps the latent representations Z capture more
+sequentially predicts additional tokens based on the previously     detailed scene information, which benefits action prediction.
+generated ones, following an autoregressive process to com-         During policy inference, where speed is crucial, the decoupled
+plete the image. This step-by-step autoregressive approach has      design allows us to skip video generation and decode only
+been shown to outperform the single-step generation of all          the actions. Similarly, for video generation, where quality is
+visual tokens simultaneously. To facilitate step-by-step pre-       the priority, we can perform multi-step autoregressive video
+diction, they employ a masked autoencoder [20] framework.           generation while bypassing action decoding.
+During training, some visual tokens are randomly masked, and           We introduce two lightweight diffusion decoders for action
+the model is trained to reconstruct these masked tokens.            and video prediction (see Figure 2). Instead of performing the
+   We follow this setting for video prediction. Future ob-          denoising over the entire model [10], our approach restricts the
+servation frames {Ot+1 , . . . , Ot+h } are processed similarly     denoising process to the lightweight decoders, delivering more
+to historical observations: they are passed through a VAE           efficient performance. This design preserves the generative
+encoder to extract latent representations, followed by an FC        strengths of diffusion models while significantly reducing
+layer, resulting in a sequence of N tokens per frame, each          inference time.
+with a d-dimensional latent vector. Some tokens are randomly           The joint latent Z serves as the conditioning input for the
+masked out during training. These visual tokens are concate-        diffusion decoders. The video diffusion decoder processes each
+nated channel-wise with historical visual tokens and action         latent token zi ∈ Zt+1 = {z1 , . . . , zN } to predict individual
+tokens, as shown in Figure 2, to form a new sequence of             patches in the video frame, which are then reshaped and
+latent features. Latents from h different time steps are then       sent to the VAE decoder to reconstruct the full frame Ot+1 .
+temporally concatenated with latent representations from other      For the action diffusion decoder, all latent tokens in Zt+1
+time steps to produce a N × h latent sequence. The resulting        are aggregated using a convolutional layer, followed by an
+sequence is passed through a Transformer to fuse the video          MLP layer, to produce an action latent. This latent encodes
+and action information, resulting in a set of joint video-          both visual and action-related information for the current step
+action latent representations, {Zt+1 , . . . , Zt+h }, where each   and serves as the condition for the action diffusion model to
+latent (e.g., Zt+1 ) contain N latent tokens. These joint video-    generate the action chunk At . We use the diffusion head (base
+action latent tokens are then used to reconstruct the future        size) from [27] for both action and video prediction.
+observations and corresponding action chunks.                          During training, the decoders learn to predict the noise
+   For tasks that involve language instructions, such as            added to noisy action chunks or video patches. The action
+Libero10 [30], we incorporate language information using            diffusion loss [21, 37, 39] is defined as:
+cross-attention in the Transformer. The language input is                                         [︂                      ]︂
+encoded into a d-dimensional token using the CLIP [33] text                  Laction (Z, A) = Eϵ,k ∥ϵ − ϵθ (A(k) |k, Z)∥2 ,
+encoder. To emphasize the language, this token is repeated M
+                                                                    where A(k) represents the noisy actions, ϵ is the added noise,
+times and appended to the N ×h video-action tokens, resulting
+                                                                    k is the diffusion timestep, Z is the joint video-action latent
+in a total of N × h + M tokens. These tokens are then passed
+                                                                    tokens, and ϵθ (A(k) |k, Z) is the predicted noise.
+through the Transformer to fuse the multimodal information.
+                                                                      Similarly, the video diffusion loss is defined as:
+We take the first N × h outputs of the Transformer as the joint                              [︄                                   ]︄
+video-action latent representations, {Zt+1 , . . . , Zt+h }.                                       N
+                                                                                                1 ∑︂             i,(k)          2
+   To minimize information leakage across different frames,            Lvideo (Z, O) = Eϵ,k           ∥ϵi − ϵϕ (O      |k, zi )∥ ,
+                                                                                                N i=1
+we consistently mask the same positions across all video
+frames. At inference time, the model generates complete             where Oi,(k) represents the i-th noisy visual token in the video
+videos by predicting all tokens starting from an empty se-          frame O(k) at diffusion timestep k, N is the total number of
+quence. At each autoregressive generation step, visual tokens       visual tokens in a video frame, ϵi is the added noise to the i-th
+at the same position across all video frames are generated          visual token, zi is the latent token in Z, and ϵϕ (Oi,(k) |k, zi )
+simultaneously as shown in Supplementary §X-A. Unlike               is the predicted noise for the i-th token.
+image generation conditioned on class labels or text, historical       The total loss at each time step is the combination of the
+observations provide rich contextual information about the en-      action and video diffusion losses: L = Laction + Lvideo . The
+vironment. We found that a single-step generation is sufficient     overall loss is calculated as the sum of these losses over the
+to generate high-quality observations, while using additional       time horizon h. During policy inference or video generation,
+steps can further enhance the quality.                              the decoders iteratively refine pure noise into actions or videos
+                                                                    using the learned denoising process.
+C. Decoupled Video and Action Diffusions
+   Previous video generation-based policy learning methods          D. Masked Training with Flexible Objectives
+rely on hierarchically generating videos first and then predict-       Instead of training the model solely on the task of predicting
+ing actions, leading to slow speed and accumulated errors.          future observations and actions based on historical data, we
+To address this, we propose decoupling video and action             propose a masked training approach with multiple training ob-
+prediction while training them jointly. During training, video      jectives using a unified framework. As illustrated in Figure 1,
+                                                                        Single Task                     Multi-Task Evaluation
+the model is trained on five distinct tasks by varying input
+and output combinations. Unused components are masked and
+replaced with a learned mask token. The action loss and video
+                                                                                                                                           ...
+loss are selectively applied to supervise the model depending
+on the specific task.
+   This training approach enables us to fully utilize the data in        Push-T                          Multi-Goal Push-T
+various combinations and supports the use of incomplete data,
+such as video data without corresponding actions. This masked
+training strategy enables the model to perform a diverse                                                                                   ...
+range of functions, including acting as a robot policy, video
+model, forward and inverse dynamics model, and a combined
+policy and planner. For instance, when given only image                 ToolHang                        Multi-Goal Libero10
+observations, the model can function as an inverse dynamics         Fig. 3: Simulation Environments. We evaluate UVA and baselines
+model to generate action labels from videos. Additionally, this     in both single-task and multi-task settings. In the multi-task scenario,
+strategy helps prevent overfitting to specific tasks, enhancing     the goal can be defined through the image observations (PushT-M)
+the model’s overall versatility and robustness.                     or language descriptions (Libero10).
+
+                       IV. E VALUATION
+                                                                                         Single-Task ↑         Multi-Task ↑      Speed ↓
+   In the following sections, we evaluate UVA’s capacities as
+policy §V, a video generator §VI, a forward dynamics model                              PushT   Tool       PushT-M Libero10
+§VII, and finally an inverse dynamics model §VIII. In each             DP-C [10]        0.91     0.95         0.68        0.53    0.50s
+scenario, we compare UVA with methods that are specifically            DP-T [10]        0.78     0.76         0.63        0.58    0.36s
+                                                                       OpenVLA [25]     0.35     0.18         0.22        0.54    1.52s
+tailored for the corresponding application.                            UniPi [14]       0.42     0.00         0.19        0.00   24.07s
+                                                                       π0 [2]             -        -            -         0.85    0.09s
+                     V. UVA AS P OLICY                                 π0 -FAST [2]       -        -            -         0.60    0.09s
+                                                                       UVA-action       0.45     0.62         0.46        0.86    0.22s
+   We first investigate the effectiveness of UVA on policy             UVA              0.98     0.88         0.88        0.90    0.23s
+learning. As noted by Kim et al. [25], different policy designs
+excel in different settings. Their experiments show that while      TABLE I: Policy Learning Results in Simulation. UVA has
+Diffusion Policy [10] performs better in single-task setups,        higher success rate than the baselines in most settings, with a strong
+                                                                    performance in multi-task scenarios. Speed is measured by a single
+it falls behind OpenVLA in multi-task scenarios. To com-            action trajectory inference. All methods, except OpenVLA, infer 16
+prehensively evaluate the performance of UVA as a policy,           action steps per trajectory with 8 executed steps. OpenVLA infers
+we conduct extensive evaluations in single-task and multi-task      one action at a time, so it is run 8 times to match the inference time
+settings, and in simulated (Figure 3) and real environments         for 8 executed actions.
+(Figure 4). For simulation tasks, we used the same random
+seeds for different methods for a fair comparison. For real-
+world tasks, to minimize evaluation bias, all evaluations use       B. Real-world Benchmarks
+public benchmarks with released datasets—no additional              Training Data: We use two publicly available datasets in-
+training data were collected.                                       troduced by [11] and [29] without collecting any additional
+A. Simulation Benchmarks                                            training data. Both benchmarks collect data using the handheld
+                                                                    UMI [11] device. We used three tasks, including Cup Arrange-
+Single-Task Evaluation: We first evaluate single-task scenar-       ment, Towel Folding, and Mouse Arrangement, for training,
+ios, where different policies are trained for different tasks. We   and tested them on the ARX X5 arm.
+compare UVA with the baselines on the PushT [10, 16] and            Single-Task Evaluation: We train a single-task policy on the
+Toolhang [32] tasks. We report the success rates of the best-       Cup task and directly compare it with the Diffusion Policy
+performing checkpoint, averaging across 50 rollouts for PushT       model provided by the author [11], both trained on the same
+and Toolhang, respectively.                                         data. We evaluate each method over 20 rollouts with varying
+Multi-Task Evaluation: We train one policy for multiple             initial configurations and report the average success rate.
+task goals defined by image or text. We introduce a new             Multi-Task Evaluation: We train one model with all three
+task, PushT-M, which extends the PushT task to include              tasks and then evaluate their performance on each task in-
+varying target “T” positions. We evaluate the best-performing       dependently. We randomly selected 500 episodes from each
+checkpoint over 50 rollouts and report its average reward.          dataset and combined them into a dataset to train both our
+Libero10 [30] has 10 tasks. We evaluate each task in 50             model and Diffusion Policy [11]. Since the training data were
+different environments with varying random seeds and report         collected independently in prior works, all evaluation cases are
+the average rewards across all 10 tasks. See Supplementary          Out-of-Distribution (OOD), involving unseen environments,
+§X-B for details.                                                   objects, and robots. To ensure a wide testing distribution,
+           Training Data                                                    Out-of-Distribution Multi-Task Testing Scenarios
+
+
+
+
+          Cup Arrangement          Cup: Initial Conﬁgs (10%)                               Cup: Different Objects & Distractor Objects (10%)
+
+
+
+
+         Mouse Arrangement        Cup: Unseen Grippers (5%)                                     Cup: Different Backgrounds (8.3%)
+
+
+
+
+                                                                                                 ...                                                   ...
+
+
+              Towel Folding                             Mouse Arrangement (33.3%)                                             Towel Folding (33.3%)
+
+       Fig. 4: Real-World Out-of-Distribution Evaluation. We use the training data provided by prior works [11, 46]. The test scenario is
+       significantly out-of-distribution with unseen environments, objects, robots, and even gripper colors. The numbers in the parentheses show
+       the percentage of such category of test cases in evaluation. Please refer to our website for all evaluation rollouts.
+
+
+                              Single-Task ↑       OOD Multi-Task ↑             Speed ↓        wide range of robots, tasks, and environments. We fine-
+                                  Cup             Cup     Towel    Mouse                      tune OpenVLA on each task to optimize its performance.
+                                                                                            • π0 [2] is an open-source VLA model designed for
+        DP-UMI [11]               0.95           0.50      0.70      0.40       70ms
+        UVA                       0.85           0.65      0.70      0.80       95ms          general-purpose robot control. It employs a flow match-
+                                                                                              ing based architecture to generate continuous action se-
+       TABLE II: Success Rate on Real-World UMI [11] tasks. We                                quences. Trained on a diverse dataset spanning multiple
+       compare UVA with DP-UMI which is designed for UMI tasks. UVA                           robot embodiments and tasks, π0 demonstrates strong
+       performs worse than DP-UMI in the single-task setting but achieves
+                                                                                              zero-shot and fine-tuned performance. We use the offi-
+       better performance in the multi-task setting. Both UVA and DP-UMI
+owel   use 16 denoising steps. Speed is measured by inferring a single action                 cially released checkpoints: π0 and π0 -FAST, both fine-
+       trajectory consisting of 16 actions.                                                   tuned on Libero tasks.
+                                                                                            • UniPi [14] is a video-based policy model that generates
+                                                                                              videos first and then predicts actions based on the gener-
+       we include cases with varying initial configurations, object                           ated videos. Since the official implementation is not avail-
+       distractors, background textures, and an unseen gripper color                          able, we used the code from [26]. This implementation
+       (green), as shown in Figure 4. Each policy is evaluated over 60                        relies on pixel-wise video generation, which results in
+       rollouts, with 20 rollouts per task. See Supplementary §X-C                            slower video generation speed. For action inference, we
+       for details.                                                                           train a model that processes two consecutive generated
+                                                                                              video frames using a pretrained ResNet-50 for the PushT
+       C. Baselines                                                                           and PushT-M tasks, and a ResNet-152 for the Tool Hang,
+                                                                                              Libero10, and Cup Arrangement.
+         We compared with the following alternative methods, all
+                                                                                            • UVA-action is an ablation of UVA, where the video
+       methods are trained or fine-tuned on the same data as our
+                                                                                              generation part is excluded, and the model is trained
+       model and tested using the same random seed and initial states.
+                                                                                              solely as a policy model. This baseline aims to evaluate
+          • Diffusion Policy [10] is a state-of-the-art visuomotor                            the effectiveness of joint video and action training.
+            policy model. We use both CNN-based network [DP-C]
+            and Transformer-based design [DP-T] from their original                      D. Policy Learning Results
+            implementation for all simulation tasks. For real-world
+            tasks, we used an improved Diffusion Policy [11], which                         We evaluate policy learning results with UVA compared
+            is optimized for UMI data. It leverages a CLIP-pretrained                    to the baseline methods on a few different axes: 1) action
+            [33] ViT-B/16 [1] vision encoder, significantly improving                    prediction accuracy, 2) inference speed, 3) robustness to visual
+            visual understanding. We refer to it as [DP-UMI].                            disturbances, 4) robustness to history length, and 5) the effect
+          • OpenVLA [25] is a state-of-the art vision-language-
+                                                                                         of joint video-action modeling.
+            action (VLA) built on 7B Llama 2 [41] for multi-task                         Action Prediction Accuracy (Simulation Tasks): In Table I,
+            setting. It is trained on a diverse dataset encompassing a                   we compare UVA with baseline methods in both single-task
+and multi-task settings. We use the same random seed for our
+method and baselines to ensure a fair comparison.
+Simulation Single-Task: Our method is able to match the
+performance of the state-of-the-art model DP-C and signifi-
+cantly outperform other video-based methods such as UniPi
+and vision-language-action model OpenVLA.
+Simulation Multi-Task: Our method is particularly strong                BgColor                BgObject              GoalColor
+in the multi-task setting. Specifically, UVA surpasses the        Fig. 5: Visual Disturbances on PushT. Tasks are performed under
+best baseline by 20% on the PushT-M task and by 5%                altered visual conditions, including changes in background color,
+on the Libero10 benchmark. This result demonstrates that          distracting background objects, and goal color.
+UVA model is able to better learn and leverage the general
+dynamics that are shared across tasks and, therefore, improve
+                                                                                   Normal ↑ BgColor ↑ BgObject ↑ GoalColor ↑
+overall performance in the multi-task setting.
+   Notably, π0 (3.3B) and π0 -FAST (3.0B) are large models         DP-C [10]          0.91        0.12        0.21         0.17
+                                                                   DP-T [10]          0.78        0.22        0.17         0.28
+fine-tuned from pretrained checkpoints using the entire Libero     OpenVLA [25]       0.35        0.17        0.13         0.32
+dataset, while UVA is smaller (0.5B) and trained only on           UniPi [14]         0.42        0.31        0.36         0.40
+Libero10. Moreover, π0 and π0 -FAST use third-person and           UVA                0.98        0.35        0.31         0.64
+wrist-view images plus robot proprioception, while UVA relies
+only on third-person images. Despite its smaller size, limited    TABLE III: Visual Generalization Results on PushT with Vi-
+                                                                  sual Disturbances. Our method and UniPi, both video generation
+input, and no external data, UVA outperforms π0 and π0 -          models, have higher success rates compared to other policy learning
+FAST.                                                             approaches.
+Action Prediction Accuracy (Real-World Tasks): Table II
+shows the results of real-world tasks. We ensure a fair compar-
+ison by keeping the initial placement of objects and grippers     the towel task but shows less stability when handling pick-
+identical across different methods for each test rollout.         and-place cups and grabbing the mouse. However, it performs
+Real-World Single-Task: First, we evaluate the policy perfor-     well across different backgrounds due to its use of a pre-
+mance in a single-task setting. This evaluation aims to compare   trained vision encoder. When the gripper color is changed to
+our method with a strong baseline in prior works by replicating   an unseen green, the performance of both methods slightly
+a similar evaluation setup. Overall, UVA performs comparable      decreases compared to the orange gripper used for training.
+with DP-UMI, which is optimized with this particular training     However, both UVA and DP-UMI show good generalization
+dataset. We noticed that the dataset contains extensive recov-    to the unseen gripper. Please refer to our website for details.
+ery data from the moments of failure to correct the policy.       Inference Speed: Speed is evaluated based on a single action
+This data is particularly useful for models without history       trajectory inference. All methods, except OpenVLA, infer 16
+dependence, like DP-UMI, which can recover from the new           action steps per trajectory with 8 executed steps. OpenVLA
+observations included in the recovery data. In contrast, our      infers one action at a time, requiring 8 runs to match the
+model uses a longer history, which is advantageous for tasks      inference time for 8 executed actions. UniPi generates raw
+requiring longer memory. However, in this case, the collected     pixel videos, resulting in significantly slower inference.
+failure recovery data is less impactful for our model, as its        Our method achieves faster inference speeds by performing
+longer memory window prioritizes learning from extended           diffusion iterations only on the lightweight action head, rather
+temporal patterns. While we could shorten our model’s history     than the entire network as DP-C and DP-T. Thanks to the
+window, we maintain a consistent design across all tasks rather   decoupled design, video generation can be skipped during
+than tailoring it to this specific task and training data.        policy inference, further improving efficiency. For simulation
+Real-World Multi-Task: We train a single model using our          tasks, we use 100 denoise steps for action prediction. For DP-
+method and evaluate it on three tasks individually. DP-UMI is     C and DP-T, we follow their original implementations and also
+trained and tested in the same manner for a fair comparison.      perform denoising over 100 steps. With the same number of
+For each task, we test the methods on 20 different cases,         diffusion steps (Table I), our method achieves faster inference
+as shown in Figure 4. Our approach demonstrates superior          compared to DP-C and DP-T. Both π0 and π0 -FAST achieve
+performance in the multi-task setting, achieving a 15% higher     faster inference speed than other methods.
+success rate on the Cup task and a 40% higher success rate           For real-world tasks (Table II), both UVA and DP-UMI use
+on the Mouse task compared to DP-UMI.                             16 denoising steps for real-time manipulation. We found that
+   In general, our method can successfully complete the task      the UVA Attention module in the Transformer accounts for
+with distractor objects or changing backgrounds but fails when    half of the inference time, making UVA slightly slower than
+the background color is the same as the objects. Its visual       DP-UMI. With future improvements, such as replacing the
+understanding could be enhanced by training on additional         Attention with Flash Attention, our model could achieve faster
+video data without action labels. DP-UMI performs well on         speeds. We note that, although DP-UMI uses a pretrained
+                                  1                                                                                                  Libero10 ↓ CupArrange ↓
+                                                                                                                      UniPi [14]        56.55          71.37
+
+
+
+       7 Y G G I W W  6 E X I
+                                                                                                                      UVA(1 step)       89.36          51.34
+                                                                                                                      UVA(8 steps)      51.10          29.72
+                                 0.5
+                                                                                                          TABLE IV: Video Generation Results. Our method outperforms
+                                       Ours                                                               UniPi in both simulated (Libero10) and real-world (Cup Arrange-
+                                       DP-C                                                               ment) environments. The masked autoencoder training enables au-
+                                  0 1 2 4                        8                                   16   toregressive video generation, with 8 steps performing better than a
+                                         , M W X S V ]  4 V S T V M S G I T X M S R  0 I R K X L        single step. FVD [42] results are reported.
+
+Fig. 6: Robustness to History Length on PushT-M. Typical policy
+learning frameworks such as DP-C [10] often experience performance
+                                                                                                          with UniPi on video generation results across two datasets:
+drops with increased history length due to overfitting, while our
+model maintains robust performance.                                                                       Libero10 and Cup Arrangement, in Table IV. Performance is
+                                                                                                          evaluated by computing the Fréchet Video Distance (FVD)
+                                                                                                          [42] for 500 videos generated by each method. FVD is a
+ViT encoder, its model size (171.27M parameters) is smaller                                               metric for assessing video quality by evaluating visual fidelity
+than DP-C (262.69M parameters). This explains why DP-C is                                                 and temporal coherence. It compares statistical properties of
+slower than UVA in Table I and DP-UMI is faster in Table II.                                              feature representations from real and generated videos, using
+Overall, UVA achieves a good balance between speed and                                                    a pre-trained Inflated 3D ConvNet [7]. Lower FVD scores
+performance across diverse settings.                                                                      indicate greater similarity.
+Robustness to Visual Disturbances: We have shown that                                                        The masked autoencoder training in our method (§III-B)
+UVA is robust to visual disturbances in the real-world multi-                                             facilitates video generation in an autoregressive manner, where
+task setting in Figure 4. All tests are unseen during training,                                           visual tokens are generated across all video frames in parallel
+and even with more challenging distractor objects and back-                                               during the first stage. In the subsequent stage, the next set of
+grounds, UVA achieves higher success rates than DP-UMI.                                                   tokens is predicted sequentially, conditioned on the previously
+   To more rigorously evaluate this visual generalization ca-                                             generated tokens. This iterative token prediction process con-
+pability, we perform a systematic evaluation in simulation by                                             tinues until the entire video is generated. See Supplementary
+procedurally altering visual conditions in the PushT environ-                                             §X-A for details. In Table IV, we show that even with a
+ment. The modifications include changes to the background                                                 1-step process, our method outperforms UniPi on the more
+color, the addition of object distractor, and variations in goal                                          challenging Cup Arrangement task, while using 8 steps further
+color, as shown in Figure 5. The evaluation was conducted                                                 improves performance.
+on scenarios outside the training distribution, as the model                                                 Figure 7 shows the generated videos. Conditioned on the
+was trained only in the standard environment in Figure 3. The                                             history observations, UVA can predict future observations that
+results show that video generation methods, such as UniPi                                                 closely match the ground truth. Even with a single autore-
+and UVA, exhibit superior performance in handling visual                                                  gressive step, it can generate realistic video frames, and with
+disturbances. For example, with changes in goal color, UniPi                                              additional steps, the details become more refined. In contrast,
+achieves a success rate of 40%, UVA achieves 64%, while                                                   UniPi occasionally produces blurry images, such as the Cup
+OpenVLA only reaches 32%.                                                                                 Arrangement, or mismatched images, as seen in the Towel
+Robustness to History Length: Prior policy learning meth-                                                 Folding task and the Libero10 task (left). Additionally, UniPi
+ods, such as DP-C, often experience performance degradation                                               may fail to generate some objects entirely, as demonstrated in
+as the history length increases as shown in Figure 6 evaluated                                            the Libero10 task (the second moka pot in the right figure).
+on the PushT-M task. In contrast, UVA can effectively adapt to                                            We believe that with more computational resources and larger
+longer history inputs. By jointly predicting video and action,                                            video generation models, both UVA and UniPi could achieve
+our model sustains robust performance even as the history                                                 further improvements. However, given similar computational
+length grows. This highlights the better potential of UVA for                                             resources, UVA consistently outperforms UniPi.
+tasks that require reasoning over extended temporal contexts.
+                                                                                                                 VII. UVA AS A F ORWARD DYNAMICS M ODEL
+Effect of Joint Video-Action Modeling: We evaluate this by
+comparing UVA with a baseline (UVA-action) that removes                                                      Our model can perform forward dynamics predictions
+the video generation part. As shown in Table I, this modifi-                                              Ot+1 = fforward (Ot , At ). To evaluate its effectiveness, we use
+cation led to reduced performance compared to the complete                                                it to guide the behavior of a pretrained policy model, such
+framework, highlighting the critical role of video generation                                             as the DP-C. We evaluate this approach in a block-pushing
+in improving policy learning.                                                                             environment, where the model is trained to push one block
+                                                                                                          to a specified square and another block to a second square,
+                                   VI. UVA AS A V IDEO G ENERATOR                                         each randomly assigned. During testing, we aim to control
+   UVA can function as a video generation model by bypassing                                              the policy to complete specific tasks, such as pushing the red
+the action diffusion head during inference. We compare UVA                                                block to the red square (R-R) or the red block to the green
+     Input                       Future Observation Prediction            Input                       Future Observation Prediction
+   Condition                                                            Condition
+
+                      GT                                                                   GT
+
+
+
+
+      “Cup           UVA                                                   “Cup           UVA
+  arrangement”     1 Step                                              arrangement”     1 Step
+
+
+
+                     UVA                                                                  UVA
+                  8 Steps                                                              8 Steps
+
+
+
+
+                    UniPi                                                                UniPi
+
+
+
+
+                      GT                                                                   GT
+
+
+
+
+                     UVA                                                                  UVA
+   “Towel fold”    1 Step                                               “Towel fold”    1 Step
+
+
+
+                     UVA                                                                  UVA
+                  8 Steps                                                              8 Steps
+
+
+
+
+                    UniPi                                                                UniPi
+
+
+
+
+                      GT                                                                   GT
+
+
+  “Put both the
+  cream cheese                                                         “Put both
+  box and the                                                          moka pots on
+  butter in the      UVA                                                                  UVA
+                                                                       the stove”
+  basket”          1 Step                                                               1 Step
+
+
+
+
+                     UVA                                                                  UVA
+                  8 Steps                                                              8 Steps
+  Libero 10                                                            Libero 10
+
+
+
+                    UniPi                                                                UniPi
+
+
+
+Fig. 7: Video Generation Results on Validation Set. UVA generates high-quality videos that closely match the ground truth, with 8
+autoregressive steps further enhancing detail compared to a single autoregressive step. In contrast, UniPi occasionally produces blurry (Cup
+arrangement) or mismatched images (Towel fold and Libero10 left) and may fail to generate some objects (Libero10 right, the second moka
+pot). With the similar computational resources, UVA consistently outperforms UniPi.
+
+square (R-G). The evaluation considers four distinct settings,         actions using DP-C. The sampled actions, along with historical
+as illustrated in Figure 8. Each setting is tested 10 times with       observations, are input into our model, which predicts future
+varying initial positions of the objects and the robot. Notably,       observations by functioning as a forward dynamics model. For
+a perfect policy model in this setup would achieve a maximum           each trajectory, we calculate a reward based on the predicted
+average success rate of 50%, since training only requires one          observations, selecting the trajectory with the highest reward.
+block to be pushed to any square, while testing specifies exact        The reward is computed as the distance between the blocks and
+target assignments for each block.                                     their target squares, which are identified from the predicted
+   At each step, we sample 100 trajectories of 16 future
+                                                                                                                  Position ↓   Rotation ↓
+                                                                                      UniPi Inverse Dynamics       1.92 cm        2.21°
+                                                                                      UVA                          0.75 cm        1.11°
+
+ Initial Observation   Red-Green    Red-Red          Green-Red    Green-Green
+                                                                                      Visual Inertial SLAM         0.41 cm        0.30°
+
+Fig. 8: Forward Dynamics Model on Block Pushing Task. During                    TABLE VI: Inverse Dynamics. L2 distances between predicted
+training, the robot pushes two blocks randomly to any target. During            actions and ground truth actions from Mocap. The table compares
+testing, the generated future image from UVA is used to select the              positions and rotation results of UVA, the UniPi inverse dynamics
+proper action that moves a specific object to a specific target.                model, and a well-engineered SLAM system [6]. UVA outperforms
+                                                                                UniPi inverse dynamics model, while SLAM achieves the best
+                            R-R ↑ R-G ↑ G-R ↑ G-G ↑ Avg. ↑                      accuracy but is more complex to implement.
+
+        DP-C                 0.20   0.50      0.60      0.20     0.38
+        UVA                  0.80   0.70      0.50      0.40     0.60           more consistent and temporally coherent predictions. The ac-
+        GT-Dynamics          0.80   0.80      0.70      0.70     0.75           tion errors produced by SLAM were 0.41 cm for position and
+                                                                                0.30 degrees for rotation. While UVA exhibited slightly higher
+TABLE V: Success Rate on Block Pushing. Our model functions as                  errors than SLAM, it still demonstrated strong performance
+a forward dynamics model to guide the behavior of pretrained policy             with position errors under 1 cm and rotation errors around 1
+models, such as the DP-C [10]. DP-C alone achieves an 38% success
+rate, while incorporating our model to generate future observations             degree. These results highlight the generalization capability of
+for trajectory selection increases the success rate to 60%. Using a             UVA for action prediction, even on unseen data, and suggest
+ground-truth simulator provides an upper bound success rate of 75%.             that it could serve as a viable alternative to SLAM, which is
+                                                                                difficult to calibrate and suffers from a high failure rate.
+frames. We then execute the first 6 steps of the selected                                              IX. D ISCUSSION
+trajectory and resample new trajectories until the task is
+completed or the episode ends. DP-C can complete the tasks                      Summary: We propose a unified video-action model that
+with a success rate of 38% in Table V. By leveraging our                        jointly models and separately decodes video and actions. This
+model to guide the policy, the success rate increases to 60%.                   design enables us to fully leverage video data as additional
+   For comparison, we evaluate the performance of using a                       supervision, resulting in stronger performance and fast action
+ground-truth simulator to render the sampled trajectories and                   prediction by skipping video decoding during inference. The
+select the best ones. Even with the ground-truth simulator,                     framework inherently supports masking training, allowing it
+the success rate is limited to 75% due to suboptimal sampled                    to fulfill various robotics functions, including acting as a
+trajectories and errors in object detection. While our model                    policy, video model, forward and inverse dynamics model,
+performs worse than the simulator, it still significantly en-                   and a combined policy and planner. By fully utilizing video
+hances performance and guides the pretrained policy models                      and action data in diverse configurations, our model reduces
+to complete required tasks.                                                     overfitting to specific tasks, outperforms previous methods,
+                                                                                and demonstrates versatility for multi-purpose applications.
+           VIII. UVA AS A I NVERSE DYNAMIC M ODEL                               Limitation and Future Work: One limitation of our frame-
+   In this section, we evaluate the effectiveness of the proposed               work is that it does not currently leverage large amounts of
+method in an inverse dynamics setting, where actions are                        actionless video data, which could provide valuable additional
+inferred as At = finverse (Ot , Ot+1 ) using UMI data. For the                  supervision. As a result, our method occasionally achieves
+UMI Cup Arrangement data, the robot’s actions are naturally                     only comparable performance to the DP-UMI on real-world
+aligned with camera movements, enabling straightforward                         tasks. We believe that pretraining the model on web-scale
+evaluation of action prediction accuracy using the ground truth                 video datasets could significantly enhance its generalization
+camera poses obtained from motion capture (Mocap). Notably,                     capabilities, and we leave this exploration for future work.
+our model had never encountered this test data during training.                 Furthermore, our model can be naturally extended to pre-
+                                                                                dict modalities beyond video and action, such as sound and
+Baselines: As a comparison, we evaluate the actions (i.e.,
+                                                                                force, by incorporating additional diffusion heads, offering a
+camera pose) generated by the inverse dynamics model used in
+                                                                                more comprehensive and versatile framework. This remains a
+UniPi [14] and a well-engineered SLAM system used in UMI
+                                                                                promising direction for future research.
+[6], where the SLAM system requires an additional mapping.
+The UMI actions in the training data are derived from SLAM.                                          ACKNOWLEDGMENT
+Results: For the actions predicted by each method, we com-                        We would like to thank Huy Ha for his valuable advice on
+pute the L2 distance to the ground truth actions from Mocap,                    video recording and website design. We also thank Amber Xie,
+as shown in Table VI. The UniPi inverse dynamics model pre-                     Austin Patel, Jennifer Grannen, Vincent de Bakker, John So,
+dicts actions from two consecutive images, which may lead to                    Max Du, and Vidhi Jain for their important feedbacks on the
+discontinuities in the predicted actions over time. In contrast,                paper draft. We are grateful to Mengda Xu, Suneel Belkhale,
+our method predicts 16 actions simultaneously, resulting in                     Xiaomeng Xu, Fanqi Lin, Lirui Wang, and Tianhong Li for
+helpful discussions. We would like to express our gratitude to     [10] Cheng Chi, Zhenjia Xu, Siyuan Feng, Eric Cousineau,
+Chi Cheng, Zhenjia Xu, Chuer Pan, Zeyi Liu, Huy Ha, Fanqi               Yilun Du, Benjamin Burchfiel, Russ Tedrake, and Shuran
+Lin, Yingdong Hu, and Zhaxizhuoma for their contributions               Song. Diffusion policy: Visuomotor policy learning via
+to the shared UMI dataset. Finally, we want to thank everyone           action diffusion. The International Journal of Robotics
+who contributed their computing resources to help us train the          Research, page 02783649241273668, 2023.
+models.                                                            [11] Cheng Chi, Zhenjia Xu, Chuer Pan, Eric Cousineau,
+   This work was supported in part by the Toyota Re-                    Benjamin Burchfiel, Siyuan Feng, Russ Tedrake, and
+search Institute, NSF Award #1941722, #2143601, #2037101,               Shuran Song. Universal Manipulation Interface: In-the-
+#2132519, ONR Project #N00014-22-1-2293 and the DARPA                   Wild Robot Teaching Without In-the-Wild Robots. arXiv
+TIMAT project. The views and conclusions contained herein               preprint arXiv:2402.10329, 2024.
+are those of the authors and should not be interpreted as          [12] Jaden Clark, Suvir Mirchandani, Dorsa Sadigh, and
+necessarily representing the official policies, either expressed        Suneel Belkhale. Action-free reasoning for policy gen-
+or implied, of the sponsors.                                            eralization. arXiv preprint arXiv:2502.03729, 2025.
+                                                                   [13] Haoge Deng, Ting Pan, Haiwen Diao, Zhengxiong Luo,
+                        R EFERENCES                                     Yufeng Cui, Huchuan Lu, Shiguang Shan, Yonggang
+ [1] Dosovitskiy Alexey. An Image Is Worth 16x16 Words:                 Qi, and Xinlong Wang. Autoregressive Video Gen-
+     Transformers for Image Recognition at Scale. arXiv                 eration Without Vector Quantization. arXiv preprint
+     preprint arXiv:2010.11929, 2020.                                   arXiv:2412.14169, 2024.
+ [2] Kevin Black, Noah Brown, Danny Driess, Adnan Es-              [14] Yilun Du, Sherry Yang, Bo Dai, Hanjun Dai, Ofir
+     mail, Michael Equi, Chelsea Finn, Niccolo Fusai, Lachy             Nachum, Josh Tenenbaum, Dale Schuurmans, and Pieter
+     Groom, Karol Hausman, Brian Ichter, et al. π0: A vision-           Abbeel. Learning universal policies via text-guided video
+     language-action flow model for general robot control,              generation. Advances in Neural Information Processing
+     2024. URL https://arxiv. org/abs/2410.24164.                       Systems, 36, 2024.
+ [3] Andreas Blattmann, Tim Dockhorn, Sumith Kulal, Daniel         [15] Patrick Esser, Robin Rombach, and Bjorn Ommer. Tam-
+     Mendelevitch, Maciej Kilian, Dominik Lorenz, Yam                   ing Transformers for High-Resolution Image Synthe-
+     Levi, Zion English, Vikram Voleti, Adam Letts, et al.              sis. In Proceedings of the IEEE/CVF Conference on
+     Stable Video Diffusion: Scaling Latent Video Dif-                  Computer Vision and Pattern Recognition, pages 12873–
+     fusion Models to Large Datasets.        arXiv preprint             12883, 2021.
+     arXiv:2311.15127, 2023.                                       [16] Pete Florence, Corey Lynch, Andy Zeng, Oscar Ramirez,
+ [4] Tim Brooks, Bill Peebles, Connor Holmes, Will DePue,               Ayzaan Wahid, Laura Downs, Adrian Wong, Johnny
+     Yufei Guo, Li Jing, David Schnurr, Joe Taylor, Troy                Lee, Igor Mordatch, and Jonathan Tompson. Implicit
+     Luhman, Eric Luhman, et al. Video Generation Models                Behavioral Cloning. Conference on Robot Learning
+     as World Simulators, 2024.                                         (CoRL), November 2021.
+ [5] Jake Bruce, Michael D Dennis, Ashley Edwards, Jack            [17] Kaifeng Gao, Jiaxin Shi, Hanwang Zhang, Chunping
+     Parker-Holder, Yuge Shi, Edward Hughes, Matthew Lai,               Wang, and Jun Xiao. ViD-GPT: Introducing GPT-Style
+     Aditi Mavalankar, Richie Steigerwald, Chris Apps, et al.           Autoregressive Generation in Video Diffusion Models.
+     Genie: Generative interactive environments. In Forty-first         arXiv preprint arXiv:2406.10981, 2024.
+     International Conference on Machine Learning, 2024.           [18] Rohit Girdhar, Mannat Singh, Andrew Brown, Quentin
+ [6] Carlos Campos, Richard Elvira, Juan J Gómez                       Duval, Samaneh Azadi, Sai Saketh Rambhatla, Akbar
+     Rodrı́guez, José MM Montiel, and Juan D Tardós.                  Shah, Xi Yin, Devi Parikh, and Ishan Misra. Emu Video:
+     Orb-slam3: An accurate open-source library for visual,             Factorizing Text-to-Video Generation by Explicit Image
+     visual–inertial, and multimap slam. IEEE Transactions              Conditioning. arXiv preprint arXiv:2311.10709, 2023.
+     on Robotics, 37(6):1874–1890, 2021.                           [19] Yanjiang Guo, Yucheng Hu, Jianke Zhang, Yen-Jen
+ [7] Joao Carreira and Andrew Zisserman. Quo Vadis, Action              Wang, Xiaoyu Chen, Chaochao Lu, and Jianyu Chen.
+     Recognition? A New Model and the Kinetics Dataset. In              Prediction with action: Visual policy learning via joint
+     Proceedings of the IEEE Conference on Computer Vision              denoising process. In The Thirty-eighth Annual Confer-
+     and Pattern Recognition, pages 6299–6308, 2017.                    ence on Neural Information Processing Systems, 2024.
+ [8] Huiwen Chang, Han Zhang, Lu Jiang, Ce Liu, and                [20] Kaiming He, Xinlei Chen, Saining Xie, Yanghao Li,
+     William T Freeman. MaskGIT: Masked Generative                      Piotr Dollár, and Ross Girshick. Masked Autoencoders
+     Image Transformer. In Proceedings of the IEEE/CVF                  Are Scalable Vision Learners. In Proceedings of the
+     Conference on Computer Vision and Pattern Recognition,             IEEE/CVF Conference on Computer Vision and Pattern
+     pages 11315–11325, 2022.                                           Recognition, pages 16000–16009, 2022.
+ [9] Haoxuan Che, Xuanhua He, Quande Liu, Cheng Jin, and           [21] Jonathan Ho, Ajay Jain, and Pieter Abbeel. Denoising
+     Hao Chen. Gamegen-x: Interactive open-world game                   Diffusion Probabilistic Models. Advances in Neural
+     video generation. arXiv preprint arXiv:2411.00769,                 Information Processing Systems, 33:6840–6851, 2020.
+     2024.                                                         [22] Jonathan Ho, William Chan, Chitwan Saharia, Jay
+     Whang, Ruiqi Gao, Alexey Gritsenko, Diederik P              [34] Ilija Radosavovic, Baifeng Shi, Letian Fu, Ken Goldberg,
+     Kingma, Ben Poole, Mohammad Norouzi, David J                     Trevor Darrell, and Jitendra Malik. Robot Learning
+     Fleet, et al. Imagen Video: High Definition Video                with Sensorimotor Pre-Training. In Conference on Robot
+     Generation with Diffusion Models.         arXiv preprint         Learning, pages 683–693, 2023.
+     arXiv:2210.02303, 2022.                                     [35] Robin Rombach, Andreas Blattmann, Dominik Lorenz,
+[23] Jonathan Ho, Tim Salimans, Alexey Gritsenko, William             Patrick Esser, and Björn Ommer. High-Resolution Image
+     Chan, Mohammad Norouzi, and David J Fleet. Video                 Synthesis with Latent Diffusion Models, 2021.
+     Diffusion Models. Advances in Neural Information            [36] Abhishek Sharma, Adams Yu, Ali Razavi, Andeep Toor,
+     Processing Systems, 35:8633–8646, 2022.                          Andrew Pierson, Ankush Gupta, Austin Waters, Aäron
+[24] Yucheng Hu, Yanjiang Guo, Pengchao Wang, Xiaoyu                  van den Oord, Daniel Tanis, Dumitru Erhan, Eric Lau,
+     Chen, Yen-Jen Wang, Jianke Zhang, Koushil Sreenath,              Eleni Shaw, Gabe Barth-Maron, Greg Shaw, Han Zhang,
+     Chaochao Lu, and Jianyu Chen. Video Prediction Policy:           Henna Nandwani, Hernan Moraldo, Hyunjik Kim, Irina
+     A Generalist Robot Policy with Predictive Visual Repre-          Blok, Jakob Bauer, Jeff Donahue, Junyoung Chung, Kory
+     sentations. arXiv preprint arXiv:2412.14803, 2024.               Mathewson, Kurtis David, Lasse Espeholt, Marc van
+[25] Moo Jin Kim, Karl Pertsch, Siddharth Karamcheti, Ted             Zee, Matt McGill, Medhini Narasimhan, Miaosen Wang,
+     Xiao, Ashwin Balakrishna, Suraj Nair, Rafael Rafailov,           Mikołaj Bińkowski, Mohammad Babaeizadeh, Moham-
+     Ethan Foster, Grace Lam, Pannag Sanketi, et al. Open-            mad Taghi Saffar, Nando de Freitas, Nick Pezzotti,
+     VLA: An Open-Source Vision-Language-Action Model.                Pieter-Jan Kindermans, Poorva Rane, Rachel Hornung,
+     arXiv preprint arXiv:2406.09246, 2024.                           Robert Riachi, Ruben Villegas, Rui Qian, Sander Diele-
+[26] Po-Chen Ko, Jiayuan Mao, Yilun Du, Shao-Hua Sun, and             man, Serena Zhang, Serkan Cabi, Shixin Luo, Shlomi
+     Joshua B Tenenbaum. Learning to act from actionless              Fruchter, Signe Nørly, Srivatsan Srinivasan, Tobias Pfaff,
+     videos through dense correspondences. arXiv preprint             Tom Hume, Vikas Verma, Weizhe Hua, William Zhu,
+     arXiv:2310.08576, 2023.                                          Xinchen Yan, Xinyu Wang, Yelin Kim, Yuqing Du, and
+[27] Tianhong Li, Yonglong Tian, He Li, Mingyang Deng, and            Yutian Chen. Veo. 2024.
+     Kaiming He. Autoregressive Image Generation Without         [37] Jascha      Sohl-Dickstein,      Eric    Weiss,      Niru
+     Vector Quantization. arXiv preprint arXiv:2406.11838,            Maheswaranathan, and Surya Ganguli.                 Deep
+     2024.                                                            Unsupervised      Learning     Using      Nonequilibrium
+[28] Junbang Liang, Ruoshi Liu, Ege Ozguroglu, Sruthi Sud-            Thermodynamics.        In International Conference on
+     hakar, Achal Dave, Pavel Tokmakov, Shuran Song, and              Machine Learning, pages 2256–2265, 2015.
+     Carl Vondrick. Dreamitate: Real-World Visuomotor Pol-       [38] Yang Song and Prafulla Dhariwal. Improved Tech-
+     icy Learning via Video Generation. CoRL, 2024.                   niques for Training Consistency Models. arXiv preprint
+[29] Fanqi Lin, Yingdong Hu, Pingyue Sheng, Chuan Wen,                arXiv:2310.14189, 2023.
+     Jiacheng You, and Yang Gao. Data scaling laws in im-        [39] Yang Song, Jascha Sohl-Dickstein, Diederik P Kingma,
+     itation learning for robotic manipulation. arXiv preprint        Abhishek Kumar, Stefano Ermon, and Ben Poole. Score-
+     arXiv:2410.18647, 2024.                                          Based Generative Modeling Through Stochastic Differ-
+[30] Bo Liu, Yifeng Zhu, Chongkai Gao, Yihao Feng, Qiang              ential Equations. arXiv preprint arXiv:2011.13456, 2020.
+     Liu, Yuke Zhu, and Peter Stone. Libero: Benchmarking        [40] Yang Song, Prafulla Dhariwal, Mark Chen, and Ilya
+     Knowledge Transfer for Lifelong Robot Learning. Ad-              Sutskever.      Consistency Models.       arXiv preprint
+     vances in Neural Information Processing Systems, 36,             arXiv:2303.01469, 2023.
+     2024.                                                       [41] Hugo Touvron, Louis Martin, Kevin Stone, Peter Albert,
+[31] Fangchen Liu, Hao Liu, Aditya Grover, and Pieter                 Amjad Almahairi, Yasmine Babaei, Nikolay Bashlykov,
+     Abbeel. Masked Autoencoding for Scalable and General-            Soumya Batra, Prajjwal Bhargava, Shruti Bhosale, et al.
+     izable Decision Making. Advances in Neural Information           Llama 2: Open foundation and fine-tuned chat models.
+     Processing Systems, 35:12608–12618, 2022.                        arXiv preprint arXiv:2307.09288, 2023.
+[32] Ajay Mandlekar, Danfei Xu, Josiah Wong, Soroush             [42] Thomas Unterthiner, Sjoerd Van Steenkiste, Karol Ku-
+     Nasiriany, Chen Wang, Rohun Kulkarni, Li Fei-Fei,                rach, Raphael Marinier, Marcin Michalski, and Syl-
+     Silvio Savarese, Yuke Zhu, and Roberto Martı́n-Martı́n.          vain Gelly. Towards Accurate Generative Models of
+     What Matters in Learning from Offline Human Demon-               Video: A New Metric & Challenges. arXiv preprint
+     strations for Robot Manipulation. In arXiv preprint              arXiv:1812.01717, 2018.
+     arXiv:2108.03298, 2021.                                     [43] Dani Valevski, Yaniv Leviathan, Moab Arar, and Shlomi
+[33] Alec Radford, Jong Wook Kim, Chris Hallacy, Aditya               Fruchter. Diffusion models are real-time game engines.
+     Ramesh, Gabriel Goh, Sandhini Agarwal, Girish Sastry,            arXiv preprint arXiv:2408.14837, 2024.
+     Amanda Askell, Pamela Mishkin, Jack Clark, et al.           [44] Ashish Vaswani, Noam Shazeer, Niki Parmar, Jakob
+     Learning Transferable Visual Models from Natural Lan-            Uszkoreit, Llion Jones, Aidan N Gomez, Ł ukasz Kaiser,
+     guage Supervision. In International Conference on                and Illia Polosukhin. Attention Is All You Need. Ad-
+     Machine Learning, pages 8748–8763, 2021.                         vances in Neural Information Processing Systems, 2017.
+[45] Ruben Villegas, Mohammad Babaeizadeh, Pieter-Jan
+     Kindermans, Hernan Moraldo, Han Zhang, Moham-
+     mad Taghi Saffar, Santiago Castro, Julius Kunze, and
+     Dumitru Erhan. Phenaki: Variable Length Video Gen-
+     eration from Open Domain Textual Descriptions. In
+     International Conference on Learning Representations,
+     2022.
+[46] Dirk Weissenborn, Oscar Täckström, and Jakob Uszkor-
+     eit. Scaling Autoregressive Video Models. arXiv preprint
+     arXiv:1906.02634, 2019.
+[47] Wenming Weng, Ruoyu Feng, Yanhui Wang, Qi Dai,
+     Chunyu Wang, Dacheng Yin, Zhiyuan Zhao, Kai Qiu,
+     Jianmin Bao, Yuhui Yuan, et al. ART-V: Auto-Regressive
+     Text-to-Video Generation with Diffusion Models. In
+     Proceedings of the IEEE/CVF Conference on Computer
+     Vision and Pattern Recognition, pages 7395–7405, 2024.
+[48] Philipp Wu, Arjun Majumdar, Kevin Stone, Yixin Lin,
+     Igor Mordatch, Pieter Abbeel, and Aravind Rajeswaran.
+     Masked Trajectory Models for Prediction, Representa-
+     tion, and Control. In International Conference on Ma-
+     chine Learning, pages 37607–37623, 2023.
+[49] Mengda Xu, Zhenjia Xu, Yinghao Xu, Cheng Chi, Gor-
+     don Wetzstein, Manuela Veloso, and Shuran Song. Flow
+     as the cross-domain manipulation interface. CoRL, 2024.
+[50] Wilson Yan, Yunzhi Zhang, Pieter Abbeel, and Aravind
+     Srinivas. VideoGPT: Video Generation Using VQ-VAE
+     and Transformers. arXiv preprint arXiv:2104.10157,
+     2021.
+[51] Tony Z Zhao, Vikash Kumar, Sergey Levine, and Chelsea
+     Finn. Learning fine-grained bimanual manipulation with
+     low-cost hardware. arXiv preprint arXiv:2304.13705,
+     2023.
+             X. S UPPLEMENTARY M ATERIALS
+   In this section, we first introduce the autoregressive video    Empty
+                                                                   Mask
+generation process in §X-A and then show more details of
+the simulation benchmarks (§X-B) and real-world benchmarks
+(§X-C) we used for evaluation. We finally report the inference
+speed details in §X-D.                                             First
+                                                                   Step
+A. Autogregressive Video Generation
+   Our autoregressive video generation is based on the methods
+from [8] and [27], originally designed for image generation,
+                                                                   Second
+which we have extended to video generation. In [8], images are     Step
+first converted into discrete visual codes using VQGAN [15].
+During training, a subset of these visual codes is randomly
+                                                                                                        …
+masked and the model is trained to reconstruct them. During
+inference, the entire image is generated from an empty mask.
+This masked training approach enables the model to generate        Final
+                                                                   Step
+images autoregressively. The number of autoregressive steps
+can be adjusted during inference, with more steps leading
+to improved performance, as demonstrated in their paper.                         Ot+1           Ot+2            …              Ot+h
+However, the visual discretization in VQGAN and training
+                                                                   Fig. 9: Autoregressive Video Generation. Our method generates
+with discrete visual codes often leads to information loss,        a video starting from an empty mask. Given a specified number of
+resulting in lower-quality images. Li et al. [27] address this     generation steps, the model produces a set of tokens at each autore-
+limitation by using continuous latent representations instead of   gressive step, progressively constructing the video. If the generation
+discrete code for image tokens. Their approach models each         step is set to 1, the entire video is generated in a single pass.
+visual token’s probability using a diffusion model, eliminating
+the need for vector quantization. This method has shown
+improved performance over previous approaches.                        • PushT-M: We extend the PushT task to include varying
+   Our method is similar to [27] in that it predicts continuous         target “T” positions. This setting adds additional uncer-
+latent representations. These representations are then used             tainty and presents a greater challenge, requiring the agent
+as conditions of the diffusion heads to decode actions and              to dynamically plan its trajectory and adapt to diverse
+video observations. The autoregressive generation process is            spatial configurations. We reported the average reward
+shown in Figure 9. If the autoregressive step is set to 1,              on 50 environments with different random seeds.
+the entire video is generated in a single pass. Otherwise,            • Libero10 [30]: is the most challenging task in the Libero
+with a predefined number of steps, the method generates the             benchmark due to its long-horizon requirements. This set
+video autoregressively, completing the process in the specified         comprises 10 tasks, each accompanied by a language goal
+number of steps.                                                        description, such as “put the red mug on the left plate and
+   Our model builds on the pretrained model (MAR-B) re-                 open the bottom drawer of the cabinet”. We use the same
+leased by [27] but has undergone substantial modifications for          language encoder, e.g., CLIP, for all methods. Objects are
+the joint video and action modeling. Please check out our code          initialized in varying locations within the scene. Each task
+for details.                                                            is evaluated over 10 runs with different random seeds, and
+                                                                        we report the average reward across all 10 tasks, resulting
+B. Simulation Benchmarks                                                in a total of 500 test episodes.
+Single-Task Evaluation: For this setting, different policies are
+                                                                   C. Real-world Benchmarks
+trained for different tasks.
+   • PushT [10, 16]: requires the agent to push the gray “T”       Training Data: We assess real-world performance using two
+     to align it with the target “T” at the center of the scene.   publicly available benchmarks introduced by [11] and [29].
+     The average success rate over 50 rollouts is reported in      Both benchmarks collect data using the handheld UMI [11]
+     the main paper.                                               device. Thanks to the UMI’s design, these datasets can be
+   • Toolhang [32]: requires a robot to insert a hook into         directly utilized to train various models and evaluate them on
+     a base and then hang a wrench. It is one of the most          our robotic setup, which consists of a single ARX X5 robotic
+     challenging tasks in RoboMimic. We evaluate the average       arm. We used three tasks for training:
+     success rate over 50 environments with different random          •    Cup Arrangement [11]: requires the robot to first rotate
+     seeds.                                                                the cup with the handle oriented to the left of the robot,
+Multi-Task Evaluation: In multi-task evaluation, we train one              then pick up an espresso cup and place it onto a saucer.
+policy for multiple task goals defined by image or text.                   Success is achieved when the cup is properly placed on
+    the saucer and the handle lies within ±15◦ of the exact             Modules / Tasks                       Inference time (ms) ↓
+    left alignment.                                                     VAE Image Encoder                               40
+  • Towel Folding [29]: requires the robot to grasp the left            Transformer (Attention)                         40
+    edge of the towel and move it to the right, folding it in           Transformer (Flash Attention)                   30
+    half.                                                               Action Diffusion (16 steps)                     15
+                                                                        Action Diffusion (100 steps)                    93
+  • Mouse Arrangement [29]: requires the robot to pick up
+                                                                        Rest of the model                              <1
+    the mouse and place it on the mouse pad.                            Video Diffusion (16 steps)                     100
+                                                                        Video Diffusion (100 steps)                    625
+Single-Task Evaluation: We train a single-task policy on the
+Cup dataset and directly compare it to the DP-UMI model                 UVA (16 steps)                                   95
+provided by the authors [11]. Both methods are trained using            UVA (16 steps Flash Attention)                   85
+                                                                        UVA (100 steps)                                 173
+the same dataset. The cup and saucer are initially placed in            UVA (100 steps Flash Attention)                 163
+varying positions and orientations. Across 20 test rollouts, the        Policy+Planner (16 steps)                       195
+robot needs to rotate the cup before placing it on the saucer           Policy+Planner (100 steps)                      798
+in 85% of the cases. Additionally, we include challenging
+scenarios where the cup is positioned at the boundary of the         TABLE VII: Inference Time Decomposition. We measure the
+                                                                     inference time for each module and the total runtime of UVA as
+robot arm’s reach. We evaluate each method across 20 rollouts        a policy model, using 16 policy steps and 100 diffusion steps.
+with different initial configurations. The average success rate
+is reported in the main paper.
+Multi-Task Evaluation: We train one model with all three             Therefore, skipping video generation significantly speeds up
+tasks and then evaluate the policy performance on each task          policy inference.
+independently. The three public datasets contain a total of
+6,764 episodes. We randomly selected 500 episodes from               E. Utilize Action-Free Video
+each dataset and combined them into a dataset with 1500                 UVA can leverage action-free video data by (1) pretraining
+episodes to train both our model and DP-UMI [11]. To ensure          on video generation tasks and (2) co-training with video-action
+a wide testing distribution, we evaluate 20 different scenarios,     data to learn a joint latent representation. We conducted an
+including six initial configurations of objects and the robot, six   experiment where UVA is first pretrained for video generation
+different distractor objects, five distinct backgrounds, and an      using the Human Video dataset from [12], which contains
+unseen gripper type (training is conducted with only orange          3,175 human-only videos. We then finetune UVA on the
+and purple grippers, while testing includes a green gripper).        combined Human Video and LIBERO-10 datasets using the
+                                                                     Masked Training strategy. With the action-free human videos,
+D. Inference Speed Measurement and Decomposition                     the accuracy can be further improved as shown in Table VIII.
+   For the simulation results in Table I, we measure the
+inference speed using a server with NVIDIA L40 GPUs for                        Model                    30 test ↑   500 test ↑
+all of the models. For the real-world results in Table II, we                  UVA                        0.93         0.90
+measure the inference speed on an NVIDIA RTX 3080 GPU                          UVA + Human Data           0.97         0.91
+to match real-world deployment scenarios.
+                                                                     TABLE VIII: UVA with additional human data further improves
+   We also decompose the inference time of each component            performance. Results on Libero10 across 10 tasks. In the 30-test
+in our model under the real-world deployment scenario:               setting, each task is evaluated 3 times with different random seeds.
+   The pretrained VAE image encoder requires 40ms, while the         In the 500-test setting, each task is evaluated 50 times.
+transformer module takes approximately 40ms, which can be
+reduced to 30ms using flash attention. The action prediction
+head takes 15ms with 16 diffusion steps and 93ms with 100            F. Impact of masking strategy.
+diffusion steps. In our policy learning experiment in Table II,         In paper Figure 1, our masked pattern is based on the input-
+we chose 16 diffusion steps. However, using 100 diffusion            output structure of each application. We added two additional
+steps results in smoother action predictions and a higher            masking methods on PushT-M: 1) Application-dependent: The
+success rate, though at the cost of slower performance. In total,    masking follows the input-output structure of each application,
+UVA requires 95ms to predict an action trajectory with 16            e.g., video generation uses history observations to predict
+actions when using 16 diffusion steps, and 173ms when using          future ones. We thus randomly mask the history observations.
+100 diffusion steps. Incorporating flash attention can reduce        2) Application-independent: randomly mask the inputs, regard-
+10ms for both.                                                       less of task semantics. The results are reported in Table IX
+   We also reported the inference speed for video generation,           Policy learning and video generation are evaluated by suc-
+even though video generation was skipped during policy               cess rate and FVD. Forward dynamics is evaluated by FVD on
+inference. Video generation involves a higher latent dimen-          videos generated conditioned on actions. Inverse dynamics is
+sionality and requires more denoising steps. Performing 16           evaluated by L2 error. Overall, in the “application-dependent”
+video diffusion steps takes 100ms, while 100 steps take 625ms.       setting, higher mask ratios degrade overall performance. In the
+                  Masking Strategy                Application-dependent         Application-independent
+                  Mask Ratio                     25%       50%      75%         25%       50%      75%
+                  Policy (Success) ↑             0.84      0.84       0.74      0.86      0.87       0.84
+                  Video Generation (FVD) ↓      127.09    161.72     166.45    181.68    200.08    262.93
+                  Forward Dynamics (FVD) ↓      129.77    167.10     167.40    174.85    203.59    264.96
+                  Inverse Dynamics (L2) ↓        17.54    25.98      47.79     14.14     13.55      14.10
+
+TABLE IX: Evaluation of different masking strategies (application-dependent vs. application-independent) across various mask
+ratios.
+
+
+“application-independent” setting, 25% masking works best
+for video generation and forward dynamics, while 50% is
+optimal for policy and inverse dynamics.
+

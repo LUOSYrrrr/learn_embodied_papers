@@ -1,0 +1,153 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>WB-WAM 数据质检 · 与 Qwen-RobotManip 的逐步对照</title>
+  <link rel="stylesheet" href="../assets/css/style.css">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.css">
+  <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.js"></script>
+  <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/contrib/auto-render.min.js" onload="renderMathInElement(document.body,{delimiters:[{left:'$$',right:'$$',display:true},{left:'$',right:'$',display:false}]})"></script>
+  <script src="../assets/js/theme.js"></script>
+  <script src="../assets/js/interactive.js" defer></script>
+  <style>
+    .docs-layout { grid-template-columns:240px minmax(0,1fr); max-width:1320px; }
+    .metric-strip { display:grid; grid-template-columns:repeat(4,minmax(0,1fr)); gap:10px; margin:18px 0 26px; }
+    .metric { padding:16px; border:1px solid var(--border); border-radius:10px; background:var(--bg2); }
+    .metric strong { display:block; font-family:var(--font-serif); font-size:24px; color:var(--accent); margin-bottom:4px; }
+    .metric span { font-size:12px; color:var(--text3); line-height:1.5; }
+    .lane-grid { display:grid; grid-template-columns:1fr 46px 1fr; gap:8px; align-items:stretch; margin:20px 0; }
+    .lane { padding:17px; border:1px solid var(--border); border-radius:10px; background:var(--bg2); }
+    .lane h4 { margin:0 0 7px; color:var(--accent); }
+    .lane p { margin:0; font-size:14px; }
+    .lane-arrow { display:flex; align-items:center; justify-content:center; color:var(--accent); font-size:23px; }
+    .stage-flow { display:grid; grid-template-columns:repeat(5,minmax(0,1fr)); gap:8px; margin:20px 0; }
+    .stage { min-height:126px; padding:13px; border:1px solid var(--border); border-radius:9px; background:var(--bg2); font-size:12px; }
+    .stage .num { display:block; color:var(--accent); font-family:var(--font-mono); font-size:11px; margin-bottom:6px; }
+    .stage strong { display:block; font-size:14px; margin-bottom:5px; }
+    .stage.current { border-color:var(--accent); }
+    .stage.gap { border-style:dashed; opacity:.83; }
+    .verdict-grid { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:12px; margin:18px 0; }
+    .verdict { padding:17px; border:1px solid var(--border); border-radius:10px; background:var(--bg2); }
+    .verdict h4 { margin:0 0 8px; }
+    .verdict.ok h4 { color:var(--accent); }
+    .verdict.warn h4 { color:var(--amber); }
+    .compare-table th { white-space:nowrap; }
+    .tag { display:inline-block; padding:2px 7px; border-radius:999px; margin-right:5px; font:10px var(--font-mono); border:1px solid var(--border2); }
+    .tag.have { color:var(--accent); }.tag.gap { color:var(--amber); }.tag.paper { color:#8e65c9; }
+    .small-note { color:var(--text3); font-size:12px; line-height:1.7; margin-top:8px; }
+    @media(max-width:900px) { .docs-layout{grid-template-columns:1fr}.docs-sidebar-left{display:none}.metric-strip,.verdict-grid{grid-template-columns:1fr}.lane-grid{grid-template-columns:1fr}.lane-arrow{transform:rotate(90deg); min-height:24px}.stage-flow{grid-template-columns:1fr 1fr}.stage-flow .stage:last-child{grid-column:span 2} }
+  </style>
+</head>
+<body>
+  <nav class="nav"><a class="nav-logo" href="../index.html">Paper Notes</a><div class="nav-links"><a href="qwen-robotmanip.html">← Qwen-RobotManip</a><button class="theme-toggle" aria-label="切换主题">◐</button></div></nav>
+  <div class="docs-layout">
+    <aside class="docs-sidebar-left">
+      <div class="ds-title">质检对照</div>
+      <a class="ds-leaf-top" href="#scope">§01 先分清检查什么</a>
+      <a class="ds-leaf-top" href="#current">§02 你们现在的流水线</a>
+      <a class="ds-leaf-top" href="#signals">§03 信号检查：现有 vs Qwen</a>
+      <a class="ds-leaf-top" href="#crossmodal">§04 视频/语言跨模态</a>
+      <a class="ds-leaf-top" href="#gap">§05 缺口与升级顺序</a>
+    </aside>
+    <main class="docs-content">
+      <header class="paper-header">
+        <div class="paper-venue">WB-WAM quality_v1_20260724 × Qwen-RobotManip §2.4</div>
+        <h1 class="paper-title">你们现在的质检做到了哪里？<br>和 Qwen-RobotManip 逐步骤对照</h1>
+        <div class="paper-authors">基于你提供的 quality 流水线说明；论文依据 Qwen-RobotManip Technical Report, §2.4, pp.6–7。</div>
+        <div class="paper-badges"><span class="badge badge-green">只读 · Slurm 分片</span><span class="badge badge-blue">episode-level audit</span><span class="badge badge-purple">信号 + 视频</span><span class="badge badge-amber">不等于语义验证</span></div>
+      </header>
+
+      <section class="section" id="scope">
+        <div class="section-num">§ 01</div>
+        <h2>先分清：文件“没坏”，不等于机器人动作“有同一个物理含义”</h2>
+        <div class="cn-read"><div class="cn-label">这一页解决什么</div><p>你们的质检已经是很扎实的<strong>数据完整性 + 时序连续性 + 视频可用性</strong>审计。Qwen 的流程与它高度重叠，但又额外检查了 action/state 的因果关系、运动学、坐标系和语言-视频一致性。两者都<strong>不能仅靠格式</strong>证明“不同来源都已统一成 G1+Wuji 的正确物理语义”。</p></div>
+        <div class="metric-strip"><div class="metric"><strong>14</strong><span>当前独立检查的数据 root</span></div><div class="metric"><strong>100%</strong><span>quality_v1 已报告 coverage</span></div><div class="metric"><strong>4–32</strong><span>按 episode 行区间的 Slurm partitions</span></div><div class="metric"><strong>8</strong><span>Qwen：5 个信号阶段 + 3 个跨模态检查</span></div></div>
+        <div class="lane-grid"><div class="lane"><h4>你们当前 audit 在回答</h4><p>文件、Parquet、时间戳、mask、state/action 是否可读取且连续？视频是否冻结、黑屏、损坏或明显失焦？</p></div><div class="lane-arrow">≠</div><div class="lane"><h4>仍未由它回答</h4><p><strong>body29 顺序、root3 单位、hand20 手型、action frame、retarget/IK</strong> 是否跨数据集有同一物理意义？</p></div></div>
+        <div class="callout amber"><div class="callout-label">最重要的边界</div><p>LeRobot v3 是一个数据容器；110D/136D 是固定张量形状；quality pipeline 是质量审计。三者都不是“自动证明语义正确”的机制。语义正确需要 metadata、转换脚本、FK/重投影和样本可视化共同给证据。</p></div>
+        <details class="en-quote"><summary>展开原文 · Qwen 为什么要多阶段清洗</summary><div class="quote-body"><p>“Aggregating manipulation data across diverse embodiments, simulators, and collection pipelines introduces heterogeneous noise in recorded state and action signals.”</p><div class="quote-cite">— Qwen-RobotManip §2.4, p.6</div></div></details>
+        <div class="quiz" data-correct="b" data-explain="读取成功、时间戳连续、视频不黑，只能说明样本具备训练所需的基本完整性；它不能验证某个 index 对应哪一个 G1 关节，或 root3 的单位/坐标系是否一致。" data-explain-wrong="格式、结构和语义是三层不同的保证；当前 audit 已覆盖前两层的一部分，尚未覆盖完整的跨数据集物理语义。"><div class="q-label">🧠 先校准问题</div><div class="q-text">一个 episode 通过你们当前所有质检，最严谨的结论是什么？</div><div class="q-options"><button class="q-opt" data-k="a">它一定已经是正确 G1+Wuji 轨迹</button><button class="q-opt" data-k="b">它在结构、基本时序和视频质量上可用，但语义仍需独立核验</button><button class="q-opt" data-k="c">它一定能在真机上执行</button><button class="q-opt" data-k="d">它的语言指令必然正确</button></div><div class="q-feedback"></div></div>
+      </section>
+
+      <section class="section" id="current">
+        <div class="section-num">§ 02</div>
+        <h2>你们当前的流水线：先把“可训练的坏文件”挡在训练外面</h2>
+        <div class="cn-read"><div class="cn-label">承上 → 启下</div><p>上一节区分了质量与语义。这一节先不谈论文，严格按你们现有脚本还原：它从 dataset 入口出发，按 episode 分片，分别检查结构、连续信号和视频，最后只生成 <code>keep / review / exclude</code> 建议，<strong>不会改数据</strong>。下一节才问它和论文的信号检查哪里相同、哪里还差一层。</p></div>
+        <div class="stage-flow"><div class="stage current"><span class="num">A · dataset gate</span><strong>入口与目录</strong><span><code>meta/info.json</code>、<code>episodes.parquet</code>、shard 与视频是否存在。</span></div><div class="stage current"><span class="num">B · partition</span><strong>按 episode 均分</strong><span>$[Ni/P, N(i+1)/P)$；先按 shard 分组，避免重复打开。</span></div><div class="stage current"><span class="num">C · structure</span><strong>结构/时间轴</strong><span>行数、NaN/Inf、mask shape、frame index、timestamp/FPS。</span></div><div class="stage current"><span class="num">D · signal + video</span><strong>连续性与画面</strong><span>jump、静止、next-state；黑/白/坏帧、冻结、blur、重复视频。</span></div><div class="stage current"><span class="num">E · aggregate</span><strong>建议，不删除</strong><span><code>critical/high→exclude</code>；<code>medium→review</code>；汇总 CSV/JSONL。</span></div></div>
+        <h3>2.1 分片并不是“随便拆任务”</h3>
+        <p>设共有 $N$ 个 episode、分成 $P$ 个 partition，第 $i$ 个 Slurm array task 处理：</p>
+        <div class="math-block">$$start_i=\left\lfloor\frac{Ni}{P}\right\rfloor,\qquad end_i=\left\lfloor\frac{N(i+1)}{P}\right\rfloor$$<span class="math-label">你们当前的 episode-range partition</span></div>
+        <div class="math-explain"><div class="me-title">逐项拆解</div><dl><dt>$N$</dt><dd><code>episodes.parquet</code> 的 episode 总行数。</dd><dt>$P$</dt><dd>提交时指定的 partitions 数；不同数据集现在用 4–32。</dd><dt>$[start_i,end_i)$</dt><dd>第 $i$ 个 job 的闭开区间。按 metadata 行均分，所以不会漏 episode 或重复审计。</dd></dl></div>
+        <p>每个 part 还写 manifest，记录数据 root、范围、阈值、camera/video mode 和完成时间；summary job 依赖 array job 全部成功。这是一个很好的可复现性设计：之后看到某个 exclude，可以追到当时用了什么阈值和哪一段输入。</p>
+        <h3>2.2 结构检查在保护什么？</h3>
+        <table class="kv-table compare-table"><tr><th>检查</th><th>你们的判据</th><th>它防止什么</th><th>它不能证明什么</th></tr><tr><td>时间轴</td><td>frame index 严格为 $0,1,2,\ldots$；timestamp 单调，间隔接近 $1/fps$，容差 2 ms。</td><td>丢帧索引、乱序、明显时钟损坏。</td><td>state 和 action 是不是同一时钟或有合理控制时延。</td></tr><tr><td>张量/掩码</td><td><code>states/action</code> 存在；无 NaN/Inf；mask shape 合法。</td><td>坏 shard、损坏数值、读入时 shape 崩溃。</td><td>mask 的 True/False 是否真的代表对应自由度有效。</td></tr><tr><td>episode 边界</td><td>metadata length 等于 shard 切出的 row 数；episode index 不重复。</td><td>切片错位、重复训练、缺 episode。</td><td>一段 episode 在物理上是否完成了对应任务。</td></tr></table>
+        <div class="quiz" data-correct="d" data-explain="时间戳接近 1/fps 只能说明单一流内部规律；state/action 是否因果对齐，要比较二者变化的时间 lag 和方向，这正是 Qwen S2 额外做的事。" data-explain-wrong="单流 timestamps 规则，不代表两个流之间没有偏移、延迟或 packet loss。"><div class="q-label">🧠 理解检查</div><div class="q-text">为什么 timestamp 通过检查，仍不能证明 action 与 state 对齐？</div><div class="q-options"><button class="q-opt" data-k="a">因为 timestamp 只能用于视频</button><button class="q-opt" data-k="b">因为 FPS 一定不准确</button><button class="q-opt" data-k="c">因为 action 不需要时间信息</button><button class="q-opt" data-k="d">因为两个流都可各自规律，却彼此存在固定/变化的延迟</button></div><div class="q-feedback"></div></div>
+      </section>
+      <section class="section" id="signals">
+        <div class="section-num">§ 03</div>
+        <h2>信号检查：你们先抓“突变”，Qwen 再追问“它是否违反物理因果与几何”</h2>
+        <div class="cn-read"><div class="cn-label">承上 → 启下</div><p>你们已经保证 episode 结构正确；下一层是序列是否可信。当前 audit 用稳健统计找每维的突变，并且对标为 <code>next</code> 的来源检查“action 下一帧是否成为 state”。Qwen 的 S1 与此相近，但它用平滑残差、加速度、jerk 联合判定；更重要的是 S2 把<strong>控制命令应领先状态响应</strong>作为因果不变量来检查。后面 S3–S5 则专门解决范围、运动学和坐标系问题。</p></div>
+
+        <h3>3.1 你们当前的 jump detector：对每维变化幅度做稳健阈值</h3>
+        <p>对某个有效维度 $x_t$，先计算帧间绝对变化 $d_t=|x_t-x_{t-1}|$。用中位数而非均值，是为了让少数极大跳变不会反过来把阈值抬高、躲过检测：</p>
+        <div class="math-block">$$d_t=|x_t-x_{t-1}|,\quad m=\operatorname{median}(d),\quad \operatorname{MAD}=\operatorname{median}(|d-m|)$$<span class="math-label">当前 quality pipeline · 每维帧间变化统计</span></div>
+        <div class="math-explain"><div class="me-title">逐项拆解</div><dl><dt>$x_t$</dt><dd>某一个有效 state/action 维度在第 $t$ 帧的值。mask 为 invalid/padding 的维度不参与统计。</dd><dt>$d_t$</dt><dd>当前帧相对上一帧跳了多远；它没有正负方向，只看幅度。</dd><dt>$m$</dt><dd>典型帧间变化大小。比均值更不怕极端离群点。</dd><dt>$MAD$</dt><dd>变化幅度围绕中位数的典型偏离；为正态分布乘 $1.4826$ 可近似标准差尺度。</dd></dl></div>
+        <div class="math-block">$$\tau=\max\left(\tau_{\min},\;m+12\times1.4826\times \operatorname{MAD}\right),\qquad \text{flag}_t=(d_t>\tau)$$<span class="math-label">当前阈值 · body/hand 下限 0.35，root3 下限 0.25</span></div>
+        <div class="math-explain"><div class="me-title">这条公式的直觉</div><dl><dt>$m+12\sigma_{robust}$</dt><dd>“比这条轨迹平常变化大很多”的自适应门槛。$12$ 很保守，降低正常快速动作被误报的风险。</dd><dt>$\tau_{\min}$</dt><dd>当一条轨迹几乎静止，$MAD$ 会很小；固定下限避免微小数值噪声也被当成 jump。</dd><dt>max jump / ratio</dt><dd>脚本还会记录最大 jump、所在 frame/dim、超阈值比例、最长静止时长和有效维数。当前 body/hand/root 的 jump 都是 <strong>medium/review</strong>，不是自动 exclude。</dd></dl></div>
+        <div class="callout blue"><div class="callout-label">它特别擅长发现什么？</div><p>坏 shard 拼接、单位突然切换、某一帧状态爆掉、复制/粘贴错位。它刻意<strong>不</strong>检查 <code>action[0:64]</code> 的 SONIC token，因为 token 本身是离散表示；把它按连续关节差分会误报。二值 gripper 也应按同一原则豁免。</p></div>
+
+        <h3>3.2 Qwen S1：不只看 $|\Delta x|$，还要求“偏离平滑趋势 + 动力学突变”同时成立</h3>
+        <p>论文没有公布固定数值阈值，但给了判定结构：先用级联 median filter 和 Savitzky–Golay 得到平滑趋势 $\tilde{x}_t$，再联合残差、二阶差分和三阶差分。下面是对论文文字的<strong>等价操作化写法</strong>，不是论文逐字列出的公式：</p>
+        <div class="math-block">$$r_t=|x_t-\tilde{x}_t|,\qquad a_t=|x_t-2x_{t-1}+x_{t-2}|,\qquad j_t=|a_t-a_{t-1}|$$<span class="math-label">Qwen S1 · 依据 §2.4, p.6 的操作化符号</span></div>
+        <div class="math-explain"><div class="me-title">为什么多三种量？</div><dl><dt>$r_t$ 残差</dt><dd>当前点离“这段动作原本的平滑走向”有多远。它可以抓异常尖刺，而不把正常缓慢漂移直接判坏。</dd><dt>$a_t$ acceleration</dt><dd>一阶速度是否突然改变。持续匀速移动的 $a_t$ 小；突然急刹或暴冲时它大。</dd><dt>$j_t$ jerk</dt><dd>加速度又是否突然改变，专门对极尖的瞬态敏感。</dd><dt>联合条件</dt><dd>论文的语义是 $r_t>\tau_r$ 且 $(a_t>\tau_a\ \text{或}\ j_t>\tau_j)$ 才 flag。比只用 $|\Delta x|$ 更能把“慢漂移”与“突然损坏”分开。</dd></dl></div>
+        <p>Qwen 的阈值按数据集、本体、真实/仿真、base mobility、旋转表示分别设定；后续动作可以是删帧或丢 episode。你们当前的统一 robust threshold 是很好的 v1，但并没有这层“趋势残差 + 高阶变化”的交叉确认。</p>
+
+        <h3>3.3 你们的 next-state check 与 Qwen S2：一个是精确契约，一个是跨设备因果检查</h3>
+        <div class="verdict-grid"><div class="verdict ok"><h4>你们：适用于明确标了 next 的来源</h4><p>当 episode metadata 的 <code>body_source</code>/<code>hand_source</code> 包含 <code>next</code> 时，检查 $a_t^{body}\approx s_{t+1}^{body}$ 与 $a_t^{hand}\approx s_{t+1}^{hand}$，容差 $10^{-3}$。它能非常准确地抓到“本应是 next joint target，但写错帧/错值”的样本。</p></div><div class="verdict warn"><h4>它不能泛化到所有 action 表示</h4><p>absolute target、delta action、低层 torque、带控制延迟的真机日志，未必满足 $a_t=s_{t+1}$。若对它们硬套等式，会把合法控制系统误判坏数据。</p></div></div>
+        <p>Qwen S2 的问题更宽：不要求 action 值等于未来 state，而问<strong>action 的变化是否在合理时间后引出同向 state 变化</strong>。论文先平滑 state/action，针对 shared joint dimension 用 cross-correlation 找最佳 lag；若是 delta action，先积分回绝对量。</p>
+        <div class="math-block">$$\hat{\ell}=\arg\max_{\ell\in[-L,L]}\operatorname{corr}(\Delta a_t,\Delta s_{t+\ell}),\qquad \operatorname{DA}=\frac{1}{T}\sum_t\mathbf{1}\left[\operatorname{sign}(\Delta a_t)=\operatorname{sign}(\Delta s_{t+\hat\ell})\right]$$<span class="math-label">Qwen S2 · 论文描述的等价写法；DA 阈值通常 0.6–0.7</span></div>
+        <div class="math-explain"><div class="me-title">逐项拆解</div><dl><dt>$\Delta a_t,\Delta s_t$</dt><dd>action/state 的一阶变化，而不是绝对位置。这样不会被初始关节偏置干扰。</dd><dt>$\hat\ell$</dt><dd>最匹配的时延。合理系统通常 action 领先 state，所以最佳 $\ell$ 应落在预期控制延迟范围。</dd><dt>$\operatorname{DA}$</dt><dd>Directional Agreement：最佳对齐后，二者“同向变化”的比例。低于约 0.6–0.7，论文将维度/episode flag 并排除。</dd><dt>与 next-state 的关系</dt><dd><code>next</code> 检查是一个强而窄的特例；S2 是较弱但更通用的因果趋势检查。</dd></dl></div>
+
+        <h3>3.4 Qwen S3–S5：当前流程还没有的“语义与几何”三层</h3>
+        <table class="kv-table compare-table"><tr><th>论文阶段</th><th>具体做什么</th><th>公式/判据</th><th>你们当前状态</th></tr><tr><td><span class="tag paper">S3</span> Extreme value</td><td>每个本体、每个维度估计分位数范围，防极端值污染后续归一化；gripper 因双峰分布豁免。</td><td>超出 $[q_{01}-\alpha(q_{99}-q_{01}),\;q_{99}+\alpha(q_{99}-q_{01})]$ 删帧。</td><td><span class="tag gap">缺</span>当前有 jump，但没有 per-embodiment 的绝对范围/单位审计。</td></tr><tr><td><span class="tag paper">S4</span> FK consistency</td><td>从 URDF + joints 用 Pinocchio 算末端位姿，与日志 EEF 比较；优先修 TCP、joint sign、rotation/base frame。</td><td>$T^{FK}_{eef}(q_t)\stackrel{?}{\approx}T^{log}_{eef,t}$</td><td><span class="tag gap">缺</span>当前没有把 body29/hand20 的物理语义接回 URDF 验证。</td></tr><tr><td><span class="tag paper">S5</span> Orientation alignment</td><td>给每个数据集施加旋转修正，使 world forward 与 EEF 朝向约定一致。</td><td>$R'_{world}=R_{corr}R_{world}$</td><td><span class="tag gap">缺</span>当前不会验证 root3 的单位、yaw wrap 或 world/base frame。</td></tr></table>
+        <p class="small-note">S4 的关键不是“发现不一致就删除”。论文明确说它主要用于<strong>修正</strong>：固定 TCP offset、joint sign、肩部相对双臂 pose 到 world frame 的转换。对你们而言，这一层正是从“格式统一”走向“语义可证”的入口。</p>
+        <div class="quiz" data-correct="a" data-explain="next-state 是特定 action 定义下的等式检查；S2 允许未知但合理的控制时延，并比较 lag 对齐后的趋势方向，因此适用于更广泛的 action/state 记录方式。" data-explain-wrong="单一流连续、或 action 数值范围正常，都无法说明动作在因果上引出了对应状态变化。"><div class="q-label">🧠 理解检查</div><div class="q-text">若一个真机数据集 action 是带 80 ms 延迟的绝对关节目标，为什么 S2 比 $a_t\approx s_{t+1}$ 更合适？</div><div class="q-options"><button class="q-opt" data-k="a">S2 可先估计合理 lag，再比较变化方向，不强迫一帧精确相等</button><button class="q-opt" data-k="b">S2 不需要 state</button><button class="q-opt" data-k="c">S2 会自动修复机器人关节</button><button class="q-opt" data-k="d">S2 只检查视频清晰度</button></div><div class="q-feedback"></div></div>
+      </section>
+
+      <section class="section" id="crossmodal">
+        <div class="section-num">§ 04</div>
+        <h2>视频检查：你们的 C3 已很具体；Qwen 再补 C1 语言与 C2 机器人重投影</h2>
+        <div class="cn-read"><div class="cn-label">承上 → 启下</div><p>上一节的 S1–S5 都在看数值。可 VLA 最终同时看图、读指令、输出动作：画面冻结而 action 在变、视频中的机器人与 state 对不上、文本写“拿杯子”但视频在推盒子，都会让训练目标互相矛盾。你们现有视频审计已经很接近 Qwen C3，下一步最有价值的是把“视频-状态”和“语言-视频”也拉进同一个证据链。</p></div>
+        <div class="fig-interactive panel-below"><div class="fig-block"><div class="hotspot-wrap" data-hotspot-group="qwen-curation"><img src="../assets/figures/qwen-robotmanip/fig-2.png" alt="Qwen-RobotManip Figure 2: multi-stage data curation"><button class="hotspot" data-id="s1" style="left:10%;top:19%;" data-title="S1 · 突变联合判据" data-body="平滑残差 + acceleration/jerk，抓突发错误而避免把慢漂移直接误杀。"></button><button class="hotspot" data-id="s2" style="left:30%;top:19%;" data-title="S2 · 因果趋势时延" data-body="交叉相关找 action/state 最佳 lag，随后看同向变化比例 DA。"></button><button class="hotspot" data-id="s3" style="left:50%;top:19%;" data-title="S3 · 按本体的分位数范围" data-body="q01/q99 加缓冲带；目的是保护归一化与发现单位/范围异常。"></button><button class="hotspot" data-id="s4" style="left:70%;top:19%;" data-title="S4 · FK / EEF 一致性" data-body="URDF+joint 计算末端，优先修 TCP、joint sign、base frame，而不是立刻删除。"></button><button class="hotspot" data-id="s5" style="left:90%;top:19%;" data-title="S5 · 世界/EEF 朝向" data-body="把各数据集的 forward 与 EEF 约定旋转到同一世界几何语义。"></button><button class="hotspot" data-id="c1" style="left:31%;top:63%;" data-title="C1 · 指令一致性" data-body="先切 subtask，再让 VLM 做结构化判断；模糊样本用多 VLM 投票。"></button><button class="hotspot" data-id="c2" style="left:63%;top:63%;" data-title="C2 · 视频-状态一致性" data-body="由 URDF+joint 渲染机器人投影，和 SAM3 分割的真实机器人 mask 做 IoU。"></button><button class="hotspot" data-id="c3" style="left:89%;top:63%;" data-title="C3 · 视频质量" data-body="黑帧、坏帧、模糊、长静止段与 state/action 联合判断；关键夹爪闭合帧须保留。"></button></div><div class="fig-cap"><span class="fig-num">Qwen Fig. 2 · p.5</span>上排 S1–S5 是数值/几何层；下排 C1–C3 是 instruction、video、state 之间的跨模态层。点击数字查看各阶段。</div></div><div class="hotspot-panel"></div></div>
+
+        <h3>4.1 你们已有的 C3：冻结不是一个二元标签</h3>
+        <p>当前 primary/all camera 检查文件可解码、帧数、FPS、黑/白帧、blur proxy、近重复帧及跨 episode 指纹。冻结判定用相邻缩小灰度帧的 MAE：</p>
+        <div class="math-block">$$\operatorname{MAE}(I_t,I_{t-1})=\frac{1}{HW}\sum_{u,v}|I_t(u,v)-I_{t-1}(u,v)|\le0.75$$<span class="math-label">当前 freeze 候选 · 相邻缩小灰度帧</span></div>
+        <div class="math-explain"><div class="me-title">为什么还要结合 action？</div><dl><dt>$I_t$</dt><dd>第 $t$ 帧缩小后的灰度图。阈值很小表示视觉几乎没有变化。</dd><dt>持续时间</dt><dd>连续达到 2 s 为 long freeze，达到 5 s 为 severe freeze。</dd><dt>video 静止 + action 变化</dt><dd>2–5 s 标 high；$\ge5$ s 标 critical。因为模型看到的是旧画面，却被要求输出不断变化的动作，监督互相矛盾。</dd><dt>video/action 都静止</dt><dd>当前只标 medium/review。它可能是 episode 边界的冗余段，也可能是视觉变化小但语义重要的夹爪闭合，不能一刀切删除。</dd></dl></div>
+        <p>这和 Qwen C3 的原则一致：黑、坏、模糊、长静止段要清，但 task-critical 的视觉微小变化（论文举例夹爪闭合）要保留。差别是你们把 freeze 的数值阈值和严重度规则写得更明确；Qwen 描述的是方法类别，没有公开它的黑帧、模糊、静止阈值。</p>
+
+        <h3>4.2 Qwen C1：语言不是附属字段，也要与行为核对</h3>
+        <div class="stage-flow"><div class="stage gap"><span class="num">C1-a</span><strong>切长 episode</strong><span>先按子任务切片，避免一段很长视频对应多个动作却只用一个指令判断。</span></div><div class="stage gap"><span class="num">C1-b</span><strong>结构化 VLM 判断</strong><span>要求 VLM 观察物体、动作语义、顺序、agent-environment interaction，再给一致性结论。</span></div><div class="stage gap"><span class="num">C1-c</span><strong>多模型复核</strong><span>初判不一致/模糊的片段交给多个 VLM 投票；不一致样本排除。</span></div><div class="stage current"><span class="num">你们现状</span><strong>未覆盖</strong><span>现有 audit 会保留 task 字段，但不判断“文字是否描述了这段视频/动作”。</span></div><div class="stage gap"><span class="num">最小接入</span><strong>先 review，不自动删</strong><span>先在高风险/长 episode 上做少量抽样，输出可复核证据而非直接用 VLM 判死刑。</span></div></div>
+
+        <h3>4.3 Qwen C2：机器人应该在视频里的哪里？</h3>
+        <p>这是当前质检与“语义质检”之间最关键的一道桥。若有相机内外参、URDF、关节 state，先把机器人渲染到图像平面得到 $M^{render}$；再把视频中的真实机器人分割成 $M^{seg}$；然后比较交并比：</p>
+        <div class="math-block">$$\operatorname{IoU}(M^{render},M^{seg})=\frac{|M^{render}\cap M^{seg}|}{|M^{render}\cup M^{seg}|}$$<span class="math-label">Qwen C2 · video-state reprojection overlap</span></div>
+        <div class="math-explain"><div class="me-title">低 IoU 到底说明什么？</div><dl><dt>高 IoU</dt><dd>视频里看到的机器人轮廓，和记录的 joint state + 相机几何预测的位置一致；这是“state 看起来可信”的强证据。</dd><dt>低 IoU</dt><dd>可能是 joint/state 错、时间偏移、URDF/TCP 错、相机内外参错、分割失败，不能直接等于坏 episode。</dd><dt>论文的处理</dt><dd>先看能否优化/修正 camera parameters；若不是相机参数造成，才 filter episode。</dd><dt>对你们的适用范围</dt><dd>只适用于真的拍到机器人本体、且有可信 URDF 和相机模型的数据集。EgoDex/Xperience 的人手画面不能假装可做 G1 重投影。</dd></dl></div>
+        <div class="quiz" data-correct="c" data-explain="低 IoU 是一个诊断信号：它可能来自 state、相机、URDF/TCP、时间对齐或视觉分割。Qwen 也会优先检查/优化相机参数，而不是无条件删样本。" data-explain-wrong="如果把所有低 IoU 直接删掉，可能把仅仅标定不准但动作标签本身可修的数据大量丢掉。"><div class="q-label">🧠 理解检查</div><div class="q-text">某 G1 真机 episode 的 C2 IoU 很低，最合理的第一反应是什么？</div><div class="q-options"><button class="q-opt" data-k="a">立刻删除整段 episode</button><button class="q-opt" data-k="b">说明 VLA 不需要 state</button><button class="q-opt" data-k="c">依次排查相机标定、时间、URDF/TCP、state 与分割，再决定修还是删</button><button class="q-opt" data-k="d">把所有 mask 改为 valid</button></div><div class="q-feedback"></div></div>
+      </section>
+
+      <section class="section" id="gap">
+        <div class="section-num">§ 05</div>
+        <h2>结论与升级顺序：先增强“证据”，再扩大“自动 exclude”</h2>
+        <div class="cn-read"><div class="cn-label">把两条链接起来</div><p>你们现在的 quality_v1 已经能可靠产出 <code>keep / review / exclude</code> 候选，并适合大规模 Slurm 运行。Qwen 给出的增量不是“把阈值调严”，而是把每个异常连接到它可能违反的因果、几何或语义约束。最安全的升级方式不是一口气自动删更多数据，而是先为 <code>review</code> 样本增加证据列，确认阈值和误杀率后再改变 severity。</p></div>
+        <table class="kv-table compare-table"><tr><th>能力</th><th>当前 quality_v1</th><th>Qwen 对应</th><th>建议动作</th></tr><tr><td>结构/时间轴</td><td><span class="tag have">已有</span>metadata、row、timestamp、FPS、mask shape。</td><td>是 curation 的前提，但论文不展开实现。</td><td>保持；把每次运行 config/commit 固化进 manifest。</td></tr><tr><td>突变</td><td><span class="tag have">已有</span>robust $|\Delta x|$ + floor；目前 review。</td><td>S1：smooth residual + acceleration/jerk 联合。</td><td>先对 review 样本离线比较两种 detector 的重合/误杀，不直接提高 exclude。</td></tr><tr><td>state-action 时序</td><td><span class="tag have">局部已有</span>仅 source=next 的 $a_t\approx s_{t+1}$。</td><td>S2：cross-correlation lag + DA。</td><td>为 absolute/delta action 增加 source-specific lag/DA；输出诊断图与候选，不先删。</td></tr><tr><td>极值/单位</td><td><span class="tag gap">缺</span>无 per-embodiment quantile band。</td><td>S3：$q_{01},q_{99}$ + buffer。</td><td>先做 report-only 范围表，按 source/hand model 分开；gripper、角度需特殊规则。</td></tr><tr><td>运动学/坐标</td><td><span class="tag gap">缺</span>没有 FK、root yaw unwrap、action frame 验证。</td><td>S4 FK + S5 orientation。</td><td>先建 metadata contract；对有 URDF/EEF/camera 的真机 G1 小集合做 pilot。</td></tr><tr><td>视频质量</td><td><span class="tag have">已有</span>C3 类检查且阈值较清楚。</td><td>C3：联合 state/action，保护关键帧。</td><td>保持“冻结候选 ≠ 自动删除”；补首/中/末以外的全时序变化统计。</td></tr><tr><td>视频-state / 指令</td><td><span class="tag gap">缺</span>无 IoU 重投影、无语言行为一致性。</td><td>C2 IoU；C1 VLM adjudication。</td><td>先选真机 G1 小样本做 C2；C1 仅做 review 报告并保留可复核截图/理由。</td></tr></table>
+        <div class="verdict-grid"><div class="verdict ok"><h4>v1.1：低风险、能立刻接到现有 JSONL</h4><p>加 root yaw unwrap 后再做 jump；补每 source/slot 的 quantile 报告；将 next-state 结果、冻结区间、mask 有效比例、长静止段写成更可读的 review evidence。它们不会要求新 URDF 或相机标定。</p></div><div class="verdict ok"><h4>v1.2：把“时间轴正确”升到“因果关系合理”</h4><p>给 body/hand 的 absolute 或 delta source 实现 S2 风格 lag + DA。先输出最佳 lag、DA 分布和 flag reason；对每个 source 人工抽样后，才决定是否把低 DA 升级为 high。</p></div><div class="verdict warn"><h4>v2：语义审计，不是普通 validator</h4><p>建立每个 source 的 <code>body_joint_order / root3_definition / hand_model / action_representation / action_frame / units</code> metadata；有条件时用 URDF FK、EEF 日志和 camera reprojection 做验证。这一步才能回答“G1 72D contract 是否真的成立”。</p></div><div class="verdict warn"><h4>不要直接照搬的地方</h4><p>Qwen 的阈值、VLM 过滤和 IoU threshold 都是其数据/本体/相机条件下的选择。你们的 SONIC token、Wuji/Dex3/Inspire 混合手型、无视频 MotionMillion/BONES，必须有 source-specific 例外与 mask；不能用一条全局规则判死。</p></div></div>
+        <div class="callout blue"><div class="callout-label">一句话的操作原则</div><p><strong>现在：</strong>质量 pipeline 负责找候选、留下可追溯证据。<br><strong>下一步：</strong>先把“为什么它可疑”从 $|\Delta x|$ 扩展到 lag、单位、坐标和几何。<br><strong>最后：</strong>只有在每个 source 的语义 contract 被验证后，才可以严谨地声称不同数据集已统一到同一个 G1/Wuji 表征。</p></div>
+        <details class="en-quote"><summary>展开原文 · Qwen 对 C3 的关键保留条件</summary><div class="quote-body"><p>“Task-critical key frames such as gripper closure events are explicitly preserved to avoid discarding visually subtle but semantically important transitions.”</p><div class="quote-cite">— Qwen-RobotManip §2.4, p.7</div></div></details>
+        <div class="quiz" data-correct="b" data-explain="先增加诊断证据并人工抽样，可以测出新增规则的 precision/误杀风险；直接提升 severity 会把未知语义、角度 wrap 或正常接触误当坏数据。" data-explain-wrong="覆盖率 100% 说明每个 episode 都被看过，不代表规则的语义判断已经无误。"><div class="q-label">🧠 最后检查</div><div class="q-text">把 Qwen 的方法接入现有 pipeline，最安全的第一个原则是什么？</div><div class="q-options"><button class="q-opt" data-k="a">直接把所有 medium 改成 exclude</button><button class="q-opt" data-k="b">先把新规则作为 review evidence 输出，抽样验证后再改 severity</button><button class="q-opt" data-k="c">忽略 source metadata，统一用一个阈值</button><button class="q-opt" data-k="d">先删除所有无视频数据集</button></div><div class="q-feedback"></div></div>
+      </section>
+    </main>
+  </div>
+  <footer class="footer"><a href="../index.html">← 返回首页</a>&nbsp;·&nbsp;<a href="qwen-robotmanip.html">Qwen-RobotManip 精读 ↗</a></footer>
+</body>
+</html>

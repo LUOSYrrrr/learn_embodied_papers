@@ -80,6 +80,53 @@
     .status-done { background: #e8944a; color: #fff; border: none; font-weight: 500; }
     .status-plan { background: transparent; color: var(--text3); border: 1px solid var(--border); }
 
+    /* World Model 专题 */
+    .wm-topic {
+      max-width: 1136px; margin: 8px auto 28px; padding: 0 32px;
+      scroll-margin-top: 72px;
+    }
+    .wm-topic-shell {
+      position: relative; overflow: hidden; padding: 32px;
+      background: linear-gradient(145deg, color-mix(in srgb, var(--accent) 8%, var(--bg2)), var(--bg2) 44%, color-mix(in srgb, var(--blue) 7%, var(--bg2)));
+      border: 1px solid var(--border2); border-radius: calc(var(--radius-lg) + 4px);
+      box-shadow: var(--shadow-sm);
+    }
+    .wm-topic-shell::after {
+      content: 'WORLD ACTION MODEL'; position: absolute; right: -4px; top: -8px;
+      font: 700 52px/1 var(--font-mono); letter-spacing: -0.06em;
+      color: var(--text); opacity: .025; pointer-events: none;
+    }
+    .wm-topic-head { display: flex; justify-content: space-between; gap: 24px; align-items: flex-start; margin-bottom: 22px; }
+    .wm-topic-kicker { font: 600 10px/1 var(--font-mono); letter-spacing: .12em; color: var(--accent); text-transform: uppercase; }
+    .wm-topic-title { margin: 8px 0 6px; font: 600 27px/1.3 var(--font-serif); color: var(--text); }
+    .wm-topic-desc { margin: 0; max-width: 760px; color: var(--text2); font-size: 14px; line-height: 1.75; }
+    .wm-topic-cta { flex: 0 0 auto; padding: 10px 14px; border: 1px solid var(--border2); border-radius: 9px; text-decoration: none; color: var(--text); font: 500 12px/1 var(--font-mono); background: var(--glass); }
+    .wm-topic-cta:hover { border-color: var(--accent); color: var(--accent); }
+    .wm-track { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; counter-reset: wmstep; }
+    .wm-phase { position: relative; min-height: 168px; padding: 18px; background: var(--glass); border: 1px solid var(--glass-border); border-radius: 12px; }
+    .wm-phase::before { counter-increment: wmstep; content: '0' counter(wmstep); display: block; margin-bottom: 12px; font: 500 11px/1 var(--font-mono); color: var(--accent); }
+    .wm-phase:not(:last-child)::after { content: '→'; position: absolute; z-index: 2; right: -9px; top: 73px; color: var(--text3); font-family: var(--font-mono); }
+    .wm-phase-title { display: block; margin-bottom: 8px; font: 600 15px/1.4 var(--font-serif); color: var(--text); }
+    .wm-phase p { margin: 0 0 12px; font-size: 12.5px; line-height: 1.65; color: var(--text3); }
+    .wm-links { display: flex; gap: 5px; flex-wrap: wrap; }
+    .wm-chip { padding: 4px 7px; border: 1px solid var(--border); border-radius: 999px; color: var(--text2); text-decoration: none; font: 500 10px/1.2 var(--font-mono); }
+    a.wm-chip:hover { border-color: var(--accent); color: var(--accent); }
+    .wm-chip.plan { opacity: .45; border-style: dashed; }
+    .wm-side { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; margin-top: 10px; }
+    .wm-side-card { display: block; padding: 14px 16px; border: 1px solid var(--glass-border); border-radius: 10px; text-decoration: none; color: inherit; background: color-mix(in srgb, var(--bg) 34%, transparent); }
+    .wm-side-card:hover { border-color: var(--border2); }
+    .wm-side-label { display: block; font: 600 9px/1 var(--font-mono); color: var(--blue); letter-spacing: .1em; margin-bottom: 7px; }
+    .wm-side-title { display: block; font: 600 13px/1.35 var(--font-serif); color: var(--text); }
+    .wm-side-copy { display: block; margin-top: 4px; font-size: 11.5px; line-height: 1.55; color: var(--text3); }
+    @media (max-width: 900px) { .wm-track { grid-template-columns: 1fr 1fr; } .wm-phase:nth-child(2)::after { display: none; } }
+    @media (max-width: 640px) {
+      .nav-links a:nth-of-type(3), .nav-links a:nth-of-type(4) { display: none; }
+      .wm-topic { padding: 0 16px; } .wm-topic-shell { padding: 22px 18px; }
+      .wm-topic-head { display: block; } .wm-topic-cta { display: inline-block; margin-top: 14px; }
+      .wm-track, .wm-side { grid-template-columns: 1fr; } .wm-phase { min-height: 0; }
+      .wm-phase::after { display: none; }
+    }
+
     /* ─── 方向 Accordion ─── */
     .dir-accordion {
       max-width: 1200px; margin: 0 auto 48px;
@@ -172,6 +219,7 @@
   <nav class="nav">
     <a class="nav-logo" href="index.html">Paper Notes</a>
     <div class="nav-links">
+      <a href="#world-model">World Model 专题</a>
       <a href="leaderboard/">论文榜单</a>
       <a href="https://github.com/LUOSYrrrr/learn_embodied_papers" target="_blank">GitHub</a>
       <a href="#about">关于</a>
@@ -203,6 +251,65 @@
         <div class="intro-cell-label">覆盖方向</div>
       </div>
     </div>
+
+    <section class="wm-topic" id="world-model">
+      <div class="wm-topic-shell">
+        <div class="wm-topic-head">
+          <div>
+            <div class="wm-topic-kicker">专题 01 · 按 WAM 学习路线组织</div>
+            <h2 class="wm-topic-title">World Model / World Action Model</h2>
+            <p class="wm-topic-desc">主线严格按截图：先补视频生成地基，再学无动作视频里的 Latent Action，随后分清 Cascaded 与 Joint WAM，最后进入实时化、多模态与评测。JEPA 和 Real-to-Sim / 4DGS 作为两条侧翼并入。</p>
+          </div>
+          <a class="wm-topic-cta" href="papers/wam-roadmap.html">打开完整路线图 →</a>
+        </div>
+        <div class="wm-track">
+          <article class="wm-phase">
+            <span class="wm-phase-title">生成模型地基</span>
+            <p>DDPM → DDIM / CFG → VAE·LDM → DiT → Flow Matching → Video DiT。</p>
+            <div class="wm-links"><a class="wm-chip" href="papers/generation/ddpm.html">DDPM</a><a class="wm-chip" href="papers/generation/ddim.html">DDIM</a><a class="wm-chip" href="papers/generation/classifier-free-guidance.html">CFG</a><a class="wm-chip" href="papers/generation/flow-matching.html">Flow Matching</a><a class="wm-chip" href="papers/cosmos-predict2.html">Cosmos</a></div>
+          </article>
+          <article class="wm-phase">
+            <span class="wm-phase-title">Latent Action</span>
+            <p>从无动作标签的人类视频中发现可控变化，把互联网视频变成预训练信号。</p>
+            <div class="wm-links"><a class="wm-chip" href="papers/dreamdojo.html">DreamDojo</a><a class="wm-chip" href="papers/being-m07.html">Being-M0.7</a><a class="wm-chip" href="papers/lapa.html">LAPA</a><a class="wm-chip" href="papers/genie.html">Genie</a></div>
+          </article>
+          <article class="wm-phase">
+            <span class="wm-phase-title">WAM 两大架构</span>
+            <p>Cascaded：先预测未来再取动作；Joint：同一模型联合生成未来状态与动作。</p>
+            <div class="wm-links"><a class="wm-chip" href="papers/dit4dit.html">DiT4DiT</a><a class="wm-chip" href="papers/tau0-wm.html">τ₀-WM</a><a class="wm-chip" href="papers/unipi.html">UniPi</a><a class="wm-chip" href="papers/gr-2.html">GR-2</a></div>
+          </article>
+          <article class="wm-phase">
+            <span class="wm-phase-title">效率、多模态与评测</span>
+            <p>低延迟 rollout、cache / distill、力触觉扩展，以及视觉—物理—动作三层评估。</p>
+            <div class="wm-links"><a class="wm-chip" href="papers/fast-wam.html">Fast-WAM</a><a class="wm-chip" href="papers/flash-wam.html">Flash-WAM</a><a class="wm-chip" href="papers/omnivta.html">OmniVTA</a><a class="wm-chip" href="papers/worldsimbench.html">WorldSimBench</a></div>
+          </article>
+        </div>
+        <div class="wm-side">
+          <a class="wm-side-card" href="papers/vjepa.html"><span class="wm-side-label">SIDE ROUTE A</span><span class="wm-side-title">JEPA · 在 latent 中预测</span><span class="wm-side-copy">V-JEPA → V-JEPA 2 / 2.1 → LeWorldModel：高效表征、动作条件预测与 latent planning。</span></a>
+          <a class="wm-side-card" href="papers/simfoundry.html"><span class="wm-side-label">SIDE ROUTE B</span><span class="wm-side-title">SimFoundry · Real-to-Sim</span><span class="wm-side-copy">一段真实视频生成可交互 digital twin，并扩成 object / scene / task cousins。</span></a>
+          <a class="wm-side-card" href="papers/4d-gaussian-splatting.html"><span class="wm-side-label">SIDE ROUTE C</span><span class="wm-side-title">4DGS · 动态世界的渲染层</span><span class="wm-side-copy">重要但不是 world model 本体：GS 管视觉，mesh / physics 管接触，WAM 管动作后果。</span></a>
+        </div>
+      </div>
+    </section>
+
+    <section class="wm-topic" id="vla-rl">
+      <div class="wm-topic-shell">
+        <div class="wm-topic-head">
+          <div>
+            <div class="wm-topic-kicker">专题 02 · VLA POST-TRAINING</div>
+            <h2 class="wm-topic-title">VLA + Reinforcement Learning</h2>
+            <p class="wm-topic-desc">从 VLA/SFT 基座出发，依次理解离线 RL、轻量在线真机微调、生成式动作头的原生策略梯度，以及 residual 数据闭环与世界模型想象训练。截图中的可疑简称已单独核验，不生成假论文页面。</p>
+          </div>
+          <a class="wm-topic-cta" href="papers/vla-rl-roadmap.html">打开完整路线图 →</a>
+        </div>
+        <div class="wm-track">
+          <article class="wm-phase"><span class="wm-phase-title">VLA 与 RL 地基</span><p>RT-2 / OpenVLA / π₀ 建立动作表示；IQL、AWAC、HIL-SERL 建立反馈学习直觉。</p><div class="wm-links"><a class="wm-chip" href="papers/rt-2.html">RT-2</a><a class="wm-chip" href="papers/iql.html">IQL</a><a class="wm-chip" href="papers/awac.html">AWAC</a><a class="wm-chip" href="papers/hil-serl.html">HIL-SERL</a></div></article>
+          <article class="wm-phase"><span class="wm-phase-title">轻量在线与真机</span><p>冻结或保护 VLA 先验，用 residual、critic 与人类介入做分钟级闭环修正。</p><div class="wm-links"><a class="wm-chip" href="papers/expo-ft.html">EXPO-FT</a><a class="wm-chip" href="papers/bora.html">BORA</a><a class="wm-chip" href="papers/dygro-vla.html">DyGRO-VLA</a><a class="wm-chip" href="papers/rankq.html">RankQ</a></div></article>
+          <article class="wm-phase"><span class="wm-phase-title">离线与生成式 RL</span><p>让 RL 目标匹配 action chunk、diffusion chain 与 flow path，而非照搬普通高斯 actor。</p><div class="wm-links"><a class="wm-chip" href="papers/arfm.html">ARFM</a><a class="wm-chip" href="papers/co-rft.html">CO-RFT</a><a class="wm-chip" href="papers/dppo.html">DPPO</a><a class="wm-chip" href="papers/reinflow.html">ReinFlow</a></div></article>
+          <article class="wm-phase"><span class="wm-phase-title">自提升与想象训练</span><p>RL 既可以生成部署分布内的恢复数据，也可以在世界模型中批量想象策略后果。</p><div class="wm-links"><a class="wm-chip" href="papers/self-improving-vla.html">PLD</a><a class="wm-chip" href="papers/rise-compositional-world-model.html">RISE</a><a class="wm-chip" href="papers/rl-vla-generalization.html">泛化实证</a></div></article>
+        </div>
+      </div>
+    </section>
 
     <!-- ───────────────────────────────────────── -->
     <div class="section-header">
@@ -661,7 +768,7 @@
             <span class="dir-name">世界模型 · JEPA 路线</span>
             <span class="dir-sub">LeCun 倡导的非生成式联合嵌入预测架构</span>
           </span>
-          <span class="dir-stats"><span class="dir-count">2</span> 篇已读</span>
+          <span class="dir-stats"><span class="dir-count">6</span> 篇已读</span>
           <span class="dir-arrow">&#9662;</span>
         </summary>
         <div class="dir-body">
@@ -679,13 +786,15 @@
               <span class="status-badge status-done">✓</span>
             </a>
             <a class="dc-item disabled"><span class="dc-item-main">MC-JEPA<span class="dc-item-en">多任务 · Meta 2023</span></span><span class="status-badge status-plan">○</span></a>
-            <a class="dc-item disabled"><span class="dc-item-main">V-JEPA<span class="dc-item-en">视频 · Meta 2024</span></span><span class="status-badge status-plan">○</span></a>
+            <a class="dc-item" href="papers/vjepa.html"><span class="dc-item-main">V-JEPA<span class="dc-item-en">视频 · Meta 2024</span></span><span class="status-badge status-done">✓</span></a>
             <a class="dc-item disabled"><span class="dc-item-main">Audio-JEPA<span class="dc-item-en">音频</span></span><span class="status-badge status-plan">○</span></a>
             <a class="dc-item disabled"><span class="dc-item-main">Point-JEPA · 3D-JEPA<span class="dc-item-en">点云 / 3D</span></span><span class="status-badge status-plan">○</span></a>
-            <a class="dc-item disabled"><span class="dc-item-main">V-JEPA 2<span class="dc-item-en">Meta 2025</span></span><span class="status-badge status-plan">○</span></a>
+            <a class="dc-item" href="papers/vjepa2.html"><span class="dc-item-main">V-JEPA 2<span class="dc-item-en">Meta 2025 · 理解 / 预测 / 规划</span></span><span class="status-badge status-done">✓</span></a>
+            <a class="dc-item" href="papers/vjepa21.html"><span class="dc-item-main">V-JEPA 2.1<span class="dc-item-en">Meta 2026 · Dense features</span></span><span class="status-badge status-done">✓</span></a>
           </div>
           <div class="dc-group">
             <div class="dc-group-label label-improve">③ 原理/架构改进</div>
+            <a class="dc-item" href="papers/leworldmodel.html"><span class="dc-item-main">LeWorldModel<span class="dc-item-en">端到端 JEPA · SIGReg · 15M</span></span><span class="status-badge status-done">✓</span></a>
             <a class="dc-item disabled"><span class="dc-item-main">LeJEPA<span class="dc-item-en">理论简化</span></span><span class="status-badge status-plan">○</span></a>
             <a class="dc-item disabled"><span class="dc-item-main">Causal-JEPA<span class="dc-item-en">因果结构</span></span><span class="status-badge status-plan">○</span></a>
             <a class="dc-item disabled"><span class="dc-item-main">ThinkJEPA<span class="dc-item-en">推理型</span></span><span class="status-badge status-plan">○</span></a>
@@ -794,14 +903,15 @@
             <span class="dir-name">生成式基础 · VAE 到 Flow</span>
             <span class="dir-sub">π₀ flow matching 的上游知识链：VAE → Diffusion → Score SDE → Flow</span>
           </span>
-          <span class="dir-stats"><span class="dir-count">3</span> 篇已读</span>
+          <span class="dir-stats"><span class="dir-count">6</span> 篇已读</span>
           <span class="dir-arrow">&#9662;</span>
         </summary>
         <div class="dir-body">
           <div class="dc-group">
             <div class="dc-group-label label-core">① 必读</div>
             <a class="dc-item disabled"><span class="dc-item-main">VAE<span class="dc-item-en">Kingma & Welling 2014</span></span><span class="status-badge status-plan">○</span></a>
-            <a class="dc-item disabled"><span class="dc-item-main">DDPM · 去噪扩散<span class="dc-item-en">Ho et al. 2020</span></span><span class="status-badge status-plan">○</span></a>
+            <a class="dc-item" href="papers/generation/ddpm.html"><span class="dc-item-main">DDPM · 去噪扩散<span class="dc-item-en">Ho et al. 2020 · 噪声预测训练地基</span></span><span class="status-badge status-done">✓</span></a>
+            <a class="dc-item" href="papers/generation/classifier-free-guidance.html"><span class="dc-item-main">Classifier-Free Guidance<span class="dc-item-en">Ho & Salimans 2022 · 条件 / 无条件外推</span></span><span class="status-badge status-done">✓</span></a>
             <a class="dc-item" href="papers/dit.html">
               <span class="dc-item-main">DiT<span class="dc-item-en">Peebles & Xie 2023 · Transformer+Diffusion</span></span>
               <span class="status-badge status-done">✓</span>
@@ -814,7 +924,7 @@
           <div class="dc-group">
             <div class="dc-group-label label-expand">② 桥梁</div>
             <a class="dc-item disabled"><span class="dc-item-main">Score SDE<span class="dc-item-en">Song et al. 2021</span></span><span class="status-badge status-plan">○</span></a>
-            <a class="dc-item disabled"><span class="dc-item-main">DDIM · 加速采样<span class="dc-item-en">Song et al. 2021</span></span><span class="status-badge status-plan">○</span></a>
+            <a class="dc-item" href="papers/generation/ddim.html"><span class="dc-item-main">DDIM · 加速采样<span class="dc-item-en">Song et al. 2021 · 同一训练 / 非马尔可夫轨迹</span></span><span class="status-badge status-done">✓</span></a>
             <a class="dc-item" href="papers/consistency-models.html">
               <span class="dc-item-main">Consistency Models<span class="dc-item-en">Song et al. 2023 · 1-step 生成 · 蒸馏 / 独立训</span></span>
               <span class="status-badge status-done">✓</span>
@@ -831,10 +941,14 @@
             <span class="dir-name">WAM · 世界-动作模型</span>
             <span class="dir-sub">世界模型生成 subgoal / 模拟未来，辅助策略学习</span>
           </span>
-          <span class="dir-stats"><span class="dir-count">8</span> 篇已读</span>
+          <span class="dir-stats"><span class="dir-count">9</span> 篇已读</span>
           <span class="dir-arrow">&#9662;</span>
         </summary>
         <div class="dir-body">
+          <div class="dc-group">
+            <div class="dc-group-label label-core">专题入口</div>
+            <a class="dc-item" href="papers/wam-roadmap.html"><span class="dc-item-main">WAM 完整学习路线<span class="dc-item-en">地基 → Latent Action → 两大架构 → 效率 / 评测</span></span><span class="status-badge status-done">✓</span></a>
+          </div>
           <div class="dc-group">
             <div class="dc-group-label label-core">① Subgoal 生成</div>
             <a class="dc-item disabled"><span class="dc-item-main">SuSIE<span class="dc-item-en">Black et al. 2023</span></span><span class="status-badge status-plan">○</span></a>
@@ -870,7 +984,7 @@
           </div>
           <div class="dc-group">
             <div class="dc-group-label label-core">④ VLA 前身</div>
-            <a class="dc-item disabled"><span class="dc-item-main">RT-1 / RT-2<span class="dc-item-en">Brohan et al. 2023</span></span><span class="status-badge status-plan">○</span></a>
+            <a class="dc-item" href="papers/rt-2.html"><span class="dc-item-main">RT-2<span class="dc-item-en">Brohan et al. 2023 · VLA 动作 token 基座</span></span><span class="status-badge status-done">✓</span></a>
             <a class="dc-item disabled"><span class="dc-item-main">IRIS<span class="dc-item-en">Micheli et al. 2023</span></span><span class="status-badge status-plan">○</span></a>
           </div>
           <div class="dc-group">

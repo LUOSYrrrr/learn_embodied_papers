@@ -1,0 +1,133 @@
+TY  - RPRT
+TI  - SplatSim: Zero-Shot Sim2Real Transfer of RGB Manipulation Policies Using Gaussian Splatting
+AU  - Qureshi, Mohammad Nomaan
+AU  - Garg, Sparsh
+AU  - Yandun, Francisco
+AU  - Held, David
+AU  - Kantor, George
+AU  - Silwal, Abhisesh
+PY  - 2024
+UR  - https://arxiv.org/abs/2409.10161
+DO  - 10.48550/arXiv.2409.10161
+N1  - WAM supporting route: Real-to-Sim / Gaussian Splatting. Verified arXiv v3.
+L1  - file:///Users/siyuanluo/STUDY/paper/learn_embodied_papers/pdfs/world-model/WAM/Qureshi%20et%20al.%20-%202024%20-%20SplatSim%20Zero-Shot%20Sim2Real%20Transfer%20of%20RGB%20Manipulation%20Policies%20Using%20Gaussian%20Splatting.pdf
+ER  -
+
+TY  - RPRT
+TI  - GSWorld: Closed-Loop Photo-Realistic Simulation Suite for Robotic Manipulation
+AU  - Jiang, Guangqi
+AU  - Chang, Haoran
+AU  - Qiu, Ri-Zhao
+AU  - Liang, Yutong
+AU  - Zou, Xueyan
+AU  - Wang, Xiaolong
+PY  - 2025
+UR  - https://arxiv.org/abs/2510.20813
+DO  - 10.48550/arXiv.2510.20813
+N1  - WAM supporting route: Real-to-Sim / Gaussian Splatting. Verified arXiv submission 23 Oct 2025.
+L1  - file:///Users/siyuanluo/STUDY/paper/learn_embodied_papers/pdfs/world-model/WAM/Jiang%20et%20al.%20-%202025%20-%20GSWorld%20Closed-Loop%20Photo-Realistic%20Simulation%20Suite%20for%20Robotic%20Manipulation.pdf
+ER  -
+
+TY  - RPRT
+TI  - GaussGym: An Open-Source Real-to-Sim Framework for Learning Locomotion from Pixels
+AU  - Escontrela, Alejandro
+AU  - Kerr, Justin
+AU  - Allshire, Arthur
+AU  - Frey, Jonas
+AU  - Duan, Rocky
+AU  - Sferrazza, Carmelo
+AU  - Abbeel, Pieter
+PY  - 2025
+UR  - https://arxiv.org/abs/2510.15352
+DO  - 10.48550/arXiv.2510.15352
+N1  - WAM supporting route: Real-to-Sim / Gaussian Splatting. Verified arXiv submission 17 Oct 2025.
+L1  - file:///Users/siyuanluo/STUDY/paper/learn_embodied_papers/pdfs/world-model/WAM/Escontrela%20et%20al.%20-%202025%20-%20GaussGym%20An%20Open-Source%20Real-to-Sim%20Framework%20for%20Learning%20Locomotion%20from%20Pixels.pdf
+ER  -
+
+TY  - RPRT
+TI  - VideoPhy: Evaluating Physical Commonsense for Video Generation
+AU  - Bansal, Hritik
+AU  - Lin, Zongyu
+AU  - Xie, Tianyi
+AU  - Jiang, Chenfanfu
+AU  - Grover, Aditya
+PY  - 2024
+UR  - https://arxiv.org/abs/2406.03520
+DO  - 10.48550/arXiv.2406.03520
+N1  - WAM evaluation route: physical commonsense.
+L1  - file:///Users/siyuanluo/STUDY/paper/learn_embodied_papers/pdfs/world-model/WAM/Bansal%20et%20al.%20-%202024%20-%20VideoPhy%20Evaluating%20Physical%20Commonsense%20for%20Video%20Generation.pdf
+ER  -
+
+TY  - RPRT
+TI  - VBench-2.0: Advancing Video Generation Benchmark Suite for Intrinsic Faithfulness
+AU  - Zheng, Dian
+AU  - Huang, Ziqi
+AU  - Liu, Hongbo
+AU  - Qiao, Yu
+AU  - Liu, Ziwei
+PY  - 2025
+UR  - https://arxiv.org/abs/2503.21755
+DO  - 10.48550/arXiv.2503.21755
+N1  - WAM evaluation route: physics and commonsense intrinsic faithfulness.
+L1  - file:///Users/siyuanluo/STUDY/paper/learn_embodied_papers/pdfs/world-model/WAM/Zheng%20et%20al.%20-%202025%20-%20VBench-2.0%20Advancing%20Video%20Generation%20Benchmark%20Suite%20for%20Intrinsic%20Faithfulness.pdf
+ER  -
+
+TY  - RPRT
+TI  - WorldModelBench: Judging Video Generation Models As World Models
+AU  - Li, Dacheng
+AU  - Fang, Yunhao
+AU  - Chen, Yukang
+AU  - Wang, Xiaolong
+AU  - Gonzalez, Joseph E.
+AU  - Han, Song
+PY  - 2025
+UR  - https://arxiv.org/abs/2502.20694
+DO  - 10.48550/arXiv.2502.20694
+N1  - WAM evaluation route: physics adherence in long-horizon generation.
+L1  - file:///Users/siyuanluo/STUDY/paper/learn_embodied_papers/pdfs/world-model/WAM/Li%20et%20al.%20-%202025%20-%20WorldModelBench%20Judging%20Video%20Generation%20Models%20As%20World%20Models.pdf
+ER  -
+
+TY  - CONF
+TI  - Do Generative Video Models Understand Physical Principles?
+AU  - Motamed, Saman
+AU  - Culp, Laura
+AU  - Swersky, Kevin
+AU  - Jaini, Priyank
+AU  - Geirhos, Robert
+PY  - 2026
+T2  - IEEE/CVF Winter Conference on Applications of Computer Vision
+UR  - https://arxiv.org/abs/2501.09038
+DO  - 10.48550/arXiv.2501.09038
+N1  - WAM evaluation route; commonly referenced as Physics-IQ.
+L1  - file:///Users/siyuanluo/STUDY/paper/learn_embodied_papers/pdfs/world-model/WAM/Motamed%20et%20al.%20-%202025%20-%20Do%20Generative%20Video%20Models%20Understand%20Physical%20Principles.pdf
+ER  -
+
+TY  - CONF
+TI  - WorldScore: A Unified Evaluation Benchmark for World Generation
+AU  - Duan, Haoyi
+AU  - Yu, Hong-Xing
+AU  - Chen, Sirui
+AU  - Fei-Fei, Li
+AU  - Wu, Jiajun
+PY  - 2025
+T2  - IEEE/CVF International Conference on Computer Vision
+UR  - https://arxiv.org/abs/2504.00983
+DO  - 10.48550/arXiv.2504.00983
+N1  - ICCV 2025. WAM evaluation route: controllability, quality, dynamics.
+L1  - file:///Users/siyuanluo/STUDY/paper/learn_embodied_papers/pdfs/world-model/WAM/Duan%20et%20al.%20-%202025%20-%20WorldScore%20A%20Unified%20Evaluation%20Benchmark%20for%20World%20Generation.pdf
+ER  -
+
+TY  - RPRT
+TI  - WorldSimBench: Towards Video Generation Models as World Simulators
+AU  - Qin, Yiran
+AU  - Shi, Zhelun
+AU  - Yu, Jiwen
+AU  - Liu, Xihui
+AU  - Ouyang, Wanli
+AU  - Zhang, Ruimao
+PY  - 2024
+UR  - https://arxiv.org/abs/2410.18072
+DO  - 10.48550/arXiv.2410.18072
+N1  - WAM evaluation route: action plausibility and implicit manipulative evaluation.
+L1  - file:///Users/siyuanluo/STUDY/paper/learn_embodied_papers/pdfs/world-model/WAM/Qin%20et%20al.%20-%202024%20-%20WorldSimBench%20Towards%20Video%20Generation%20Models%20as%20World%20Simulators.pdf
+ER  -
