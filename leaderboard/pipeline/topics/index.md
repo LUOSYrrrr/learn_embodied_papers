@@ -2,7 +2,7 @@
 
 Personal paper leaderboard covering robot world models (WAM), humanoid loco-manipulation, dexterous manipulation, and vision-language-action models. Built from arXiv metadata and Google Scholar citations.
 
-- Last updated: 2026-08-14 20:03 UTC
+- Last updated: 2026-08-15 19:43 UTC
 - Total indexed papers: 3805
 - Data sources: arXiv for discovery, citation cache for enrichment.
 
@@ -48,13 +48,13 @@ Personal paper leaderboard covering robot world models (WAM), humanoid loco-mani
 | 11 | [FlashDrive: Flash Vision-Language-Action Inference for Autonomous Driving](https://arxiv.org/abs/2608.12932) | 2026-08-13 | missing | 0.999 |
 | 12 | [BrainWAM: Action-Space Coordination of Semantic Priors and Predictive Dynamics for Autonomous Driving](https://arxiv.org/abs/2608.12854) | 2026-08-13 | missing | 0.999 |
 | 13 | [Scaling Automatic Research Agents via World Models](https://arxiv.org/abs/2608.12564) | 2026-08-12 | missing | 0.999 |
-| 14 | [RoboSynChallenge: Mastering Real-World Dexterity via Generalizing Synthesized Manipulation Skills](https://arxiv.org/abs/2608.12416) | 2026-08-12 | missing | 0.999 |
-| 15 | [HandEdit: A Unified Benchmark for Egocentric Human-to-Robot Dexterous Hand Image Editing](https://arxiv.org/abs/2608.12122) | 2026-08-12 | missing | 0.999 |
-| 16 | [Learning Loco-Manipulation From SMPC Demonstrations With Sparse Offline-to-Online RL](https://arxiv.org/abs/2608.12063) | 2026-08-12 | missing | 0.999 |
-| 17 | [Policy-Induced Hand Priors in Humanoid Dual-Arm Manipulation: Diagnosing and Mitigating Initial-Pose Dependence](https://arxiv.org/abs/2608.11769) | 2026-08-12 | missing | 0.999 |
-| 18 | [G0.5: One Autoregressive Stream for Robot Reasoning and Action](https://arxiv.org/abs/2608.11739) | 2026-08-12 | missing | 0.999 |
-| 19 | [StellaVLA: In-Context Structured Demonstration for Generalizable Vision-Language-Action Models](https://arxiv.org/abs/2608.11671) | 2026-08-12 | missing | 0.999 |
-| 20 | [Foresight Without Seeing: Latent Futures for World Action Models](https://arxiv.org/abs/2608.11605) | 2026-08-12 | missing | 0.999 |
+| 14 | [RoboSynChallenge: Mastering Real-World Dexterity via Generalizing Synthesized Manipulation Skills](https://arxiv.org/abs/2608.12416) | 2026-08-12 | missing | 0.998 |
+| 15 | [HandEdit: A Unified Benchmark for Egocentric Human-to-Robot Dexterous Hand Image Editing](https://arxiv.org/abs/2608.12122) | 2026-08-12 | missing | 0.998 |
+| 16 | [Learning Loco-Manipulation From SMPC Demonstrations With Sparse Offline-to-Online RL](https://arxiv.org/abs/2608.12063) | 2026-08-12 | missing | 0.998 |
+| 17 | [Policy-Induced Hand Priors in Humanoid Dual-Arm Manipulation: Diagnosing and Mitigating Initial-Pose Dependence](https://arxiv.org/abs/2608.11769) | 2026-08-12 | missing | 0.998 |
+| 18 | [G0.5: One Autoregressive Stream for Robot Reasoning and Action](https://arxiv.org/abs/2608.11739) | 2026-08-12 | missing | 0.998 |
+| 19 | [StellaVLA: In-Context Structured Demonstration for Generalizable Vision-Language-Action Models](https://arxiv.org/abs/2608.11671) | 2026-08-12 | missing | 0.998 |
+| 20 | [Foresight Without Seeing: Latent Futures for World Action Models](https://arxiv.org/abs/2608.11605) | 2026-08-12 | missing | 0.998 |
 
 ## Rebuild
 
