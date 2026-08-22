@@ -2,7 +2,7 @@
 
 Personal paper leaderboard covering robot world models (WAM), humanoid loco-manipulation, dexterous manipulation, and vision-language-action models. Built from arXiv metadata and Google Scholar citations.
 
-- Last updated: 2026-08-21 19:46 UTC
+- Last updated: 2026-08-22 19:44 UTC
 - Total indexed papers: 3877
 - Data sources: arXiv for discovery, citation cache for enrichment.
 
@@ -47,14 +47,14 @@ Personal paper leaderboard covering robot world models (WAM), humanoid loco-mani
 | 10 | [HiTac-WAM: A Hierarchical Tactile World Action Model for Contact-Rich Robot Manipulation](https://arxiv.org/abs/2608.19574) | 2026-08-20 | missing | 0.999 |
 | 11 | [Fine-Tuning VLAs with Self-Demonstrated Generative Control for Multi-Task Manipulation](https://arxiv.org/abs/2608.19490) | 2026-08-19 | missing | 0.999 |
 | 12 | [Hybrid Feedback Sampling for Sample-Efficient Model Predictive Control](https://arxiv.org/abs/2608.19443) | 2026-08-19 | missing | 0.999 |
-| 13 | [GS-VLA: Plug-and-Play Viewpoint Canonicalization for Frozen VLA Policies via Gaussian Splatting](https://arxiv.org/abs/2608.19066) | 2026-08-19 | missing | 0.999 |
-| 14 | [Reinforced Planning with Latent World Models](https://arxiv.org/abs/2608.18669) | 2026-08-19 | missing | 0.999 |
-| 15 | [LabDex: A Hierarchical Benchmark for Dexterous Manipulation in Laboratories](https://arxiv.org/abs/2608.18618) | 2026-08-19 | missing | 0.999 |
-| 16 | [The Embodiment Gap in Robot Foundation Models](https://arxiv.org/abs/2608.18433) | 2026-08-19 | missing | 0.999 |
-| 17 | [Role-Conditioned Sub-Token Routing for Efficient Vision-Language-Action Policies](https://arxiv.org/abs/2608.18410) | 2026-08-19 | missing | 0.999 |
-| 18 | [GigaBrain-WBC-0.5: A Behavior World Model for Robust Whole-Body Control with Environment Interaction](https://arxiv.org/abs/2608.18234) | 2026-08-18 | missing | 0.998 |
-| 19 | [Hydra-0: Action Flow for Generalist World Modeling and Control](https://arxiv.org/abs/2608.18077) | 2026-08-18 | missing | 0.998 |
-| 20 | [Plug-and-Play Traffic Element Awareness for End-to-End Autonomous Driving](https://arxiv.org/abs/2608.18035) | 2026-08-18 | missing | 0.998 |
+| 13 | [GS-VLA: Plug-and-Play Viewpoint Canonicalization for Frozen VLA Policies via Gaussian Splatting](https://arxiv.org/abs/2608.19066) | 2026-08-19 | missing | 0.998 |
+| 14 | [Reinforced Planning with Latent World Models](https://arxiv.org/abs/2608.18669) | 2026-08-19 | missing | 0.998 |
+| 15 | [LabDex: A Hierarchical Benchmark for Dexterous Manipulation in Laboratories](https://arxiv.org/abs/2608.18618) | 2026-08-19 | missing | 0.998 |
+| 16 | [The Embodiment Gap in Robot Foundation Models](https://arxiv.org/abs/2608.18433) | 2026-08-19 | missing | 0.998 |
+| 17 | [Role-Conditioned Sub-Token Routing for Efficient Vision-Language-Action Policies](https://arxiv.org/abs/2608.18410) | 2026-08-19 | missing | 0.998 |
+| 18 | [GigaBrain-WBC-0.5: A Behavior World Model for Robust Whole-Body Control with Environment Interaction](https://arxiv.org/abs/2608.18234) | 2026-08-18 | missing | 0.997 |
+| 19 | [Hydra-0: Action Flow for Generalist World Modeling and Control](https://arxiv.org/abs/2608.18077) | 2026-08-18 | missing | 0.997 |
+| 20 | [Plug-and-Play Traffic Element Awareness for End-to-End Autonomous Driving](https://arxiv.org/abs/2608.18035) | 2026-08-18 | missing | 0.997 |
 
 ## Rebuild
 
