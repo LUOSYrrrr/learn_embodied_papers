@@ -2,59 +2,59 @@
 
 Personal paper leaderboard covering robot world models (WAM), humanoid loco-manipulation, dexterous manipulation, and vision-language-action models. Built from arXiv metadata and Google Scholar citations.
 
-- Last updated: 2026-08-23 19:43 UTC
-- Total indexed papers: 3877
+- Last updated: 2026-08-24 19:52 UTC
+- Total indexed papers: 3892
 - Data sources: arXiv for discovery, citation cache for enrichment.
 
 ## Total Ranking
 
 | Rank | Title | Published | Citations | Score |
 | --- | --- | --- | --- | --- |
-| 1 | [Inter-X++: A Comprehensive Benchmark for Multimodal Human-Human Interaction Analysis](https://arxiv.org/abs/2608.20312) | 2026-08-20 | missing | 1.000 |
-| 2 | [Towards Surgical World-Action Modeling: A Preliminary Joint Visual-Trajectory Forecasting for Surgical Motion Planning](https://arxiv.org/abs/2608.20284) | 2026-08-20 | missing | 1.000 |
-| 3 | [Video2DoorTraversal: Push Door Traversal via Simulated Door Twins](https://arxiv.org/abs/2608.20251) | 2026-08-20 | missing | 1.000 |
-| 4 | [DECOWAM: Decoupled Whole-Body World-Action Model for Legged Mobile Manipulation](https://arxiv.org/abs/2608.20114) | 2026-08-20 | missing | 1.000 |
-| 5 | [Planning-Oriented End-to-End Autonomous Driving: Architectures, Evaluation, and Emerging Paradigms](https://arxiv.org/abs/2608.20111) | 2026-08-20 | missing | 1.000 |
-| 6 | [EXIMO: VLM Guided Exploration of VLA Policies](https://arxiv.org/abs/2608.19891) | 2026-08-20 | missing | 1.000 |
-| 7 | [CoToGrasp: Contact-Topology-Conditioned Dexterous Grasp Synthesis via Canonical Workspace Learning](https://arxiv.org/abs/2608.19776) | 2026-08-20 | missing | 1.000 |
-| 8 | [World-Model-Grounded LLM Planning for AUV and ASV Navigation Near Offshore Wind Farms](https://arxiv.org/abs/2608.19661) | 2026-08-20 | missing | 1.000 |
-| 9 | [OrthoSkillVLA: Continual Skill Learning via Gradient-Informed Skill Subspace Adaptation](https://arxiv.org/abs/2608.19589) | 2026-08-20 | missing | 1.000 |
-| 10 | [HiTac-WAM: A Hierarchical Tactile World Action Model for Contact-Rich Robot Manipulation](https://arxiv.org/abs/2608.19574) | 2026-08-20 | missing | 1.000 |
-| 11 | [Fine-Tuning VLAs with Self-Demonstrated Generative Control for Multi-Task Manipulation](https://arxiv.org/abs/2608.19490) | 2026-08-19 | missing | 1.000 |
-| 12 | [Hybrid Feedback Sampling for Sample-Efficient Model Predictive Control](https://arxiv.org/abs/2608.19443) | 2026-08-19 | missing | 1.000 |
-| 13 | [GS-VLA: Plug-and-Play Viewpoint Canonicalization for Frozen VLA Policies via Gaussian Splatting](https://arxiv.org/abs/2608.19066) | 2026-08-19 | missing | 1.000 |
-| 14 | [Reinforced Planning with Latent World Models](https://arxiv.org/abs/2608.18669) | 2026-08-19 | missing | 1.000 |
-| 15 | [LabDex: A Hierarchical Benchmark for Dexterous Manipulation in Laboratories](https://arxiv.org/abs/2608.18618) | 2026-08-19 | missing | 1.000 |
-| 16 | [The Embodiment Gap in Robot Foundation Models](https://arxiv.org/abs/2608.18433) | 2026-08-19 | missing | 1.000 |
-| 17 | [Role-Conditioned Sub-Token Routing for Efficient Vision-Language-Action Policies](https://arxiv.org/abs/2608.18410) | 2026-08-19 | missing | 1.000 |
-| 18 | [GigaBrain-WBC-0.5: A Behavior World Model for Robust Whole-Body Control with Environment Interaction](https://arxiv.org/abs/2608.18234) | 2026-08-18 | missing | 1.000 |
-| 19 | [Hydra-0: Action Flow for Generalist World Modeling and Control](https://arxiv.org/abs/2608.18077) | 2026-08-18 | missing | 1.000 |
-| 20 | [Plug-and-Play Traffic Element Awareness for End-to-End Autonomous Driving](https://arxiv.org/abs/2608.18035) | 2026-08-18 | missing | 1.000 |
+| 1 | [Just Noticeable Difference Modeling for Token Compression in Vision-Language-Action Models](https://arxiv.org/abs/2608.21247) | 2026-08-21 | missing | 1.000 |
+| 2 | [PhysCaP: Grounding Code-as-Policy Agent with Physics-Informed Exploration](https://arxiv.org/abs/2608.21031) | 2026-08-21 | missing | 1.000 |
+| 3 | [WA-JEPA: Rethinking the Video JEPA Paradigm for World-Action Modeling in Autonomous Driving](https://arxiv.org/abs/2608.20974) | 2026-08-21 | missing | 1.000 |
+| 4 | [Fast Coordinated Bimanual Motion Planning With Hard Constraints](https://arxiv.org/abs/2608.20946) | 2026-08-21 | missing | 1.000 |
+| 5 | [Graph-Operator World Models for Morphology-Parameter Generalization in Continuous Control](https://arxiv.org/abs/2608.20936) | 2026-08-21 | missing | 1.000 |
+| 6 | [A Collaborative Multi-Modality Interaction for VLA-based End-to-End Autonomous Driving](https://arxiv.org/abs/2608.20890) | 2026-08-21 | missing | 1.000 |
+| 7 | [Demonstration-Guided Humanoid Stand-Up on an Emulated Deformable Surface](https://arxiv.org/abs/2608.20852) | 2026-08-21 | missing | 1.000 |
+| 8 | [GhostTac: Manipulating Tactile Sensors without Physical Contact](https://arxiv.org/abs/2608.20817) | 2026-08-21 | missing | 1.000 |
+| 9 | [CertVLA: Certified Defense against Physical Visual Attacks for Vision-Language-Action Models](https://arxiv.org/abs/2608.20791) | 2026-08-21 | missing | 1.000 |
+| 10 | [Is Multimodal Speculative Decoding Ready for Diffusion-Based Parallel Drafting? A Survey and Empirical Diagnosis](https://arxiv.org/abs/2608.20743) | 2026-08-21 | missing | 1.000 |
+| 11 | [ForeTime-VLA: Causal Future-Token Distillation from a World Action Model for Conveyor-Belt Manipulation](https://arxiv.org/abs/2608.20735) | 2026-08-21 | missing | 1.000 |
+| 12 | [Logic-VLA: A Temporal Logic Conditioned Vision-Language-Action Model](https://arxiv.org/abs/2608.20556) | 2026-08-20 | missing | 1.000 |
+| 13 | [Koala Gripper: Co-designing Robotic Grippers and Data-Capture Devices for Scaling Dexterous Manipulation Learning](https://arxiv.org/abs/2608.20546) | 2026-08-20 | missing | 1.000 |
+| 14 | [EndoLIFT: Language-Disambiguated Latent-Conditioned Rectified Flow for Bidirectional Endoscopic Control](https://arxiv.org/abs/2608.20478) | 2026-08-20 | missing | 1.000 |
+| 15 | [RISE: Adaptive Imagination for World Action Models](https://arxiv.org/abs/2608.20430) | 2026-08-20 | missing | 1.000 |
+| 16 | [Inter-X++: A Comprehensive Benchmark for Multimodal Human-Human Interaction Analysis](https://arxiv.org/abs/2608.20312) | 2026-08-20 | missing | 1.000 |
+| 17 | [Towards Surgical World-Action Modeling: A Preliminary Joint Visual-Trajectory Forecasting for Surgical Motion Planning](https://arxiv.org/abs/2608.20284) | 2026-08-20 | missing | 1.000 |
+| 18 | [Video2DoorTraversal: Push Door Traversal via Simulated Door Twins](https://arxiv.org/abs/2608.20251) | 2026-08-20 | missing | 1.000 |
+| 19 | [DECOWAM: Decoupled Whole-Body World-Action Model for Legged Mobile Manipulation](https://arxiv.org/abs/2608.20114) | 2026-08-20 | missing | 1.000 |
+| 20 | [Planning-Oriented End-to-End Autonomous Driving: Architectures, Evaluation, and Emerging Paradigms](https://arxiv.org/abs/2608.20111) | 2026-08-20 | missing | 1.000 |
 
 ## Hot Ranking
 
 | Rank | Title | Published | Citations | Score |
 | --- | --- | --- | --- | --- |
-| 1 | [Inter-X++: A Comprehensive Benchmark for Multimodal Human-Human Interaction Analysis](https://arxiv.org/abs/2608.20312) | 2026-08-20 | missing | 0.998 |
-| 2 | [Towards Surgical World-Action Modeling: A Preliminary Joint Visual-Trajectory Forecasting for Surgical Motion Planning](https://arxiv.org/abs/2608.20284) | 2026-08-20 | missing | 0.998 |
-| 3 | [Video2DoorTraversal: Push Door Traversal via Simulated Door Twins](https://arxiv.org/abs/2608.20251) | 2026-08-20 | missing | 0.998 |
-| 4 | [DECOWAM: Decoupled Whole-Body World-Action Model for Legged Mobile Manipulation](https://arxiv.org/abs/2608.20114) | 2026-08-20 | missing | 0.998 |
-| 5 | [Planning-Oriented End-to-End Autonomous Driving: Architectures, Evaluation, and Emerging Paradigms](https://arxiv.org/abs/2608.20111) | 2026-08-20 | missing | 0.998 |
-| 6 | [EXIMO: VLM Guided Exploration of VLA Policies](https://arxiv.org/abs/2608.19891) | 2026-08-20 | missing | 0.998 |
-| 7 | [CoToGrasp: Contact-Topology-Conditioned Dexterous Grasp Synthesis via Canonical Workspace Learning](https://arxiv.org/abs/2608.19776) | 2026-08-20 | missing | 0.998 |
-| 8 | [World-Model-Grounded LLM Planning for AUV and ASV Navigation Near Offshore Wind Farms](https://arxiv.org/abs/2608.19661) | 2026-08-20 | missing | 0.998 |
-| 9 | [OrthoSkillVLA: Continual Skill Learning via Gradient-Informed Skill Subspace Adaptation](https://arxiv.org/abs/2608.19589) | 2026-08-20 | missing | 0.998 |
-| 10 | [HiTac-WAM: A Hierarchical Tactile World Action Model for Contact-Rich Robot Manipulation](https://arxiv.org/abs/2608.19574) | 2026-08-20 | missing | 0.998 |
-| 11 | [Fine-Tuning VLAs with Self-Demonstrated Generative Control for Multi-Task Manipulation](https://arxiv.org/abs/2608.19490) | 2026-08-19 | missing | 0.998 |
-| 12 | [Hybrid Feedback Sampling for Sample-Efficient Model Predictive Control](https://arxiv.org/abs/2608.19443) | 2026-08-19 | missing | 0.998 |
-| 13 | [GS-VLA: Plug-and-Play Viewpoint Canonicalization for Frozen VLA Policies via Gaussian Splatting](https://arxiv.org/abs/2608.19066) | 2026-08-19 | missing | 0.997 |
-| 14 | [Reinforced Planning with Latent World Models](https://arxiv.org/abs/2608.18669) | 2026-08-19 | missing | 0.997 |
-| 15 | [LabDex: A Hierarchical Benchmark for Dexterous Manipulation in Laboratories](https://arxiv.org/abs/2608.18618) | 2026-08-19 | missing | 0.997 |
-| 16 | [The Embodiment Gap in Robot Foundation Models](https://arxiv.org/abs/2608.18433) | 2026-08-19 | missing | 0.997 |
-| 17 | [Role-Conditioned Sub-Token Routing for Efficient Vision-Language-Action Policies](https://arxiv.org/abs/2608.18410) | 2026-08-19 | missing | 0.997 |
-| 18 | [GigaBrain-WBC-0.5: A Behavior World Model for Robust Whole-Body Control with Environment Interaction](https://arxiv.org/abs/2608.18234) | 2026-08-18 | missing | 0.996 |
-| 19 | [Hydra-0: Action Flow for Generalist World Modeling and Control](https://arxiv.org/abs/2608.18077) | 2026-08-18 | missing | 0.996 |
-| 20 | [Plug-and-Play Traffic Element Awareness for End-to-End Autonomous Driving](https://arxiv.org/abs/2608.18035) | 2026-08-18 | missing | 0.996 |
+| 1 | [Just Noticeable Difference Modeling for Token Compression in Vision-Language-Action Models](https://arxiv.org/abs/2608.21247) | 2026-08-21 | missing | 0.998 |
+| 2 | [PhysCaP: Grounding Code-as-Policy Agent with Physics-Informed Exploration](https://arxiv.org/abs/2608.21031) | 2026-08-21 | missing | 0.998 |
+| 3 | [WA-JEPA: Rethinking the Video JEPA Paradigm for World-Action Modeling in Autonomous Driving](https://arxiv.org/abs/2608.20974) | 2026-08-21 | missing | 0.998 |
+| 4 | [Fast Coordinated Bimanual Motion Planning With Hard Constraints](https://arxiv.org/abs/2608.20946) | 2026-08-21 | missing | 0.998 |
+| 5 | [Graph-Operator World Models for Morphology-Parameter Generalization in Continuous Control](https://arxiv.org/abs/2608.20936) | 2026-08-21 | missing | 0.998 |
+| 6 | [A Collaborative Multi-Modality Interaction for VLA-based End-to-End Autonomous Driving](https://arxiv.org/abs/2608.20890) | 2026-08-21 | missing | 0.998 |
+| 7 | [Demonstration-Guided Humanoid Stand-Up on an Emulated Deformable Surface](https://arxiv.org/abs/2608.20852) | 2026-08-21 | missing | 0.998 |
+| 8 | [GhostTac: Manipulating Tactile Sensors without Physical Contact](https://arxiv.org/abs/2608.20817) | 2026-08-21 | missing | 0.998 |
+| 9 | [CertVLA: Certified Defense against Physical Visual Attacks for Vision-Language-Action Models](https://arxiv.org/abs/2608.20791) | 2026-08-21 | missing | 0.998 |
+| 10 | [Is Multimodal Speculative Decoding Ready for Diffusion-Based Parallel Drafting? A Survey and Empirical Diagnosis](https://arxiv.org/abs/2608.20743) | 2026-08-21 | missing | 0.998 |
+| 11 | [ForeTime-VLA: Causal Future-Token Distillation from a World Action Model for Conveyor-Belt Manipulation](https://arxiv.org/abs/2608.20735) | 2026-08-21 | missing | 0.998 |
+| 12 | [Logic-VLA: A Temporal Logic Conditioned Vision-Language-Action Model](https://arxiv.org/abs/2608.20556) | 2026-08-20 | missing | 0.998 |
+| 13 | [Koala Gripper: Co-designing Robotic Grippers and Data-Capture Devices for Scaling Dexterous Manipulation Learning](https://arxiv.org/abs/2608.20546) | 2026-08-20 | missing | 0.998 |
+| 14 | [EndoLIFT: Language-Disambiguated Latent-Conditioned Rectified Flow for Bidirectional Endoscopic Control](https://arxiv.org/abs/2608.20478) | 2026-08-20 | missing | 0.997 |
+| 15 | [RISE: Adaptive Imagination for World Action Models](https://arxiv.org/abs/2608.20430) | 2026-08-20 | missing | 0.997 |
+| 16 | [Inter-X++: A Comprehensive Benchmark for Multimodal Human-Human Interaction Analysis](https://arxiv.org/abs/2608.20312) | 2026-08-20 | missing | 0.997 |
+| 17 | [Towards Surgical World-Action Modeling: A Preliminary Joint Visual-Trajectory Forecasting for Surgical Motion Planning](https://arxiv.org/abs/2608.20284) | 2026-08-20 | missing | 0.997 |
+| 18 | [Video2DoorTraversal: Push Door Traversal via Simulated Door Twins](https://arxiv.org/abs/2608.20251) | 2026-08-20 | missing | 0.997 |
+| 19 | [DECOWAM: Decoupled Whole-Body World-Action Model for Legged Mobile Manipulation](https://arxiv.org/abs/2608.20114) | 2026-08-20 | missing | 0.997 |
+| 20 | [Planning-Oriented End-to-End Autonomous Driving: Architectures, Evaluation, and Emerging Paradigms](https://arxiv.org/abs/2608.20111) | 2026-08-20 | missing | 0.997 |
 
 ## Rebuild
 
