@@ -2,7 +2,7 @@
 
 Personal paper leaderboard covering robot world models (WAM), humanoid loco-manipulation, dexterous manipulation, and vision-language-action models. Built from arXiv metadata and Google Scholar citations.
 
-- Last updated: 2026-08-28 03:38 UTC
+- Last updated: 2026-08-29 02:21 UTC
 - Total indexed papers: 3959
 - Data sources: arXiv for discovery, citation cache for enrichment.
 
@@ -35,17 +35,17 @@ Personal paper leaderboard covering robot world models (WAM), humanoid loco-mani
 
 | Rank | Title | Published | Citations | Score |
 | --- | --- | --- | --- | --- |
-| 1 | [CLAP: Cross-Embodiment Video World Models are Zero-Shot Physical Simulators](https://arxiv.org/abs/2608.27406) | 2026-08-27 | missing | 1.000 |
-| 2 | [FlashVLA: Streaming Action Decoding for Fast and Asynchronous VLA Inference](https://arxiv.org/abs/2608.27384) | 2026-08-27 | missing | 1.000 |
-| 3 | [Making Latent Evolution Explicit: Operator-Structured Transitions for World Action Models](https://arxiv.org/abs/2608.27259) | 2026-08-27 | missing | 1.000 |
-| 4 | [Tensegrity Continuum Robots Enable Task-Adaptive Morphologies for Cooperative Behaviors](https://arxiv.org/abs/2608.27221) | 2026-08-27 | missing | 1.000 |
-| 5 | [GRAFT: Grounded and Efficient Online Reinforcement Adaptation for Fine-Grained Robot Manipulation](https://arxiv.org/abs/2608.27079) | 2026-08-27 | missing | 1.000 |
-| 6 | [Riemann-1.0: An Embodied World Action Model for Physical AI](https://arxiv.org/abs/2608.27033) | 2026-08-27 | missing | 1.000 |
-| 7 | [TemporalFlow-VLA: Learning Physically Grounded Execution History for Long-Horizon Robot Manipulation](https://arxiv.org/abs/2608.26821) | 2026-08-27 | missing | 1.000 |
-| 8 | [Decoupling Planning and Control for Instructable Agents](https://arxiv.org/abs/2608.26788) | 2026-08-27 | missing | 1.000 |
-| 9 | [PredVLA: A Sub-Million-Parameter Predictive-Coding Policy for Robot Manipulation](https://arxiv.org/abs/2608.26673) | 2026-08-27 | missing | 1.000 |
-| 10 | [FLARE: A Failure-Aware Framework for Autonomous Correction and Recovery in Visual-Language Robotic Manipulation](https://arxiv.org/abs/2608.26645) | 2026-08-27 | missing | 1.000 |
-| 11 | [TrapVLA: Trapping Vision-Language-Action Models in Configured Failure Modes](https://arxiv.org/abs/2608.26578) | 2026-08-27 | missing | 1.000 |
+| 1 | [CLAP: Cross-Embodiment Video World Models are Zero-Shot Physical Simulators](https://arxiv.org/abs/2608.27406) | 2026-08-27 | missing | 0.999 |
+| 2 | [FlashVLA: Streaming Action Decoding for Fast and Asynchronous VLA Inference](https://arxiv.org/abs/2608.27384) | 2026-08-27 | missing | 0.999 |
+| 3 | [Making Latent Evolution Explicit: Operator-Structured Transitions for World Action Models](https://arxiv.org/abs/2608.27259) | 2026-08-27 | missing | 0.999 |
+| 4 | [Tensegrity Continuum Robots Enable Task-Adaptive Morphologies for Cooperative Behaviors](https://arxiv.org/abs/2608.27221) | 2026-08-27 | missing | 0.999 |
+| 5 | [GRAFT: Grounded and Efficient Online Reinforcement Adaptation for Fine-Grained Robot Manipulation](https://arxiv.org/abs/2608.27079) | 2026-08-27 | missing | 0.999 |
+| 6 | [Riemann-1.0: An Embodied World Action Model for Physical AI](https://arxiv.org/abs/2608.27033) | 2026-08-27 | missing | 0.999 |
+| 7 | [TemporalFlow-VLA: Learning Physically Grounded Execution History for Long-Horizon Robot Manipulation](https://arxiv.org/abs/2608.26821) | 2026-08-27 | missing | 0.999 |
+| 8 | [Decoupling Planning and Control for Instructable Agents](https://arxiv.org/abs/2608.26788) | 2026-08-27 | missing | 0.999 |
+| 9 | [PredVLA: A Sub-Million-Parameter Predictive-Coding Policy for Robot Manipulation](https://arxiv.org/abs/2608.26673) | 2026-08-27 | missing | 0.999 |
+| 10 | [FLARE: A Failure-Aware Framework for Autonomous Correction and Recovery in Visual-Language Robotic Manipulation](https://arxiv.org/abs/2608.26645) | 2026-08-27 | missing | 0.999 |
+| 11 | [TrapVLA: Trapping Vision-Language-Action Models in Configured Failure Modes](https://arxiv.org/abs/2608.26578) | 2026-08-27 | missing | 0.999 |
 | 12 | [WALL-SS: Scaling Long-horizon World Models via Next-Scale Autoregression](https://arxiv.org/abs/2608.26239) | 2026-08-26 | missing | 0.999 |
 | 13 | [Surgical Video Generation From Diffusion to World Models: A Survey](https://arxiv.org/abs/2608.26214) | 2026-08-26 | missing | 0.999 |
 | 14 | [Zero-WAM: In-Context World-Action Modeling from Human Videos for Open-Ended Task Generalization](https://arxiv.org/abs/2608.26103) | 2026-08-26 | missing | 0.999 |
