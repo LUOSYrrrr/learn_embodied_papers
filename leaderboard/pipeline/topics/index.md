@@ -2,7 +2,7 @@
 
 Personal paper leaderboard covering robot world models (WAM), humanoid loco-manipulation, dexterous manipulation, and vision-language-action models. Built from arXiv metadata and Google Scholar citations.
 
-- Last updated: 2026-09-04 21:38 UTC
+- Last updated: 2026-09-05 21:26 UTC
 - Total indexed papers: 4029
 - Data sources: arXiv for discovery, citation cache for enrichment.
 
@@ -50,11 +50,11 @@ Personal paper leaderboard covering robot world models (WAM), humanoid loco-mani
 | 13 | [BRIDGE: An Open-Source Humanoid Platform via Morphology-Control Co-Design for Physical AI](https://arxiv.org/abs/2609.03497) | 2026-09-03 | missing | 0.999 |
 | 14 | [R2S-Eval: Robot Evaluation with Real-to-Sim Calibration via Vision-Language Models](https://arxiv.org/abs/2609.03276) | 2026-09-03 | missing | 0.999 |
 | 15 | [RoboTok: An Internet-Scale Data Engine for Human Demonstration Retrieval and Dexterous Manipulation Learning](https://arxiv.org/abs/2609.03199) | 2026-09-02 | missing | 0.999 |
-| 16 | [Sensing Which Modality Matters: Evidence-Gated Regularization for Robust VLA Policies](https://arxiv.org/abs/2609.03142) | 2026-09-02 | missing | 0.999 |
-| 17 | [GPU-Accelerated Astrodynamics World Models for Spacecraft Rendezvous and Proximity Operations](https://arxiv.org/abs/2609.03067) | 2026-09-02 | missing | 0.999 |
-| 18 | [HINT: Human-Intent Inception for Long-Horizon Robot Manipulation](https://arxiv.org/abs/2609.02653) | 2026-09-02 | missing | 0.999 |
-| 19 | [Latent Cluster Analysis for Vision-Language-Action Models](https://arxiv.org/abs/2609.02634) | 2026-09-02 | missing | 0.999 |
-| 20 | [ZETA: A Controlled Study of Zero-Shot Cross-Embodiment VLA Transfer for Tabletop Manipulation](https://arxiv.org/abs/2609.02546) | 2026-09-02 | missing | 0.999 |
+| 16 | [Sensing Which Modality Matters: Evidence-Gated Regularization for Robust VLA Policies](https://arxiv.org/abs/2609.03142) | 2026-09-02 | missing | 0.998 |
+| 17 | [GPU-Accelerated Astrodynamics World Models for Spacecraft Rendezvous and Proximity Operations](https://arxiv.org/abs/2609.03067) | 2026-09-02 | missing | 0.998 |
+| 18 | [HINT: Human-Intent Inception for Long-Horizon Robot Manipulation](https://arxiv.org/abs/2609.02653) | 2026-09-02 | missing | 0.998 |
+| 19 | [Latent Cluster Analysis for Vision-Language-Action Models](https://arxiv.org/abs/2609.02634) | 2026-09-02 | missing | 0.998 |
+| 20 | [ZETA: A Controlled Study of Zero-Shot Cross-Embodiment VLA Transfer for Tabletop Manipulation](https://arxiv.org/abs/2609.02546) | 2026-09-02 | missing | 0.998 |
 
 ## Rebuild
 
