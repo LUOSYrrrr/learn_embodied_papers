@@ -2,59 +2,59 @@
 
 Personal paper leaderboard covering robot world models (WAM), humanoid loco-manipulation, dexterous manipulation, and vision-language-action models. Built from arXiv metadata and Google Scholar citations.
 
-- Last updated: 2026-09-06 21:30 UTC
-- Total indexed papers: 4029
+- Last updated: 2026-09-07 22:10 UTC
+- Total indexed papers: 4041
 - Data sources: arXiv for discovery, citation cache for enrichment.
 
 ## Total Ranking
 
 | Rank | Title | Published | Citations | Score |
 | --- | --- | --- | --- | --- |
-| 1 | [GIFT: Guided Intermediate Feature Training via Action-Oriented Structural Supervision for Robotic Manipulation](https://arxiv.org/abs/2609.04193) | 2026-09-03 | missing | 1.000 |
-| 2 | [Continuous Actions from Discrete Minds: Latent-Aligned Planning for End-to-End Autonomous Driving](https://arxiv.org/abs/2609.04070) | 2026-09-03 | missing | 1.000 |
-| 3 | [Toward Unified Robot Learning: Bridging Representation, Vision-Language-Action, and World Models](https://arxiv.org/abs/2609.03927) | 2026-09-03 | missing | 1.000 |
-| 4 | [A hybrid pipeline for dynamic ontology-based semantic mapping](https://arxiv.org/abs/2609.03891) | 2026-09-03 | missing | 1.000 |
-| 5 | [FWBC-VLA: Force-Aware Whole-Body Compensation for Contact-Rich Loco-Manipulation](https://arxiv.org/abs/2609.03889) | 2026-09-03 | missing | 1.000 |
-| 6 | [Rethinking World Models for Safety-Critical Embodied Systems](https://arxiv.org/abs/2609.03774) | 2026-09-03 | missing | 1.000 |
-| 7 | [MINERVA: How Small Can a Manipulation Policy Be and Still Solve LIBERO?](https://arxiv.org/abs/2609.03715) | 2026-09-03 | missing | 1.000 |
-| 8 | [WISE: World-model-guided Imagination Scheduling for Efficient Post-training of Vision-Language-Action Models](https://arxiv.org/abs/2609.03681) | 2026-09-03 | missing | 1.000 |
-| 9 | [SV-WAM: An Efficient Surround-View World-Action Model for End-to-End Autonomous Driving](https://arxiv.org/abs/2609.03602) | 2026-09-03 | missing | 1.000 |
-| 10 | [Scaling Bimanual Household Manipulation from 1,500 hours of Demonstrations to On-Policy Corrections](https://arxiv.org/abs/2609.03591) | 2026-09-03 | missing | 1.000 |
-| 11 | [Toward Physically Grounded JEPA World Models for Goal-Conditioned Robotic Planning](https://arxiv.org/abs/2609.03565) | 2026-09-03 | missing | 1.000 |
-| 12 | [Building Pretraining Data for World Models: An Unreal Engine-Based Pipeline for Action-Conditioned Video Generation](https://arxiv.org/abs/2609.03557) | 2026-09-03 | missing | 1.000 |
-| 13 | [BRIDGE: An Open-Source Humanoid Platform via Morphology-Control Co-Design for Physical AI](https://arxiv.org/abs/2609.03497) | 2026-09-03 | missing | 1.000 |
-| 14 | [R2S-Eval: Robot Evaluation with Real-to-Sim Calibration via Vision-Language Models](https://arxiv.org/abs/2609.03276) | 2026-09-03 | missing | 1.000 |
-| 15 | [RoboTok: An Internet-Scale Data Engine for Human Demonstration Retrieval and Dexterous Manipulation Learning](https://arxiv.org/abs/2609.03199) | 2026-09-02 | missing | 1.000 |
-| 16 | [Sensing Which Modality Matters: Evidence-Gated Regularization for Robust VLA Policies](https://arxiv.org/abs/2609.03142) | 2026-09-02 | missing | 1.000 |
-| 17 | [GPU-Accelerated Astrodynamics World Models for Spacecraft Rendezvous and Proximity Operations](https://arxiv.org/abs/2609.03067) | 2026-09-02 | missing | 1.000 |
-| 18 | [HINT: Human-Intent Inception for Long-Horizon Robot Manipulation](https://arxiv.org/abs/2609.02653) | 2026-09-02 | missing | 1.000 |
-| 19 | [Latent Cluster Analysis for Vision-Language-Action Models](https://arxiv.org/abs/2609.02634) | 2026-09-02 | missing | 1.000 |
-| 20 | [ZETA: A Controlled Study of Zero-Shot Cross-Embodiment VLA Transfer for Tabletop Manipulation](https://arxiv.org/abs/2609.02546) | 2026-09-02 | missing | 1.000 |
+| 1 | [What Matters, When? Diagnosing and Improving Conditional Visual Grounding in Visuomotor Imitation Policies](https://arxiv.org/abs/2609.05376) | 2026-09-04 | missing | 1.000 |
+| 2 | [Towards Neuro-Symbolic Procedural Reasoning for Long-Horizon Vision-Language-Action Manipulation](https://arxiv.org/abs/2609.05369) | 2026-09-04 | missing | 1.000 |
+| 3 | [RoboSPA: Can VLA Models Go Beyond Simple Scenes and Short-Horizon Tasks?](https://arxiv.org/abs/2609.05324) | 2026-09-04 | missing | 1.000 |
+| 4 | [TacPAC: Tactile Prediction and Real-Time Action Correction in World-Action Models for Contact-Rich Manipulation](https://arxiv.org/abs/2609.05266) | 2026-09-04 | missing | 1.000 |
+| 5 | [Morphology and actuation as inductive biases in robotic hand manipulation](https://arxiv.org/abs/2609.05206) | 2026-09-04 | missing | 1.000 |
+| 6 | [LIBERO-RECOVER: Beyond Task Success Towards Failure Recovery in Robotic Manipulation Models](https://arxiv.org/abs/2609.05178) | 2026-09-04 | missing | 1.000 |
+| 7 | [TourPhysics: Bringing Physics to World Models for Exploration and Manipulation from a Single Image](https://arxiv.org/abs/2609.04911) | 2026-09-04 | missing | 1.000 |
+| 8 | [From Language Models to World-Acting Systems: Progress and Limits of Agentic AI across Digital, Social, Virtual, and Physical Environments](https://arxiv.org/abs/2609.04894) | 2026-09-04 | missing | 1.000 |
+| 9 | [Reasoning Without Inference Cost: Latent Semantic Scaffolding for Robot VLA Policies](https://arxiv.org/abs/2609.04893) | 2026-09-04 | missing | 1.000 |
+| 10 | [Coupled Control and Wireless World Models for Resilient Remote Robotic Control](https://arxiv.org/abs/2609.04851) | 2026-09-04 | missing | 1.000 |
+| 11 | [VLA-Precision: Asymmetric Co-Bootstrapping for Efficient Real-World Online RL of Vision-Language-Action Models](https://arxiv.org/abs/2609.04355) | 2026-09-03 | missing | 1.000 |
+| 12 | [FailureSpot: Label-Efficient Timestamp-Level Failure Detection for Vision-Language-Action Models](https://arxiv.org/abs/2609.04277) | 2026-09-03 | missing | 1.000 |
+| 13 | [GIFT: Guided Intermediate Feature Training via Action-Oriented Structural Supervision for Robotic Manipulation](https://arxiv.org/abs/2609.04193) | 2026-09-03 | missing | 1.000 |
+| 14 | [Continuous Actions from Discrete Minds: Latent-Aligned Planning for End-to-End Autonomous Driving](https://arxiv.org/abs/2609.04070) | 2026-09-03 | missing | 1.000 |
+| 15 | [Toward Unified Robot Learning: Bridging Representation, Vision-Language-Action, and World Models](https://arxiv.org/abs/2609.03927) | 2026-09-03 | missing | 1.000 |
+| 16 | [A hybrid pipeline for dynamic ontology-based semantic mapping](https://arxiv.org/abs/2609.03891) | 2026-09-03 | missing | 1.000 |
+| 17 | [FWBC-VLA: Force-Aware Whole-Body Compensation for Contact-Rich Loco-Manipulation](https://arxiv.org/abs/2609.03889) | 2026-09-03 | missing | 1.000 |
+| 18 | [Rethinking World Models for Safety-Critical Embodied Systems](https://arxiv.org/abs/2609.03774) | 2026-09-03 | missing | 1.000 |
+| 19 | [MINERVA: How Small Can a Manipulation Policy Be and Still Solve LIBERO?](https://arxiv.org/abs/2609.03715) | 2026-09-03 | missing | 1.000 |
+| 20 | [WISE: World-model-guided Imagination Scheduling for Efficient Post-training of Vision-Language-Action Models](https://arxiv.org/abs/2609.03681) | 2026-09-03 | missing | 1.000 |
 
 ## Hot Ranking
 
 | Rank | Title | Published | Citations | Score |
 | --- | --- | --- | --- | --- |
-| 1 | [GIFT: Guided Intermediate Feature Training via Action-Oriented Structural Supervision for Robotic Manipulation](https://arxiv.org/abs/2609.04193) | 2026-09-03 | missing | 0.998 |
-| 2 | [Continuous Actions from Discrete Minds: Latent-Aligned Planning for End-to-End Autonomous Driving](https://arxiv.org/abs/2609.04070) | 2026-09-03 | missing | 0.998 |
-| 3 | [Toward Unified Robot Learning: Bridging Representation, Vision-Language-Action, and World Models](https://arxiv.org/abs/2609.03927) | 2026-09-03 | missing | 0.998 |
-| 4 | [A hybrid pipeline for dynamic ontology-based semantic mapping](https://arxiv.org/abs/2609.03891) | 2026-09-03 | missing | 0.998 |
-| 5 | [FWBC-VLA: Force-Aware Whole-Body Compensation for Contact-Rich Loco-Manipulation](https://arxiv.org/abs/2609.03889) | 2026-09-03 | missing | 0.998 |
-| 6 | [Rethinking World Models for Safety-Critical Embodied Systems](https://arxiv.org/abs/2609.03774) | 2026-09-03 | missing | 0.998 |
-| 7 | [MINERVA: How Small Can a Manipulation Policy Be and Still Solve LIBERO?](https://arxiv.org/abs/2609.03715) | 2026-09-03 | missing | 0.998 |
-| 8 | [WISE: World-model-guided Imagination Scheduling for Efficient Post-training of Vision-Language-Action Models](https://arxiv.org/abs/2609.03681) | 2026-09-03 | missing | 0.998 |
-| 9 | [SV-WAM: An Efficient Surround-View World-Action Model for End-to-End Autonomous Driving](https://arxiv.org/abs/2609.03602) | 2026-09-03 | missing | 0.998 |
-| 10 | [Scaling Bimanual Household Manipulation from 1,500 hours of Demonstrations to On-Policy Corrections](https://arxiv.org/abs/2609.03591) | 2026-09-03 | missing | 0.998 |
-| 11 | [Toward Physically Grounded JEPA World Models for Goal-Conditioned Robotic Planning](https://arxiv.org/abs/2609.03565) | 2026-09-03 | missing | 0.998 |
-| 12 | [Building Pretraining Data for World Models: An Unreal Engine-Based Pipeline for Action-Conditioned Video Generation](https://arxiv.org/abs/2609.03557) | 2026-09-03 | missing | 0.998 |
-| 13 | [BRIDGE: An Open-Source Humanoid Platform via Morphology-Control Co-Design for Physical AI](https://arxiv.org/abs/2609.03497) | 2026-09-03 | missing | 0.998 |
-| 14 | [R2S-Eval: Robot Evaluation with Real-to-Sim Calibration via Vision-Language Models](https://arxiv.org/abs/2609.03276) | 2026-09-03 | missing | 0.998 |
-| 15 | [RoboTok: An Internet-Scale Data Engine for Human Demonstration Retrieval and Dexterous Manipulation Learning](https://arxiv.org/abs/2609.03199) | 2026-09-02 | missing | 0.998 |
-| 16 | [Sensing Which Modality Matters: Evidence-Gated Regularization for Robust VLA Policies](https://arxiv.org/abs/2609.03142) | 2026-09-02 | missing | 0.997 |
-| 17 | [GPU-Accelerated Astrodynamics World Models for Spacecraft Rendezvous and Proximity Operations](https://arxiv.org/abs/2609.03067) | 2026-09-02 | missing | 0.997 |
-| 18 | [HINT: Human-Intent Inception for Long-Horizon Robot Manipulation](https://arxiv.org/abs/2609.02653) | 2026-09-02 | missing | 0.997 |
-| 19 | [Latent Cluster Analysis for Vision-Language-Action Models](https://arxiv.org/abs/2609.02634) | 2026-09-02 | missing | 0.997 |
-| 20 | [ZETA: A Controlled Study of Zero-Shot Cross-Embodiment VLA Transfer for Tabletop Manipulation](https://arxiv.org/abs/2609.02546) | 2026-09-02 | missing | 0.997 |
+| 1 | [What Matters, When? Diagnosing and Improving Conditional Visual Grounding in Visuomotor Imitation Policies](https://arxiv.org/abs/2609.05376) | 2026-09-04 | missing | 0.998 |
+| 2 | [Towards Neuro-Symbolic Procedural Reasoning for Long-Horizon Vision-Language-Action Manipulation](https://arxiv.org/abs/2609.05369) | 2026-09-04 | missing | 0.998 |
+| 3 | [RoboSPA: Can VLA Models Go Beyond Simple Scenes and Short-Horizon Tasks?](https://arxiv.org/abs/2609.05324) | 2026-09-04 | missing | 0.998 |
+| 4 | [TacPAC: Tactile Prediction and Real-Time Action Correction in World-Action Models for Contact-Rich Manipulation](https://arxiv.org/abs/2609.05266) | 2026-09-04 | missing | 0.998 |
+| 5 | [Morphology and actuation as inductive biases in robotic hand manipulation](https://arxiv.org/abs/2609.05206) | 2026-09-04 | missing | 0.998 |
+| 6 | [LIBERO-RECOVER: Beyond Task Success Towards Failure Recovery in Robotic Manipulation Models](https://arxiv.org/abs/2609.05178) | 2026-09-04 | missing | 0.998 |
+| 7 | [TourPhysics: Bringing Physics to World Models for Exploration and Manipulation from a Single Image](https://arxiv.org/abs/2609.04911) | 2026-09-04 | missing | 0.998 |
+| 8 | [From Language Models to World-Acting Systems: Progress and Limits of Agentic AI across Digital, Social, Virtual, and Physical Environments](https://arxiv.org/abs/2609.04894) | 2026-09-04 | missing | 0.998 |
+| 9 | [Reasoning Without Inference Cost: Latent Semantic Scaffolding for Robot VLA Policies](https://arxiv.org/abs/2609.04893) | 2026-09-04 | missing | 0.998 |
+| 10 | [Coupled Control and Wireless World Models for Resilient Remote Robotic Control](https://arxiv.org/abs/2609.04851) | 2026-09-04 | missing | 0.998 |
+| 11 | [VLA-Precision: Asymmetric Co-Bootstrapping for Efficient Real-World Online RL of Vision-Language-Action Models](https://arxiv.org/abs/2609.04355) | 2026-09-03 | missing | 0.997 |
+| 12 | [FailureSpot: Label-Efficient Timestamp-Level Failure Detection for Vision-Language-Action Models](https://arxiv.org/abs/2609.04277) | 2026-09-03 | missing | 0.997 |
+| 13 | [GIFT: Guided Intermediate Feature Training via Action-Oriented Structural Supervision for Robotic Manipulation](https://arxiv.org/abs/2609.04193) | 2026-09-03 | missing | 0.997 |
+| 14 | [Continuous Actions from Discrete Minds: Latent-Aligned Planning for End-to-End Autonomous Driving](https://arxiv.org/abs/2609.04070) | 2026-09-03 | missing | 0.997 |
+| 15 | [Toward Unified Robot Learning: Bridging Representation, Vision-Language-Action, and World Models](https://arxiv.org/abs/2609.03927) | 2026-09-03 | missing | 0.997 |
+| 16 | [A hybrid pipeline for dynamic ontology-based semantic mapping](https://arxiv.org/abs/2609.03891) | 2026-09-03 | missing | 0.997 |
+| 17 | [FWBC-VLA: Force-Aware Whole-Body Compensation for Contact-Rich Loco-Manipulation](https://arxiv.org/abs/2609.03889) | 2026-09-03 | missing | 0.997 |
+| 18 | [Rethinking World Models for Safety-Critical Embodied Systems](https://arxiv.org/abs/2609.03774) | 2026-09-03 | missing | 0.997 |
+| 19 | [MINERVA: How Small Can a Manipulation Policy Be and Still Solve LIBERO?](https://arxiv.org/abs/2609.03715) | 2026-09-03 | missing | 0.997 |
+| 20 | [WISE: World-model-guided Imagination Scheduling for Efficient Post-training of Vision-Language-Action Models](https://arxiv.org/abs/2609.03681) | 2026-09-03 | missing | 0.997 |
 
 ## Rebuild
 
