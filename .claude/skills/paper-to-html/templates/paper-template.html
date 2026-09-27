@@ -5,6 +5,10 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>[论文标题] · Paper Notes</title>
   <link rel="stylesheet" href="../assets/css/style.css">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16/dist/katex.min.css">
+  <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16/dist/katex.min.js"></script>
+  <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16/dist/contrib/auto-render.min.js"
+          onload="renderMathInElement(document.body,{delimiters:[{left:'$$',right:'$$',display:true},{left:'$',right:'$',display:false}]})"></script>
   <script src="../assets/js/theme.js"></script>
   <script src="../assets/js/interactive.js" defer></script>
   <script src="https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.min.js"></script>
@@ -87,22 +91,24 @@
           <p>[白话讲述]</p>
         </div>
 
-        <!-- 图块 + 热点 -->
-        <div class="fig-block">
-          <div class="hotspot-wrap" data-hotspot-group="figN">
-            <img src="../assets/figures/[slug]/fig-N.png" alt="Figure N: ...">
-            <div class="hotspot" data-id="elem1" style="left:50%; top:30%;"
-                 data-title="元素名 · English"
-                 data-body="说明"></div>
-            <!-- 5-8 个 hotspot -->
+        <!-- 图块 + 热点；宽幅图可加 panel-below 类 -->
+        <div class="fig-interactive">
+          <div class="fig-block">
+            <div class="hotspot-wrap" data-hotspot-group="figN">
+              <img src="../assets/figures/[slug]/fig-N.png" alt="Figure N: ...">
+              <div class="hotspot" data-id="elem1" style="left:50%; top:30%;"
+                   data-title="元素名 · English"
+                   data-body="说明"></div>
+              <!-- 5-8 个 hotspot -->
+            </div>
+            <div class="fig-cap">
+              <span class="fig-num">Fig N · p.X</span>
+              [原文 caption 英文]
+              <span class="fig-cn">[中文翻译]</span>
+            </div>
           </div>
-          <div class="fig-cap">
-            <span class="fig-num">Fig N · p.X</span>
-            [原文 caption 英文]
-            <span class="fig-cn">[中文翻译]</span>
-          </div>
+          <div class="hotspot-panel"></div>
         </div>
-        <div class="hotspot-panel"></div>
 
         <!-- 步骤导览 -->
         <div class="step-walker" data-hotspot-group="figN">
@@ -143,52 +149,21 @@
 
       </main>
 
-      <!-- ─── 右：本页目录（自动生成）─── -->
-      <aside class="docs-sidebar-right">
-        <div class="ds-title">本页目录</div>
-        <ul id="page-toc"></ul>
-      </aside>
-
     </div>
   </div>
 
   <script>
-    // 自动生成右侧目录 + 滚动高亮（标准模板，无需修改）
-    const toc = document.getElementById('page-toc');
+    // 默认双栏，左侧章节树随阅读进度高亮。
     const headings = document.querySelectorAll('.docs-content h2[id], .docs-content h3[id]');
-    headings.forEach(h => {
-      const li = document.createElement('li');
-      const a = document.createElement('a');
-      a.href = '#' + h.id;
-      a.textContent = h.textContent.replace(/^\d+(\.\d+)*\s*/, '');
-      if (h.tagName === 'H3') a.classList.add('toc-h3');
-      a.dataset.target = h.id;
-      li.appendChild(a);
-      toc.appendChild(li);
-    });
-    const tocLinks = toc.querySelectorAll('a');
     const leftLinks = document.querySelectorAll('.docs-sidebar-left a[href^="#"]');
-    new IntersectionObserver((entries) => {
-      entries.forEach(e => {
-        if (e.isIntersecting) {
-          const id = e.target.id;
-          tocLinks.forEach(a => a.classList.toggle('active', a.dataset.target === id));
-          leftLinks.forEach(a => a.classList.toggle('active', a.getAttribute('href') === '#' + id));
-        }
-      });
-    }, { rootMargin: '-80px 0px -70% 0px' }).observe(headings[0]);
-    headings.forEach(h => {
-      const obs = new IntersectionObserver((entries) => {
-        entries.forEach(e => {
-          if (e.isIntersecting) {
-            const id = e.target.id;
-            tocLinks.forEach(a => a.classList.toggle('active', a.dataset.target === id));
-            leftLinks.forEach(a => a.classList.toggle('active', a.getAttribute('href') === '#' + id));
-          }
+    const sectionObserver = new IntersectionObserver(entries => {
+      entries.forEach(entry => {
+        if (entry.isIntersecting) leftLinks.forEach(link => {
+          link.classList.toggle('active', link.getAttribute('href') === '#' + entry.target.id);
         });
-      }, { rootMargin: '-80px 0px -70% 0px' });
-      obs.observe(h);
-    });
+      });
+    }, { rootMargin: '-80px 0px -70% 0px' });
+    headings.forEach(heading => sectionObserver.observe(heading));
 
     // Mermaid 主题跟随
     function initMermaid() {

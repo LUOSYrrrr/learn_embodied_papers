@@ -1,11 +1,12 @@
 ---
 name: paper-to-html
-version: 1.0.0
 description: |
-  把学术论文 PDF 整理成中文交互式 HTML 笔记页面。三栏 docs 布局（左章节树/中正文/右页内目录），
+  把学术论文 PDF 整理成中文交互式 HTML 笔记页面。默认双栏 docs 布局（左章节树/中正文，右页内目录可选），
   原图嵌入（自动从 PDF 裁剪），中英对照（可折叠原文引用），交互组件（Step Walker 步骤导览、
   Image Hotspot 图上热点、Quiz 理解检查、Mermaid 流程图、Tab 切换）。暗/亮主题切换。
   适合个人精读笔记。Use when 用户说"整理论文/写论文笔记/把这篇 paper 做成网页/embodied/VLA 论文解读"。
+metadata:
+  version: 1.1.0
 allowed-tools:
   - Bash
   - Read
@@ -43,7 +44,7 @@ project-root/
 └── pdfs/<category>/<paper-slug>.pdf
 ```
 
-把 `assets/css/style.css`、`assets/js/theme.js`、`assets/js/interactive.js`、`templates/paper-template.html` 从本 skill 的 `assets/` 拷过去（如果用户项目里没有同名同等功能的版本）。
+从本 skill 同目录的 `assets/` 和 `templates/` 复制 `style.css`、`theme.js`、`interactive.js` 和 `paper-template.html`（只在用户项目没有同名同等功能版本时）。
 
 ### 0.5 拿 PDF —— 优先从 Zotero 找，不用等用户手动放
 
@@ -67,8 +68,8 @@ Zotero 里也没有时才让用户提供 PDF。
 # a. 找出每张图所在页（论文里标注 Figure X 的页）
 pdfinfo <pdf>  # 看总页数
 
-# b. 单页导出 PNG（150 DPI 够清晰）
-pdftoppm -png -r 150 -f <page> -l <page> <pdf> assets/figures/<slug>/page
+# b. 单页导出 PNG：宽幅图或小图裁剪后需要更高分辨率
+pdftoppm -png -r 300 -f <page> -l <page> <pdf> assets/figures/<slug>/page
 
 # c. 必须裁剪（这是关键，不裁剪百分比坐标会偏）
 #    用 sips 裁掉页眉/页脚/正文，只留图 + caption
@@ -84,6 +85,8 @@ img.crop((50, 100, img.width-50, int(img.height*0.65))).save('assets/figures/<sl
 ```
 
 **裁剪后命名**：`fig-2.png`、`fig-3.png`...（不是 page-XX.png）。这样图和论文 Figure 编号对应。
+
+裁完检查最终图片尺寸和页面实际显示效果；短边不足 800px 且需要放大阅读时，回到 PDF 提高导出 DPI，不要靠放大现有 PNG 补像素。
 
 ### 3. 搭页面骨架
 
@@ -103,7 +106,7 @@ img.crop((50, 100, img.width-50, int(img.height*0.65))).save('assets/figures/<sl
 
 **如果删掉右 TOC，同时把 JS 里 `document.getElementById('page-toc')` 相关的生成/IntersectionObserver 代码一起删掉**。否则 `null.querySelectorAll` 会把同 `<script>` 块里的 Tab / Mermaid 逻辑一起搞挂。
 
-### 4. 逐节写内容（每节都要这五样）
+### 4. 逐节写内容
 
 #### 论文五问（★★★ §01 总览必须回答，缺一不可）
 
@@ -162,9 +165,9 @@ img.crop((50, 100, img.width-50, int(img.height*0.65))).save('assets/figures/<sl
 </details>
 ```
 
-#### C. `.fig-block` + Image Hotspot（每张图都要）
+#### C. `.fig-block` + Image Hotspot（需要逐处讲解的图）
 
-**必须用 `.fig-interactive` 把图和 panel 包成 2 栏并排**。否则图在上、panel 在下，用户点完要滚下去看讲解，再滚回图——体验极差（来自用户直接反馈）。
+架构图、方法图等需要逐处讲解时，用 `.fig-interactive` 把图和 panel 包成 2 栏并排。纯结果图可用独立 `.fig-block`，无需制造没有教学价值的热点。
 
 ```html
 <div class="fig-interactive">
@@ -187,6 +190,8 @@ img.crop((50, 100, img.width-50, int(img.height*0.65))).save('assets/figures/<sl
 ```
 
 `.fig-interactive` 在 ≥1200px 屏幕上是 `minmax(0,1fr) 260px` 两栏（panel 右侧 sticky 跟随滚动），窄屏自动降级为单列堆叠。样式已在 `style.css` 里，直接用。
+
+宽高比超过约 2:1 的架构总览图或 teaser 图，用 `.fig-interactive.panel-below`：图片占满正文宽度，热点讲解面板置于图下。普通概念图仍用右侧面板；纯结果图无需强加热点。此变体的 CSS 已包含在本 skill 的 `assets/style.css`。
 
 **热点视觉平衡**：默认 `opacity: 0.55`、size 20px；hover/active 全不透明放大。不要把 dot 做大做实心——图缩小后会把图本身盖住（用户直接反馈过）。
 
@@ -251,6 +256,23 @@ img.crop((50, 100, img.width-50, int(img.height*0.65))).save('assets/figures/<sl
 - 正确答案的解释要引用论文具体段落
 - 测概念理解，不测细节背诵
 
+#### F. 公式块与逐项解释（涉及关键数学推导时）
+
+先用白话说明公式在解决什么，再给公式；关键公式后解释符号、目标和假设。模板已引入 KaTeX；使用 `.math-block` 放公式和编号，紧跟 `.math-explain` 拆解关键项：
+
+```html
+<div class="math-block">
+  $$\mathcal{L} = \mathbb{E}[\|f_\theta(x)-y\|^2]$$
+  <span class="math-label">Eq. 3 · 论文页码</span>
+</div>
+<div class="math-explain">
+  <div class="me-title">逐项拆解</div>
+  <dl><dt>$f_\theta(x)$</dt><dd>模型预测量；说明它与观测、动作或目标的关系。</dd></dl>
+</div>
+```
+
+长推导可分步展示；公式编号和定义以原论文为准，不要把示例公式当论文内容。
+
 ### 5. 其他可用组件
 
 - **`.term`**：行内术语 hover 出英文。`<span class="term" data-en="model-predictive control">模型预测控制</span>`
@@ -271,9 +293,9 @@ img.crop((50, 100, img.width-50, int(img.height*0.65))).save('assets/figures/<sl
 5. 每写完 1-2 节就停下让用户看效果
 6. 改交互细节（热点位置、步骤数、quiz 难度）时**只改一个地方测**，不要批量
 
-### 7. 提交粒度
+### 7. 提交粒度（仅当用户要求提交时）
 
-每完成一个有意义的单元就 `git commit`：
+用户要求提交时，按有意义的单元组织提交，避免混入无关改动。例如：
 
 - "feat(<slug>): 三栏布局骨架 + §1 总览"
 - "feat(<slug>): §2 架构 + Fig 2 hotspot + step walker"
@@ -290,7 +312,10 @@ img.crop((50, 100, img.width-50, int(img.height*0.65))).save('assets/figures/<sl
 - ❌ Step Walker 没关联 hotspot，纯文字流程
 - ❌ Quiz 答案明显，没有迷惑性
 - ❌ 不裁图直接用整页 PNG（百分比坐标会全错）
+- ❌ 裁后图片太小却只做像素放大；应从 PDF 重新高分辨率导出
 - ❌ 图和 `.hotspot-panel` 上下堆（用户点热点要滚下去看讲解，体验崩）——必须 `.fig-interactive` 并排
+- ❌ 宽幅架构图使用默认右侧面板，把图压到看不清；改用 `.panel-below`
+- ❌ 关键公式只贴表达式、不解释变量与训练含义
 - ❌ 凭 `Read` 看裁剪图瞎估热点坐标——用 `?edit-hotspots=1` edit mode 当场取
 - ❌ 热点 dot 做大做实心——图缩小后会遮图，默认半透明 + hover 放大
 - ❌ 默认开三栏布局（左 tree + 右 TOC）——右 TOC 和左 tree 重复，默认两栏就够
@@ -301,8 +326,8 @@ img.crop((50, 100, img.width-50, int(img.height*0.65))).save('assets/figures/<sl
 - [ ] **§01 回答了"论文五问"（背景 / 基于什么 / 前人缺陷 / insight / 效果），数据集有专门交代（规模+采集方式+用在哪阶段）**
 - [ ] 中文导读 `.cn-read` 在最前面
 - [ ] 关键论点配了 `.en-quote` 短引
-- [ ] 每张图都有 hotspot（5-8 个，覆盖主要元素）
-- [ ] **每张图都用 `.fig-interactive` 把图+panel 并排**
+- [ ] 需要逐处讲解的图有 hotspot；纯结果图无需强加
+- [ ] **交互图使用 `.fig-interactive`；宽幅架构图使用 `.panel-below`，且讲解面板可见**
 - [ ] **每张图的热点都用 `?edit-hotspots=1` 当场取过坐标，不是瞎估**
 - [ ] **本节的 `.cn-read` 写了"承上"——和上一节的连接是否一句话能说清**
 - [ ] **章与章之间没有"断层"——概念后有公式，公式后有架构映射，架构后有实现**
@@ -310,15 +335,16 @@ img.crop((50, 100, img.width-50, int(img.height*0.65))).save('assets/figures/<sl
 - [ ] 章末有 quiz
 - [ ] 术语首现用 `.term` 标了英文
 - [ ] 引用都标了 §x.y, p.N
+- [ ] 关键公式先讲直觉，再逐项解释并标论文编号与页码
+- [ ] 裁剪后放大的图片仍清楚；模糊时从 PDF 重导
 
 ## 项目脚手架（首次用）
 
 如果用户项目还没建立基础，按本 skill 同目录 `assets/` 和 `templates/` 拷贝以下文件：
 
-- `style.css`（含三栏布局 + 暗亮主题 + 所有交互组件样式）
+- `style.css`（默认双栏、可选三栏 + 暗亮主题 + 交互与公式样式）
 - `theme.js`（暗亮主题切换 + localStorage 持久化）
 - `interactive.js`（Step Walker / Hotspot / Quiz 逻辑）
 - `paper-template.html`（论文页骨架）
-- `index-template.html`（首页骨架，按方向分组）
 
 之后每篇新论文只需复制 `paper-template.html` 改内容。

@@ -57,8 +57,39 @@
       panel.dataset.init = '1';
       panel.innerHTML = '<div class="hp-empty">点击图上绿色数字查看讲解，或下方逐步导览</div>';
     }
-    wrap.querySelectorAll('.hotspot').forEach(h => {
+    wrap.querySelectorAll('.hotspot').forEach((h, index) => {
+      if (!h.textContent.trim()) h.textContent = String(index + 1);
       h.addEventListener('click', () => activateHotspot(wrap, h.dataset.id));
+    });
+  }
+
+  // ?edit-hotspots=1：在原图上点空白处取百分比坐标。
+  function initHotspotEditMode() {
+    if (new URLSearchParams(location.search).get('edit-hotspots') !== '1') return;
+    const toast = document.createElement('div');
+    toast.className = 'hs-edit-toast';
+    toast.textContent = '点击图上空白处获取热点坐标';
+    document.body.appendChild(toast);
+    document.querySelectorAll('.hotspot-wrap').forEach(wrap => {
+      wrap.classList.add('edit-mode');
+      const marker = document.createElement('div');
+      marker.className = 'hs-edit-marker';
+      marker.hidden = true;
+      wrap.appendChild(marker);
+      wrap.addEventListener('click', event => {
+        if (event.target.closest('.hotspot')) return;
+        const image = wrap.querySelector('img');
+        if (!image) return;
+        const rect = image.getBoundingClientRect();
+        const x = Math.max(0, Math.min(100, 100 * (event.clientX - rect.left) / rect.width));
+        const y = Math.max(0, Math.min(100, 100 * (event.clientY - rect.top) / rect.height));
+        const coordinate = `left:${x.toFixed(1)}%; top:${y.toFixed(1)}%;`;
+        marker.style.left = `${x}%`;
+        marker.style.top = `${y}%`;
+        marker.hidden = false;
+        toast.textContent = coordinate;
+        if (navigator.clipboard) navigator.clipboard.writeText(coordinate).catch(() => {});
+      });
     });
   }
 
@@ -86,9 +117,10 @@
   }
 
   function init() {
-    document.querySelectorAll('.step-walker').forEach(initStepWalker);
     document.querySelectorAll('.hotspot-wrap').forEach(initHotspotWrap);
+    document.querySelectorAll('.step-walker').forEach(initStepWalker);
     document.querySelectorAll('.quiz').forEach(initQuiz);
+    initHotspotEditMode();
   }
   if (document.readyState === 'loading') {
     document.addEventListener('DOMContentLoaded', init);
