@@ -2,59 +2,59 @@
 
 Personal paper leaderboard covering robot world models (WAM), humanoid loco-manipulation, dexterous manipulation, and vision-language-action models. Built from arXiv metadata and Google Scholar citations.
 
-- Last updated: 2026-10-01 23:18 UTC
-- Total indexed papers: 4643
+- Last updated: 2026-10-02 23:08 UTC
+- Total indexed papers: 4682
 - Data sources: arXiv for discovery, citation cache for enrichment.
 
 ## Total Ranking
 
 | Rank | Title | Published | Citations | Score |
 | --- | --- | --- | --- | --- |
-| 1 | [Ego4WAM: What Matters When Scaling Egocentric Human Data for Robot Learning?](https://arxiv.org/abs/2609.40341) | 2026-09-30 | missing | 1.000 |
-| 2 | [WorldAuditBench: Interactive 3D World Auditing with Multimodal Agents](https://arxiv.org/abs/2609.40325) | 2026-09-30 | missing | 1.000 |
-| 3 | [Learning Skills from Historical Action Trajectories: Action Experience Dictionary for World Action Models](https://arxiv.org/abs/2609.40219) | 2026-09-30 | missing | 1.000 |
-| 4 | [Social-WM: Safety-Aware Latent World Models for Robot Social Navigation](https://arxiv.org/abs/2609.40177) | 2026-09-30 | missing | 1.000 |
-| 5 | [Dream4ACT: A Shared Visual Action Interface for Multi-Embodiment Video-Action Modeling](https://arxiv.org/abs/2609.40153) | 2026-09-30 | missing | 1.000 |
-| 6 | [Tactile Curiosity Drives Robot Interaction](https://arxiv.org/abs/2609.40134) | 2026-09-30 | missing | 1.000 |
-| 7 | [Multi-Link Safety Filtering for VLA Policies Around Moving Hazards](https://arxiv.org/abs/2609.40007) | 2026-09-30 | missing | 1.000 |
-| 8 | [EWAM: Emergent Depth-Wise Specialization in a Unified Embodied Model -- From Semantic Understanding through Visual Foresight to Action](https://arxiv.org/abs/2609.39973) | 2026-09-30 | missing | 1.000 |
-| 9 | [When Instructions Retrieve Trajectories: Diagnosing and Mitigating Generalization Failures in VLA Models](https://arxiv.org/abs/2609.39971) | 2026-09-30 | missing | 1.000 |
-| 10 | [SplineWAM: Adaptive Action Horizons for World Action Models via B-Spline Representations](https://arxiv.org/abs/2609.39873) | 2026-09-30 | missing | 1.000 |
-| 11 | [Magic-W0: A Structured World-Action Foundation Model for Physical Intelligence](https://arxiv.org/abs/2609.39870) | 2026-09-30 | missing | 1.000 |
-| 12 | [Toward Real-Time VLAs: Stage-Aware Two-Step Flow Denoising and System-Level Evaluation](https://arxiv.org/abs/2609.39822) | 2026-09-30 | missing | 1.000 |
-| 13 | [Learning from Runtime Feedback through Failure-Bank Self-Evolution for Vision-Language-Action Models](https://arxiv.org/abs/2609.39820) | 2026-09-30 | missing | 1.000 |
-| 14 | [Inline Memory Meets Reusable Skills: Memory-centric Framework for Vision-Language-Action Model](https://arxiv.org/abs/2609.39794) | 2026-09-30 | missing | 1.000 |
-| 15 | [DiffWAM: A Fast and Efficient Navigation World Action Model](https://arxiv.org/abs/2609.39763) | 2026-09-30 | missing | 1.000 |
-| 16 | [RoboCoach: World Models as Active Coaches for Compositional Robot Skills](https://arxiv.org/abs/2609.39685) | 2026-09-30 | missing | 1.000 |
-| 17 | [From Local Whole-Body VLA Behaviors to Scene-Scale Aerial Manipulation](https://arxiv.org/abs/2609.39670) | 2026-09-30 | missing | 1.000 |
-| 18 | [GroundingPI: A Grounding Foundation Model towards Physical Intelligence with Visual Primitives](https://arxiv.org/abs/2609.39601) | 2026-09-30 | missing | 1.000 |
-| 19 | [Discrete Forcing: Infusing Discrete Guidance into Continuous Denoising for Few-Step Action Experts](https://arxiv.org/abs/2609.39526) | 2026-09-30 | missing | 1.000 |
-| 20 | [IronMind: Scaling Humanoid Dexterous Manipulation via Camera-Space Ego-Centric Pretraining](https://arxiv.org/abs/2609.39403) | 2026-09-30 | missing | 1.000 |
+| 1 | [InterEvolve: Test-Time Evolution of Reward Programs for Humanoid Loco-Manipulation](https://arxiv.org/abs/2610.02196) | 2026-10-01 | missing | 1.000 |
+| 2 | [DuoMind: Enabling Distributed Multi-Robot Coordination with Semantic Communication](https://arxiv.org/abs/2610.02161) | 2026-10-01 | missing | 1.000 |
+| 3 | [SkeleWAM: Skeleton World-Action Modeling for Efficient Robotic Manipulation](https://arxiv.org/abs/2610.02120) | 2026-10-01 | missing | 1.000 |
+| 4 | [UniWAM: Unified World-Action Model](https://arxiv.org/abs/2610.02054) | 2026-10-01 | missing | 1.000 |
+| 5 | [Fewer Tokens, Better Action: GPT-6 Astra Robot Agents with 14% Higher Success Rate but 65% Fewer Tokens](https://arxiv.org/abs/2610.01939) | 2026-10-01 | missing | 1.000 |
+| 6 | [ChunkVLA-AM: Parallel Action Chunking for Vision-Language-Action Robot Control in Additive Manufacturing](https://arxiv.org/abs/2610.01856) | 2026-10-01 | missing | 1.000 |
+| 7 | [FlashDexRetarget: Accelerating Dexterous Manipulation Data Generation through Multi-Motion Retargeting](https://arxiv.org/abs/2610.01849) | 2026-10-01 | missing | 1.000 |
+| 8 | [Continuous Conditioning of VLAs with Augmenting EMG and Visual Task Descriptors](https://arxiv.org/abs/2610.01794) | 2026-10-01 | missing | 1.000 |
+| 9 | [ATI-VLA: Action-Centric Predictive Vision-Language-Action Models via Actionable Alignment Then Adaptive Injection](https://arxiv.org/abs/2610.01741) | 2026-10-01 | missing | 1.000 |
+| 10 | [ActiveWAM: Evidence-Aware Active Vision for World-Action Models](https://arxiv.org/abs/2610.01698) | 2026-10-01 | missing | 1.000 |
+| 11 | [Completion Aware Guidance for World Action Models](https://arxiv.org/abs/2610.01559) | 2026-10-01 | missing | 1.000 |
+| 12 | [Continue, Abort, or Fall: Viability-Aware Policy Selection (VAPS) for Safe Humanoid Acrobatics](https://arxiv.org/abs/2610.01397) | 2026-10-01 | missing | 1.000 |
+| 13 | [Is Success All You Need? Investigating the Impact of Input Perturbations on VLA Behaviour in Tabletop Manipulation Tasks](https://arxiv.org/abs/2610.01351) | 2026-10-01 | missing | 1.000 |
+| 14 | [PhysicsLENS: Diagnosing Physical Property Blindness in Video Generation Models](https://arxiv.org/abs/2610.01162) | 2026-10-01 | missing | 1.000 |
+| 15 | [MASkillBlender: Decentralized Whole-Body Coordination for Multi-Humanoid Loco-Manipulation via Skill Blending](https://arxiv.org/abs/2610.01102) | 2026-10-01 | missing | 1.000 |
+| 16 | [Ego2Act: Evaluating Goal-Directed Manipulation in Egocentric Video Generation](https://arxiv.org/abs/2610.01092) | 2026-10-01 | missing | 1.000 |
+| 17 | [WBAG: A Whole-Body and Attached-Geometry Safety Framework for Vision-Language-Action Manipulation](https://arxiv.org/abs/2610.01083) | 2026-10-01 | missing | 1.000 |
+| 18 | [Network World Models as Environments for Algorithm Design on Complex Systems](https://arxiv.org/abs/2610.01048) | 2026-10-01 | missing | 1.000 |
+| 19 | [FutureWorlds: Learning Robotic World Models from Alternative Futures](https://arxiv.org/abs/2610.01019) | 2026-10-01 | missing | 1.000 |
+| 20 | [Divide-and-Remember: Recursive Action-Relevant Memory for Long-Horizon VLA Policies](https://arxiv.org/abs/2610.00982) | 2026-10-01 | missing | 1.000 |
 
 ## Hot Ranking
 
 | Rank | Title | Published | Citations | Score |
 | --- | --- | --- | --- | --- |
-| 1 | [Ego4WAM: What Matters When Scaling Egocentric Human Data for Robot Learning?](https://arxiv.org/abs/2609.40341) | 2026-09-30 | missing | 0.999 |
-| 2 | [WorldAuditBench: Interactive 3D World Auditing with Multimodal Agents](https://arxiv.org/abs/2609.40325) | 2026-09-30 | missing | 0.999 |
-| 3 | [Learning Skills from Historical Action Trajectories: Action Experience Dictionary for World Action Models](https://arxiv.org/abs/2609.40219) | 2026-09-30 | missing | 0.999 |
-| 4 | [Social-WM: Safety-Aware Latent World Models for Robot Social Navigation](https://arxiv.org/abs/2609.40177) | 2026-09-30 | missing | 0.999 |
-| 5 | [Dream4ACT: A Shared Visual Action Interface for Multi-Embodiment Video-Action Modeling](https://arxiv.org/abs/2609.40153) | 2026-09-30 | missing | 0.999 |
-| 6 | [Tactile Curiosity Drives Robot Interaction](https://arxiv.org/abs/2609.40134) | 2026-09-30 | missing | 0.999 |
-| 7 | [Multi-Link Safety Filtering for VLA Policies Around Moving Hazards](https://arxiv.org/abs/2609.40007) | 2026-09-30 | missing | 0.999 |
-| 8 | [EWAM: Emergent Depth-Wise Specialization in a Unified Embodied Model -- From Semantic Understanding through Visual Foresight to Action](https://arxiv.org/abs/2609.39973) | 2026-09-30 | missing | 0.999 |
-| 9 | [When Instructions Retrieve Trajectories: Diagnosing and Mitigating Generalization Failures in VLA Models](https://arxiv.org/abs/2609.39971) | 2026-09-30 | missing | 0.999 |
-| 10 | [SplineWAM: Adaptive Action Horizons for World Action Models via B-Spline Representations](https://arxiv.org/abs/2609.39873) | 2026-09-30 | missing | 0.999 |
-| 11 | [Magic-W0: A Structured World-Action Foundation Model for Physical Intelligence](https://arxiv.org/abs/2609.39870) | 2026-09-30 | missing | 0.999 |
-| 12 | [Toward Real-Time VLAs: Stage-Aware Two-Step Flow Denoising and System-Level Evaluation](https://arxiv.org/abs/2609.39822) | 2026-09-30 | missing | 0.999 |
-| 13 | [Learning from Runtime Feedback through Failure-Bank Self-Evolution for Vision-Language-Action Models](https://arxiv.org/abs/2609.39820) | 2026-09-30 | missing | 0.999 |
-| 14 | [Inline Memory Meets Reusable Skills: Memory-centric Framework for Vision-Language-Action Model](https://arxiv.org/abs/2609.39794) | 2026-09-30 | missing | 0.999 |
-| 15 | [DiffWAM: A Fast and Efficient Navigation World Action Model](https://arxiv.org/abs/2609.39763) | 2026-09-30 | missing | 0.999 |
-| 16 | [RoboCoach: World Models as Active Coaches for Compositional Robot Skills](https://arxiv.org/abs/2609.39685) | 2026-09-30 | missing | 0.999 |
-| 17 | [From Local Whole-Body VLA Behaviors to Scene-Scale Aerial Manipulation](https://arxiv.org/abs/2609.39670) | 2026-09-30 | missing | 0.999 |
-| 18 | [GroundingPI: A Grounding Foundation Model towards Physical Intelligence with Visual Primitives](https://arxiv.org/abs/2609.39601) | 2026-09-30 | missing | 0.999 |
-| 19 | [Discrete Forcing: Infusing Discrete Guidance into Continuous Denoising for Few-Step Action Experts](https://arxiv.org/abs/2609.39526) | 2026-09-30 | missing | 0.999 |
-| 20 | [IronMind: Scaling Humanoid Dexterous Manipulation via Camera-Space Ego-Centric Pretraining](https://arxiv.org/abs/2609.39403) | 2026-09-30 | missing | 0.999 |
+| 1 | [InterEvolve: Test-Time Evolution of Reward Programs for Humanoid Loco-Manipulation](https://arxiv.org/abs/2610.02196) | 2026-10-01 | missing | 0.999 |
+| 2 | [DuoMind: Enabling Distributed Multi-Robot Coordination with Semantic Communication](https://arxiv.org/abs/2610.02161) | 2026-10-01 | missing | 0.999 |
+| 3 | [SkeleWAM: Skeleton World-Action Modeling for Efficient Robotic Manipulation](https://arxiv.org/abs/2610.02120) | 2026-10-01 | missing | 0.999 |
+| 4 | [UniWAM: Unified World-Action Model](https://arxiv.org/abs/2610.02054) | 2026-10-01 | missing | 0.999 |
+| 5 | [Fewer Tokens, Better Action: GPT-6 Astra Robot Agents with 14% Higher Success Rate but 65% Fewer Tokens](https://arxiv.org/abs/2610.01939) | 2026-10-01 | missing | 0.999 |
+| 6 | [ChunkVLA-AM: Parallel Action Chunking for Vision-Language-Action Robot Control in Additive Manufacturing](https://arxiv.org/abs/2610.01856) | 2026-10-01 | missing | 0.999 |
+| 7 | [FlashDexRetarget: Accelerating Dexterous Manipulation Data Generation through Multi-Motion Retargeting](https://arxiv.org/abs/2610.01849) | 2026-10-01 | missing | 0.999 |
+| 8 | [Continuous Conditioning of VLAs with Augmenting EMG and Visual Task Descriptors](https://arxiv.org/abs/2610.01794) | 2026-10-01 | missing | 0.999 |
+| 9 | [ATI-VLA: Action-Centric Predictive Vision-Language-Action Models via Actionable Alignment Then Adaptive Injection](https://arxiv.org/abs/2610.01741) | 2026-10-01 | missing | 0.999 |
+| 10 | [ActiveWAM: Evidence-Aware Active Vision for World-Action Models](https://arxiv.org/abs/2610.01698) | 2026-10-01 | missing | 0.999 |
+| 11 | [Completion Aware Guidance for World Action Models](https://arxiv.org/abs/2610.01559) | 2026-10-01 | missing | 0.999 |
+| 12 | [Continue, Abort, or Fall: Viability-Aware Policy Selection (VAPS) for Safe Humanoid Acrobatics](https://arxiv.org/abs/2610.01397) | 2026-10-01 | missing | 0.999 |
+| 13 | [Is Success All You Need? Investigating the Impact of Input Perturbations on VLA Behaviour in Tabletop Manipulation Tasks](https://arxiv.org/abs/2610.01351) | 2026-10-01 | missing | 0.999 |
+| 14 | [PhysicsLENS: Diagnosing Physical Property Blindness in Video Generation Models](https://arxiv.org/abs/2610.01162) | 2026-10-01 | missing | 0.999 |
+| 15 | [MASkillBlender: Decentralized Whole-Body Coordination for Multi-Humanoid Loco-Manipulation via Skill Blending](https://arxiv.org/abs/2610.01102) | 2026-10-01 | missing | 0.999 |
+| 16 | [Ego2Act: Evaluating Goal-Directed Manipulation in Egocentric Video Generation](https://arxiv.org/abs/2610.01092) | 2026-10-01 | missing | 0.999 |
+| 17 | [WBAG: A Whole-Body and Attached-Geometry Safety Framework for Vision-Language-Action Manipulation](https://arxiv.org/abs/2610.01083) | 2026-10-01 | missing | 0.999 |
+| 18 | [Network World Models as Environments for Algorithm Design on Complex Systems](https://arxiv.org/abs/2610.01048) | 2026-10-01 | missing | 0.999 |
+| 19 | [FutureWorlds: Learning Robotic World Models from Alternative Futures](https://arxiv.org/abs/2610.01019) | 2026-10-01 | missing | 0.999 |
+| 20 | [Divide-and-Remember: Recursive Action-Relevant Memory for Long-Horizon VLA Policies](https://arxiv.org/abs/2610.00982) | 2026-10-01 | missing | 0.999 |
 
 ## Rebuild
 
