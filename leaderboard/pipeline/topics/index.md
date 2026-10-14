@@ -2,59 +2,59 @@
 
 Personal paper leaderboard covering robot world models (WAM), humanoid loco-manipulation, dexterous manipulation, and vision-language-action models. Built from arXiv metadata and Google Scholar citations.
 
-- Last updated: 2026-10-13 23:21 UTC
-- Total indexed papers: 4921
+- Last updated: 2026-10-14 22:28 UTC
+- Total indexed papers: 5026
 - Data sources: arXiv for discovery, citation cache for enrichment.
 
 ## Total Ranking
 
 | Rank | Title | Published | Citations | Score |
 | --- | --- | --- | --- | --- |
-| 1 | [Splat2Act: From Captured Scenes to Personalized VLA Manipulation](https://arxiv.org/abs/2610.13945) | 2026-10-09 | missing | 1.000 |
-| 2 | [Noise Space Learning for VLA Adaptation](https://arxiv.org/abs/2610.13943) | 2026-10-09 | missing | 1.000 |
-| 3 | [Dream to Remember: Continual Steering of Generalist Robot Policies with World Models](https://arxiv.org/abs/2610.13816) | 2026-10-09 | missing | 1.000 |
-| 4 | [SimVTA: Simulation-Grounded Video-Trajectory Alignment for Driving World Action Models](https://arxiv.org/abs/2610.13781) | 2026-10-09 | missing | 1.000 |
-| 5 | [SmolWAM: A Latent World-Action Model for Robotic Manipulation on Edge Devices](https://arxiv.org/abs/2610.13740) | 2026-10-09 | missing | 1.000 |
-| 6 | [LAPT-Scale: Scaling Embodied Policies with Latent Action Pre-Training on Human Videos](https://arxiv.org/abs/2610.13732) | 2026-10-09 | missing | 1.000 |
-| 7 | [AutoBio+: Benchmarking Dexterous Manipulation with Dynamic Experimental Phenomena in Realistic Laboratories](https://arxiv.org/abs/2610.13643) | 2026-10-09 | missing | 1.000 |
-| 8 | [JitterVLA: A Replay Benchmark for Motion Quality in VLA-Driven Human-Robot Manipulation](https://arxiv.org/abs/2610.13628) | 2026-10-09 | missing | 1.000 |
-| 9 | [RARA: Robust Policy Fine-Tuning through Retrieval-Anchored Representation Alignment for Robotic Manipulation](https://arxiv.org/abs/2610.13578) | 2026-10-09 | missing | 1.000 |
-| 10 | [Beyond Successful Robot Demonstrations: Learning from Human Interactions and Modeling Failure Dynamics](https://arxiv.org/abs/2610.13522) | 2026-10-09 | missing | 1.000 |
-| 11 | [Reflect-VLA: Internalizing Reflective Guidance via Dual-Path On-Policy Self-Distillation for Autonomous Driving](https://arxiv.org/abs/2610.13453) | 2026-10-09 | missing | 1.000 |
-| 12 | [Dual-Stream Memory for Vision-Language-Action Policies](https://arxiv.org/abs/2610.13262) | 2026-10-09 | missing | 1.000 |
-| 13 | [Beyond Actions: Learning Future Operation Targets for Vision-Language-Action Models](https://arxiv.org/abs/2610.13212) | 2026-10-09 | missing | 1.000 |
-| 14 | [Grounded-Dreamer: Robot Learning from World Model Synthetic Data with Physical Grounding](https://arxiv.org/abs/2610.13164) | 2026-10-09 | missing | 1.000 |
-| 15 | [Human2Dex: Dexterous Robot Learning from Wrist-Centric Human Demonstrations](https://arxiv.org/abs/2610.13119) | 2026-10-09 | missing | 1.000 |
-| 16 | [Forward Dynamics Models](https://arxiv.org/abs/2610.13117) | 2026-10-09 | missing | 1.000 |
-| 17 | [Belief-Overlap Partial Inversion: Object-Centric Flow Replanning for Humanoid Loco-Manipulation](https://arxiv.org/abs/2610.13087) | 2026-10-09 | missing | 1.000 |
-| 18 | [VICAR: Video Imitation with Contact-Aware Retargeting for Humanoid Interactive Skills](https://arxiv.org/abs/2610.13079) | 2026-10-09 | missing | 1.000 |
-| 19 | [What Visual Representations Do World Action Models Need?](https://arxiv.org/abs/2610.13024) | 2026-10-09 | missing | 1.000 |
-| 20 | [Adaptive Whole-Body MPC with Optimal Posture Planning for Humanoid Robots under Unknown Payloads](https://arxiv.org/abs/2610.12972) | 2026-10-09 | missing | 1.000 |
+| 1 | [ChunkAct: Action Chunking for Agentic Robotics](https://arxiv.org/abs/2610.18874) | 2026-10-13 | missing | 1.000 |
+| 2 | [LoopWAM: Closed-Loop Generalist Policy Improvement from Deployment Rollouts](https://arxiv.org/abs/2610.18873) | 2026-10-13 | missing | 1.000 |
+| 3 | [EgoExplorer: A Vision-Motion-Touch Observatory for Human Loco-Manipulation In Situ](https://arxiv.org/abs/2610.18872) | 2026-10-13 | missing | 1.000 |
+| 4 | [What Matters in Quality-Aware VLA Pretraining: A Benchmark and Empirical Study](https://arxiv.org/abs/2610.18869) | 2026-10-13 | missing | 1.000 |
+| 5 | [EmbodiedEvo: Self-improving Coding Agents for Physical Intelligence](https://arxiv.org/abs/2610.18867) | 2026-10-13 | missing | 1.000 |
+| 6 | [Interaction Latents as Actions for Contact-Rich Manipulation](https://arxiv.org/abs/2610.18855) | 2026-10-13 | missing | 1.000 |
+| 7 | [ForceWAM: Decoupling Future and Response Learning from Demo and Play Data for Contact-Rich Manipulation](https://arxiv.org/abs/2610.18852) | 2026-10-13 | missing | 1.000 |
+| 8 | [LIBERO-RIG: A Hardware-Setup Robustness Benchmark for Vision-Language-Action Models](https://arxiv.org/abs/2610.18843) | 2026-10-13 | missing | 1.000 |
+| 9 | [WorldOracle: Benchmarking Action-Conditioned World Models against Real-World Executions](https://arxiv.org/abs/2610.18826) | 2026-10-13 | missing | 1.000 |
+| 10 | [EgoMatrix: Physically Faithful Dexterous Robot Demonstrations from Egocentric Human Videos](https://arxiv.org/abs/2610.18822) | 2026-10-13 | missing | 1.000 |
+| 11 | [SEAR: Self-Evolving Agentic Robotics](https://arxiv.org/abs/2610.18792) | 2026-10-13 | missing | 1.000 |
+| 12 | [EqC: Equilibrium Energy Control for Introspective Lifelong Robot Learning](https://arxiv.org/abs/2610.18790) | 2026-10-13 | missing | 1.000 |
+| 13 | [GreenWAM: A World Foundation Model for Robotics](https://arxiv.org/abs/2610.18774) | 2026-10-13 | missing | 1.000 |
+| 14 | [RoboFQE: Rollout-Free Evaluation of Visual Robot Policies from Offline Trajectories](https://arxiv.org/abs/2610.18699) | 2026-10-13 | missing | 1.000 |
+| 15 | [UniW(A)M: A Unified Mixture-of-Experts Framework for World and World-Action Models](https://arxiv.org/abs/2610.18697) | 2026-10-13 | missing | 1.000 |
+| 16 | [ForkCast: Predictive Recovery for Vision-Language-Action Policies via Counterfactual Futures](https://arxiv.org/abs/2610.18650) | 2026-10-13 | missing | 1.000 |
+| 17 | [Grid or Nodes? Probing Object Memory in World Models Under Partial Observability](https://arxiv.org/abs/2610.18637) | 2026-10-13 | missing | 1.000 |
+| 18 | [ACCRUE: Continual Off-Policy Reinforcement Learning for Robot Foundation Models](https://arxiv.org/abs/2610.18596) | 2026-10-13 | missing | 1.000 |
+| 19 | [WAVE-0: Bridging VLA Policies and WAMs with Lightweight Latent Future Prediction](https://arxiv.org/abs/2610.18568) | 2026-10-13 | missing | 1.000 |
+| 20 | [Thinker-WM: A Unified World Model with Shared Multimodal Representations for Embodied Intelligence](https://arxiv.org/abs/2610.18447) | 2026-10-13 | missing | 1.000 |
 
 ## Hot Ranking
 
 | Rank | Title | Published | Citations | Score |
 | --- | --- | --- | --- | --- |
-| 1 | [Splat2Act: From Captured Scenes to Personalized VLA Manipulation](https://arxiv.org/abs/2610.13945) | 2026-10-09 | missing | 0.997 |
-| 2 | [Noise Space Learning for VLA Adaptation](https://arxiv.org/abs/2610.13943) | 2026-10-09 | missing | 0.997 |
-| 3 | [Dream to Remember: Continual Steering of Generalist Robot Policies with World Models](https://arxiv.org/abs/2610.13816) | 2026-10-09 | missing | 0.997 |
-| 4 | [SimVTA: Simulation-Grounded Video-Trajectory Alignment for Driving World Action Models](https://arxiv.org/abs/2610.13781) | 2026-10-09 | missing | 0.997 |
-| 5 | [SmolWAM: A Latent World-Action Model for Robotic Manipulation on Edge Devices](https://arxiv.org/abs/2610.13740) | 2026-10-09 | missing | 0.997 |
-| 6 | [LAPT-Scale: Scaling Embodied Policies with Latent Action Pre-Training on Human Videos](https://arxiv.org/abs/2610.13732) | 2026-10-09 | missing | 0.997 |
-| 7 | [AutoBio+: Benchmarking Dexterous Manipulation with Dynamic Experimental Phenomena in Realistic Laboratories](https://arxiv.org/abs/2610.13643) | 2026-10-09 | missing | 0.997 |
-| 8 | [JitterVLA: A Replay Benchmark for Motion Quality in VLA-Driven Human-Robot Manipulation](https://arxiv.org/abs/2610.13628) | 2026-10-09 | missing | 0.997 |
-| 9 | [RARA: Robust Policy Fine-Tuning through Retrieval-Anchored Representation Alignment for Robotic Manipulation](https://arxiv.org/abs/2610.13578) | 2026-10-09 | missing | 0.997 |
-| 10 | [Beyond Successful Robot Demonstrations: Learning from Human Interactions and Modeling Failure Dynamics](https://arxiv.org/abs/2610.13522) | 2026-10-09 | missing | 0.997 |
-| 11 | [Reflect-VLA: Internalizing Reflective Guidance via Dual-Path On-Policy Self-Distillation for Autonomous Driving](https://arxiv.org/abs/2610.13453) | 2026-10-09 | missing | 0.997 |
-| 12 | [Dual-Stream Memory for Vision-Language-Action Policies](https://arxiv.org/abs/2610.13262) | 2026-10-09 | missing | 0.997 |
-| 13 | [Beyond Actions: Learning Future Operation Targets for Vision-Language-Action Models](https://arxiv.org/abs/2610.13212) | 2026-10-09 | missing | 0.997 |
-| 14 | [Grounded-Dreamer: Robot Learning from World Model Synthetic Data with Physical Grounding](https://arxiv.org/abs/2610.13164) | 2026-10-09 | missing | 0.997 |
-| 15 | [Human2Dex: Dexterous Robot Learning from Wrist-Centric Human Demonstrations](https://arxiv.org/abs/2610.13119) | 2026-10-09 | missing | 0.997 |
-| 16 | [Forward Dynamics Models](https://arxiv.org/abs/2610.13117) | 2026-10-09 | missing | 0.997 |
-| 17 | [Belief-Overlap Partial Inversion: Object-Centric Flow Replanning for Humanoid Loco-Manipulation](https://arxiv.org/abs/2610.13087) | 2026-10-09 | missing | 0.997 |
-| 18 | [VICAR: Video Imitation with Contact-Aware Retargeting for Humanoid Interactive Skills](https://arxiv.org/abs/2610.13079) | 2026-10-09 | missing | 0.997 |
-| 19 | [What Visual Representations Do World Action Models Need?](https://arxiv.org/abs/2610.13024) | 2026-10-09 | missing | 0.997 |
-| 20 | [Adaptive Whole-Body MPC with Optimal Posture Planning for Humanoid Robots under Unknown Payloads](https://arxiv.org/abs/2610.12972) | 2026-10-09 | missing | 0.997 |
+| 1 | [ChunkAct: Action Chunking for Agentic Robotics](https://arxiv.org/abs/2610.18874) | 2026-10-13 | missing | 0.999 |
+| 2 | [LoopWAM: Closed-Loop Generalist Policy Improvement from Deployment Rollouts](https://arxiv.org/abs/2610.18873) | 2026-10-13 | missing | 0.999 |
+| 3 | [EgoExplorer: A Vision-Motion-Touch Observatory for Human Loco-Manipulation In Situ](https://arxiv.org/abs/2610.18872) | 2026-10-13 | missing | 0.999 |
+| 4 | [What Matters in Quality-Aware VLA Pretraining: A Benchmark and Empirical Study](https://arxiv.org/abs/2610.18869) | 2026-10-13 | missing | 0.999 |
+| 5 | [EmbodiedEvo: Self-improving Coding Agents for Physical Intelligence](https://arxiv.org/abs/2610.18867) | 2026-10-13 | missing | 0.999 |
+| 6 | [Interaction Latents as Actions for Contact-Rich Manipulation](https://arxiv.org/abs/2610.18855) | 2026-10-13 | missing | 0.999 |
+| 7 | [ForceWAM: Decoupling Future and Response Learning from Demo and Play Data for Contact-Rich Manipulation](https://arxiv.org/abs/2610.18852) | 2026-10-13 | missing | 0.999 |
+| 8 | [LIBERO-RIG: A Hardware-Setup Robustness Benchmark for Vision-Language-Action Models](https://arxiv.org/abs/2610.18843) | 2026-10-13 | missing | 0.999 |
+| 9 | [WorldOracle: Benchmarking Action-Conditioned World Models against Real-World Executions](https://arxiv.org/abs/2610.18826) | 2026-10-13 | missing | 0.999 |
+| 10 | [EgoMatrix: Physically Faithful Dexterous Robot Demonstrations from Egocentric Human Videos](https://arxiv.org/abs/2610.18822) | 2026-10-13 | missing | 0.999 |
+| 11 | [SEAR: Self-Evolving Agentic Robotics](https://arxiv.org/abs/2610.18792) | 2026-10-13 | missing | 0.999 |
+| 12 | [EqC: Equilibrium Energy Control for Introspective Lifelong Robot Learning](https://arxiv.org/abs/2610.18790) | 2026-10-13 | missing | 0.999 |
+| 13 | [GreenWAM: A World Foundation Model for Robotics](https://arxiv.org/abs/2610.18774) | 2026-10-13 | missing | 0.999 |
+| 14 | [RoboFQE: Rollout-Free Evaluation of Visual Robot Policies from Offline Trajectories](https://arxiv.org/abs/2610.18699) | 2026-10-13 | missing | 0.999 |
+| 15 | [UniW(A)M: A Unified Mixture-of-Experts Framework for World and World-Action Models](https://arxiv.org/abs/2610.18697) | 2026-10-13 | missing | 0.999 |
+| 16 | [ForkCast: Predictive Recovery for Vision-Language-Action Policies via Counterfactual Futures](https://arxiv.org/abs/2610.18650) | 2026-10-13 | missing | 0.999 |
+| 17 | [Grid or Nodes? Probing Object Memory in World Models Under Partial Observability](https://arxiv.org/abs/2610.18637) | 2026-10-13 | missing | 0.999 |
+| 18 | [ACCRUE: Continual Off-Policy Reinforcement Learning for Robot Foundation Models](https://arxiv.org/abs/2610.18596) | 2026-10-13 | missing | 0.999 |
+| 19 | [WAVE-0: Bridging VLA Policies and WAMs with Lightweight Latent Future Prediction](https://arxiv.org/abs/2610.18568) | 2026-10-13 | missing | 0.999 |
+| 20 | [Thinker-WM: A Unified World Model with Shared Multimodal Representations for Embodied Intelligence](https://arxiv.org/abs/2610.18447) | 2026-10-13 | missing | 0.999 |
 
 ## Rebuild
 
