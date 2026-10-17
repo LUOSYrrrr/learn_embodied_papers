@@ -2,7 +2,7 @@
 
 Personal paper leaderboard covering robot world models (WAM), humanoid loco-manipulation, dexterous manipulation, and vision-language-action models. Built from arXiv metadata and Google Scholar citations.
 
-- Last updated: 2026-10-16 22:10 UTC
+- Last updated: 2026-10-17 21:34 UTC
 - Total indexed papers: 5100
 - Data sources: arXiv for discovery, citation cache for enrichment.
 
