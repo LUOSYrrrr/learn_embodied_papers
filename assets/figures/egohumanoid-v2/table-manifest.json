@@ -1,0 +1,152 @@
+{
+  "arxiv": "2609.37181v1",
+  "pdf": "pdfs/loco-manipulation/egohumanoid-v2.pdf",
+  "dpi": 400,
+  "previewDpi": 85,
+  "tables": [
+    {
+      "table": 1,
+      "page": 8,
+      "previewCrop": [
+        124,
+        93,
+        477,
+        229
+      ],
+      "file": "table-1.png",
+      "anchor": "table-1"
+    },
+    {
+      "table": 2,
+      "page": 8,
+      "previewCrop": [
+        124,
+        331,
+        477,
+        184
+      ],
+      "file": "table-2.png",
+      "anchor": "table-2"
+    },
+    {
+      "table": 3,
+      "page": 9,
+      "previewCrop": [
+        124,
+        334,
+        477,
+        123
+      ],
+      "file": "table-3.png",
+      "anchor": "table-3"
+    },
+    {
+      "table": 4,
+      "page": 9,
+      "previewCrop": [
+        124,
+        468,
+        477,
+        171
+      ],
+      "file": "table-4.png",
+      "anchor": "table-4"
+    },
+    {
+      "table": 5,
+      "page": 17,
+      "previewCrop": [
+        125,
+        93,
+        472,
+        172
+      ],
+      "file": "table-5.png",
+      "anchor": "table-5"
+    },
+    {
+      "table": 6,
+      "page": 18,
+      "previewCrop": [
+        124,
+        92,
+        477,
+        140
+      ],
+      "file": "table-6.png",
+      "anchor": "table-6"
+    },
+    {
+      "table": 7,
+      "page": 18,
+      "previewCrop": [
+        124,
+        236,
+        477,
+        267
+      ],
+      "file": "table-7.png",
+      "anchor": "table-7"
+    },
+    {
+      "table": 8,
+      "page": 19,
+      "previewCrop": [
+        124,
+        93,
+        477,
+        212
+      ],
+      "file": "table-8.png",
+      "anchor": "table-8"
+    },
+    {
+      "table": 9,
+      "page": 20,
+      "previewCrop": [
+        124,
+        92,
+        477,
+        114
+      ],
+      "file": "table-9.png",
+      "anchor": "table-9"
+    },
+    {
+      "table": 10,
+      "page": 20,
+      "previewCrop": [
+        124,
+        578,
+        477,
+        102
+      ],
+      "file": "table-10.png",
+      "anchor": "table-10"
+    },
+    {
+      "table": 11,
+      "page": 21,
+      "previewCrop": [
+        124,
+        147,
+        477,
+        135
+      ],
+      "file": "table-11.png",
+      "anchor": "table-11"
+    },
+    {
+      "table": 12,
+      "page": 21,
+      "previewCrop": [
+        124,
+        400,
+        477,
+        274
+      ],
+      "file": "table-12.png",
+      "anchor": "table-12"
+    }
+  ]
+}

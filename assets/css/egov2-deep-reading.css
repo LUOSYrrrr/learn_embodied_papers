@@ -1,0 +1,49 @@
+/* Additive styles: readable without JS, narrow layouts scroll tables locally. */
+.ego-review .deep-reading { margin:3rem 0; padding-top:1rem; border-top:1px solid var(--border2); }
+.ego-review .formula-reading { margin:2rem 0; padding:1.2rem; border:1px solid var(--border2); border-radius:10px; background:var(--bg2); }
+.ego-review .formula-reading h3 { margin-top:0; }
+.ego-review .formula-reading h4 { font-size:1.08rem; margin:1.6rem 0 .6rem; }
+.ego-review .symbol-list { display:grid; grid-template-columns:minmax(110px,1fr) minmax(0,4fr); gap:.6rem 1rem; margin:1.2rem 0; }
+.ego-review .symbol-list dt { font-weight:650; overflow-wrap:anywhere; }
+.ego-review .symbol-list dd { margin:0; padding-bottom:.5rem; line-height:1.85; }
+.ego-review .worked-example { margin:1rem 0; padding:1rem 1.1rem; border-left:3px solid var(--blue); background:var(--bg3); border-radius:0 6px 6px 0; line-height:1.9; }
+.ego-review .reading-path { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:.6rem; margin:1.2rem 0; }
+.ego-review .reading-path a { display:block; border:1px solid var(--border2); border-radius:7px; padding:.6rem .8rem; font-size:14px; }
+.ego-review .table-reading { margin:2.6rem 0; padding-top:.5rem; border-top:1px solid var(--border2); }
+.ego-review .table-reading h3 { margin-top:.8rem; }
+.ego-review .table-reading ol,.ego-review .pipeline-steps { padding-left:1.5rem; }
+.ego-review .table-reading li,.ego-review .pipeline-steps li { margin:.8rem 0; line-height:1.9; }
+.ego-review .table-source { margin:1rem 0; border:1px solid var(--border2); border-radius:8px; padding:.65rem; }
+.ego-review .table-source summary { cursor:pointer; font-weight:600; padding:.3rem; }
+.ego-review .table-source figure { margin:1rem 0 0; }
+.ego-review .table-source img { width:100%; height:auto; background:#fff; }
+.ego-review .pipeline-figure { border:1px solid var(--border2); border-radius:10px; overflow:hidden; }
+.ego-review .pipeline-figure > a { display:block; background:#fff; }
+.ego-review .pipeline-figure img { width:100%; height:auto; display:block; }
+.ego-review .equation small { display:block; margin-top:.8rem; font-family:var(--font-sans); line-height:1.6; white-space:normal; }
+.ego-review .eval-table-wrap { max-width:100%; overflow-x:auto; }
+.ego-review .eval-table-wrap:focus-visible { outline:2px solid var(--blue); outline-offset:3px; }
+.ego-review .compact-table { min-width:570px; }
+.ego-review .docs-sidebar-left { max-height:calc(100vh - 100px); overflow-y:auto; }
+.ego-review summary:focus-visible,.ego-review a:focus-visible { outline:3px solid var(--blue); outline-offset:3px; }
+@media(max-width:600px){
+ .ego-review .formula-reading{padding:.8rem}.ego-review .reading-path{grid-template-columns:1fr}
+ .ego-review .symbol-list{grid-template-columns:1fr;gap:.1rem}.ego-review .symbol-list dd{padding-bottom:.8rem}
+ .ego-review .worked-example{padding:.8rem}.ego-review .deep-reading{margin:2rem 0}
+ .ego-review .nav-links a:first-child{display:none}
+ .ego-review .eval-table-wrap::after{content:"宽表可左右滑动查看全部列";display:block;padding:.5rem .7rem;color:var(--text2);font-size:12px;position:sticky;left:0}
+}
+@media print{
+ .ego-review{--text:#111;--text2:#333;--text3:#555;--bg:#fff;--bg2:#fff;--bg3:#fff;--border2:#aaa;--blue:#164b7a;color:#111!important}
+ .ego-review .docs-content p,.ego-review .docs-content li,.ego-review .docs-content dt,.ego-review .docs-content dd,.ego-review .docs-content figcaption,.ego-review .docs-content summary{color:#111!important}
+ .ego-review .docs-content a{color:#164b7a!important}
+ .ego-review .deep-reading,.ego-review .formula-reading,.ego-review .table-reading{break-inside:auto;background:transparent}
+ .ego-review .reading-path,.ego-review .docs-sidebar-left{display:none}
+ .ego-review .eval-table{min-width:0!important;width:100%;font-size:9pt}
+ .ego-review .eval-table th,.ego-review .eval-table td{white-space:normal!important;padding:5px;overflow-wrap:anywhere}
+ .ego-review .eval-table-wrap{overflow:visible}
+ .ego-review .worked-example{background:transparent;border-color:#444}
+ .ego-review .pipeline-figure{break-inside:avoid}
+ .ego-review .pipeline-figure img{max-height:240mm;width:auto;max-width:100%;margin:auto}
+ .ego-review .pipeline-figure a::after,.ego-review .table-source figure a::after{content:none}
+}

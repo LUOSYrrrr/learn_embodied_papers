@@ -1,0 +1,18 @@
+<section class="deep-reading" id="reading-guide">
+<h2>全文精读导航：9 个编号公式、10 张图、12 张表</h2>
+<p>这份页面按“读者的问题”组织，不机械翻译原文顺序；下面是回到原文章节的对照。覆盖固定 24 页版本正文及内嵌附录 A–D，保留全部图表的原始编号。参考文献按论证角色导读并链接原始书目，不把未独立精读的被引文献写成已经验证过的结论。</p>
+<nav class="reading-path" aria-label="推荐阅读路径"><a href="#full-pipeline">① 完整流程图</a><a href="#offline-online-ik">② Offline / Online IK 专图</a><a href="#deep-method">③ 每个符号与方法</a><a href="#metrics-deep">④ 评分和选优协议</a><a href="#table-index">⑤ 全部结果表</a><a href="#research-context">⑥ 研究背景与边界</a></nav>
+<div class="eval-table-wrap"><table class="eval-table compact-table"><caption>正文与附录覆盖地图</caption><thead><tr><th>原文位置</th><th>这里讲什么</th><th>跳转</th></tr></thead><tbody>
+<tr><td>Abstract、§1–2、§5，pp.1–3、10</td><td>动机、直接依赖、四个实验问题、贡献与局限、声明及参考文献角色。</td><td><a href="#research-context">研究背景 / 证据审计</a></td></tr>
+<tr><td>§3.1–3.2，pp.3–4；A.1 p.14</td><td>采集硬件、信号校准、训练部署接口和数据验证。</td><td><a href="#figure-2">硬件</a> · <a href="#source-validation">源数据验证</a> · <a href="#eq-1">Eq.1</a></td></tr>
+<tr><td>§3.3，pp.4–5；A.2，pp.14–15</td><td>H 初始化、固定目标与高度配准、K、D、优化日程。</td><td><a href="#deep-method">方法全解</a> · <a href="#height-registration">高度配准</a></td></tr>
+<tr><td>A.3–A.4，pp.15–16</td><td>响应网络监督、结构、训练、输入梯度；历史候选与独立验收。</td><td><a href="#response-training">响应模型</a> · <a href="#selection-deep">验收</a></td></tr>
+<tr><td>§3.4 p.5；B.1–B.2 p.16</td><td>分割、补全、渲染、增强；π₀.₅ 后训练与控制变量。</td><td><a href="#vision">视觉对齐</a> · <a href="#policy-training">VLA 训练</a></td></tr>
+<tr><td>§4.1–4.3，pp.5–8；B.3–B.4，pp.16–17</td><td>真机任务、示范预算、人力成本、三阶段评分与聚合。</td><td><a href="#evaluation">评测总览</a> · <a href="#figure-4">Fig 4</a> · <a href="#figure-5">Fig 5</a> · <a href="#eq-7">Eq.7</a></td></tr>
+<tr><td>§4.4–4.5，pp.8–9；C.1–C.3，pp.17–18</td><td>动作/视觉消融、初始化、末端与全身质量、不同选优口径。</td><td><a href="#table-1">Tables 1–7</a> · <a href="#selection-protocols">协议分叉</a></td></tr>
+<tr><td>C.4–C.6，pp.18–20</td><td>迭代深度、离线耗时、响应消融、50 任务扩展集。</td><td><a href="#figure-6">Figs 6–7</a> · <a href="#table-8">Tables 8–10</a></td></tr>
+<tr><td>D.1–D.3，pp.20–24</td><td>Online IK 三种接线、60 次诊断、失败序列选择。</td><td><a href="#offline-online-ik">IK 专节</a> · <a href="#table-11">Tables 11–12</a> · <a href="#figure-8">Figs 8–10</a></td></tr>
+</tbody></table></div>
+<p><strong>公式直达：</strong><a href="#eq-1">1 输入输出</a> · <a href="#eq-2">2 编码参考</a> · <a href="#eq-3">3 执行响应</a> · <a href="#eq-4">4 追踪损失</a> · <a href="#eq-5">5 骨盆坐标</a> · <a href="#eq-6">6 局部优化</a> · <a href="#eq-7">7 任务评分</a> · <a href="#eq-8">8 历史选优</a> · <a href="#eq-9">9 额外转向</a>。每式都有用途、符号、单位/形状与明确标注的教学算例；未编号的高度配准、足底校正和响应混合也分别解释。</p>
+<aside class="evidence-note" data-evidence="missing">论文没有完整给出的字段仍标“未报告”，包括 43/93 维状态的逐维定义、全部 IK / 正则系数、部分任务专用参数、VLA action chunk 与部署调度细节。精读覆盖不等于替作者补出未知实现。</aside>
+</section>

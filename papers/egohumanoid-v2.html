@@ -1,21 +1,53 @@
 <!DOCTYPE html>
 <html lang="zh-CN">
 <head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1">
-<title>EgoHumanoid-V2 · 先修参考，再修执行响应</title>
-<meta name="description" content="EgoHumanoid-V2 中文精读：Figure 1–10 逐图讲解，GoPro/PICO 分工、离线数据构造、SONIC 动作对齐、真机评测和在线 IK 失败边界。">
-<link rel="stylesheet" href="../assets/css/style.css"><link rel="stylesheet" href="../assets/css/humanoid-reading.css"><link rel="stylesheet" href="../assets/css/egov2-figures.css"><script src="../assets/js/theme.js"></script><script defer src="../assets/js/interactive.js"></script><script defer src="../assets/js/humanoid-reading.js"></script></head>
+<title>EgoHumanoid-V2 · 全文与附录精读：9 公式、10 图、12 表</title>
+<meta name="description" content="EgoHumanoid-V2 全文与附录 A–D 中文精读：9 个公式逐符号和算例、10 张原图、12 张原表、完整 pipeline 与 online IK 专图、训练部署与全部实验协议。">
+<link rel="stylesheet" href="../assets/css/style.css"><link rel="stylesheet" href="../assets/css/humanoid-reading.css"><link rel="stylesheet" href="../assets/css/egov2-figures.css"><script src="../assets/js/theme.js"></script><script defer src="../assets/js/interactive.js"></script><script defer src="../assets/js/humanoid-reading.js"></script><link rel="stylesheet" href="../assets/css/egov2-deep-reading.css"></head>
 <body class="series ego-review"><a class="skip" href="#content">跳到正文</a>
-<nav class="nav"><a class="nav-logo" href="../index.html">~/paper-notes</a><div class="nav-links"><a href="humanoid-data-to-wam.html">链路总览</a><a href="../pdfs/loco-manipulation/egohumanoid-v2.pdf">PDF</a></div></nav>
-<div class="page"><div class="docs-layout"><aside class="docs-sidebar-left" aria-label="章节导航"><div class="ds-title">03 / EgoHumanoid-V2</div><a class="ds-leaf-top" href="#overview">结论先行</a><a class="ds-leaf-top" href="#figure-index">全部 10 张图</a><a class="ds-leaf-top" href="#figure-1">Fig 1 · 主干流程</a><a class="ds-leaf-top" href="#figure-2">Fig 2 · 为什么要 GoPro</a><a class="ds-leaf-top" href="#failure">为什么不能在线拼 IK</a><a class="ds-leaf-top" href="#interface">数据与动作接口</a><a class="ds-leaf-top" href="#alignment">Fig 3 · H → K → Dₛ</a><a class="ds-leaf-top" href="#vision">视觉对齐</a><a class="ds-leaf-top" href="#evaluation">Fig 4–5 · 真机与成本</a><a class="ds-leaf-top" href="#figure-6">Fig 6–7 · 迭代曲线</a><a class="ds-leaf-top" href="#online-ik">Fig 8–10 · 失败诊断</a><a class="ds-leaf-top" href="#limits">证据审计</a><a class="ds-leaf-top" href="#connection">与 VLA / Embodied AI</a></aside>
+<nav class="nav"><a class="nav-logo" href="../index.html">~/paper-notes</a><div class="nav-links"><a href="humanoid-data-to-wam.html">链路总览</a><a href="https://arxiv.org/pdf/2609.37181v1">PDF</a></div></nav>
+<div class="page"><div class="docs-layout"><aside class="docs-sidebar-left" aria-label="章节导航"><div class="ds-title">EgoHumanoid-V2 · 全文精读</div><a class="ds-leaf-top" href="#overview">结论先行</a><a class="ds-leaf-top" href="#reading-guide">正文 / 附录覆盖地图</a><a class="ds-leaf-top" href="#full-pipeline">完整 pipeline 图</a><a class="ds-leaf-top" href="#offline-online-ik">Online vs Offline IK 图</a><a class="ds-leaf-top" href="#figure-index">全部 10 张论文图</a><a class="ds-leaf-top" href="#figure-2">为什么还需要 GoPro</a><a class="ds-leaf-top" href="#deep-method">目标 / 参考 / 命令 / 执行</a><a class="ds-leaf-top" href="#eq-1">Eq.1 · 29/43/64/76 维</a><a class="ds-leaf-top" href="#eq-5">Eq.5 · 坐标与骨盆高度</a><a class="ds-leaf-top" href="#eq-2">Eq.2 · Offline K</a><a class="ds-leaf-top" href="#eq-3">Eq.3–6 · D 与梯度</a><a class="ds-leaf-top" href="#response-training">A.3 · 响应网络怎样训练</a><a class="ds-leaf-top" href="#selection-deep">A.4 · 数据验收</a><a class="ds-leaf-top" href="#policy-training">B.1–2 · VLA 训练</a><a class="ds-leaf-top" href="#vision">视觉对齐</a><a class="ds-leaf-top" href="#metrics-deep">Eq.7–9 · 评分与选优</a><a class="ds-leaf-top" href="#evaluation">真机 / ID–OOD / 仿真</a><a class="ds-leaf-top" href="#table-index">全部 12 张表</a><a class="ds-leaf-top" href="#table-2">Table 2 · 初始化对照</a><a class="ds-leaf-top" href="#table-8">Table 8 · 计算成本</a><a class="ds-leaf-top" href="#figure-8">Appendix D · 三组失败图</a><a class="ds-leaf-top" href="#research-context">相关工作 / 局限 / 声明</a><a class="ds-leaf-top" href="#connection">与 VLA / Embodied AI</a></aside>
 <main class="docs-content" id="content"><div class="kicker">REFERENCE → EXECUTION → SUPERVISION · READING 03</div>
 <h1>EgoHumanoid-V2：手到了，不代表全身稳了</h1>
 <p class="paper-meta">Human-to-Humanoid Transfer of Coordinated Whole-Body Skills for Loco-Manipulation<br>Jin Chen et al. · arXiv:2609.37181v1 · 2026-09-29 · 24 页（含 Appendix A–D）</p>
-<section class="core-insight" id="overview"><div class="core-label">一句话核心洞见</div><p>不在运行时用 IK 覆盖 SONIC 的部分关节命令，而是<strong>离线修正参考，再沿冻结控制解码器优化 motion token</strong>。真实仿真 rollout 检查每轮修正是否真的改善执行；VLA 学的是经过筛选的状态—动作配对。</p></section>
+<section class="core-insight" id="overview"><div class="core-label">一句话核心洞见</div><p>不在运行时用 IK 覆盖 SONIC 的部分关节命令，而是<strong>离线修正参考，再沿冻结控制解码器优化 motion token</strong>。仿真中的实际 rollout 检查每轮修正是否真的改善执行；VLA 学的是经过筛选的状态—动作配对。</p></section>
 <section class="eval-overview" aria-label="评测结论总览"><article class="eval-card"><div class="eval-card-title">仿真对齐诊断</div><div class="eval-card-value">四任务均值：位置误差 11.21 → 4.45 → 3.41 cm；手朝向 21.22° → 13.77° → 6.71°。不是仿真闭环任务成功率。</div></article><article class="eval-card"><div class="eval-card-title">ID / OOD</div><div class="eval-card-value">任务专用 π₀.₅；起姿和物体变化测的是任务内执行。没有统一策略的未见任务泛化分数。</div></article><article class="eval-card"><div class="eval-card-title">真机</div><div class="eval-card-value">G1 + Revo2，四任务，每策略 20 次。200 人类示范/任务时平均 51.67% 是三阶段任务得分，不是完整成功率。</div></article><article class="eval-card"><div class="eval-card-title">结论边界</div><div class="eval-card-value">不需要目标任务的机器人示范；仍依赖预训练 π₀.₅、SONIC 与仿真训练的响应模型，不等于全链路从未使用机器人数据。</div></article></section>
 <p class="source"><a href="https://arxiv.org/abs/2609.37181v1">固定版本论文</a> · <a href="https://opendrivelab.com/EgoHumanoid-V2">论文给出的项目地址</a> · <a href="../assets/figures/humanoid-reading/source-manifest.json">本地 PDF 哈希</a>。本页通读全文和内嵌附录；未把网页演示视频当作额外成功率证据。</p>
+<!-- EGOV2-GUIDE:START -->
+<section class="deep-reading" id="reading-guide">
+<h2>全文精读导航：9 个编号公式、10 张图、12 张表</h2>
+<p>这份页面按“读者的问题”组织，不机械翻译原文顺序；下面是回到原文章节的对照。覆盖固定 24 页版本正文及内嵌附录 A–D，保留全部图表的原始编号。参考文献按论证角色导读并链接原始书目，不把未独立精读的被引文献写成已经验证过的结论。</p>
+<nav class="reading-path" aria-label="推荐阅读路径"><a href="#full-pipeline">① 完整流程图</a><a href="#offline-online-ik">② Offline / Online IK 专图</a><a href="#deep-method">③ 每个符号与方法</a><a href="#metrics-deep">④ 评分和选优协议</a><a href="#table-index">⑤ 全部结果表</a><a href="#research-context">⑥ 研究背景与边界</a></nav>
+<div class="eval-table-wrap" tabindex="0" aria-label="可横向滚动的表格"><table class="eval-table compact-table"><caption>正文与附录覆盖地图</caption><thead><tr><th>原文位置</th><th>这里讲什么</th><th>跳转</th></tr></thead><tbody>
+<tr><td>Abstract、§1–2、§5，pp.1–3、10</td><td>动机、直接依赖、四个实验问题、贡献与局限、声明及参考文献角色。</td><td><a href="#research-context">研究背景 / 证据审计</a></td></tr>
+<tr><td>§3.1–3.2，pp.3–4；A.1 p.14</td><td>采集硬件、信号校准、训练部署接口和数据验证。</td><td><a href="#figure-2">硬件</a> · <a href="#source-validation">源数据验证</a> · <a href="#eq-1">Eq.1</a></td></tr>
+<tr><td>§3.3，pp.4–5；A.2，pp.14–15</td><td>H 初始化、固定目标与高度配准、K、D、优化日程。</td><td><a href="#deep-method">方法全解</a> · <a href="#height-registration">高度配准</a></td></tr>
+<tr><td>A.3–A.4，pp.15–16</td><td>响应网络监督、结构、训练、输入梯度；历史候选与独立验收。</td><td><a href="#response-training">响应模型</a> · <a href="#selection-deep">验收</a></td></tr>
+<tr><td>§3.4 p.5；B.1–B.2 p.16</td><td>分割、补全、渲染、增强；π₀.₅ 后训练与控制变量。</td><td><a href="#vision">视觉对齐</a> · <a href="#policy-training">VLA 训练</a></td></tr>
+<tr><td>§4.1–4.3，pp.5–8；B.3–B.4，pp.16–17</td><td>真机任务、示范预算、人力成本、三阶段评分与聚合。</td><td><a href="#evaluation">评测总览</a> · <a href="#figure-4">Fig 4</a> · <a href="#figure-5">Fig 5</a> · <a href="#eq-7">Eq.7</a></td></tr>
+<tr><td>§4.4–4.5，pp.8–9；C.1–C.3，pp.17–18</td><td>动作/视觉消融、初始化、末端与全身质量、不同选优口径。</td><td><a href="#table-1">Tables 1–7</a> · <a href="#selection-protocols">协议分叉</a></td></tr>
+<tr><td>C.4–C.6，pp.18–20</td><td>迭代深度、离线耗时、响应消融、50 任务扩展集。</td><td><a href="#figure-6">Figs 6–7</a> · <a href="#table-8">Tables 8–10</a></td></tr>
+<tr><td>D.1–D.3，pp.20–24</td><td>Online IK 三种接线、60 次诊断、失败序列选择。</td><td><a href="#offline-online-ik">IK 专节</a> · <a href="#table-11">Tables 11–12</a> · <a href="#figure-8">Figs 8–10</a></td></tr>
+</tbody></table></div>
+<p><strong>公式直达：</strong><a href="#eq-1">1 输入输出</a> · <a href="#eq-2">2 编码参考</a> · <a href="#eq-3">3 执行响应</a> · <a href="#eq-4">4 追踪损失</a> · <a href="#eq-5">5 骨盆坐标</a> · <a href="#eq-6">6 局部优化</a> · <a href="#eq-7">7 任务评分</a> · <a href="#eq-8">8 历史选优</a> · <a href="#eq-9">9 额外转向</a>。每式都有用途、符号、单位/形状与明确标注的教学算例；未编号的高度配准、足底校正和响应混合也分别解释。</p>
+<aside class="evidence-note" data-evidence="missing">论文没有完整给出的字段仍标“未报告”，包括 43/93 维状态的逐维定义、全部 IK / 正则系数、部分任务专用参数、VLA action chunk 与部署调度细节。精读覆盖不等于替作者补出未知实现。</aside>
+</section>
+<!-- EGOV2-GUIDE:END -->
+
+<!-- EGOV2-PIPELINE:START -->
+<section class="deep-reading" id="full-pipeline">
+<h2>完整 pipeline：采集、离线制数、训练、部署分别做什么？</h2>
+<p>把“制数”和“执行控制器”看成互斥阶段，会误解整篇。<strong>SONIC 在离线制数中执行仿真运动，也在部署中控制真实机器人；VLA 训练发生在二者之间。</strong>同一个模块可以出现在不同阶段，但输入来自哪里、是否更新参数、运行目的并不相同。</p>
+<figure class="pipeline-figure"><a href="../assets/diagrams/egohumanoid-v2/full-pipeline.svg" target="_blank" rel="noopener"><img src="../assets/diagrams/egohumanoid-v2/full-pipeline.svg" alt="四阶段解释图：人体采集后分成动作、视觉和手姿态分支；离线 K 与 D 仿真对齐并验收；同步成样本训练任务专用 VLA；部署通过 SONIC 与手驱动执行，不运行完整离线优化" loading="lazy" decoding="async"></a><figcaption><strong>教学解释图，非论文原图。</strong>依据 §3 与 Appendices A–B、D 整理；以 <a href="#figure-1">Figure 1</a>、<a href="#figure-2">2</a>、<a href="#figure-3">3</a> 为原始证据。<a href="../assets/diagrams/egohumanoid-v2/full-pipeline.svg" target="_blank" rel="noopener">放大图</a> · <a href="../assets/diagrams/egohumanoid-v2/full-pipeline.drawio" download>下载可编辑 draw.io 源文件</a>。</figcaption></figure>
+<ol class="pipeline-steps"><li><strong>准备可用模块：</strong>已有预训练 π₀.₅、SONIC checkpoint；另外用仿真干预样本训练局部响应 MLP。这个 MLP 不是每轮 D 从头训练，也不是由 VLA 在真机在线学习。</li><li><strong>采集人：</strong>人完成目标任务，PICO 负责身体/手运动，GoPro 负责 RGB。同步、标定和语言标注把不同流对应到同一段任务。</li><li><strong>动作制数：</strong>H 先仿真执行；利用人体末端记录和初始机器人骨盆高度构造固定目标；K 改参考、编码再 replay；D 改 token、重复 rollout 测残差；最后历史选优并独立验收。<strong>所有这些仍在训练前。</strong></li><li><strong>视觉与手命令制数：</strong>原始 RGB 遮罩/补全/渲染机器人臂，训练再增强；人体手姿态映射成 Revo2 命令。这不是让 SONIC 的 64 维 token 直接控制手指。</li><li><strong>拼成监督训练集：</strong>适配 RGB、replay 机器人状态和语言作为输入；对齐 token 与双手命令作为动作标签。图像仍来自人体记录后适配，不是“同次仿真渲染了整张环境图”；机器人状态与 token 则按验收执行配对。</li><li><strong>训练 VLA：</strong>每任务一份 π₀.₅ post-training，学习从观察到动作。不是把 K/D 优化程序变成每次推理的一部分。</li><li><strong>部署到 G1：</strong>真实 RGB＋状态＋指令 → VLA 动作序列 → SONIC 解码身体运动、Revo2 驱动双手 → 真实执行 → 新观测。部署不需要人继续示范、不做人体手臂替换、不逐轮运行 MLP＋K/D；SONIC 自己仍然使用控制反馈。</li></ol>
+<div class="eval-table-wrap" tabindex="0" aria-label="可横向滚动的表格"><table class="eval-table compact-table"><caption>“在学习”与“在运行”不是一回事</caption><thead><tr><th>阶段</th><th>改变什么</th><th>不应误读为</th></tr></thead><tbody><tr><td>响应模型训练</td><td>MLP 网络参数</td><td>用目标任务真实机器人反复试错训练整个系统</td></tr><tr><td>K / D 离线优化</td><td>参考关节轨迹 / token 数值</td><td>继续训练 SONIC 或每轮重训 MLP</td></tr><tr><td>VLA post-training</td><td>任务策略参数</td><td>用 64 维 token 取代所有低层反馈</td></tr><tr><td>真机推理与控制</td><td>当前动作、机器人状态与下一次观测</td><td>论文报告了在线权重更新或测试时训练</td></tr></tbody></table></div>
+<p>Appendix D 的 online IK 是另一条<strong>诊断用支线</strong>：在 SONIC 关节输出后做 IK 组合，再检查仿真实际执行。它不属于上图主方法的部署阶段。详细区别见 <a href="#offline-online-ik">offline/online IK 专节</a>。具体高层推理频率、chunk 截取和全部低层软件调度字段，本文没有完整报告，图中不虚构周期数字。</p>
+</section>
+<!-- EGOV2-PIPELINE:END -->
+
 
 <h2 id="figure-index">先读图：全部 10 张图各自回答什么？</h2>
-<p>2026-10-23 修订：补齐此前缺失的 Figure 1、2、4–10，并将 Figure 3 从“配图”改为逐步解读。下面的原图均从同一份 24 页 PDF 以 300–500 DPI 裁出；点击图片可打开原尺寸。必要解释直接显示，不依赖交互或折叠。</p>
+<p>2026-10-23 全文修订：全部 10 张图均保留逐图解读，并补齐公式、表格、附录与两张明确标注的教学流程图。下面的原图均从同一份 24 页 PDF 以 300–500 DPI 裁出；点击图片可打开原尺寸。必要解释直接显示，不依赖交互或折叠。</p>
 <nav class="figure-index" aria-label="论文逐图索引">
 <a href="#figure-1">Fig 1 · 数据怎样变成可部署策略？</a><a href="#figure-2">Fig 2 · GoPro 和 PICO 各自干什么？</a>
 <a href="#figure-3">Fig 3 · 动作与图像分别怎么加工？</a><a href="#figure-4">Fig 4 · 人类示范数量影响什么？</a>
@@ -28,7 +60,7 @@
 <h2 id="figure-1-title">Figure 1 · 这不是一张网络结构图，而是三阶段系统总图</h2>
 <div class="cn-read"><div class="cn-label">先建立整篇的地图</div><p>先把“人采数据”“离线制标签”“机器人执行”分开，再看每一块。图里同一条箭头可能表示训练样本流、监督信号或执行命令；不能把它们都理解成运行时的网络层连接。</p></div>
 <figure><a href="../assets/figures/egohumanoid-v2/fig-1.png" target="_blank" rel="noopener" aria-label="打开 Figure 1 原尺寸图"><img src="../assets/figures/egohumanoid-v2/fig-1.png" alt="Figure 1 总流程：人体采集分成视觉对齐和动作对齐，汇合成 VLA 训练样本，部署时分开控制身体与双手" loading="lazy" decoding="async"></a><figcaption>论文原图 Figure 1 · p.1 · 350 DPI · <a href="../assets/figures/egohumanoid-v2/fig-1.png" target="_blank" rel="noopener">放大原图</a>。上半部是数据与策略流程，下半部是四个技能的执行展示。</figcaption></figure>
-<div class="eval-table-wrap"><table class="eval-table"><caption>沿图从左到右读：每块的输入、操作、输出和发生阶段</caption><thead><tr><th>图中区域</th><th>具体在做什么</th><th>该怎样理解箭头</th></tr></thead><tbody>
+<div class="eval-table-wrap" tabindex="0" aria-label="可横向滚动的表格"><table class="eval-table"><caption>沿图从左到右读：每块的输入、操作、输出和发生阶段</caption><thead><tr><th>图中区域</th><th>具体在做什么</th><th>该怎样理解箭头</th></tr></thead><tbody>
 <tr><td>左侧 Robot-free human demonstrations</td><td>人完成关电脑、开冰箱、拉窗帘、脚关抽屉；同步记录 RGB、身体运动和手姿。Robot-free 指目标任务示范采集不需要机器人。</td><td>RGB 走上方视觉分支；Human SMPL / 全身运动走下方动作分支，不是从一张 RGB 直接恢复全部控制命令。</td></tr>
 <tr><td>上方 Visual alignment</td><td>保留真实环境与物体画面，去掉人前臂与腕部 tracker，再合成机器人手臂；训练时做图像增强。</td><td>输出适配后的图像 Ĩ，作为 VLA 的观测。部署时不用再次对机器人画面做人臂擦除。</td></tr>
 <tr><td>中间 Coarse stage</td><td>先用 SONIC 得到初始机器人运动，再用离线 IK 修正参考几何，让手或足更接近固定人体目标。</td><td>这里输出的是更好的参考与编码后的 motion token，不是在真机执行时把 IK 结果覆盖到电机上。</td></tr>
@@ -46,7 +78,7 @@
 <h2 id="figure-2-title">Figure 2 · 已经戴 PICO，为什么还挂一个 GoPro？</h2>
 <div class="cn-read"><div class="cn-label">三个信号通道，不是两套设备重复拍视频</div><p>“机器人应该看到什么”和“人刚才怎么动”是不同监督。GoPro 提供前者；PICO 系统提供身体与手部运动。右边的机器人则使用自己的相机和自身状态，不需要真人继续穿设备遥操作。</p></div>
 <figure class="hardware-figure"><a href="../assets/figures/egohumanoid-v2/fig-2.png" target="_blank" rel="noopener" aria-label="打开 Figure 2 原尺寸图"><img src="../assets/figures/egohumanoid-v2/fig-2.png" alt="Figure 2 硬件分工：人颈部 GoPro 与机器人头部 GoPro 对应 RGB，手姿重定向到 Revo2，PICO 全身运动离线对齐到 SONIC token" loading="lazy" decoding="async"></a><figcaption>论文原图 Figure 2 · p.3 · 500 DPI · <a href="../assets/figures/egohumanoid-v2/fig-2.png" target="_blank" rel="noopener">放大原图</a>。蓝、橙、青三条线表示模态/接口对应，不表示人实时连线控制机器人。</figcaption></figure>
-<div class="eval-table-wrap"><table class="eval-table"><caption>对照图里的设备和三条彩色线</caption><thead><tr><th>图中设备 / 通道</th><th>人体采集侧</th><th>离线处理</th><th>机器人部署侧</th></tr></thead><tbody>
+<div class="eval-table-wrap" tabindex="0" aria-label="可横向滚动的表格"><table class="eval-table"><caption>对照图里的设备和三条彩色线</caption><thead><tr><th>图中设备 / 通道</th><th>人体采集侧</th><th>离线处理</th><th>机器人部署侧</th></tr></thead><tbody>
 <tr><td>蓝线 · Egocentric RGB</td><td>颈部 GoPro 拍人视角环境、物体与手臂画面。</td><td>原 Human RGB → 人臂遮罩与补全 → 机器人臂合成，得到 Aligned RGB；训练时增强。</td><td>头部 GoPro 拍真实机器人当前画面，标准预处理后输入 VLA。</td></tr>
 <tr><td>橙线 · Hand Pose</td><td>PICO 系统采手姿；论文没有逐项公开头显与各 tracker 的融合算法。</td><td>Retargeting 把人体手姿映射成机器手可执行命令。</td><td>BrainCo Revo2 每手 6 维控制。6-D / hand 指手部命令维数，不是手掌的 6D 空间位姿。</td></tr>
 <tr><td>青线 · Whole-body motion</td><td>PICO 4 Ultra ＋图示 5 个 PICO trackers 采全身运动。</td><td>H 初始化、K 修参考、D 修执行，产出 64 维 motion token；同次 rollout 提供 robot state。</td><td>SONIC 将 token 与低层自身反馈结合，生成 G1 身体控制；VLA 高层观测另含 43 维状态。</td></tr>
@@ -66,12 +98,12 @@
 <h2 id="failure">1. 从 GMR 的“姿态对”到 SONIC 的“执行对”，还差什么？</h2>
 <div class="cn-read"><div class="cn-label">先解释为什么又需要一篇对齐论文</div><p>GMR 改善运动学参考，SONIC 将参考变成动态可执行的控制。但在操作物体时，几厘米的手端偏差可能决定能否插入门缝。这里要解决的是控制器执行后的残差，不只是参考姿态误差。</p></div>
 <p>全身控制像一组相互补偿的动作：手向前伸时，腰和腿可能已经在为平衡配合。如果在线把手臂替换成另一套 IK 命令，剩下的 SONIC 输出不会自动知道这次替换。本论文在它测试的实现中观察到不稳定，因此选择在离线数据阶段做修正。</p>
-<div class="eval-table-wrap"><table class="eval-table"><caption>论文五问 · §1–3，pp.2–4</caption><thead><tr><th>问题</th><th>回答</th></tr></thead><tbody><tr><td>背景</td><td>已有 ego-to-robot 转移偏向解耦上肢/导航；目标是转移手、腰、腿协同技能。</td></tr><tr><td>直接依赖</td><td>EgoHumanoid 采集接口、SONIC 全身 tracker/encoder、π₀.₅、离线 IK、机器人手臂渲染。</td></tr><tr><td>失败场景</td><td>追踪人体参考存在手/足末端偏差；在线覆盖关节虽可提高局部精度，却会扰乱协调。</td></tr><tr><td>核心押注</td><td>先改善参考，再学习“命令变化如何变成实际末端变化”的局部响应，用仿真闭环检验。</td></tr><tr><td>效果与代价</td><td>真机任务均分 21.25→47.08→51.67%；离线多轮优化很慢，且仍需选优与验收。</td></tr></tbody></table></div>
+<div class="eval-table-wrap" tabindex="0" aria-label="可横向滚动的表格"><table class="eval-table"><caption>论文五问 · §1–3，pp.2–4</caption><thead><tr><th>问题</th><th>回答</th></tr></thead><tbody><tr><td>背景</td><td>已有 ego-to-robot 转移偏向解耦上肢/导航；目标是转移手、腰、腿协同技能。</td></tr><tr><td>直接依赖</td><td>EgoHumanoid 采集接口、SONIC 全身 tracker/encoder、π₀.₅、离线 IK、机器人手臂渲染。</td></tr><tr><td>失败场景</td><td>追踪人体参考存在手/足末端偏差；在线覆盖关节虽可提高局部精度，却会扰乱协调。</td></tr><tr><td>核心押注</td><td>先改善参考，再学习“命令变化如何变成实际末端变化”的局部响应，用仿真闭环检验。</td></tr><tr><td>效果与代价</td><td>真机任务均分 21.25→47.08→51.67%；离线多轮优化很慢，且仍需选优与验收。</td></tr></tbody></table></div>
 <details class="en-quote"><summary>原文短句 · 梯度边界</summary><div class="quote-body"><p lang="en">“Gradients pass through the fixed response model and control decoder, not the simulator.”</p><div class="quote-cite">§3.3.2，p.4；这不是对仿真器做端到端可微反传。</div></div></details>
 
 <h2 id="interface">2. 先把 29、43、64、76 维分清</h2>
 <div class="cn-read"><div class="cn-label">哪些量是身体，哪些量是命令？</div><p>知道系统为什么需要修正后，要先确定修正的对象。29 维身体关节、43 维高层观测、64 维 token 处在不同接口层；把它们当成同一个 state 会使数据标签错位。</p></div>
-<div class="eval-table-wrap"><table class="eval-table"><caption>数据谱系和接口 · Eq.1–2，§3.2，Appendix A–B</caption><thead><tr><th>阶段</th><th>输入 / 输出</th><th>来源与约束</th></tr></thead><tbody>
+<div class="eval-table-wrap" tabindex="0" aria-label="可横向滚动的表格"><table class="eval-table"><caption>数据谱系和接口 · Eq.1–2，§3.2，Appendix A–B</caption><thead><tr><th>阶段</th><th>输入 / 输出</th><th>来源与约束</th></tr></thead><tbody>
 <tr><td>人体采集</td><td>颈部 GoPro RGB + PICO 身体/手部信号；50 Hz 配对</td><td>机器人与人体相机初始高度近似；无外部脉冲，时间一致性检查只能说明重复性，不能等同绝对同步误差。</td></tr>
 <tr><td>运动初始化 H</td><td>人体动作 → 仿真 SONIC rollout → b⁰∈Rᵀˣ²⁹ 与初始 token</td><td>不是把 SMPL 关节角直接当 G1 电机命令。</td></tr>
 <tr><td>高层观测</td><td>oₜ=(Ĩₜ,qₜ,ℓ)，qₜ∈R⁴³</td><td>来自 controller rollout；本版未逐维列出 43-D schema，不能猜成 KODA 的 44-D。</td></tr>
@@ -105,15 +137,191 @@
 <div class="equation">Δu(z) = D<sub>c</sub>(z,sᵏ) − D<sub>c</sub>(zᵏ,sᵏ)<br>Δê(z) = R<sub>ψ</sub>(JᵏΔu(z), cᵏ)<br>zᵏ⁺¹ = argmin<sub>z∈N(zᵏ)</sub> ‖Δê(z) − rᵏ‖²<sub>Qτ</sub> + L<sub>reg</sub><small>§3.3.2 Eq.3–4 与 Appendix A.2–A.3 的简写。zₜ∈R⁶⁴；uₜ∈R²⁹ 是控制解码器的关节目标；J 将 29 维命令变化映射到双手/双足的 24 维末端变化。rᵏ 是当前执行到固定目标的残差。历史、状态和 token 条件在实际模型中都有，不能只把 R 当常数增益。</small></div>
 <p><strong>解释性算例：</strong>手距离目标还差 2 cm。若几何上命令前移 2 cm，但控制器实际只实现 60%，unit response 会只纠正 1.2 cm；局部响应模型会建议约 2/0.6=3.33 cm 的命令级修正。真实问题有耦合、时延和信赖域，不能用这个标量除法代替论文优化。</p>
 <p>响应网络是冻结线性响应 + 两层宽 64 的 SiLU MLP residual。24 维干预加五个指数平滑历史成为 144 维，再条件化于 93 维 robot features 和 64 维 token。手任务只以 0.15 权重混合 learned response 与 unit response；足任务使用 learned position response，不能把 MLP 写成所有任务都独占的预测器。</p>
-<p>默认一轮 K、七轮常规 D、一轮保守 D，每轮 400 Adam steps。局部优化固定当前 rollout context，梯度穿过冻结网络；随后必须重新仿真，更新 context 和残差。手任务腿/腰/臂保姿权重为 20/20/0.1，足任务为 0.1/20/20，属于软惩罚，不是把非目标身体锁死。</p>
+<p>默认一轮 K、七轮常规 D、一轮保守 D；每轮 D 的局部优化做 400 Adam steps。局部优化固定当前 rollout context，梯度穿过冻结网络；随后必须重新仿真，更新 context 和残差。手任务腿/腰/臂保姿权重为 20/20/0.1，足任务为 0.1/20/20，属于软惩罚，不是把非目标身体锁死。</p>
 <h3>Dₛ：最终标签不保证来自最后一轮</h3>
 <p>训练数据候选经过误差、执行一致性与稳定性检查，再独立 replay；若后面变差，可能选回 H 或 H+K。验收限制包括 5 cm、15°、骨盆下降 10 cm、base tilt 25°。没有候选通过则拒收 episode。</p>
 <aside class="evidence-note" data-evidence="paper">重要协议分叉：Table 1 的离线误差采用 Appendix C.2 的历史选优，不做训练数据的 acceptance filtering / validation replay；深度曲线又使用 raw round output。故 3.41 cm（selected）与 3.97 cm（KD8 raw）不能混成同一指标，抽屉均值 5.80 cm 也不直接反驳训练数据的 5 cm 验收阈值。</aside>
+<!-- EGOV2-METHOD:START -->
+<section class="deep-reading" id="deep-method">
+<h2>逐步精读方法：从人体记录到可执行标签</h2>
+<div class="cn-read"><div class="cn-label">这一节把正文 §3 与附录 A 接起来</div><p>上面的图给出了路线，但还没有解释“目标、参考、命令、执行”为什么不同。先认清四个对象，再按实际依赖顺序读 Eq.1、5、2、3、4、6。公式编号保持原论文编号，不因为教学顺序改变而重新编号。所有微型算例均为教学自造，不是论文实验。</p></div>
+<h3 id="four-objects">先分清四个对象：到达目标不等于抓住物体</h3>
+<div class="eval-table-wrap" tabindex="0" aria-label="可横向滚动的表格"><table class="eval-table compact-table"><thead><tr><th>对象</th><th>具体是什么</th><th>由谁改变</th></tr></thead><tbody>
+<tr><td>目标 y</td><td>根据人体手掌/足部记录，经坐标与高度配准后的逐帧末端位置、朝向。</td><td>构造时确定；K/D 各轮共用，不随新的 rollout 移动靶心。</td></tr>
+<tr><td>参考 b<sup>ref</sup></td><td>希望机器人采用的身体关节轨迹，每帧 29 个数。</td><td>K 的离线 IK 调整它；手任务只优化手臂与腰的参考关节。</td></tr>
+<tr><td>命令 u</td><td>SONIC 在当前自身反馈下解码出的身体关节控制目标。</td><td>D 改 token，间接改变命令；不是用 IK 在线覆盖这份输出。</td></tr>
+<tr><td>执行 e</td><td>仿真机器人真的运动后得到的手掌/足部位姿。</td><td>控制器与仿真动力学共同决定；必须重新 rollout 才能验证。</td></tr>
+</tbody></table></div>
+<p>运动学（kinematics）回答“这些关节角按机器人肢体几何拼起来，手会在哪里”；动力学（dynamics）还涉及运动中的质量、惯性、支撑与控制响应。IK 解在几何上对，并不自动证明整段动作稳定。进一步，手掌跟踪误差小也不证明手指接触、摩擦或物体移动成功。本文对齐目标来自人体动作，不是精确物体接触模型。</p>
+<aside class="evidence-note" data-evidence="paper">§3.3、A.2、A.4、§5：末端几何、实际执行和稳定性分别检查；作者承认完整方法仍可能产生不稳定动作。这里的“实际执行误差”指仿真 rollout 的误差，不是额外外部传感器量到的真机接触真值。</aside>
+<h3 id="source-validation">A.1：先验证源数据能配对，才轮到优化机器人动作</h3>
+<p>采集后先做信号检查与 heading calibration（朝向标定），再进入 H。GoPro RGB、PICO 身体与手姿按 50 Hz 对齐，即相邻样本名义间隔 0.02 秒。检查时间戳一致性以及视频与轨迹帧数是否对应；否则图像里的手还在伸向物体，动作标签却可能已经在回收。</p>
+<p>随后才检查生成机器人运动的末端误差、关节帧间变化、基座倾斜和骨盆位移。<strong>源数据配对检查和执行质量验收是前后两层，不可互相代替。</strong>作者说明没有外部同步脉冲，因此 PICO–GoPro 时间一致性测到的是重复性，不是经过外部时钟标定的绝对同步误差。</p>
+<div class="worked-example"><strong>教学例，非论文实验：</strong>假设两个流总是错开 2 帧，在 50 Hz 下就是 40 ms。即使每次都稳定错开同样幅度，“重复性好”也不能证明绝对零延迟；此数值只是说明测量逻辑，不是本文报告的偏移。</div>
+
+<section class="formula-reading" id="eq-1" data-formula="1">
+<h3>Eq.1 · VLA 看什么、输出什么？</h3>
+<p><strong>用途：</strong>定义训练与部署共用的数据接口，不是损失函数，也不是 SONIC 低层控制器的完整观测定义。</p>
+<div class="equation">o<sub>t</sub> = (Ĩ<sub>t</sub>, q<sub>t</sub>, ℓ),　a<sub>t</sub> = (z<sub>t</sub>, h<sub>t</sub><sup>L</sup>, h<sub>t</sub><sup>R</sup>)<small>原式 Eq.1 · §3.2，p.4</small></div>
+<dl class="symbol-list"><dt>t、o<sub>t</sub></dt><dd>t 是轨迹中的时刻/帧编号；o 是这一时刻给 VLA 的观测组合，并不把 RGB 与状态硬凑成一个未经编码的向量。</dd><dt>Ĩ<sub>t</sub></dt><dd>训练时是经过人臂移除与机器人臂合成的图像；部署时是机器人相机图像。波浪号提示视觉适配，不是未来图像。</dd><dt>q<sub>t</sub> ∈ ℝ<sup>43</sup></dt><dd>VLA 使用的机器人状态。训练时来自 controller rollout，部署时来自机器人自身。论文没有列出逐维字段；43 不是关节自由度，也不能猜成 29+12+2。</dd><dt>ℓ</dt><dd>语言指令，例如“关上笔记本电脑”。不是损失函数 L。</dd><dt>a<sub>t</sub>、z<sub>t</sub> ∈ ℝ<sup>64</sup></dt><dd>a 是高层动作；z 是 SONIC motion token。它是学习得到的运动表示，不能按维度解释成肩、肘等物理关节角。</dd><dt>h<sub>t</sub><sup>L/R</sup> ∈ ℝ<sup>6</sup></dt><dd>左/右 Revo2 手命令。这里 L/R 表示左右手；6 维不是手掌三维位置加三维朝向。h 在后面的高度公式里另有含义。</dd></dl>
+<p>因此动作维数为 <strong>64+6+6=76</strong>。正文说策略预测动作序列，Eq.1 只写一个时刻的接口；本文未逐项给出 action chunk 长度、执行截取策略或完整归一化配置，不应从 50 Hz 数据配对反推 VLA 推理频率。</p>
+<div class="worked-example" data-example="eq1"><strong>手算例，非论文实验：</strong>截取 2 秒、50 Hz 的 100 个配对样本，则身体 token 数组可表示为 100×64，双手命令为 100×12，状态为 100×43。图像还单独保留时间维。这个 100 是演示片段长度，不是在声称策略每次输出 100 帧。</div>
+<p>π<sub>θτ</sub> 表示任务 τ 的策略参数；四个任务各训练自己的 π₀.₅。SONIC checkpoint 则在四个任务和离线对齐/在线部署之间保持相同。没有目标任务机器人示范，不等于没有目标任务训练，更不等于基础模型从未见过机器人数据。</p>
+</section>
+
+<h3 id="initialization-deep">H：为什么先执行一次 SONIC？为什么不直接 SMPL → IK？</h3>
+<p>人体 SMPL 运动不是 G1 的电机角。本文让人体运动条件化 SONIC，在仿真中生成初始身体关节轨迹 b<sup>0</sup><sub>1:T</sub> 和 tokens，称为 H。b<sub>t</sub>∈ℝ<sup>29</sup>：t 是帧，1:T 是整段，上标 0 是初始版本。</p>
+<p>SONIC 的人体运动接口提供了一条把人体运动变成控制的路径；EgoHumanoid-V2 正文没有展开该人体编码器的每一个预处理调用。应结合 <a href="sonic.html#interface-audit">SONIC 接口精读</a>理解，而不能把 H 写成“SMPL 角度复制到 G1”。本文后续 K 则明确使用机器人编码器 Eᵣ。</p>
+<p><strong>直接从人体运动做重定向/IK 是可选初始化，不是被排除的路线。</strong><a href="#table-2">Table 2</a> 比较 SONIC rollout、GMR 重定向、HuMI-style 全身 IK；三者之后都编码并由同一 SONIC replay，再做 K＋8D。选择 SONIC 的依据是末端精度与整体运动质量的折中，不是所有指标都胜出。即使 IK 参考更准确，经过实际控制器仍可能有执行误差，因此初始化与执行器是两层选择。</p>
+
+<section class="formula-reading" id="eq-5" data-formula="5">
+<h3>Eq.5 · 先去掉人站在哪里、面朝哪里</h3>
+<p><strong>用途：</strong>把世界坐标中的三维点转成以骨盆为中心的局部表达，让人体与机器人末端可在统一规则下比较。它本身不求 IK，也不改变身体尺寸。</p>
+<div class="equation">p<sub>t</sub><sup>L</sup> = R<sub>z</sub>(ψ<sub>t</sub>)<sup>⊤</sup> (p<sub>t</sub><sup>W</sup> − p<sub>pelvis,t</sub><sup>W</sup>)<small>原式 Eq.5 · Appendix A.2，p.14</small></div>
+<dl class="symbol-list"><dt>p<sup>W</sup>、p<sup>L</sup> ∈ ℝ³</dt><dd>同一个三维点的世界坐标与骨盆局部坐标；W=world，L=local，这里的 L 不是左手。可用米表示。</dd><dt>p<sub>pelvis,t</sub><sup>W</sup></dt><dd>该帧的骨盆原点。先相减，是把坐标原点移到骨盆。</dd><dt>ψ<sub>t</sub>、R<sub>z</sub>(ψ<sub>t</sub>) ∈ ℝ<sup>3×3</sup></dt><dd>骨盆 yaw（水平转向角）及绕竖直轴的旋转矩阵。只包含 yaw，不包含前后俯仰或左右侧倾。</dd><dt>⊤</dt><dd>矩阵转置。旋转矩阵的转置等于逆，因此这里是撤销朝向旋转，把世界方向改写为身体朝向下的方向；不是再次顺向转一次。</dd></dl>
+<div class="worked-example" data-example="eq5"><strong>手算例，非论文实验：</strong>人的骨盆在 (1,2,1) m，手在 (1,3,1.2) m，yaw=90°。先减原点得到 (0,1,0.2)，再绕 z 轴转 −90°，得到局部 (1,0,0.2) m。原来的世界 y 方向变成局部 x 方向；竖直高度差仍是 0.2 m。</div>
+<p>局部坐标架的 z 轴始终朝上，人弯腰时也不跟着倾斜。这不意味着人的躯干或机器人必须保持直立。每帧都使用自己的骨盆位置与 yaw，因此移除了整体平移和朝向，而不是把全局手部轨迹无条件搬到机器人世界坐标里。</p>
+</section>
+
+<h3 id="height-registration">未编号高度公式：改的是目标，不是把骨盆强行抬高</h3>
+<div class="equation">y<sub>t,z</sub> = p<sub>t,z</sub><sup>H,L</sup> + h<sub>t</sub><sup>H</sup> − h<sub>t</sub><sup>R,0</sup><small>Appendix A.2 p.14 的原文内联公式。H=human，R=robot，0=初始 rollout；这里下标 z 是竖直分量，不是 SONIC token z。</small></div>
+<p>y<sub>t,z</sub> 是给机器人使用的末端局部目标高度；p<sup>H,L</sup><sub>t,z</sub> 是人体末端相对骨盆的高度；h<sup>H</sup><sub>t</sub> 和 h<sup>R,0</sup><sub>t</sub> 分别是人和初始机器人骨盆的离地高度。目标的局部水平坐标与朝向保留，竖直分量加上人机骨盆高度差。</p>
+<div class="worked-example"><strong>手算例：</strong>人的骨盆高 1 m，手比骨盆高 0.2 m，初始机器人骨盆高 0.8 m。目标变成 0.2+1−0.8=0.4 m。以初始机器人骨盆高度计算，手的离地高度为 0.8+0.4=1.2 m，和人体示范一致。若原样复制 0.2 m，则只有 1 m。这个等式不保证后续机器人骨盆变化时世界高度仍自动完全一致。</div>
+<p><strong>发生时间：</strong>必须先有 H，才知道初始机器人骨盆高度；随后构造 y，再进入 K/D。它不会直接改关节或骨盆。<strong>“固定”是跨优化轮次 k 固定，不是跨时间 t 不动：</strong>每帧可有不同目标和不同高度补偿，但第 k 轮不会用新的骨盆高度重定义第 t 帧目标。</p>
+
+<h3 id="foot-targets">脚底没有直接测量，为什么还可以构造脚的目标？</h3>
+<p>作者取每只脚的踝点与脚部关键点中点，作为 sole-center proxy（脚底中心近似点）。先对每帧所有踝/足关键点的最低高度取整段时间中位数，得到关键点估计地面；再对每帧左右脚底近似点中的较低者取时间中位数，得到近似点估计地面。两者之差从每个近似点的竖直坐标中扣除，之后再做骨盆高度配准。</p>
+<div class="equation">δ = median<sub>t</sub>(min<sub>左、右</sub> proxy<sub>z,t</sub>) − median<sub>t</sub>(min<sub>踝/足关键点</sub> keypoint<sub>z,t</sub>)<br>proxy′<sub>z,t</sub> = proxy<sub>z,t</sub> − δ<small>教学整理式：将 A.2 的文字算法写成公式，非论文编号公式。δ 是整段共同的常数，和逐帧的人机骨盆高度差不是同一项。</small></div>
+<div class="worked-example"><strong>手算例：</strong>关键点地面估计 0.02 m，近似点地面估计 0.05 m，则 δ=0.03 m。近似点一帧高 0.05 m、抬脚帧高 0.20 m，修后为 0.02 和 0.17 m，抬脚幅度仍是 0.15 m。减常数校正偏置，不会消除抬脚变化。</div>
+<p>手任务对齐双手位置与朝向；Close Drawer 等 foot-only 任务对齐双足位置，不使用足朝向目标。这些脚底目标<strong>不是测得的真实接触点</strong>，也没有自动恢复物体表面和接触力。</p>
+
+<h3 id="measured-error">误差到底怎么“测”？人体 SMPL 是精准真值吗？</h3>
+<p>目标侧来自 PICO 记录的身体/手部运动及上述配准。执行侧来自仿真 rollout 的机器人状态：仿真器知道基座姿态、关节实际角度和机器人几何，可以计算手掌/脚底点的位置，再转成与目标相容的局部表达。位置残差是“目标−执行”；手朝向残差用相对旋转向量，不能直接相减欧拉角或四元数。</p>
+<div class="worked-example"><strong>手算例：</strong>目标为 (0.45,0.20,0.30) m，仿真执行为 (0.42,0.20,0.28) m，残差为 (0.03,0,0.02) m，长度 √(0.03²+0.02²)≈0.0361 m，即 3.61 cm。若目标本身的采集/标定有偏差，即使这项误差为零，也不能证明真实接触点正确。</div>
+<aside class="evidence-note" data-evidence="inference">有数值坐标≠没有测量误差。SMPL 是人体表示，不自带物体精确表面、抓握摩擦与接触真值。本文量的是对记录目标的跟踪精度，不是手到现实物体的毫米级绝对距离。人体噪声、配准偏差和 sim-to-real 差距仍可能保留。</aside>
+
+<section class="formula-reading" id="eq-2" data-formula="2">
+<h3>Eq.2 · K 改完关节参考，为什么还要编码再执行？</h3>
+<p><strong>用途：</strong>K 得到的是机器人关节参考，但最终接口是 SONIC token，因此要把参考转换回执行器理解的表示。</p>
+<div class="equation">z<sub>1:T</sub><sup>0</sup> = E<sub>r</sub>(b<sub>1:T</sub><sup>ref</sup>)<small>原式 Eq.2 · §3.3.1，p.4</small></div>
+<dl class="symbol-list"><dt>b<sub>1:T</sub><sup>ref</sup></dt><dd>K 修正后的机器人身体参考序列，每帧 29 维；ref 是 reference。它不是人体 SMPL，也不是 VLA 的 43 维状态。</dd><dt>E<sub>r</sub></dt><dd>SONIC 的机器人运动编码器。此处编码机器人参考，不是重新调用人体编码器；本文紧凑写法不逐层展开编码器的窗口和速度等预处理。</dd><dt>z<sub>1:T</sub><sup>0</sup></dt><dd>D 开始时使用的 token 序列，每帧 64 维。这里上标 0 是优化起点，不应与 H 的 b⁰ 或任意初始 token 混成同一个变量。</dd></dl>
+<p>K 的运动学求解兼顾末端误差、接近初始参考和时间连续性。手任务只调整手臂与腰的参考关节。<strong>一轮 K 是一次处理整个参考轨迹的阶段，不是只做一步数值迭代。</strong>论文没有在该式给出完整 IK 目标及全部权重，不能把一个教学 IK 公式冒充其精确实现。</p>
+<div class="worked-example" data-example="eq2"><strong>形状算例，非论文实验：</strong>100 帧参考用 100×29 个关节角描述；经过编码得到按时间对齐的 100×64 token 表示。29→64 不是新增 35 个电机，也不是可手写的线性换算。随后 token replay 的手仍可能偏离目标，编码后的参考和实际执行不是同一对象。</div>
+<div class="worked-example"><strong>几何算例，非论文实验：</strong>忽略三维与动力学，平面两段机械臂各长 0.25 m，肩角 0°、肘角 90°时手在 (0.25,0.25) m。若目标为 (0.35,0.35) m，一组 IK 解约为肩 36.87°、肘 16.26°。IK 用机器人自己的连杆长度解角度，不改变机器人骨头长度；这个小例子不能验证全身平衡。</div>
+<p>为什么默认只做一轮 K？<a href="#table-8">Table 8</a> 中 K¹→K⁸ 的位置误差只从 4.86 降到 4.77 cm，处理成本从 0.65 增到 2.55 s/frame。继续修几何收益有限，而 K 后追加 D 更能修执行残差。它是本文设置下的实证，不是“K 只能做一次”的定理。</p>
+</section>
+
+<section class="formula-reading" id="eq-3" data-formula="3">
+<h3>Eq.3 · 改 token 后，实际手脚会移动多少？</h3>
+<p><strong>用途：</strong>在当前 rollout 附近建立可微的局部执行响应预测，避免在每一步优化里都对整个物理仿真反向传播。</p>
+<div class="equation">Δu(z) = D<sub>c</sub>(z,s<sup>k</sup>) − D<sub>c</sub>(z<sup>k</sup>,s<sup>k</sup>)<br>Δê(z) = R<sub>ψ</sub>(J<sup>k</sup> Δu(z))<small>原式 Eq.3 · §3.3.2 p.4。A.3 补充的历史与固定条件 cᵏ 被正文省略；R 不是无条件常数增益。</small></div>
+<dl class="symbol-list"><dt>k 与 t</dt><dd>k 是 D 外层优化轮次；t 是动作时间帧。不要把第八轮优化理解成第八帧动作。</dd><dt>z、z<sup>k</sup></dt><dd>正在尝试的候选 token 与本轮基线 token，逐帧 64 维；优化的是整个序列。</dd><dt>s<sup>k</sup>、D<sub>c</sub></dt><dd>本轮 rollout 的控制器观测历史，以及冻结的 SONIC 控制解码器。两次解码使用相同 sᵏ，隔离 token 改变造成的命令差异。</dd><dt>Δu ∈ ℝ²⁹</dt><dd>候选命令减基线命令，逐帧身体关节目标的变化。它不是已经执行出的关节变化。</dd><dt>J<sup>k</sup></dt><dd>本轮局部运动学 Jacobian，把小的关节命令变化近似映射成末端位置/旋转变化。全双手双足表示为 4×(3+3)=24 维，对应概念形状 24×29；当前任务可能只评价其中部分维度。</dd><dt>R<sub>ψ</sub>、Δê</dt><dd>参数 ψ 的执行响应模型及预测的末端执行变化；帽号表示预测，不是仿真测量。这里 ψ 是模型参数，Eq.5 的 ψₜ 则是 yaw，含义不同。</dd></dl>
+<p>“局部线性化”是用 J 近似当前姿态附近的小变化，不是假设整个机器人世界都是线性。命令几何变化经过响应模型，才估计控制器和动力学之后的效果；大幅修改可能离开这个近似的适用范围。</p>
+<div class="worked-example" data-example="eq3"><strong>手算例，非论文实验：</strong>只看一个关节和一个手部方向，J=0.4 m/rad，候选关节命令变化 0.05 rad，则几何预测变化 0.02 m。若一个简化的执行响应是 0.6 倍，则实际变化预测为 0.012 m。0.6 是自造的标量例子，不是本文 MLP 参数；真实模型含耦合、历史和状态条件，手任务还混合 unit response。</div>
+</section>
+
+<section class="formula-reading" id="eq-4" data-formula="4">
+<h3>Eq.4 · 为什么让“预测变化”去拟合“当前残差”？</h3>
+<div class="equation">L<sub>track</sub>(z) = ‖Δê(z) − r<sup>k</sup>‖²<small>原式 Eq.4 · §3.3.2，p.4</small></div>
+<p>rᵏ 是当前实际执行到固定目标还差多少：位置残差与手部相对旋转向量。Δê 是改 token 后预计能补多少。因此不是让 Δê 接近零，而是让它接近 rᵏ；两者差的平方和越小，说明预测修正越能消掉当前误差。L 是标量损失，‖·‖² 是各分量平方求和。实际优化还要考虑单位、任务权重、约束和正则，完整版本见 Eq.6。</p>
+<div class="worked-example" data-example="eq4"><strong>手算例，非论文实验：</strong>目标还差 0.02 m，旧候选预计补 0.012 m，损失是 (0.012−0.02)²=0.000064 m²；新候选预计补 0.018 m，损失变为 0.000004 m²，下降 16 倍。只是预测更好，仍须新 rollout 判断实际上是否补到了。</div>
+<p>梯度路径是 token → 冻结解码器 → 局部 Jacobian/历史变换 → 冻结响应网络 → loss。<strong>冻结网络权重不等于无法计算输入梯度。</strong>Adam 根据这条梯度更新 z；不是更新 SONIC、响应模型或 VLA 参数，也不穿过仿真器。</p>
+</section>
+
+<section class="formula-reading" id="eq-6" data-formula="6">
+<h3>Eq.6 · 只追末端误差会乱改动作，所以加局部范围与保姿约束</h3>
+<div class="equation">z<sup>k+1</sup> = arg min<sub>z ∈ N(zᵏ)</sub> { ‖Δê(z) − r<sup>k</sup>‖²<sub>Qτ</sub> + L<sub>reg</sub>(z,z<sup>k</sup>) }<small>原式 Eq.6 · Appendix A.2，pp.14–15</small></div>
+<dl class="symbol-list"><dt>arg min</dt><dd>返回使目标较小的 token，而不是只返回最小损失数值。实际使用有限步 Adam，不代表求得全局最优。</dd><dt>N(zᵏ)</dt><dd>当前 token 附近的允许邻域，限制一次修正幅度，降低局部响应模型被大步修改利用的风险；论文此处未给全部邻域半径细节。</dd><dt>Qτ 与加权平方范数</dt><dd>任务 τ 的末端误差权重；‖v‖²<sub>Q</sub>=vᵀQv。它和关节保姿权重 Wτ 不同，也不能把 cm 与 degree 的数值不经说明直接相加。</dd><dt>L<sub>reg</sub></dt><dd>组合关节命令变化惩罚 ‖Δu‖²<sub>Wτ</sub>、token 改变量、时间连续性和 IK 修正先验。论文列出了组成，但此处没有逐项公开全部系数/精确形式。</dd></dl>
+<div class="eval-table-wrap" tabindex="0" aria-label="可横向滚动的表格"><table class="eval-table compact-table"><caption>Wτ 的关节保姿权重：大权重表示更不愿改变，不是关节冻结</caption><thead><tr><th>任务</th><th>腿</th><th>腰</th><th>手臂</th></tr></thead><tbody><tr><td>手部交互</td><td>20</td><td>20</td><td>0.1</td></tr><tr><td>仅脚部交互</td><td>0.1</td><td>20</td><td>20</td></tr></tbody></table></div>
+<div class="worked-example" data-example="eq6"><strong>手算例，非论文实验：</strong>手任务中，单个腿关节和手臂关节若都提出 0.1 rad 命令修正，对应二次惩罚分别为 20×0.1²=0.2 与 0.1×0.1²=0.001。惩罚相差 200 倍，不代表最终动作幅度一定相差 200 倍；末端损失和其他约束还在共同起作用。</div>
+<h4>内层 400 步，外层 8 轮：不要混成“网络训练 3200 次”</h4>
+<ol class="process-list"><li><strong>本轮开始：</strong>由基线 token 的 rollout 得到残差 rᵏ、历史 sᵏ 和固定条件 cᵏ，局部线性化末端几何。</li><li><strong>内层优化：</strong>固定这些基线量和两个网络的参数，做 400 步 Adam，更新候选 token 序列。候选干预的因果历史随候选改变，不能把一切输入都冻结。</li><li><strong>外层反馈：</strong>用新 token 做一次新的完整仿真 rollout，检查误差/稳定性，并生成下一轮的上下文。不是在 400 步的每一步都重新完整 rollout。</li><li><strong>默认日程：</strong>先 1 轮 K，再 7 轮常规 D 和 1 轮保守 D，随后筛选。400 步描述 D 的局部 refinement，不能据此说 IK 本身也必定用 400 步 Adam。</li></ol>
+<p>保守轮的存在不意味着论文在这里公开了全部缩步超参数。梯度通过代理模型而不是仿真器，近似误差用下一次 rollout 纠正；这仍不能保证每轮单调改善或一定不摔倒。</p>
+</section>
+
+<h3 id="response-training">附录 A.3：响应网络怎样事先学到“命令变了，执行会变多少”？</h3>
+<div class="cn-read"><div class="cn-label">区分训练响应网络与使用响应网络</div><p>D 中网络冻结，说明它必须已经学好。A.3 用成对扰动仿真提供监督；不是在每个目标任务的 D 循环里一边训练网络、一边修改 token。</p></div>
+<p>取同一机器人初始仿真状态和相同控制历史，分别执行基线 token 与扰动 token。输入是相同基线观测下两份解码命令经 Jacobian 得到的末端变化；监督标签是两次 rollout 在<strong>一个 policy step 之后</strong>实际末端位姿之差。扰动包含平滑随机变化及 token 优化方向，不是只做毫无结构的白噪声。</p>
+<div class="eval-table-wrap" tabindex="0" aria-label="可横向滚动的表格"><table class="eval-table compact-table"><caption>A.3 数据与网络，不要把三个状态维数混用</caption><thead><tr><th>项目</th><th>论文给出的设置</th><th>理解边界</th></tr></thead><tbody>
+<tr><td>来源/划分</td><td>BONES-SEED G1 运动；训练 250 motions / 68 capture dates / 345,080 frame–perturbation pairs；验证 13 motions / 7 dates / 20,420 pairs。</td><td>date 分割降低同次采集泄漏风险；不是四个目标任务的机器人示范，也不是 345,080 条完整 episode。</td></tr>
+<tr><td>干预输入</td><td>双掌、双足各位置 3＋旋转 3，共 24 维。</td><td>预测器有足旋转通道不等于脚任务使用了旋转目标。</td></tr>
+<tr><td>因果历史</td><td>当前 24 维＋五种指数平滑版本，时间常数 0.02、0.1、0.5、2、5 秒，共 6×24=144 维。</td><td>不是六帧裸堆叠；不同平滑尺度表达短/长时间响应。</td></tr>
+<tr><td>固定条件</td><td>93 维 robot-state features 与 64 维基线 token。</td><td>93 维不是 VLA 的 43 维；正文也没有逐项列出它的字段。把 144+93+64=301 视为列出的特征总量，不能据此断言所有网络分支的实际首层布局。</td></tr>
+<tr><td>结构</td><td>冻结线性响应＋两层隐藏层、每层宽 64、SiLU 的 MLP residual；输出 24 维。</td><td>不是一个生成整段未来的世界模型。</td></tr>
+<tr><td>训练</td><td>AdamW，lr 3×10⁻⁵，weight decay 10⁻⁴，batch 512，梯度裁剪范数 5；最多 150 epochs，保留验证损失最低 checkpoint。</td><td>这些是响应模型训练参数，不是 D 的 token 优化超参数或 π₀.₅ 后训练配置。</td></tr>
+</tbody></table></div>
+<h4>为什么要减去“零干预”时的 MLP 输出？</h4>
+<div class="equation">response(x,c) = linear(x) + MLP(x,c) − MLP(0,c)<small>教学结构式，由 A.3 的文字描述整理；x 是候选干预历史，c 是固定基线条件。不是论文新增的编号方程，不声称还原其全部归一化实现。</small></div>
+<p>如果不改命令，干预历史 x=0，就希望预测变化也是 0。相同条件下相减让残差项严格归零，避免网络把基线偏置误当成修正效果。比如 MLP(0,c)=0.4，MLP(x,c)=0.7，则残差变化是 0.3，不是直接使用 0.7。</p>
+<p>输入/目标使用训练集统计量归一化；训练损失是归一化均方误差加权重为 1 的平方 residual 惩罚。这个 residual 指网络残差分量，不要与 D 当前的目标跟踪残差 rᵏ混淆。随机扰动占训练权重 75%，另外两类优化方向共享 25%；每类内部还平衡日期和源动作，权重不是简单的样本数量比例。</p>
+<h4>手任务没有完全相信 MLP</h4>
+<div class="equation">Δe<sub>used</sub> = 0.85·Δe<sub>unit</sub> + 0.15·Δe<sub>learned</sub><small>由 A.3 给出的 0.15 learned-response 权重整理。Unit response 把几何变化直接视为执行变化；脚任务使用 learned position response，不设朝向目标。</small></div>
+<div class="worked-example"><strong>手算例：</strong>几何变化 2 cm，MLP 预测执行变化 1.2 cm，则手任务混合响应是 0.85×2+0.15×1.2=1.88 cm。这也说明上面的“60% 增益”例子不能直接冒充手任务真实求解器。</div>
+<p class="source">来源：Appendix A.3 p.15；响应来源 <a href="https://huggingface.co/datasets/bones-studio/seed">BONES-SEED</a>。采样频率 50 Hz 对应 0.02 s；这个时间换算不推出高层 VLA 的部署推理延迟。</p>
+
+<h3 id="selection-deep">附录 A.4：为什么最后不一定选 D 的最后一轮？</h3>
+<p>局部模型可能预测错，后期修正可能变得不稳定，因此先记录 H、H＋K 和各轮 D 候选，再做验收。限制包含位置误差 5 cm、适用时朝向误差 15°、骨盆高度下降 0.10 m、基座倾斜 25°，另检查执行一致性。不能把这些经验阈值称为形式化安全保证。</p>
+<p>通过检查的候选先按最大归一化末端误差排序，再按平均归一化误差排序，按顺序独立 replay。可选回初始 H 或 H＋K；没有任何候选通过就拒收整段。最终接受的 replay 提供 state–action 对，不能把某一轮的状态与另一轮的动作随意拼接。</p>
+<p>冰箱轨迹预处理、窗帘手命令及序列尾部还存在任务专用设置；论文只说明其存在，没有在 A.4 逐项给出全部实现参数。所有任务共用低层 checkpoint，不做目标任务 SONIC 微调；它不等于 π₀.₅ 也不后训练。</p>
+<aside class="evidence-note" data-evidence="paper">这里是<strong>制作训练数据的验收</strong>。后面的 Table 1 离线误差、Table 2 初始化比较和深度曲线采用不同选优规则，详见 <a href="#selection-protocols">协议对照</a>。不能拿抽屉诊断均值 5.80 cm 直接反驳 5 cm 数据验收阈值。</aside>
+
+<h3 id="policy-training">附录 B.1–B.2：真正训练 π₀.₅ 时，哪些东西固定？</h3>
+<p>每个任务从相同 <code>pi05_base</code> 开始，bfloat16，30,000 步，global batch 256；AdamW、梯度裁剪 1.0、weight decay 10⁻¹⁰。学习率前 1,000 步 warmup 到 2.5×10⁻⁵，然后 cosine decay 到 2.5×10⁻⁶。固定骨干、动作接口和评测协议，通过改变示范预算或监督成分做比较。</p>
+<p>Q1 使用 25/50/100/200 条人体示范；Q2 分别训练人类数据策略和机器人数据策略，机器人预算 6/12/25/50。动作与视觉消融均用 200 条人体示范/任务。默认监督是 H＋K＋Dₛ，视觉用机器人臂渲染＋增强；脚关抽屉不做臂渲染。</p>
+<p>动作消融只改变 H、H＋K、完整监督的动作标签方案，保持视觉处理与训练设置；视觉消融保持对齐动作标签不变。部署输入机器人图像，只做标准预处理，不再做人臂分割、DiffuEraser 补全或八轮 D。</p>
+<div class="checkpoint"><p><strong>完整样本链：</strong>同步人体 RGB/身体/手姿 → 构造固定人体目标 → H/K/D/筛选得到同次机器人 replay 的状态和动作 → 根据对齐关节做视觉适配 → 与语言配对训练任务专用 VLA。这里优化 token 是离线制标签；训练 VLA 是拟合标签；部署 VLA 是根据新图像闭环预测，三件事不要混成一个在线优化器。</p></div>
+</section>
+<!-- EGOV2-METHOD:END -->
+
 
 <h2 id="vision">4. 修好动作后，为什么仍要换掉人臂？</h2>
 <div class="cn-read"><div class="cn-label">现在再处理观测，而不是指望策略自行忽略本体差异</div><p>动作正确但画面仍是人手，部署时就有视觉分布差。本文处理的是手臂外观和视角鲁棒性；它没有完整重建物理场景，也没有把渲染视图等同实拍。</p></div>
 <p>人和机器人都戴蓝色手套以简化对齐。SAM2 去除人体前臂和腕部 PICO tracker，DiffuEraser 补背景；由对齐关节渲染 G1 手臂，再调平移、旋转、统一尺度，与人体手腕/前臂位置对齐后合成。训练时做 random resized crop、小旋转和光度扰动，部署只用机器人相机标准预处理。</p>
-<div class="eval-table-wrap"><table class="eval-table"><caption>视觉消融 · Table 4，p.9 · action labels 不变</caption><thead><tr><th>增强 / 渲染</th><th>关笔记本</th><th>开冰箱</th><th>拉窗帘</th><th>脚关抽屉</th><th>解释</th></tr></thead><tbody><tr><td>无 / 无</td><td>31.67</td><td>16.67</td><td>35.00</td><td>50.00</td><td>原人类图像基线</td></tr><tr><td>无 / 有</td><td>51.67</td><td>23.33</td><td>41.67</td><td>未评</td><td>三臂任务均值 38.89</td></tr><tr><td>有 / 无</td><td>61.67</td><td>33.33</td><td>33.33</td><td>61.67</td><td>笔记本这项最高，不是组合总赢</td></tr><tr><td>有 / 有</td><td>53.33</td><td>38.33</td><td>53.33</td><td>未评</td><td>三臂任务均值 48.33，不能和四任务均值硬比</td></tr></tbody></table></div>
+<div class="eval-table-wrap" tabindex="0" aria-label="可横向滚动的表格"><table class="eval-table"><caption>视觉消融 · Table 4，p.9 · action labels 不变</caption><thead><tr><th>增强 / 渲染</th><th>关笔记本</th><th>开冰箱</th><th>拉窗帘</th><th>脚关抽屉</th><th>解释</th></tr></thead><tbody><tr><td>无 / 无</td><td>31.67</td><td>16.67</td><td>35.00</td><td>50.00</td><td>原人类图像基线</td></tr><tr><td>无 / 有</td><td>51.67</td><td>23.33</td><td>41.67</td><td>未评</td><td>三臂任务均值 38.89</td></tr><tr><td>有 / 无</td><td>61.67</td><td>33.33</td><td>33.33</td><td>61.67</td><td>笔记本这项最高，不是组合总赢</td></tr><tr><td>有 / 有</td><td>53.33</td><td>38.33</td><td>53.33</td><td>未评</td><td>三臂任务均值 48.33，不能和四任务均值硬比</td></tr></tbody></table></div>
+<!-- EGOV2-METRICS:START -->
+<section class="deep-reading" id="metrics-deep">
+<h2>先理解分数与选优，再读实验表</h2>
+<div class="cn-read"><div class="cn-label">正文 §4 与附录 B/C 的接缝</div><p>相同的“full pipeline”在不同实验中可能报告不同候选集与不同指标。先用 Eq.7 解释任务得分，再用 Eq.8、9 解释选优与运动质量，才能判断 51.67%、3.41 cm、3.97 cm 分别在说什么。</p></div>
+<section class="formula-reading" id="eq-7" data-formula="7">
+<h3>Eq.7 · 51.67% 是阶段进度，不是完整成功率</h3>
+<div class="equation">Task score (%) = (100 / 20) Σ<sub>i=1…20</sub> [(1 / 3) Σ<sub>j=1…3</sub> s<sub>ij</sub>],　s<sub>ij</sub> ∈ {0,1}<small>原式 Eq.7 · Appendix B.3，p.16；三个阶段的具体定义见 <a href="#table-5">Table 5</a>。</small></div>
+<dl class="symbol-list"><dt>i、j</dt><dd>i 是 20 次真机尝试中的一次；j 是该任务按顺序定义的三个子阶段。不是三个不同随机种子。</dd><dt>s<sub>ij</sub></dt><dd>该次尝试的该阶段是否完成，成功为 1、失败为 0。遇到第一个失败便停止，之后阶段也记 0。</dd><dt>1/3、100/20</dt><dd>先把一次尝试的三个阶段归一成 0、1/3、2/3、1，再对 20 次取均值并转成百分数。</dd></dl>
+<div class="worked-example" data-example="eq7"><strong>手算例，非论文实验：</strong>20 次中，5 次完成全部三阶段，5 次完成两阶段，5 次只完成一阶段，5 次一个也未完成。总阶段数是 5×3+5×2+5×1=30，task score=100×30/60=50%；整项成功率却只有 5/20=25%。</div>
+<p>每任务每配置 20 次；各任务得分等权求均值。同一次尝试的三个阶段相互关联，不能当 60 次独立 Bernoulli。论文未给逐次阶段结果或完整成功计数，所以不能用 51.67% 直接计算完整成功率的 Wilson 区间；也未报告 error bars。<strong>“满阶段成功次数未报告”与“总试验次数未报告”是两种缺失，这里前者缺失、后者已知。</strong></p>
+</section>
+
+<section class="formula-reading" id="eq-8" data-formula="8">
+<h3>Eq.8 · Table 1 离线误差怎样从历史候选里选一个？</h3>
+<div class="equation">S = 0.75 · e<sub>pos</sub> / (5 cm) + 0.25 · e<sub>ori</sub> / (15°)<small>原式 Eq.8 · Appendix C.2，p.17。S 越低越好，只是这项实验的候选评分，不是 Eq.7 的真机 task score。</small></div>
+<dl class="symbol-list"><dt>e<sub>pos</sub>、e<sub>ori</sub></dt><dd>同一个候选的双手掌平均位置误差与朝向误差，分别用 cm 与 degree。不是从两个不同候选里分别取最小值。</dd><dt>5 cm、15°</dt><dd>归一化尺度，使两种不同单位可以在无量纲评分里组合；此处出现阈值数字不意味着 C.2 同时做了 A.4 的验收。</dd><dt>0.75、0.25</dt><dd>位置与朝向的评分权重，表达该比较的折中。不是采样权重、响应混合权重或成功概率。</dd></dl>
+<div class="worked-example" data-example="eq8"><strong>手算例，非论文实验：</strong>候选 A 的误差为 3 cm / 9°，S=0.75×0.6+0.25×0.6=0.60；候选 B 为 4 cm / 3°，S=0.75×0.8+0.25×0.2=0.65，因此选 A。B 的朝向更准也不能单独决定胜负。不能拼成不存在的“3 cm / 3°”候选。</div>
+<p>C.2 候选集合包括 H、H＋K 与所有 D 轮；脚关抽屉只按双足平均位置误差选优。这张表使用已记录的测量，不做独立 validation replay，也不做训练数据 acceptance filtering。因此它衡量历史中可获得的精度，而不是新 rollout 的保证值。</p>
+</section>
+
+<div class="eval-table-wrap" id="selection-protocols" tabindex="0" aria-label="可横向滚动的表格"><table class="eval-table"><caption>同一个 Dₛ 名字，至少要核对下面几种统计协议</caption><thead><tr><th>位置</th><th>候选集合</th><th>选择/测量规则</th><th>独立验收？</th></tr></thead><tbody>
+<tr><td>A.4 制作 VLA 数据</td><td>H、H＋K、各 D 历史候选</td><td>误差、执行一致性、稳定性检查；先最大归一化误差，后平均归一化误差排序。</td><td>按序独立 replay；无候选合格则拒收。</td></tr>
+<tr><td>C.2 / Table 1 离线误差</td><td>H、H＋K、各 D 候选</td><td>手用 Eq.8；脚只按位置。</td><td>不做验收过滤或 validation replay。Table 1 真机 full 的训练数据另遵循 A.4。</td></tr>
+<tr><td>C.3 / Tables 2、6、7 初始化对照</td><td>只选 K 后的 D1–D8</td><td>手按两掌最大归一化位置/朝向误差，随后平均误差、轮次；脚类似但无朝向。</td><td>不应用训练数据 acceptance filter。</td></tr>
+<tr><td>C.4 / Figures 6–7、Table 8</td><td>指定深度的当前输出</td><td>raw round output，不回退选较早候选。</td><td>处理耗时也不含后续 selection / validation。</td></tr>
+<tr><td>C.5 / Table 3</td><td>共享设置下八轮中的历史候选</td><td>位置/朝向必须来自同一选中候选。</td><td>不能把它与 raw Table 10 跨任务直接相减。</td></tr>
+<tr><td>C.6 / Tables 9–10</td><td>50 tasks / 112 trajectories</td><td>Table 9 阶段比较历史选优；Figure 7 和 Table 10 使用指定轮输出。</td><td>并非 50 任务真机或统一 VLA 的未见任务成功率。</td></tr>
+</tbody></table></div>
+<p>因此 Table 1 的 3.41 cm 和 Table 8 的 3.97 cm 不矛盾：前者历史选优，后者固定 KD8 的原始输出。Table 9 的 3.83 cm / 10.85° 与 KD8 的 4.10 cm / 9.21° 也不能拿各自最小分量拼成一个结果；它们可能来自不同折中候选。</p>
+
+<section class="formula-reading" id="eq-9" data-formula="9">
+<h3>Eq.9 · Extra yaw 是多转了多少，不是逐帧朝向误差</h3>
+<p>先对人体、机器人各自的 yaw 时间序列做 unwrap，避免 ±180° 跳变把连续转向变成数值大跳；再分别减去各自的初始角，得到相对起点的转向轨迹 ψʰ、ψʳ。</p>
+<div class="equation">e<sub>yaw</sub> = max { | min<sub>t</sub> ψ<sub>t</sub><sup>r</sup> − min<sub>t</sub> ψ<sub>t</sub><sup>h</sup> |,<br>　| max<sub>t</sub> ψ<sub>t</sub><sup>r</sup> − max<sub>t</sub> ψ<sub>t</sub><sup>h</sup> |,　| ψ<sub>T</sub><sup>r</sup> − ψ<sub>T</sub><sup>h</sup> | }<small>原式 Eq.9 · Appendix C.3，p.18。绝对值符号按 PDF 原式保留；纯文本提取容易漏掉这些竖线。</small></div>
+<dl class="symbol-list"><dt>ψ<sup>r</sup>、ψ<sup>h</sup></dt><dd>已经 unwrap 并减掉初始朝向后的机器人/人体 heading change，单位 degree。</dd><dt>min<sub>t</sub>、max<sub>t</sub></dt><dd>各自整段轨迹的最小与最大转向角，不是同一个时间点的逐帧对齐误差。</dd><dt>T、外层 max</dt><dd>T 是最终帧；比较最小转向、最大转向、结束转向三个绝对差，取其中最大值。</dd></dl>
+<div class="worked-example" data-example="eq9"><strong>手算例，非论文实验：</strong>人体相对转向 [0,10,20]°，机器人 [0,−5,25]°。最小值差 5°，最大值差 5°，最后角差 5°，故 extra yaw=5°。它不是这些帧的平均角误差。</div>
+<div class="worked-example"><strong>反例：</strong>人体 [0,20,0,0]°，机器人 [0,0,20,0]°，两者最小值、最大值、最终值一致，extra yaw=0，但转身时序错开了。此指标补充运动质量，不能单独替代逐帧跟踪评价。</div>
+</section>
+<div class="eval-table-wrap" tabindex="0" aria-label="可横向滚动的表格"><table class="eval-table compact-table"><caption>C.3 其余运动质量指标</caption><thead><tr><th>指标</th><th>定义与单位</th><th>不能误读成</th></tr></thead><tbody>
+<tr><td>Pelvis drop</td><td>相对初始骨盆高度的最大下降，cm。</td><td>平均骨盆高度或人体与机器人高度差。</td></tr><tr><td>Tilt</td><td>基座竖直轴与世界竖直轴夹角的轨迹最大值，degree。</td><td>手掌朝向误差或任务成功率。</td></tr><tr><td>Joint step</td><td>29 个身体关节中任一关节相邻 replay 帧角度变化的最大绝对值，degree。</td><td>走路步长、角速度或平均关节误差。</td></tr></tbody></table></div>
+<p>C.1 的末端误差先对帧与相关双端平均，再在任务内对轨迹平均，最后任务等权；C.3 的轨迹最大值指标则先在每条轨迹取最大，再做任务内/任务间平均。报告两位小数之前用未舍入值计算和排序。缺失测量不是 0，也不替换成更好的一轮。</p>
+</section>
+<!-- EGOV2-METRICS:END -->
+
 
 <h2 id="evaluation">5. 到底证明了什么：仿真、泛化、真机分开看</h2>
 <div class="cn-read"><div class="cn-label">精度改善必须落到同协议的任务效果</div><p>K 与 D 的几何和执行收益最终要通过真实操作验证。先读 Figure 4–5 的示范数量与采集成本，再核对仿真、泛化和真机三张证据表，最后用 Figure 6–10 检查迭代收益与在线 IK 的失败边界。</p></div>
@@ -121,7 +329,7 @@
 <h3 id="figure-4-title">Figure 4 · 人体示范越多越好？先看每根柱子是什么</h3>
 <figure><a href="../assets/figures/egohumanoid-v2/fig-4.png" target="_blank" rel="noopener" aria-label="打开 Figure 4 原尺寸图"><img src="../assets/figures/egohumanoid-v2/fig-4.png" alt="Figure 4 四列任务的人体示范、机器人执行示意和 25、50、100、200 条人体示范对应的任务得分" loading="lazy" decoding="async"></a><figcaption>论文原图 Figure 4 · p.6 · 300 DPI · <a href="../assets/figures/egohumanoid-v2/fig-4.png" target="_blank" rel="noopener">放大原图</a>。上两排是示范与部署展示，底部才是定量结果。</figcaption></figure>
 <p><strong>读轴：</strong>四列分别是四个任务；每列横轴是用于后训练的人体示范条数，纵轴是三阶段平均 task score。每根柱对应独立训练的策略及 20 次真机尝试，不是一条策略逐步收集数据后的在线学习曲线。默认使用完整动作对齐与视觉处理，脚关抽屉不做手臂渲染。</p>
-<div class="eval-table-wrap"><table class="eval-table"><caption>Figure 4 的柱顶数值 · 单位：任务得分 %，非完整成功率</caption><thead><tr><th>任务</th><th>25 条</th><th>50 条</th><th>100 条</th><th>200 条</th></tr></thead><tbody><tr><td>关笔记本</td><td>35.00</td><td>31.67</td><td>48.33</td><td>53.33</td></tr><tr><td>开冰箱</td><td>21.67</td><td>33.33</td><td>28.33</td><td>38.33</td></tr><tr><td>拉窗帘</td><td>40.00</td><td>38.33</td><td>50.00</td><td>53.33</td></tr><tr><td>脚关抽屉</td><td>56.67</td><td>36.67</td><td>53.33</td><td>61.67</td></tr></tbody></table></div>
+<div class="eval-table-wrap" tabindex="0" aria-label="可横向滚动的表格"><table class="eval-table"><caption>Figure 4 的柱顶数值 · 单位：任务得分 %，非完整成功率</caption><thead><tr><th>任务</th><th>25 条</th><th>50 条</th><th>100 条</th><th>200 条</th></tr></thead><tbody><tr><td>关笔记本</td><td>35.00</td><td>31.67</td><td>48.33</td><td>53.33</td></tr><tr><td>开冰箱</td><td>21.67</td><td>33.33</td><td>28.33</td><td>38.33</td></tr><tr><td>拉窗帘</td><td>40.00</td><td>38.33</td><td>50.00</td><td>53.33</td></tr><tr><td>脚关抽屉</td><td>56.67</td><td>36.67</td><td>53.33</td><td>61.67</td></tr></tbody></table></div>
 <p><strong>支持什么：</strong>25 → 200 条时四任务均分从 38.33 提高到 51.67，支持增加人体示范有助于这四项技能迁移。<strong>没有支持什么：</strong>每个任务的曲线并不单调，尤其抽屉 25 → 50 条有明显下降；没有误差棒或重复训练方差，不能从几个柱子拟合稳定的 scaling law，也不能把 53.33% 读成“20 次中约 11 次完整成功”。</p>
 <p class="source">来源：Figure 4、§4.1–4.2；Appendix B.1–B.4。计分公式和各任务完整完成判据见下面真机表。</p>
 </section>
@@ -134,19 +342,19 @@
 <aside class="evidence-note" data-evidence="inference">容易漏掉的反例：关笔记本若用 200 条人体示范，采集成本为 6,420 人秒，反而高于 50 条机器人示范的 4,680 人秒，且得分仍较低。因此“单条采集便宜 76.36%（两任务平均）”不能直接推出“同效果总成本也低 76.36%”。</aside>
 <p class="source">来源：Figure 5、§4.3 pp.6–7；百分比复算使用文中人力统计，不把 GPU 处理时间混入采集人力。</p>
 </section>
-<div class="eval-table-wrap"><table class="eval-table"><caption>仿真 benchmark / 对齐诊断</caption><thead><tr><th>数据 / split</th><th>输入与控制</th><th>评估次数 / 指标</th><th>H → H+K → H+K+Dₛ</th><th>证据 / 边界</th></tr></thead><tbody>
+<div class="eval-table-wrap" tabindex="0" aria-label="可横向滚动的表格"><table class="eval-table"><caption>仿真 benchmark / 对齐诊断</caption><thead><tr><th>数据 / split</th><th>输入与控制</th><th>评估次数 / 指标</th><th>H → H+K → H+K+Dₛ</th><th>证据 / 边界</th></tr></thead><tbody>
 <tr><td>四任务，每任务固定随机 25 条训练轨迹</td><td>固定人体目标 + SONIC；50 Hz token replay；轨迹全时域，具体 simulator 版本未报告</td><td>位置：帧/双端平均再任务等权；朝向不含抽屉；不是 held-out task</td><td>位置 11.21→4.45→3.41 cm；朝向 21.22→13.77→6.71°</td><td>Table 1 p.8；Appendix C.1–2 pp.17–18；无标准任务成功率</td></tr>
 <tr><td>扩展：50 tasks / 112 trajectories，独立于四任务 cohort</td><td>相同 K/D pipeline</td><td>task-equal endpoint error；是否完全未见于响应/基础预训练未证明</td><td>位置 17.03→5.22→3.83 cm；朝向 36.06→21.81→10.85°</td><td>Table 9 p.20；不是 50 个真机任务</td></tr>
 <tr><td>初始化对照</td><td>SONIC rollout / GMR / HuMI-style IK，再共享 K+8D</td><td>同 25 条/任务；仅 D1–D8 选优</td><td>位置 3.41 / 3.42 / 3.82 cm；extra yaw 7.18 / 11.45 / 23.67°</td><td>Table 2,6,7；不是复现三套方法完整端到端 pipeline</td></tr>
 </tbody></table></div>
-<div class="eval-table-wrap"><table class="eval-table"><caption>分维度 ID/OOD 审计</caption><thead><tr><th>变化维度</th><th>已有证据</th><th>仍缺什么</th></tr></thead><tbody><tr><td>起姿 / 对象变化</td><td>任务内执行变化，四个 task-specific policies</td><td>未提供同协议独立 ID/OOD 分层结果，不计算下降/保留率</td></tr><tr><td>相机视角 / 外观</td><td>rendering 与 augmentation 消融；相机初始高度近似</td><td>不是定量未见相机外参/光照 benchmark</td></tr><tr><td>任务 / 本体</td><td>四个 G1 技能；无 target-task robot demos</td><td>不是单一策略在未见任务/新机器人上的零样本评测</td></tr><tr><td>扩大任务范围</td><td>50 任务的仿真对齐诊断</td><td>不能当成真实操作 OOD 成功率</td></tr></tbody></table></div>
-<div class="eval-table-wrap"><table class="eval-table"><caption>真机：G1 + head GoPro + BrainCo Revo2 · Table 1 p.8；Appendix B.3–4</caption><thead><tr><th>任务</th><th>全成功数 / 总试验数</th><th>H / H+K / full 得分 %</th><th>完成判据（第三阶段）</th><th>区间 / 缺失</th></tr></thead><tbody><tr><td>关笔记本</td><td>未报告 / 20</td><td>0 / 46.67 / 53.33</td><td>完全合上屏幕</td><td rowspan="4">不是二项成功率；无每次阶段结果，不能套 Wilson。完成时间、干预/安全停止计数未报告；无 error bars。</td></tr><tr><td>开冰箱</td><td>未报告 / 20</td><td>0 / 31.67 / 38.33</td><td>冰箱门打开</td></tr><tr><td>拉窗帘</td><td>未报告 / 20</td><td>28.33 / 51.67 / 53.33</td><td>拉开一米</td></tr><tr><td>脚关抽屉</td><td>未报告 / 20</td><td>56.67 / 58.33 / 61.67</td><td>抽屉完全关闭</td></tr><tr><td>四任务等权均值</td><td>4×20 次/配置；不汇总成全成功计数</td><td>21.25 / 47.08 / 51.67</td><td>每个策略 200 人类示范</td><td>无目标任务机器人示范；仍有基础预训练与仿真适配</td></tr></tbody></table></div>
+<div class="eval-table-wrap" tabindex="0" aria-label="可横向滚动的表格"><table class="eval-table"><caption>分维度 ID/OOD 审计</caption><thead><tr><th>变化维度</th><th>已有证据</th><th>仍缺什么</th></tr></thead><tbody><tr><td>起姿 / 对象变化</td><td>任务内执行变化，四个 task-specific policies</td><td>未提供同协议独立 ID/OOD 分层结果，不计算下降/保留率</td></tr><tr><td>相机视角 / 外观</td><td>rendering 与 augmentation 消融；相机初始高度近似</td><td>不是定量未见相机外参/光照 benchmark</td></tr><tr><td>任务 / 本体</td><td>四个 G1 技能；无 target-task robot demos</td><td>不是单一策略在未见任务/新机器人上的零样本评测</td></tr><tr><td>扩大任务范围</td><td>50 任务的仿真对齐诊断</td><td>不能当成真实操作 OOD 成功率</td></tr></tbody></table></div>
+<div class="eval-table-wrap" tabindex="0" aria-label="可横向滚动的表格"><table class="eval-table"><caption>真机：G1 + head GoPro + BrainCo Revo2 · Table 1 p.8；Appendix B.3–4</caption><thead><tr><th>任务</th><th>全成功数 / 总试验数</th><th>H / H+K / full 得分 %</th><th>完成判据（第三阶段）</th><th>区间 / 缺失</th></tr></thead><tbody><tr><td>关笔记本</td><td>未报告 / 20</td><td>0 / 46.67 / 53.33</td><td>完全合上屏幕</td><td rowspan="4">不是二项成功率；无每次阶段结果，不能套 Wilson。完成时间、干预/安全停止计数未报告；无 error bars。</td></tr><tr><td>开冰箱</td><td>未报告 / 20</td><td>0 / 31.67 / 38.33</td><td>冰箱门打开</td></tr><tr><td>拉窗帘</td><td>未报告 / 20</td><td>28.33 / 51.67 / 53.33</td><td>拉开一米</td></tr><tr><td>脚关抽屉</td><td>未报告 / 20</td><td>56.67 / 58.33 / 61.67</td><td>抽屉完全关闭</td></tr><tr><td>四任务等权均值</td><td>4×20 次/配置；不汇总成全成功计数</td><td>21.25 / 47.08 / 51.67</td><td>每个策略 200 人类示范</td><td>无目标任务机器人示范；仍有基础预训练与仿真适配</td></tr></tbody></table></div>
 <div class="equation">Task score = 100/(20×3) · Σ<sub>i=1…20</sub>Σ<sub>j=1…3</sub>s<sub>ij</sub><small>Eq.7，p.16。遇到第一个失败即停止，后续阶段记 0；每次得 0、1/3、2/3 或 1。阶段结果在同一次试验内相关，不能把它们当 60 次独立 Bernoulli。</small></div>
 <p><strong>解释性算例：</strong>20 次都完成第一阶段、但第二阶段都失败，平均仍有 33.33% 得分，整项成功却是 0%。这正是为什么本页不把 51.67% 写成任务成功率。</p>
 <section class="figure-reading" id="figure-6" aria-labelledby="figure-6-title">
 <h3 id="figure-6-title">Figure 6 · 多做 IK 和修执行误差，为什么不是一回事？</h3>
 <figure><a href="../assets/figures/egohumanoid-v2/fig-6.png" target="_blank" rel="noopener" aria-label="打开 Figure 6 原尺寸图"><img src="../assets/figures/egohumanoid-v2/fig-6.png" alt="Figure 6 比较仅做 D、重复 K、一次 K 后多轮 D、多轮 K 后八轮 D 的末端位置与朝向误差" loading="lazy" decoding="async"></a><figcaption>论文原图 Figure 6 · p.9 · 350 DPI · <a href="../assets/figures/egohumanoid-v2/fig-6.png" target="_blank" rel="noopener">放大原图</a>。左纵轴 cm，右纵轴 degree，均越低越好；不是任务得分曲线。</figcaption></figure>
-<div class="eval-table-wrap"><table class="eval-table"><caption>四种图例要分开读，横轴并不是统一的总优化轮数</caption><thead><tr><th>曲线</th><th>横轴 k / m 的含义</th><th>它检验什么</th></tr></thead><tbody><tr><td>Dᵏ</td><td>从 H 开始，只做 k 轮 dynamics-aware refinement。</td><td>不先修参考，单靠执行响应能否补救？</td></tr><tr><td>Kᵐ</td><td>连续做 m 轮运动学修正。</td><td>重复修几何是否就足够？</td></tr><tr><td>KDᵏ</td><td>先固定做一次 K，再做 k 轮 D；k=0 是 K 后结果。</td><td>良好参考之后，执行反馈还有多少收益？</td></tr><tr><td>KᵐD⁸</td><td>m 轮 K 后固定做八轮 D；横轴显示 m，不是 m+8。</td><td>增加 K 深度是否值得额外成本？</td></tr></tbody></table></div>
+<div class="eval-table-wrap" tabindex="0" aria-label="可横向滚动的表格"><table class="eval-table"><caption>四种图例要分开读，横轴并不是统一的总优化轮数</caption><thead><tr><th>曲线</th><th>横轴 k / m 的含义</th><th>它检验什么</th></tr></thead><tbody><tr><td>Dᵏ</td><td>从 H 开始，只做 k 轮 dynamics-aware refinement。</td><td>不先修参考，单靠执行响应能否补救？</td></tr><tr><td>Kᵐ</td><td>连续做 m 轮运动学修正。</td><td>重复修几何是否就足够？</td></tr><tr><td>KDᵏ</td><td>先固定做一次 K，再做 k 轮 D；k=0 是 K 后结果。</td><td>良好参考之后，执行反馈还有多少收益？</td></tr><tr><td>KᵐD⁸</td><td>m 轮 K 后固定做八轮 D；横轴显示 m，不是 m+8。</td><td>增加 K 深度是否值得额外成本？</td></tr></tbody></table></div>
 <p><strong>抓三组数：</strong>K¹ → K⁸ 的位置误差只从 4.86 → 4.77 cm；K¹D⁸ 达到 3.97 cm / 8.08°；只做 D⁸ 仍有 8.40 cm / 16.40°。对应解释是：K 先把参考拉到较合理的位置，D 再修真实执行残差，重复 K 的边际收益较小。</p>
 <p><strong>读图边界：</strong>位置是四任务等权平均，朝向只平均三个手部任务；每个深度使用该轮的 raw output，没有历史选优。所以这里的 3.97 cm 不能与 Table 1 的 selected 3.41 cm 当作同一统计口径。相同横坐标也不是相同耗时：Table 8 中 K¹D⁸ 为 1.49 s/frame，K⁸D⁸ 为 3.38 s/frame；这些是离线处理统计，不是部署推理延迟。</p>
 <p class="source">来源：Figure 6、§4.4、Appendix C.4 与 Table 8，pp.18–19。曲线无误差棒，不能把小差距解释成显著提升。</p>
@@ -159,9 +367,113 @@
 <aside class="evidence-note" data-evidence="paper">Figure 7 使用 raw round output。Table 9 的 3.83 cm / 10.85° 则来自历史选优，且按位置/朝向共同规则选择同一候选，不能把不同候选的最小位置和最小朝向随意拼接成一个“最优”数字。这里也没有真实任务成功率或训练分布外严格拆分。</aside>
 <p class="source">来源：Figure 7、Appendix C.6、Tables 9–10，pp.19–20。</p>
 </section>
+<!-- EGOV2-TABLES:START -->
+<section class="deep-reading" id="table-index"><h2>全部 12 张表：原表、逐项数据、读法与边界</h2><p>以下数据按论文原编号完整转录；必要时拆开子表或转成长表以便阅读。原表保留供核对。没有把缺失值当零，也没有用加粗排名代替统计显著性。正文 1–4、附录 5–12 均在这里。</p><nav class="reading-path" aria-label="全部论文表格"><a href="#table-1">Table 1 · 动作对齐带来的提升</a><a href="#table-2">Table 2 · 你问的就是这张表</a><a href="#table-3">Table 3 · 响应 MLP 的作用</a><a href="#table-4">Table 4 · 视觉消融</a><a href="#table-5">Table 5 · 真机到底怎样算分</a><a href="#table-6">Table 6 · 初始化消融的逐任务末端误差</a><a href="#table-7">Table 7 · 初始化消融的逐任务全身运动质量</a><a href="#table-8">Table 8 · 为什么默认一轮 K，再做八轮 D？同时看精度与离线成本</a><a href="#table-9">Table 9 · 50 任务、112 条轨迹</a><a href="#table-10">Table 10 · 扩展集上响应 MLP 的收益</a><a href="#table-11">Table 11 · 三种 online IK 的关节命令接法</a><a href="#table-12">Table 12 · 为什么“手很准、没触发 fall 日志”仍不等于稳定？</a></nav><section class="table-reading" id="table-1" data-paper-table="1"><h3>Table 1 · 动作对齐带来的提升：离线误差与真机得分不是同一指标</h3><p class="source">论文 p.8 · §4.4、Appendices B.2、C.1–C.2 · <a href="https://arxiv.org/pdf/2609.37181v1#page=8">原文定位</a></p><div class="eval-table-wrap" tabindex="0" aria-label="可横向滚动的表格"><table class="eval-table"><caption>原 Table 1 上半：离线末端误差，越低越好</caption><thead><tr><th scope="col">方案</th><th scope="col">笔记本 cm / °</th><th scope="col">冰箱 cm / °</th><th scope="col">窗帘 cm / °</th><th scope="col">抽屉 cm</th><th scope="col">均值 cm / °</th></tr></thead><tbody><tr><th scope="row">H</th><td>14.08 / 29.43</td><td>13.27 / 19.37</td><td>10.31 / 14.86</td><td>7.17</td><td>11.21 / 21.22</td></tr>
+<tr><th scope="row">H＋K</th><td>4.22 / 13.84</td><td>4.24 / 14.72</td><td>3.13 / 12.74</td><td>6.22</td><td>4.45 / 13.77</td></tr>
+<tr><th scope="row">H＋K＋Dₛ</th><td>3.04 / 9.50</td><td>2.76 / 5.77</td><td>2.02 / 4.85</td><td>5.80</td><td>3.41 / 6.71</td></tr></tbody></table></div>
+<div class="eval-table-wrap" tabindex="0" aria-label="可横向滚动的表格"><table class="eval-table"><caption>原 Table 1 下半：真机三阶段任务得分（%），越高越好；不是完整成功率</caption><thead><tr><th scope="col">监督</th><th scope="col">笔记本</th><th scope="col">冰箱</th><th scope="col">窗帘</th><th scope="col">抽屉</th><th scope="col">均值</th></tr></thead><tbody><tr><th scope="row">H</th><td>0.00</td><td>0.00</td><td>28.33</td><td>56.67</td><td>21.25</td></tr>
+<tr><th scope="row">H＋K</th><td>46.67</td><td>31.67</td><td>51.67</td><td>58.33</td><td>47.08</td></tr>
+<tr><th scope="row">H＋K＋Dₛ</th><td>53.33</td><td>38.33</td><td>53.33</td><td>61.67</td><td>51.67</td></tr></tbody></table></div><ol><li>离线部分每任务 25 条训练轨迹，共 100 条，按任务等权；朝向只平均三个手任务。C.2 允许从历史候选选择，不是最后一轮的 raw output。</li><li>真机策略每任务用 200 条人体示范；每策略 20 次 rollout。K 带来主要的阶段得分提升，D 再提升平均 4.59 个百分点，但没有方差或显著性检验，不能把小的逐任务差距说成统计确定。</li><li>不能把离线 25 条诊断轨迹误认为策略只训练了 25 条；也不能用离线诊断的 5.80 cm 去推算真实抓取成功率。训练数据还经过 A.4 的独立验收。</li></ol><details class="table-source"><summary>查看 Table 1 论文原表（含原 caption）</summary><figure><a href="../assets/figures/egohumanoid-v2/table-1.png" target="_blank" rel="noopener"><img src="../assets/figures/egohumanoid-v2/table-1.png" alt="论文 Table 1 原表：动作对齐带来的提升：离线误差与真机得分不是同一指标；上方有完整文字数据与解读" loading="lazy" decoding="async"></a><figcaption>原文 Table 1 · p.8 · 400 DPI 从固定版本裁出；点击放大。</figcaption></figure></details></section>
+<section class="table-reading" id="table-2" data-paper-table="2"><h3>Table 2 · 你问的就是这张表：三种初始化都已经过 K＋八轮 D</h3><p class="source">论文 p.8 · Table 2 caption、Appendix C.3；逐任务展开见 Tables 6–7 · <a href="https://arxiv.org/pdf/2609.37181v1#page=8">原文定位</a></p><div class="eval-table-wrap" tabindex="0" aria-label="可横向滚动的表格"><table class="eval-table"><caption>全部数值越低越好；不是三种初始化刚生成时的精度</caption><thead><tr><th scope="col">初始化</th><th scope="col">位置 cm</th><th scope="col">朝向 °</th><th scope="col">骨盆下降 cm</th><th scope="col">倾角 °</th><th scope="col">关节帧间跳变 °</th><th scope="col">额外 yaw °</th></tr></thead><tbody><tr><th scope="row">SONIC rollout</th><td>3.41</td><td>6.71</td><td>3.28</td><td>11.14</td><td>5.94</td><td>7.18</td></tr>
+<tr><th scope="row">GMR retargeting</th><td>3.42</td><td>5.32</td><td>3.30</td><td>11.87</td><td>6.51</td><td>11.45</td></tr>
+<tr><th scope="row">HuMI-style whole-body IK</th><td>3.82</td><td>6.35</td><td>5.25</td><td>12.77</td><td>7.75</td><td>23.67</td></tr></tbody></table></div><ol><li>比较的是初始化选择对最终结果的影响：各自参考都接入同一 SONIC，再用同一 K、8D 和选择规则。不是 SONIC 控制器与 GMR 算法互斥，也不是复现三套完整系统的总榜。</li><li>C.3 只在 D 的第 1–8 轮中选候选：手的位置误差除以 5 cm、朝向除以 15°，先按两掌中最大的归一化误差排序，平局依次看平均归一化误差、轮次；脚只用双足位置。不是候选集合内 min–max 缩放，也不做 A.4 的训练数据验收过滤。</li><li>GMR 的朝向误差更低（5.32° 对 6.71°），位置只差 0.01 cm；SONIC 在报告的四个平均运动质量指标上更低。作者取的是精度与协调性的折中，不是“SONIC 每项都最好”。Whole-body IK 初始化也不等于 Appendix D 的在线 IK 覆盖。</li></ol><details class="table-source" open><summary>查看 Table 2 论文原表（含原 caption）</summary><figure><a href="../assets/figures/egohumanoid-v2/table-2.png" target="_blank" rel="noopener"><img src="../assets/figures/egohumanoid-v2/table-2.png" alt="论文 Table 2 原表：你问的就是这张表：三种初始化都已经过 K＋八轮 D；上方有完整文字数据与解读" loading="lazy" decoding="async"></a><figcaption>原文 Table 2 · p.8 · 400 DPI 从固定版本裁出；点击放大。</figcaption></figure></details></section>
+<section class="table-reading" id="table-3" data-paper-table="3"><h3>Table 3 · 响应 MLP 的作用：修的是执行响应，不是替换整个 D</h3><p class="source">论文 p.9 · §4.4、Appendix C.5 · <a href="https://arxiv.org/pdf/2609.37181v1#page=9">原文定位</a></p><div class="eval-table-wrap" tabindex="0" aria-label="可横向滚动的表格"><table class="eval-table"><caption>固定其余设置的 response-model 消融；历史选优口径</caption><thead><tr><th scope="col">方案</th><th scope="col">笔记本 cm / °</th><th scope="col">冰箱 cm / °</th><th scope="col">窗帘 cm / °</th><th scope="col">抽屉 cm</th><th scope="col">均值 cm / °</th></tr></thead><tbody><tr><th scope="row">Unit response</th><td>3.18 / 9.74</td><td>2.89 / 5.88</td><td>2.19 / 5.06</td><td>9.18</td><td>4.36 / 6.89</td></tr>
+<tr><th scope="row">MLP response</th><td>3.04 / 9.50</td><td>2.76 / 5.77</td><td>2.02 / 4.85</td><td>5.80</td><td>3.41 / 6.71</td></tr></tbody></table></div><ol><li>Unit response 把 Jacobian 预测的几何变化直接当作执行变化；优化器和 D 仍存在，因此本表不是“有 D 对无 D”。</li><li>改善主要来自脚关抽屉：9.18→5.80 cm，下降 3.38 cm；三个手任务位置只降 0.13–0.17 cm。不能只看均值就认为各任务同等受益。手任务本身混合了 0.15 learned response，脚任务使用 learned position response。</li></ol><details class="table-source"><summary>查看 Table 3 论文原表（含原 caption）</summary><figure><a href="../assets/figures/egohumanoid-v2/table-3.png" target="_blank" rel="noopener"><img src="../assets/figures/egohumanoid-v2/table-3.png" alt="论文 Table 3 原表：响应 MLP 的作用：修的是执行响应，不是替换整个 D；上方有完整文字数据与解读" loading="lazy" decoding="async"></a><figcaption>原文 Table 3 · p.9 · 400 DPI 从固定版本裁出；点击放大。</figcaption></figure></details></section>
+<section class="table-reading" id="table-4" data-paper-table="4"><h3>Table 4 · 视觉消融：先看每个平均数包含哪些任务</h3><p class="source">论文 p.9 · §4.5、Appendix B.2 · <a href="https://arxiv.org/pdf/2609.37181v1#page=9">原文定位</a></p><div class="eval-table-wrap" tabindex="0" aria-label="可横向滚动的表格"><table class="eval-table"><caption>真机三阶段任务得分（%）；— 表示该渲染配置不用于抽屉</caption><thead><tr><th scope="col">图像增强</th><th scope="col">机器人臂渲染</th><th scope="col">笔记本</th><th scope="col">冰箱</th><th scope="col">窗帘</th><th scope="col">抽屉</th><th scope="col">原表均值</th></tr></thead><tbody><tr><th scope="row">否</th><td>否</td><td>31.67</td><td>16.67</td><td>35.00</td><td>50.00</td><td>33.33</td></tr>
+<tr><th scope="row">否</th><td>是</td><td>51.67</td><td>23.33</td><td>41.67</td><td>—</td><td>38.89</td></tr>
+<tr><th scope="row">是</th><td>否</td><td>61.67</td><td>33.33</td><td>33.33</td><td>61.67</td><td>47.50</td></tr>
+<tr><th scope="row">是</th><td>是</td><td>53.33</td><td>38.33</td><td>53.33</td><td>—</td><td>48.33</td></tr></tbody></table></div><ol><li>无渲染行的原表均值包含四任务，有渲染行只包含三个手任务；47.50 和 48.33 不能不加说明直接相减。</li><li>为同任务比较，根据表内三个手任务自行重算的均值依次为 27.78、38.89、42.78、48.33%（教学重算，非原表新实验）。完整方案在冰箱/窗帘最好，但笔记本是仅增强最好；渲染不是逐任务单调增益。</li><li>图像增强涵盖视觉变化；它没有单独提供严格 ID/OOD 分布拆分。此表改变视觉处理，保持动作标签和后训练配置。</li></ol><details class="table-source"><summary>查看 Table 4 论文原表（含原 caption）</summary><figure><a href="../assets/figures/egohumanoid-v2/table-4.png" target="_blank" rel="noopener"><img src="../assets/figures/egohumanoid-v2/table-4.png" alt="论文 Table 4 原表：视觉消融：先看每个平均数包含哪些任务；上方有完整文字数据与解读" loading="lazy" decoding="async"></a><figcaption>原文 Table 4 · p.9 · 400 DPI 从固定版本裁出；点击放大。</figcaption></figure></details></section>
+<section class="table-reading" id="table-5" data-paper-table="5"><h3>Table 5 · 真机到底怎样算分：四个任务各三道关</h3><p class="source">论文 p.17 · Appendix B.3–B.4、Eq.7 · <a href="https://arxiv.org/pdf/2609.37181v1#page=17">原文定位</a></p><div class="eval-table-wrap" tabindex="0" aria-label="可横向滚动的表格"><table class="eval-table"><caption>三阶段任务评分条件（中文转述）</caption><thead><tr><th scope="col">任务</th><th scope="col">阶段 1</th><th scope="col">阶段 2</th><th scope="col">阶段 3</th></tr></thead><tbody><tr><th scope="row">关电脑</th><td>右手到达盖板上方合适位置</td><td>完成有效向下按压</td><td>盖板完全闭合</td></tr>
+<tr><th scope="row">开冰箱</th><td>左手接近门缝</td><td>钩入门缝</td><td>门被打开</td></tr>
+<tr><th scope="row">拉窗帘</th><td>右手抓住窗帘</td><td>手部拉动</td><td>窗帘打开 1 m</td></tr>
+<tr><th scope="row">关抽屉</th><td>抬右脚，脚趾到最下层抽屉外表面前</td><td>向内推抽屉</td><td>完全关闭</td></tr></tbody></table></div><ol><li>每次 rollout 按通过阶段计分，20 次试验后平均。原文没有给出全部试验逐阶段计数，51.67% 不能恢复成“完整成功约 10/20”，也不能套用二项成功率的 Wilson 区间。</li><li>这是人工任务判据，不是仅用手脚距离阈值决定任务完成。它把接近、交互与物体最终状态分开，恰好说明低末端误差不等于完整成功。</li></ol><details class="table-source"><summary>查看 Table 5 论文原表（含原 caption）</summary><figure><a href="../assets/figures/egohumanoid-v2/table-5.png" target="_blank" rel="noopener"><img src="../assets/figures/egohumanoid-v2/table-5.png" alt="论文 Table 5 原表：真机到底怎样算分：四个任务各三道关；上方有完整文字数据与解读" loading="lazy" decoding="async"></a><figcaption>原文 Table 5 · p.17 · 400 DPI 从固定版本裁出；点击放大。</figcaption></figure></details></section>
+<section class="table-reading" id="table-6" data-paper-table="6"><h3>Table 6 · 初始化消融的逐任务末端误差</h3><p class="source">论文 p.18 · Appendix C.3；对应 Table 2 的精度部分 · <a href="https://arxiv.org/pdf/2609.37181v1#page=18">原文定位</a></p><div class="eval-table-wrap" tabindex="0" aria-label="可横向滚动的表格"><table class="eval-table"><caption>三者均使用同一控制器与 K＋8D；数值越低越好</caption><thead><tr><th scope="col">任务</th><th scope="col">初始化</th><th scope="col">位置 cm</th><th scope="col">朝向 °</th></tr></thead><tbody><tr><th scope="row">Close Laptop</th><td>SONIC rollout</td><td>3.04</td><td>9.50</td></tr>
+<tr><th scope="row">Close Laptop</th><td>GMR retargeting</td><td>2.67</td><td>6.33</td></tr>
+<tr><th scope="row">Close Laptop</th><td>HuMI-style whole-body IK</td><td>2.75</td><td>6.19</td></tr>
+<tr><th scope="row">Open Fridge</th><td>SONIC rollout</td><td>2.76</td><td>5.77</td></tr>
+<tr><th scope="row">Open Fridge</th><td>GMR retargeting</td><td>3.15</td><td>5.74</td></tr>
+<tr><th scope="row">Open Fridge</th><td>HuMI-style whole-body IK</td><td>3.68</td><td>7.25</td></tr>
+<tr><th scope="row">Pull Curtain</th><td>SONIC rollout</td><td>2.02</td><td>4.85</td></tr>
+<tr><th scope="row">Pull Curtain</th><td>GMR retargeting</td><td>2.05</td><td>3.88</td></tr>
+<tr><th scope="row">Pull Curtain</th><td>HuMI-style whole-body IK</td><td>2.73</td><td>5.61</td></tr>
+<tr><th scope="row">Close Drawer</th><td>SONIC rollout</td><td>5.80</td><td>—</td></tr>
+<tr><th scope="row">Close Drawer</th><td>GMR retargeting</td><td>5.80</td><td>—</td></tr>
+<tr><th scope="row">Close Drawer</th><td>HuMI-style whole-body IK</td><td>6.11</td><td>—</td></tr></tbody></table></div><ol><li>SONIC 在冰箱、窗帘位置上更低；GMR 在笔记本位置上更低。平均 3.41 对 3.42 cm 掩盖了任务间取舍。抽屉不评朝向，— 不是零误差。</li><li>Whole-body IK 不是在每个任务都更差：笔记本朝向为三者最低的 6.19°。真正需要合看的是下一表的运动质量，而非用单一角度误差解释作者选择。</li></ol><details class="table-source"><summary>查看 Table 6 论文原表（含原 caption）</summary><figure><a href="../assets/figures/egohumanoid-v2/table-6.png" target="_blank" rel="noopener"><img src="../assets/figures/egohumanoid-v2/table-6.png" alt="论文 Table 6 原表：初始化消融的逐任务末端误差；上方有完整文字数据与解读" loading="lazy" decoding="async"></a><figcaption>原文 Table 6 · p.18 · 400 DPI 从固定版本裁出；点击放大。</figcaption></figure></details></section>
+<section class="table-reading" id="table-7" data-paper-table="7"><h3>Table 7 · 初始化消融的逐任务全身运动质量</h3><p class="source">论文 p.18 · Appendix C.3、Eq.9；对应 Table 2 的运动质量部分 · <a href="https://arxiv.org/pdf/2609.37181v1#page=18">原文定位</a></p><div class="eval-table-wrap" tabindex="0" aria-label="可横向滚动的表格"><table class="eval-table"><caption>下降/倾角/跳变/额外转向均越低越好；先算每条轨迹统计，再做任务平均</caption><thead><tr><th scope="col">任务</th><th scope="col">初始化</th><th scope="col">骨盆下降 cm</th><th scope="col">倾角 °</th><th scope="col">关节跳变 °</th><th scope="col">额外 yaw °</th></tr></thead><tbody><tr><th scope="row">Close Laptop</th><td>SONIC rollout</td><td>0.28</td><td>9.62</td><td>2.87</td><td>3.94</td></tr>
+<tr><th scope="row">Close Laptop</th><td>GMR retargeting</td><td>0.50</td><td>10.86</td><td>3.95</td><td>3.67</td></tr>
+<tr><th scope="row">Close Laptop</th><td>HuMI-style whole-body IK</td><td>2.06</td><td>11.32</td><td>6.07</td><td>22.60</td></tr>
+<tr><th scope="row">Open Fridge</th><td>SONIC rollout</td><td>3.51</td><td>10.39</td><td>7.79</td><td>7.39</td></tr>
+<tr><th scope="row">Open Fridge</th><td>GMR retargeting</td><td>3.35</td><td>11.62</td><td>8.28</td><td>13.96</td></tr>
+<tr><th scope="row">Open Fridge</th><td>HuMI-style whole-body IK</td><td>8.08</td><td>13.04</td><td>8.42</td><td>16.70</td></tr>
+<tr><th scope="row">Pull Curtain</th><td>SONIC rollout</td><td>1.94</td><td>5.32</td><td>5.31</td><td>6.55</td></tr>
+<tr><th scope="row">Pull Curtain</th><td>GMR retargeting</td><td>2.48</td><td>6.16</td><td>5.26</td><td>5.66</td></tr>
+<tr><th scope="row">Pull Curtain</th><td>HuMI-style whole-body IK</td><td>2.92</td><td>7.14</td><td>5.92</td><td>7.24</td></tr>
+<tr><th scope="row">Close Drawer</th><td>SONIC rollout</td><td>7.40</td><td>19.22</td><td>7.78</td><td>10.84</td></tr>
+<tr><th scope="row">Close Drawer</th><td>GMR retargeting</td><td>6.87</td><td>18.83</td><td>8.58</td><td>22.51</td></tr>
+<tr><th scope="row">Close Drawer</th><td>HuMI-style whole-body IK</td><td>7.95</td><td>19.57</td><td>10.60</td><td>48.16</td></tr></tbody></table></div><ol><li>SONIC 的平均表现较好，不意味着每个任务、每个指标都最低。例如 GMR 抽屉的骨盆下降 6.87 cm、倾角 18.83° 均略低于 SONIC。</li><li>Joint step 是相邻采样帧的最大关节角变化，不是迈步长度；extra yaw 由 Eq.9 的范围/终值统计决定，不是逐帧 yaw RMSE。所有指标都不能单独充当稳定性证明。</li></ol><details class="table-source"><summary>查看 Table 7 论文原表（含原 caption）</summary><figure><a href="../assets/figures/egohumanoid-v2/table-7.png" target="_blank" rel="noopener"><img src="../assets/figures/egohumanoid-v2/table-7.png" alt="论文 Table 7 原表：初始化消融的逐任务全身运动质量；上方有完整文字数据与解读" loading="lazy" decoding="async"></a><figcaption>原文 Table 7 · p.18 · 400 DPI 从固定版本裁出；点击放大。</figcaption></figure></details></section>
+<section class="table-reading" id="table-8" data-paper-table="8"><h3>Table 8 · 为什么默认一轮 K，再做八轮 D？同时看精度与离线成本</h3><p class="source">论文 p.19 · Appendix C.4；对应 Figure 6 · <a href="https://arxiv.org/pdf/2609.37181v1#page=19">原文定位</a></p><div class="eval-table-wrap" tabindex="0" aria-label="可横向滚动的表格"><table class="eval-table"><caption>各配置最终 raw output；不是历史选优值；s/frame 是离线处理统计</caption><thead><tr><th scope="col">配置</th><th scope="col">时间 s/frame</th><th scope="col">位置 cm</th><th scope="col">朝向 °</th></tr></thead><tbody><tr><th scope="row">K¹</th><td>0.65</td><td>4.86</td><td>16.46</td></tr>
+<tr><th scope="row">K⁸</th><td>2.55</td><td>4.77</td><td>16.51</td></tr>
+<tr><th scope="row">D⁸</th><td>1.27</td><td>8.40</td><td>16.40</td></tr>
+<tr><th scope="row">D¹⁶</th><td>2.11</td><td>7.16</td><td>12.36</td></tr>
+<tr><th scope="row">K²D⁸</th><td>1.80</td><td>4.04</td><td>7.90</td></tr>
+<tr><th scope="row">K⁴D⁸</th><td>2.33</td><td>4.11</td><td>7.94</td></tr>
+<tr><th scope="row">K⁸D⁸</th><td>3.38</td><td>4.01</td><td>7.90</td></tr>
+<tr><th scope="row">K¹D⁸</th><td>1.49</td><td>3.97</td><td>8.08</td></tr></tbody></table></div><ol><li>一轮 K 不是一步 IK 迭代；它是一轮参考修正与 replay。K¹→K⁸ 的精度收益很小但成本上升，D-only 即使 16 轮仍差；共同支持 K/D 互补，不证明所有其他日程都已穷尽。</li><li>K¹D⁸ 相比 K⁸D⁸ 更快、位置略低，但朝向略高；不能说它在所有维度都严格最优。</li><li>时间含准备、优化与 replay（也计入复用的 H/K 开销），不含排队、失败尝试、后续选择与独立验证；混合主机、每主机并发三条 episode，没有除以并发数。因此不是高层策略推理延迟、单 GPU 吞吐或完整端到端制数时间。</li><li>教学换算：100 帧×1.49 s/frame＝149 s，只是按该表统计口径乘算；不能保证一台指定机器 149 秒产出一条验收合格的两秒示范。</li></ol><details class="table-source"><summary>查看 Table 8 论文原表（含原 caption）</summary><figure><a href="../assets/figures/egohumanoid-v2/table-8.png" target="_blank" rel="noopener"><img src="../assets/figures/egohumanoid-v2/table-8.png" alt="论文 Table 8 原表：为什么默认一轮 K，再做八轮 D？同时看精度与离线成本；上方有完整文字数据与解读" loading="lazy" decoding="async"></a><figcaption>原文 Table 8 · p.19 · 400 DPI 从固定版本裁出；点击放大。</figcaption></figure></details></section>
+<section class="table-reading" id="table-9" data-paper-table="9"><h3>Table 9 · 50 任务、112 条轨迹：扩展的是对齐评测，不是 50 个真机技能</h3><p class="source">论文 p.20 · Appendix C.6 · <a href="https://arxiv.org/pdf/2609.37181v1#page=20">原文定位</a></p><div class="eval-table-wrap" tabindex="0" aria-label="可横向滚动的表格"><table class="eval-table"><caption>任务等权的离线末端误差；完整方法使用历史选择</caption><thead><tr><th scope="col">阶段</th><th scope="col">位置 cm</th><th scope="col">朝向 °</th></tr></thead><tbody><tr><th scope="row">H</th><td>17.03</td><td>36.06</td></tr>
+<tr><th scope="row">H＋K</th><td>5.22</td><td>21.81</td></tr>
+<tr><th scope="row">H＋K＋Dₛ</th><td>3.83</td><td>10.85</td></tr></tbody></table></div><ol><li>这个 cohort 与前面四任务独立，包含 50 个任务、112 条轨迹；按任务等权，不是把 112 条混在一起让轨迹较多的任务权重更大。</li><li>扩展结果支持动作对齐机制在更广的动作集合中有用；没有报告 50 个真机 VLA 策略的任务成功率，也不是一份标准跨任务 OOD 策略测试。</li><li>Table 9 的 selected 3.83 / 10.85 与 Figure 7 的 raw K¹D⁸ 4.10 / 9.21 不是同口径。历史选优对位置/朝向共同取舍，并不保证两个误差都低于某一固定轮。</li></ol><details class="table-source"><summary>查看 Table 9 论文原表（含原 caption）</summary><figure><a href="../assets/figures/egohumanoid-v2/table-9.png" target="_blank" rel="noopener"><img src="../assets/figures/egohumanoid-v2/table-9.png" alt="论文 Table 9 原表：50 任务、112 条轨迹：扩展的是对齐评测，不是 50 个真机技能；上方有完整文字数据与解读" loading="lazy" decoding="async"></a><figcaption>原文 Table 9 · p.20 · 400 DPI 从固定版本裁出；点击放大。</figcaption></figure></details></section>
+<section class="table-reading" id="table-10" data-paper-table="10"><h3>Table 10 · 扩展集上响应 MLP 的收益</h3><p class="source">论文 p.20 · Appendix C.6；和 Table 9 的选择口径不同 · <a href="https://arxiv.org/pdf/2609.37181v1#page=20">原文定位</a></p><div class="eval-table-wrap" tabindex="0" aria-label="可横向滚动的表格"><table class="eval-table"><caption>112 条轨迹、50 任务；固定 K＋8D 的 raw output，无历史选择</caption><thead><tr><th scope="col">响应模型</th><th scope="col">位置 cm</th><th scope="col">朝向 °</th></tr></thead><tbody><tr><th scope="row">Unit response</th><td>4.25</td><td>9.39</td></tr>
+<tr><th scope="row">MLP response</th><td>4.10</td><td>9.21</td></tr></tbody></table></div><ol><li>改善为 0.15 cm 和 0.18°，小于四任务 Table 3 的平均位置增益。没有方差，不能声称小差距具有统计显著性。</li><li>本表固定取 KD⁸，Table 9 做历史选择；两表完整方法不相等是协议区别，不应擅自改成同一个数字。</li></ol><details class="table-source"><summary>查看 Table 10 论文原表（含原 caption）</summary><figure><a href="../assets/figures/egohumanoid-v2/table-10.png" target="_blank" rel="noopener"><img src="../assets/figures/egohumanoid-v2/table-10.png" alt="论文 Table 10 原表：扩展集上响应 MLP 的收益；上方有完整文字数据与解读" loading="lazy" decoding="async"></a><figcaption>原文 Table 10 · p.20 · 400 DPI 从固定版本裁出；点击放大。</figcaption></figure></details></section>
+<section class="table-reading" id="table-11" data-paper-table="11"><h3>Table 11 · 三种 online IK 的关节命令接法</h3><p class="source">论文 p.21 · Appendix D.1（实验设计始于 p.20） · <a href="https://arxiv.org/pdf/2609.37181v1#page=21">原文定位</a></p><div class="eval-table-wrap" tabindex="0" aria-label="可横向滚动的表格"><table class="eval-table"><caption>这是执行时的关节命令分工，不是离线 K 优化变量的列表</caption><thead><tr><th scope="col">方案</th><th scope="col">三个手任务</th><th scope="col">脚关抽屉</th></tr></thead><tbody><tr><th scope="row">A</th><td>IK 控制手臂和腰；SONIC 控制腿</td><td>IK 控制双腿；SONIC 控制其余关节</td></tr>
+<tr><th scope="row">B</th><td>A 的分工＋SONIC 平衡贡献</td><td>A 的分工＋SONIC 平衡贡献</td></tr>
+<tr><th scope="row">C</th><td>IK 只控制手臂；SONIC 控制腰和腿</td><td>IK 只控制右侧操作腿；SONIC 控制其余关节</td></tr></tbody></table></div><ol><li>三种方案分别检验较大覆盖范围、增加平衡贡献、减少覆盖范围。IK 目标含位置和朝向，朝向权重 0.01。本文没有在此公开完整 balance contribution 分解/叠加公式。</li><li>每方案每任务 5 条、共 60 runs，独立于 Appendix C；不筛精度、不为更好结果重试。在线 IK 控制环仍有机器人反馈，不等于开环；问题是混合输出的全身协调是否保住。</li></ol><details class="table-source"><summary>查看 Table 11 论文原表（含原 caption）</summary><figure><a href="../assets/figures/egohumanoid-v2/table-11.png" target="_blank" rel="noopener"><img src="../assets/figures/egohumanoid-v2/table-11.png" alt="论文 Table 11 原表：三种 online IK 的关节命令接法；上方有完整文字数据与解读" loading="lazy" decoding="async"></a><figcaption>原文 Table 11 · p.21 · 400 DPI 从固定版本裁出；点击放大。</figcaption></figure></details></section>
+<section class="table-reading" id="table-12" data-paper-table="12"><h3>Table 12 · 为什么“手很准、没触发 fall 日志”仍不等于稳定？</h3><p class="source">论文 p.21 · Appendix D.2–D.3 · <a href="https://arxiv.org/pdf/2609.37181v1#page=21">原文定位</a></p><div class="eval-table-wrap" tabindex="0" aria-label="可横向滚动的表格"><table class="eval-table"><caption>误差来自实际仿真端点，不是 IK 解；— 表示没有进入正式 replay</caption><thead><tr><th scope="col">方案</th><th scope="col">任务</th><th scope="col">位置 cm</th><th scope="col">朝向 °</th><th scope="col">最大倾角 °</th><th scope="col">初始化摔倒</th><th scope="col">fall events</th></tr></thead><tbody><tr><th scope="row">A</th><td>Close Laptop</td><td>4.45</td><td>10.43</td><td>16.97</td><td>0/5</td><td>0</td></tr>
+<tr><th scope="row">A</th><td>Open Fridge</td><td>2.33</td><td>15.34</td><td>18.97</td><td>0/5</td><td>0</td></tr>
+<tr><th scope="row">A</th><td>Pull Curtain</td><td>1.58</td><td>10.17</td><td>7.03</td><td>0/5</td><td>0</td></tr>
+<tr><th scope="row">A</th><td>Close Drawer</td><td>—</td><td>—</td><td>—</td><td>5/5</td><td>—</td></tr>
+<tr><th scope="row">B</th><td>Close Laptop</td><td>2.43</td><td>8.28</td><td>13.30</td><td>0/5</td><td>0</td></tr>
+<tr><th scope="row">B</th><td>Open Fridge</td><td>1.55</td><td>14.45</td><td>17.26</td><td>0/5</td><td>0</td></tr>
+<tr><th scope="row">B</th><td>Pull Curtain</td><td>1.50</td><td>10.07</td><td>6.61</td><td>0/5</td><td>0</td></tr>
+<tr><th scope="row">B</th><td>Close Drawer</td><td>—</td><td>—</td><td>—</td><td>5/5</td><td>—</td></tr>
+<tr><th scope="row">C</th><td>Close Laptop</td><td>26.50</td><td>40.93</td><td>82.75</td><td>0/5</td><td>9</td></tr>
+<tr><th scope="row">C</th><td>Open Fridge</td><td>10.61</td><td>20.55</td><td>34.35</td><td>0/5</td><td>1</td></tr>
+<tr><th scope="row">C</th><td>Pull Curtain</td><td>9.00</td><td>18.66</td><td>10.87</td><td>0/5</td><td>0</td></tr>
+<tr><th scope="row">C</th><td>Close Drawer</td><td>—</td><td>—</td><td>—</td><td>5/5</td><td>—</td></tr></tbody></table></div><ol><li>误差平均跨帧、双端点和 episodes；tilt 先取每 episode 最大值再平均。Init. falls 统计失败的 run；Events 统计日志事件，同一 run 可以重复，且包含启动阶段。</li><li>全部 15 个抽屉 run 在第一姿态准备时跌倒；45 个手任务 run 达到轨迹最后一帧但未稳定跟踪。作者连续视频检查判断全部 60 runs 不稳定，因此未用这些方案训练 VLA。</li><li>B 的手位置误差低至 1.50–2.43 cm，表明末端几何精度不足以验收整个运动。Figures 8–10 按各组最大倾角选择代表片段，说明失败形态，不给失败频率。</li><li>结论范围仅限这三种 SONIC＋online IK 实现；它不推翻其他经过动力学设计的 whole-body controller。</li></ol><details class="table-source"><summary>查看 Table 12 论文原表（含原 caption）</summary><figure><a href="../assets/figures/egohumanoid-v2/table-12.png" target="_blank" rel="noopener"><img src="../assets/figures/egohumanoid-v2/table-12.png" alt="论文 Table 12 原表：为什么“手很准、没触发 fall 日志”仍不等于稳定？；上方有完整文字数据与解读" loading="lazy" decoding="async"></a><figcaption>原文 Table 12 · p.21 · 400 DPI 从固定版本裁出；点击放大。</figcaption></figure></details></section></section>
+<!-- EGOV2-TABLES:END -->
+
+<!-- EGOV2-ONLINE:START -->
+<section class="deep-reading" id="offline-online-ik">
+<h2>Offline IK / Online IK：不是“离线不执行，在线才执行”</h2>
+<div class="cn-read"><div class="cn-label">先解决这个容易混淆的词</div><p>IK（inverse kinematics，逆运动学）是“知道手脚想在哪里，反过来求关节怎么摆”。Offline / online 描述它接在流程的哪个位置，不是两种完全不同的数学。<strong>本文的离线阶段也会运行 SONIC 和物理仿真；最终真机控制器同样会在线运行。被移出实时控制环的是本文这套 IK 修正与多轮 token 优化。</strong></p></div>
+<div class="eval-table-wrap" tabindex="0" aria-label="可横向滚动的表格"><table class="eval-table compact-table"><caption>本文主方法与 Appendix D 对照的接入位置；不是给所有 IK 算法下定义</caption><thead><tr><th>问题</th><th>主方法：offline IK（K）</th><th>附录：online IK</th></tr></thead><tbody>
+<tr><td>什么时候算？</td><td>为人体示范制作机器人训练标签时，在正式 VLA 训练之前。</td><td>仿真控制器正在逐帧执行时，计算并组合当前关节命令。</td></tr>
+<tr><td>改什么？</td><td>机器人参考轨迹 b<sup>ref</sup>；不是直接写电机。</td><td>发送给执行系统的部分关节目标；与 SONIC 的输出混合。</td></tr>
+<tr><td>改完后经过谁？</td><td>参考 → SONIC 机器人编码器 → token → SONIC 控制解码器 → 仿真；D 再修执行残差。</td><td>SONIC 命令 + IK 命令按关节分工/叠加 → 仿真执行。</td></tr>
+<tr><td>有没有反馈？</td><td>有。每轮 D 后重新 rollout，测量误差，再优化；最终独立验收。</td><td>也有闭环控制与执行记录，但几何 IK 修正不因此自动拥有全身稳定性保证。</td></tr>
+<tr><td>是否主方法部署链？</td><td>训练前的数据处理；部署时用训练好的 VLA 和同一 SONIC。</td><td>不是。Appendix D 是独立诊断实验，测试版本未用于策略训练。</td></tr>
+</tbody></table></div>
+<p><strong>“offline”不是“不联网”，也不是“只计算一次”。</strong>K 可以有多步数值求解，D 可以反复仿真，候选也可以失败后弃用。它们仍然是在制造数据，而不是让真实机器人执行任务的每个控制周期都重新跑完整 K＋8D。</p>
+
+<h3 id="why-online-ik-study">为什么附录花这么多篇幅做 online IK？</h3>
+<figure class="pipeline-figure"><a href="../assets/diagrams/egohumanoid-v2/online-ik-loop.svg" target="_blank" rel="noopener"><img src="../assets/diagrams/egohumanoid-v2/online-ik-loop.svg" alt="Online IK 接线解释图：SONIC token 与机器人状态进入控制器产生关节命令；IK 按末端目标产生替代命令；两者按 A/B/C 组合再执行；实际状态反馈到下一时刻" loading="lazy" decoding="async"></a><figcaption><strong>教学解释图，非论文原图。</strong>据 Appendix D 与 Table 11 整理，不宣称复原全部软件调用和控制频率。<a href="../assets/diagrams/egohumanoid-v2/online-ik-loop.svg" target="_blank" rel="noopener">放大图</a> · <a href="../assets/diagrams/egohumanoid-v2/online-ik-loop.drawio" download>可编辑源文件</a>。</figcaption></figure>
+<p><strong>沿图走一次：</strong>当前帧有待跟踪运动 token 和手脚目标。SONIC 根据 token 与自身反馈产生整套身体命令；IK 按末端几何产生指定关节的替代目标。组合器决定各关节用谁的命令，仿真机器人执行之后产生新的状态。下一时刻继续这个过程。<strong>这张图的输出是混合后的关节命令，而不是一个“修正后的 SONIC token”。</strong></p>
+<div class="worked-example"><strong>教学数字，非论文实验：</strong>只写肩、腰、膝三个关节，SONIC 原本输出 (20°,−8°,15°)。IK 希望肩、腰变成 (30°,0°)。A 式覆盖后得到 (30°,0°,15°)；C 式只覆盖肩则得到 (30°,−8°,15°)。膝命令虽然没改，但身体受力可能已变。这个例子只解释命令拼接，不预测哪一组会倒。B 的 balance contribution 没有公开完整拆分/叠加公式，因此不编造其数值。</div>
+<p>一个自然替代方案是：既然 SONIC 全身动作比较协调、但手的位置有误差，那就让 SONIC 管平衡，再用 IK 把手补到目标。<strong>Appendix D 就是在检验这条捷径。</strong>若直接修输出既精确又稳定，就不必完全依赖复杂的离线参考修正与 token 优化来解决这个问题。这里仍需满足目标可得等前提；附录不是在证明在线 IK 不需要任何目标信息。</p>
+<p>作者不是只测试一个随意配置，而是依次检查三个合理反驳：<strong>A：</strong>让 IK 改较大关节集合；<strong>B：</strong>在 A 上加回 SONIC 的平衡贡献；<strong>C：</strong>减少被 IK 覆盖的关节。三种方案 × 四任务 × 五条轨迹＝60 runs，独立于 Appendix C 的 cohort，不按精度筛选，也不为更好结果重试。</p>
+<div class="worked-example"><strong>教学例，非论文实验：</strong>SONIC 原计划伸臂的同时后移躯干、调整腿部支撑；一个在线 IK 解又把手向前移动 5 cm，并改了腰角，但腿还接收原命令。这个拼接结果不一定还是 SONIC 原本协调的全身输出。即使没有改腿命令，手臂质量、躯干运动与地面反力也会影响腿和基座。“腿交给 SONIC”不等于其他部位的改动对腿没有影响。</div>
+<aside class="evidence-note" data-evidence="inference">机制解释：受力与平衡是耦合的，因此“局部几何误差变小”不蕴含“整体闭环更稳定”。这解释了为什么这些简单组合可能失败，不是对任意在线 IK、whole-body control 或 MPC 的不可能性证明。论文也没有给出可外推的稳定性定理。</aside>
+
+<h3>为什么要两张表加三张图，而不只报一次成功率？</h3>
+<ul><li><a href="#table-11">Table 11</a>：精确定义 A/B/C 各让谁控制哪些关节，排除“其实没试过另一种接法”的歧义。</li><li><a href="#table-12">Table 12</a>：同时看实际末端误差、最大身体倾角、初始化摔倒和 fall events。不是只展示 IK 数学解的误差。</li><li><a href="#figure-8">Figures 8</a>、<a href="#figure-9">9</a>、<a href="#figure-10">10</a>：每种接法各展示四任务的失败动态片段，补充平均数看不到的运动现象。片段按最大倾角选择，不代表随机样本频率。</li></ul>
+<p><strong>关键反例：</strong>B 的手任务误差只有 1.50–2.43 cm，手任务 fall events 还都是 0，但作者查看连续视频仍认为不稳定。三个方案的全部 15 个脚关抽屉 run 都在第一姿态准备时摔倒。其余 45 个手任务 run 达到最后一帧，也没有达到稳定跟踪。C 的 9 个 laptop fall events 不是“9/5 次失败”；同一个 run 可反复记事件。</p>
+<p><strong>正确结论：</strong>这些 SONIC＋online IK 接法没有给出可接受的训练轨迹，所以作者没有用它们训练 VLA；由此支持“要验证最终执行，不能只修 IK 解”的设计选择。<strong>不能据此推出：</strong>所有在线 IK 都失败、主方法绝不摔倒、或者在线方法已与离线方法在相同算力/筛选条件下公平决出全面优劣。两个 cohort 和验收协议本来就不同。</p>
+<p class="source">原文定位：§3.3、Appendix A.2、D.1–D.3；Tables 11–12 pp.20–21；Figures 8–10 pp.22–24。</p>
+</section>
+<!-- EGOV2-ONLINE:END -->
+
 
 <h3 id="online-ik">Appendix D：不能只看“没中途结束”或手端误差</h3>
-<div class="eval-table-wrap"><table class="eval-table"><caption>在线 IK 诊断 · Table 11–12，pp.20–21 · 3 variants × 4 tasks × 5 episodes = 60 runs</caption><thead><tr><th>方案</th><th>手任务关节组合</th><th>关键观察</th></tr></thead><tbody><tr><td>A</td><td>IK 手臂+腰，SONIC 腿</td><td>手任务日志 fall events 为 0，但视频判定不稳定；不能等同稳定成功。</td></tr><tr><td>B</td><td>A + SONIC balance contribution</td><td>手位置误差 1.50–2.43 cm 仍不稳定；局部精度不足以验收。</td></tr><tr><td>C</td><td>IK 仅手臂，其余 SONIC</td><td>笔记本 9 个、冰箱 1 个 fall events；event 可在同一 run 重复，不是失败次数。</td></tr><tr><td>足任务</td><td>A/B 双腿 IK；C 右腿 IK</td><td>15/15 抽屉 runs 在第一姿态准备时摔倒，未进入正式 replay。</td></tr></tbody></table></div>
+<div class="eval-table-wrap" tabindex="0" aria-label="可横向滚动的表格"><table class="eval-table"><caption>在线 IK 诊断 · Table 11–12，pp.20–21 · 3 variants × 4 tasks × 5 episodes = 60 runs</caption><thead><tr><th>方案</th><th>手任务关节组合</th><th>关键观察</th></tr></thead><tbody><tr><td>A</td><td>IK 手臂+腰，SONIC 腿</td><td>手任务日志 fall events 为 0，但视频判定不稳定；不能等同稳定成功。</td></tr><tr><td>B</td><td>A + SONIC balance contribution</td><td>手位置误差 1.50–2.43 cm 仍不稳定；局部精度不足以验收。</td></tr><tr><td>C</td><td>IK 仅手臂，其余 SONIC</td><td>笔记本 9 个、冰箱 1 个 fall events；event 可在同一 run 重复，不是失败次数。</td></tr><tr><td>足任务</td><td>A/B 双腿 IK；C 右腿 IK</td><td>15/15 抽屉 runs 在第一姿态准备时摔倒，未进入正式 replay。</td></tr></tbody></table></div>
 <aside class="evidence-note" data-evidence="paper">作者对全部 60 runs 的视频检查判定不稳定，并未继续用这些变体训练策略。结论只限这些 SONIC+IK 实现，不能推广为“任何 online IK 都不可能稳定”。Figure 8–10 选的是各组最大倾斜的代表序列，不表示失败频率。</aside>
 
 <section class="figure-reading" id="figure-8" aria-labelledby="figure-8-title">
@@ -194,6 +506,51 @@
 <p>Table 8 报告 K¹D⁸ 为 1.49 s/frame，K⁸D⁸ 为 3.38 s/frame；这些是跨主机、每主机并发三条 episode 的处理运行统计，排除排队、失败尝试、之后的选择和验证。不能读成实时推理延迟或单台机器端到端吞吐。</p>
 <aside class="evidence-note" data-evidence="inference">最强结论：在这四个任务与固定 SONIC 下，对齐后的目标任务人类示范能支持直接真机执行，K 与 D 带来互补收益。隐藏前提是重建目标可靠、局部响应适用、选择器能筛出可接受轨迹；未报告整体拒收率，扩展到更复杂接触时的数据效率仍待验证。</aside>
 <details class="prediction-pause"><summary>检查理解：为什么“不要在线覆盖 SONIC”与“KODA 离线改手臂”不矛盾？</summary><p>干预位置不同。前者在闭环里临时改控制器输出；后者先改 canonical 参考，再为目标 controller 重新生成并验证 state/action。两者都要求看最终 rollout，而不是只看 IK 解。</p></details>
+<!-- EGOV2-RESEARCH:START -->
+<section class="deep-reading" id="research-context">
+<h2>从研究问题回看整篇：到底贡献了什么，还缺什么？</h2>
+<div class="cn-read"><div class="cn-label">覆盖摘要、§1–2、§5、声明和复现边界</div><p>方法与结果已经展开，现在回到作者为什么提出它。这里区分“本文正式声称”“合理机制解释”和“没有被实验验证”的部分，避免把所有模块都算成新算法。</p></div>
+<h3>摘要与引言：新意不是又训练了一个全身控制器</h3>
+<p>人的示范能在没有机器人遥操作的情况下记录场景与协调运动。但不同身体尺寸、动作表示和摄像机外观让示范不能直接监督机器人。以往解耦的 loco-manipulation 往往把手臂 IK 与底盘/腿部控制分开；统一全身 tracker 则联合使用反馈输出关节命令，直接覆盖其中一部分可能破坏协调。</p>
+<p>本文选择<strong>固定 SONIC，在离线数据构造环节补精度</strong>：K 修参考，D 用执行反馈修 token，视觉分支减小人体/机器人外观差，最后训练任务专用 π₀.₅。贡献是这个面向全身协调技能转移的系统与验证，而不是声称发明了 IK、π₀.₅、SONIC、SAM2 或 DiffuEraser。摘要的“first”是作者的优先权主张，本页不把它当作独立穷尽先前工作的证明。</p>
+<h3>§2 相关工作：每条路线解决的是哪一层？</h3>
+<div class="eval-table-wrap" tabindex="0" aria-label="可横向滚动的表格"><table class="eval-table"><thead><tr><th>路线与文中例子</th><th>提供什么</th><th>与本篇的分工</th></tr></thead><tbody>
+<tr><td>人体数据源/表征：Ego4D、Ego-Exo4D；R3M、VIP、预测交互表征</td><td>场景多样性、视觉表示或预训练信号。</td><td>有视觉知识不等于已经有机器人全身动作监督。</td></tr>
+<tr><td>无动作标签视频、latent action、WAM：LAPA、task-centric latent actions、WholeBodyVLA、World Action Models</td><td>从视频中提取动作先验或联合世界/动作建模。</td><td>本文利用同步采集到的身体/手姿，显式构造控制器一致的动作标签；不是提出新 WAM 骨干。</td></tr>
+<tr><td>UMI 与 VR 采集：UMI、FastUMI、DexUMI、RDT2、MotionTrans、EgoDex</td><td>让机器人外采集的手部动作能够成为监督。</td><td>还需处理全身协调、步伐与躯干运动，不能只转换双臂末端。</td></tr>
+<tr><td>可穿戴与领域适配：EgoMimic、EgoBridge、DexWild、EgoScale、Humanoid policy ~ human policy</td><td>人机数据协同、手部数据规模与视觉领域差。</td><td>本文把视觉适配与固定全身执行器下的动作精修结合。</td></tr>
+<tr><td>模仿/遥操作/全身跟踪：HumanPlus、ExBody2、OmniH2O、TWIST、GMT、SONIC、Agility Meets Stability、GLoRI</td><td>将运动参考变成全身协调控制。</td><td>跟踪能力是本篇依赖，不代表末端接触精度已经充分。</td></tr>
+<tr><td>解耦/移动操作：HOMIE、AMO、EgoHumanoid、HumanoidExo、HoMMI、Ψ₀、ZeroWBC</td><td>移动与操作技能、数据采集或基础策略。</td><td>本文聚焦协调全身技能；不是把不同系统的报告分数当成同协议排行榜。</td></tr>
+<tr><td>参考重定向/残差：GMR、OmniRetarget、SPIDER、ASAP、ResMimic</td><td>改善参考几何、交互关系、动态可行性或执行偏差。</td><td>本文不在目标任务上微调 tracker，而在离线优化参考及输入 token。</td></tr>
+<tr><td>情境全身模仿与接口：Visual imitation enables contextual humanoid control、HuMI、BifrostUMI</td><td>场景条件或 robot-free whole-body 示范接口。</td><td>Table 2 只借用初始化路线，不能宣称复现并击败它们的完整 pipeline。</td></tr>
+<tr><td>外观适配：Mirage、RoVi-Aug；SAM2、DiffuEraser</td><td>跨本体图像替换、视角增强、分割和补全。</td><td>这些是视觉分支的直接依赖；补全结果不是被遮挡背景的测量真值。</td></tr>
+</tbody></table></div>
+<p class="source">来源：§1–2 pp.2–3、References pp.10–13。此表解释这些引用在本篇论证中的位置，不声称逐篇独立复现实验；完整作者、年份与出版信息请对照 <a href="https://arxiv.org/pdf/2609.37181v1#page=10">原文参考文献</a>。</p>
+<h3>四个实验问题如何闭合论证？</h3>
+<ol><li><strong>Q1：</strong>Figure 4 的人类数据预算实验说明这些任务能从人类监督中学到可执行行为；增长趋势不保证每个任务/预算单调。</li><li><strong>Q2：</strong>Figure 5 比较人类/机器人示范的效果与采集人力；每条便宜不等于达到同等效果的全部成本更低。</li><li><strong>Q3：</strong>Tables 1–3、6–10 与 Figures 6–7 分别拆解动作阶段、初始化、迭代深度和响应模型；选优协议不是一个。</li><li><strong>Q4：</strong>Table 4 固定动作标签，改变外观适配与增强；效果有任务依赖，组合并非处处最强。</li></ol>
+<h3>数据谱系：到底哪些地方用过什么数据？</h3>
+<ul><li><strong>目标任务人体示范：</strong>同步 RGB、身体运动、手姿、语言，用于离线对齐与每任务 π₀.₅ 后训练。200 条/任务是预算设置，不是全文所有数据的总规模。</li><li><strong>响应模型数据：</strong>BONES-SEED 动作在仿真中产生基线/扰动配对，学习局部执行变化；训练/验证按采集日期分组。</li><li><strong>基础 checkpoint：</strong>pi05_base 与 SONIC 具有各自预训练历史，本文不重新完整列出其全部原始数据配比。不能将“无目标任务机器人示范”外推为全链路无机器人先验。</li><li><strong>机器人示范对照：</strong>Q2 的两项任务分别用 6/12/25/50 条机器人示范训练对照策略，不混成 human-only 配置的数据。</li><li><strong>仿真分析 cohort：</strong>四任务每任务固定随机 25 条训练轨迹；另外 50 任务/112 条轨迹；在线 IK 则另取每任务 5 条，三个变体共 60 runs。三组 cohort 不要互换分母。</li></ul>
+<h3>证据缺口与潜在偏差</h3>
+<div class="eval-table-wrap" tabindex="0" aria-label="可横向滚动的表格"><table class="eval-table"><thead><tr><th>检查点</th><th>已有证据</th><th>尚不能推出</th></tr></thead><tbody>
+<tr><td>初始化公平性</td><td>固定目标、控制器 checkpoint、reset 状态、窗口、K/D 预算。</td><td>不是 GMR/HuMI 原生端到端复现；初始化比较还含后续 refinement。</td></tr>
+<tr><td>对齐精度</td><td>仿真末端相对人体配准目标的 cm/degree 误差。</td><td>人体记录是无噪声接触真值；零误差保证真机抓取。</td></tr>
+<tr><td>稳定性</td><td>有姿态/高度阈值、独立 replay 与在线 IK 失败分析。</td><td>形式化安全保证、任意载荷/摩擦/接触都稳。</td></tr>
+<tr><td>统计强度</td><td>每真机配置 20 次；固定轨迹 cohort；给出逐任务数据。</td><td>多种子显著性或小差距可靠排序；未报告 error bars。</td></tr>
+<tr><td>筛选代价</td><td>无候选通过则拒收。</td><td>总拒收率、最终有效数据产出率和全部失败处理成本；这些未完整报告。</td></tr>
+<tr><td>泛化</td><td>四任务内起姿/对象变化与更广任务集合上的仿真对齐。</td><td>单一策略对未见任务、本体、动力学、语言组合的统一 OOD 成功率。</td></tr>
+<tr><td>实现完整性</td><td>论文给关键接口和 A/B/C/D 细节。</td><td>43-D/93-D 逐维定义、全部 IK/信赖域系数、保守轮全部超参数、chunk/在线延迟都已公开。</td></tr>
+</tbody></table></div>
+<h3>成本口径与正文可能引起误读的措辞</h3>
+<p>A.4 的训练验收和 C.2 的离线历史选优不是冲突，但若只读正文容易误认为同一个流程。Table 4 的 mean 使用可用任务，带 rendering 的行只有三个手任务，另外两行含脚任务；不能直接拿整列 mean 当严格同集合比较。本文把这些差异显式展开，未替作者把不同数值合并。</p>
+<p>C.4 原文将部分工作站写为 RTX 4090（48 GB VRAM），另一台为 RTX 5090 Laptop（24 GB），每主机并发三条 episode，主机混合统计。这里忠实记录其报告，不替作者改成另一个显存数字，也不以此推导消费卡单机速度；型号/配置是否为改装或记录问题需进一步核实。</p>
+<h3>§5 的结论、局限与作者声明</h3>
+<p><strong>能支持：</strong>在本文四个 G1 任务、固定低层控制器与给定训练设置下，对齐的人体示范可支持直接真机执行；K、D 与视觉处理提供可区分收益，人体采集的单条人力成本更低。</p>
+<p><strong>不能支持：</strong>任意人体视频即插即用、免目标任务训练、无机器人先验、完整成功率 51.67%、50 个任务真机零样本成功，或所有在线 IK 方案都不可行。</p>
+<p>作者提出后续方向是更强稳定性约束与更快优化，因为 IK 和多次 rollout 限制吞吐，结果仍可能不稳定。p.10 的 AI Use Statement 说明生成式 AI 用于文献、方法/实验反馈、写作、图与软件等辅助工作，作者审核并对最终内容负责；这不是额外方法贡献或实验验证。Reproducibility Statement 指向 §3–4 与 A–D；它是复现说明，不自动证明所有实现与数据已完整公开。</p>
+<p class="source">完整覆盖固定版本 arXiv:2609.37181v1 的摘要、§1–5、声明、参考文献角色、A.1–A.4、B.1–B.4、C.1–C.6、D.1–D.3。外部补充视频未独立逐帧审核；本文视频观察均明确归于作者报告。新版本或后续代码补充不被默认为本版本事实。</p>
+</section>
+<!-- EGOV2-RESEARCH:END -->
+
 
 <h2 id="connection">7. 与 VLA / Embodied AI 的联系</h2>
 <p>EgoHumanoid-V2 的重心是固定 SONIC 下的动作和外观对齐；KODA 进一步问：换控制器时，哪些数据能保留、哪些必须重标？这会决定 WAM 的动作空间是否绑定某个 checkpoint，以及图像、状态和动作是否描述同一次执行。</p>

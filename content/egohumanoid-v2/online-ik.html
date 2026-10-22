@@ -1,0 +1,27 @@
+<section class="deep-reading" id="offline-online-ik">
+<h2>Offline IK / Online IK：不是“离线不执行，在线才执行”</h2>
+<div class="cn-read"><div class="cn-label">先解决这个容易混淆的词</div><p>IK（inverse kinematics，逆运动学）是“知道手脚想在哪里，反过来求关节怎么摆”。Offline / online 描述它接在流程的哪个位置，不是两种完全不同的数学。<strong>本文的离线阶段也会运行 SONIC 和物理仿真；最终真机控制器同样会在线运行。被移出实时控制环的是本文这套 IK 修正与多轮 token 优化。</strong></p></div>
+<div class="eval-table-wrap"><table class="eval-table compact-table"><caption>本文主方法与 Appendix D 对照的接入位置；不是给所有 IK 算法下定义</caption><thead><tr><th>问题</th><th>主方法：offline IK（K）</th><th>附录：online IK</th></tr></thead><tbody>
+<tr><td>什么时候算？</td><td>为人体示范制作机器人训练标签时，在正式 VLA 训练之前。</td><td>仿真控制器正在逐帧执行时，计算并组合当前关节命令。</td></tr>
+<tr><td>改什么？</td><td>机器人参考轨迹 b<sup>ref</sup>；不是直接写电机。</td><td>发送给执行系统的部分关节目标；与 SONIC 的输出混合。</td></tr>
+<tr><td>改完后经过谁？</td><td>参考 → SONIC 机器人编码器 → token → SONIC 控制解码器 → 仿真；D 再修执行残差。</td><td>SONIC 命令 + IK 命令按关节分工/叠加 → 仿真执行。</td></tr>
+<tr><td>有没有反馈？</td><td>有。每轮 D 后重新 rollout，测量误差，再优化；最终独立验收。</td><td>也有闭环控制与执行记录，但几何 IK 修正不因此自动拥有全身稳定性保证。</td></tr>
+<tr><td>是否主方法部署链？</td><td>训练前的数据处理；部署时用训练好的 VLA 和同一 SONIC。</td><td>不是。Appendix D 是独立诊断实验，测试版本未用于策略训练。</td></tr>
+</tbody></table></div>
+<p><strong>“offline”不是“不联网”，也不是“只计算一次”。</strong>K 可以有多步数值求解，D 可以反复仿真，候选也可以失败后弃用。它们仍然是在制造数据，而不是让真实机器人执行任务的每个控制周期都重新跑完整 K＋8D。</p>
+
+<h3 id="why-online-ik-study">为什么附录花这么多篇幅做 online IK？</h3>
+<figure class="pipeline-figure"><a href="../assets/diagrams/egohumanoid-v2/online-ik-loop.svg" target="_blank" rel="noopener"><img src="../assets/diagrams/egohumanoid-v2/online-ik-loop.svg" alt="Online IK 接线解释图：SONIC token 与机器人状态进入控制器产生关节命令；IK 按末端目标产生替代命令；两者按 A/B/C 组合再执行；实际状态反馈到下一时刻" loading="lazy" decoding="async"></a><figcaption><strong>教学解释图，非论文原图。</strong>据 Appendix D 与 Table 11 整理，不宣称复原全部软件调用和控制频率。<a href="../assets/diagrams/egohumanoid-v2/online-ik-loop.svg" target="_blank" rel="noopener">放大图</a> · <a href="../assets/diagrams/egohumanoid-v2/online-ik-loop.drawio" download>可编辑源文件</a>。</figcaption></figure>
+<p><strong>沿图走一次：</strong>当前帧有待跟踪运动 token 和手脚目标。SONIC 根据 token 与自身反馈产生整套身体命令；IK 按末端几何产生指定关节的替代目标。组合器决定各关节用谁的命令，仿真机器人执行之后产生新的状态。下一时刻继续这个过程。<strong>这张图的输出是混合后的关节命令，而不是一个“修正后的 SONIC token”。</strong></p>
+<div class="worked-example"><strong>教学数字，非论文实验：</strong>只写肩、腰、膝三个关节，SONIC 原本输出 (20°,−8°,15°)。IK 希望肩、腰变成 (30°,0°)。A 式覆盖后得到 (30°,0°,15°)；C 式只覆盖肩则得到 (30°,−8°,15°)。膝命令虽然没改，但身体受力可能已变。这个例子只解释命令拼接，不预测哪一组会倒。B 的 balance contribution 没有公开完整拆分/叠加公式，因此不编造其数值。</div>
+<p>一个自然替代方案是：既然 SONIC 全身动作比较协调、但手的位置有误差，那就让 SONIC 管平衡，再用 IK 把手补到目标。<strong>Appendix D 就是在检验这条捷径。</strong>若直接修输出既精确又稳定，就不必完全依赖复杂的离线参考修正与 token 优化来解决这个问题。这里仍需满足目标可得等前提；附录不是在证明在线 IK 不需要任何目标信息。</p>
+<p>作者不是只测试一个随意配置，而是依次检查三个合理反驳：<strong>A：</strong>让 IK 改较大关节集合；<strong>B：</strong>在 A 上加回 SONIC 的平衡贡献；<strong>C：</strong>减少被 IK 覆盖的关节。三种方案 × 四任务 × 五条轨迹＝60 runs，独立于 Appendix C 的 cohort，不按精度筛选，也不为更好结果重试。</p>
+<div class="worked-example"><strong>教学例，非论文实验：</strong>SONIC 原计划伸臂的同时后移躯干、调整腿部支撑；一个在线 IK 解又把手向前移动 5 cm，并改了腰角，但腿还接收原命令。这个拼接结果不一定还是 SONIC 原本协调的全身输出。即使没有改腿命令，手臂质量、躯干运动与地面反力也会影响腿和基座。“腿交给 SONIC”不等于其他部位的改动对腿没有影响。</div>
+<aside class="evidence-note" data-evidence="inference">机制解释：受力与平衡是耦合的，因此“局部几何误差变小”不蕴含“整体闭环更稳定”。这解释了为什么这些简单组合可能失败，不是对任意在线 IK、whole-body control 或 MPC 的不可能性证明。论文也没有给出可外推的稳定性定理。</aside>
+
+<h3>为什么要两张表加三张图，而不只报一次成功率？</h3>
+<ul><li><a href="#table-11">Table 11</a>：精确定义 A/B/C 各让谁控制哪些关节，排除“其实没试过另一种接法”的歧义。</li><li><a href="#table-12">Table 12</a>：同时看实际末端误差、最大身体倾角、初始化摔倒和 fall events。不是只展示 IK 数学解的误差。</li><li><a href="#figure-8">Figures 8</a>、<a href="#figure-9">9</a>、<a href="#figure-10">10</a>：每种接法各展示四任务的失败动态片段，补充平均数看不到的运动现象。片段按最大倾角选择，不代表随机样本频率。</li></ul>
+<p><strong>关键反例：</strong>B 的手任务误差只有 1.50–2.43 cm，手任务 fall events 还都是 0，但作者查看连续视频仍认为不稳定。三个方案的全部 15 个脚关抽屉 run 都在第一姿态准备时摔倒。其余 45 个手任务 run 达到最后一帧，也没有达到稳定跟踪。C 的 9 个 laptop fall events 不是“9/5 次失败”；同一个 run 可反复记事件。</p>
+<p><strong>正确结论：</strong>这些 SONIC＋online IK 接法没有给出可接受的训练轨迹，所以作者没有用它们训练 VLA；由此支持“要验证最终执行，不能只修 IK 解”的设计选择。<strong>不能据此推出：</strong>所有在线 IK 都失败、主方法绝不摔倒、或者在线方法已与离线方法在相同算力/筛选条件下公平决出全面优劣。两个 cohort 和验收协议本来就不同。</p>
+<p class="source">原文定位：§3.3、Appendix A.2、D.1–D.3；Tables 11–12 pp.20–21；Figures 8–10 pp.22–24。</p>
+</section>

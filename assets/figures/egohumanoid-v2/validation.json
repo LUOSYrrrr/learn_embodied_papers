@@ -82,6 +82,46 @@
     "duplicateIds": [],
     "missingAnchors": []
   },
+  "deepReading": {
+    "formulas": [
+      1,
+      2,
+      3,
+      4,
+      5,
+      6,
+      7,
+      8,
+      9
+    ],
+    "examples": [
+      "eq1",
+      "eq2",
+      "eq3",
+      "eq4",
+      "eq5",
+      "eq6",
+      "eq7",
+      "eq8",
+      "eq9"
+    ],
+    "tables": [
+      1,
+      2,
+      3,
+      4,
+      5,
+      6,
+      7,
+      8,
+      9,
+      10,
+      11,
+      12
+    ],
+    "diagrams": 2,
+    "tableRowWidths": true
+  },
   "keyboardTheme": true,
   "print": {
     "expanded": true,

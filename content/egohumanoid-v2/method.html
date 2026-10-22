@@ -1,0 +1,129 @@
+<section class="deep-reading" id="deep-method">
+<h2>逐步精读方法：从人体记录到可执行标签</h2>
+<div class="cn-read"><div class="cn-label">这一节把正文 §3 与附录 A 接起来</div><p>上面的图给出了路线，但还没有解释“目标、参考、命令、执行”为什么不同。先认清四个对象，再按实际依赖顺序读 Eq.1、5、2、3、4、6。公式编号保持原论文编号，不因为教学顺序改变而重新编号。所有微型算例均为教学自造，不是论文实验。</p></div>
+<h3 id="four-objects">先分清四个对象：到达目标不等于抓住物体</h3>
+<div class="eval-table-wrap"><table class="eval-table compact-table"><thead><tr><th>对象</th><th>具体是什么</th><th>由谁改变</th></tr></thead><tbody>
+<tr><td>目标 y</td><td>根据人体手掌/足部记录，经坐标与高度配准后的逐帧末端位置、朝向。</td><td>构造时确定；K/D 各轮共用，不随新的 rollout 移动靶心。</td></tr>
+<tr><td>参考 b<sup>ref</sup></td><td>希望机器人采用的身体关节轨迹，每帧 29 个数。</td><td>K 的离线 IK 调整它；手任务只优化手臂与腰的参考关节。</td></tr>
+<tr><td>命令 u</td><td>SONIC 在当前自身反馈下解码出的身体关节控制目标。</td><td>D 改 token，间接改变命令；不是用 IK 在线覆盖这份输出。</td></tr>
+<tr><td>执行 e</td><td>仿真机器人真的运动后得到的手掌/足部位姿。</td><td>控制器与仿真动力学共同决定；必须重新 rollout 才能验证。</td></tr>
+</tbody></table></div>
+<p>运动学（kinematics）回答“这些关节角按机器人肢体几何拼起来，手会在哪里”；动力学（dynamics）还涉及运动中的质量、惯性、支撑与控制响应。IK 解在几何上对，并不自动证明整段动作稳定。进一步，手掌跟踪误差小也不证明手指接触、摩擦或物体移动成功。本文对齐目标来自人体动作，不是精确物体接触模型。</p>
+<aside class="evidence-note" data-evidence="paper">§3.3、A.2、A.4、§5：末端几何、实际执行和稳定性分别检查；作者承认完整方法仍可能产生不稳定动作。这里的“实际执行误差”指仿真 rollout 的误差，不是额外外部传感器量到的真机接触真值。</aside>
+<h3 id="source-validation">A.1：先验证源数据能配对，才轮到优化机器人动作</h3>
+<p>采集后先做信号检查与 heading calibration（朝向标定），再进入 H。GoPro RGB、PICO 身体与手姿按 50 Hz 对齐，即相邻样本名义间隔 0.02 秒。检查时间戳一致性以及视频与轨迹帧数是否对应；否则图像里的手还在伸向物体，动作标签却可能已经在回收。</p>
+<p>随后才检查生成机器人运动的末端误差、关节帧间变化、基座倾斜和骨盆位移。<strong>源数据配对检查和执行质量验收是前后两层，不可互相代替。</strong>作者说明没有外部同步脉冲，因此 PICO–GoPro 时间一致性测到的是重复性，不是经过外部时钟标定的绝对同步误差。</p>
+<div class="worked-example"><strong>教学例，非论文实验：</strong>假设两个流总是错开 2 帧，在 50 Hz 下就是 40 ms。即使每次都稳定错开同样幅度，“重复性好”也不能证明绝对零延迟；此数值只是说明测量逻辑，不是本文报告的偏移。</div>
+
+<section class="formula-reading" id="eq-1" data-formula="1">
+<h3>Eq.1 · VLA 看什么、输出什么？</h3>
+<p><strong>用途：</strong>定义训练与部署共用的数据接口，不是损失函数，也不是 SONIC 低层控制器的完整观测定义。</p>
+<div class="equation">o<sub>t</sub> = (Ĩ<sub>t</sub>, q<sub>t</sub>, ℓ),　a<sub>t</sub> = (z<sub>t</sub>, h<sub>t</sub><sup>L</sup>, h<sub>t</sub><sup>R</sup>)<small>原式 Eq.1 · §3.2，p.4</small></div>
+<dl class="symbol-list"><dt>t、o<sub>t</sub></dt><dd>t 是轨迹中的时刻/帧编号；o 是这一时刻给 VLA 的观测组合，并不把 RGB 与状态硬凑成一个未经编码的向量。</dd><dt>Ĩ<sub>t</sub></dt><dd>训练时是经过人臂移除与机器人臂合成的图像；部署时是机器人相机图像。波浪号提示视觉适配，不是未来图像。</dd><dt>q<sub>t</sub> ∈ ℝ<sup>43</sup></dt><dd>VLA 使用的机器人状态。训练时来自 controller rollout，部署时来自机器人自身。论文没有列出逐维字段；43 不是关节自由度，也不能猜成 29+12+2。</dd><dt>ℓ</dt><dd>语言指令，例如“关上笔记本电脑”。不是损失函数 L。</dd><dt>a<sub>t</sub>、z<sub>t</sub> ∈ ℝ<sup>64</sup></dt><dd>a 是高层动作；z 是 SONIC motion token。它是学习得到的运动表示，不能按维度解释成肩、肘等物理关节角。</dd><dt>h<sub>t</sub><sup>L/R</sup> ∈ ℝ<sup>6</sup></dt><dd>左/右 Revo2 手命令。这里 L/R 表示左右手；6 维不是手掌三维位置加三维朝向。h 在后面的高度公式里另有含义。</dd></dl>
+<p>因此动作维数为 <strong>64+6+6=76</strong>。正文说策略预测动作序列，Eq.1 只写一个时刻的接口；本文未逐项给出 action chunk 长度、执行截取策略或完整归一化配置，不应从 50 Hz 数据配对反推 VLA 推理频率。</p>
+<div class="worked-example" data-example="eq1"><strong>手算例，非论文实验：</strong>截取 2 秒、50 Hz 的 100 个配对样本，则身体 token 数组可表示为 100×64，双手命令为 100×12，状态为 100×43。图像还单独保留时间维。这个 100 是演示片段长度，不是在声称策略每次输出 100 帧。</div>
+<p>π<sub>θτ</sub> 表示任务 τ 的策略参数；四个任务各训练自己的 π₀.₅。SONIC checkpoint 则在四个任务和离线对齐/在线部署之间保持相同。没有目标任务机器人示范，不等于没有目标任务训练，更不等于基础模型从未见过机器人数据。</p>
+</section>
+
+<h3 id="initialization-deep">H：为什么先执行一次 SONIC？为什么不直接 SMPL → IK？</h3>
+<p>人体 SMPL 运动不是 G1 的电机角。本文让人体运动条件化 SONIC，在仿真中生成初始身体关节轨迹 b<sup>0</sup><sub>1:T</sub> 和 tokens，称为 H。b<sub>t</sub>∈ℝ<sup>29</sup>：t 是帧，1:T 是整段，上标 0 是初始版本。</p>
+<p>SONIC 的人体运动接口提供了一条把人体运动变成控制的路径；EgoHumanoid-V2 正文没有展开该人体编码器的每一个预处理调用。应结合 <a href="sonic.html#interface-audit">SONIC 接口精读</a>理解，而不能把 H 写成“SMPL 角度复制到 G1”。本文后续 K 则明确使用机器人编码器 Eᵣ。</p>
+<p><strong>直接从人体运动做重定向/IK 是可选初始化，不是被排除的路线。</strong><a href="#table-2">Table 2</a> 比较 SONIC rollout、GMR 重定向、HuMI-style 全身 IK；三者之后都编码并由同一 SONIC replay，再做 K＋8D。选择 SONIC 的依据是末端精度与整体运动质量的折中，不是所有指标都胜出。即使 IK 参考更准确，经过实际控制器仍可能有执行误差，因此初始化与执行器是两层选择。</p>
+
+<section class="formula-reading" id="eq-5" data-formula="5">
+<h3>Eq.5 · 先去掉人站在哪里、面朝哪里</h3>
+<p><strong>用途：</strong>把世界坐标中的三维点转成以骨盆为中心的局部表达，让人体与机器人末端可在统一规则下比较。它本身不求 IK，也不改变身体尺寸。</p>
+<div class="equation">p<sub>t</sub><sup>L</sup> = R<sub>z</sub>(ψ<sub>t</sub>)<sup>⊤</sup> (p<sub>t</sub><sup>W</sup> − p<sub>pelvis,t</sub><sup>W</sup>)<small>原式 Eq.5 · Appendix A.2，p.14</small></div>
+<dl class="symbol-list"><dt>p<sup>W</sup>、p<sup>L</sup> ∈ ℝ³</dt><dd>同一个三维点的世界坐标与骨盆局部坐标；W=world，L=local，这里的 L 不是左手。可用米表示。</dd><dt>p<sub>pelvis,t</sub><sup>W</sup></dt><dd>该帧的骨盆原点。先相减，是把坐标原点移到骨盆。</dd><dt>ψ<sub>t</sub>、R<sub>z</sub>(ψ<sub>t</sub>) ∈ ℝ<sup>3×3</sup></dt><dd>骨盆 yaw（水平转向角）及绕竖直轴的旋转矩阵。只包含 yaw，不包含前后俯仰或左右侧倾。</dd><dt>⊤</dt><dd>矩阵转置。旋转矩阵的转置等于逆，因此这里是撤销朝向旋转，把世界方向改写为身体朝向下的方向；不是再次顺向转一次。</dd></dl>
+<div class="worked-example" data-example="eq5"><strong>手算例，非论文实验：</strong>人的骨盆在 (1,2,1) m，手在 (1,3,1.2) m，yaw=90°。先减原点得到 (0,1,0.2)，再绕 z 轴转 −90°，得到局部 (1,0,0.2) m。原来的世界 y 方向变成局部 x 方向；竖直高度差仍是 0.2 m。</div>
+<p>局部坐标架的 z 轴始终朝上，人弯腰时也不跟着倾斜。这不意味着人的躯干或机器人必须保持直立。每帧都使用自己的骨盆位置与 yaw，因此移除了整体平移和朝向，而不是把全局手部轨迹无条件搬到机器人世界坐标里。</p>
+</section>
+
+<h3 id="height-registration">未编号高度公式：改的是目标，不是把骨盆强行抬高</h3>
+<div class="equation">y<sub>t,z</sub> = p<sub>t,z</sub><sup>H,L</sup> + h<sub>t</sub><sup>H</sup> − h<sub>t</sub><sup>R,0</sup><small>Appendix A.2 p.14 的原文内联公式。H=human，R=robot，0=初始 rollout；这里下标 z 是竖直分量，不是 SONIC token z。</small></div>
+<p>y<sub>t,z</sub> 是给机器人使用的末端局部目标高度；p<sup>H,L</sup><sub>t,z</sub> 是人体末端相对骨盆的高度；h<sup>H</sup><sub>t</sub> 和 h<sup>R,0</sup><sub>t</sub> 分别是人和初始机器人骨盆的离地高度。目标的局部水平坐标与朝向保留，竖直分量加上人机骨盆高度差。</p>
+<div class="worked-example"><strong>手算例：</strong>人的骨盆高 1 m，手比骨盆高 0.2 m，初始机器人骨盆高 0.8 m。目标变成 0.2+1−0.8=0.4 m。以初始机器人骨盆高度计算，手的离地高度为 0.8+0.4=1.2 m，和人体示范一致。若原样复制 0.2 m，则只有 1 m。这个等式不保证后续机器人骨盆变化时世界高度仍自动完全一致。</div>
+<p><strong>发生时间：</strong>必须先有 H，才知道初始机器人骨盆高度；随后构造 y，再进入 K/D。它不会直接改关节或骨盆。<strong>“固定”是跨优化轮次 k 固定，不是跨时间 t 不动：</strong>每帧可有不同目标和不同高度补偿，但第 k 轮不会用新的骨盆高度重定义第 t 帧目标。</p>
+
+<h3 id="foot-targets">脚底没有直接测量，为什么还可以构造脚的目标？</h3>
+<p>作者取每只脚的踝点与脚部关键点中点，作为 sole-center proxy（脚底中心近似点）。先对每帧所有踝/足关键点的最低高度取整段时间中位数，得到关键点估计地面；再对每帧左右脚底近似点中的较低者取时间中位数，得到近似点估计地面。两者之差从每个近似点的竖直坐标中扣除，之后再做骨盆高度配准。</p>
+<div class="equation">δ = median<sub>t</sub>(min<sub>左、右</sub> proxy<sub>z,t</sub>) − median<sub>t</sub>(min<sub>踝/足关键点</sub> keypoint<sub>z,t</sub>)<br>proxy′<sub>z,t</sub> = proxy<sub>z,t</sub> − δ<small>教学整理式：将 A.2 的文字算法写成公式，非论文编号公式。δ 是整段共同的常数，和逐帧的人机骨盆高度差不是同一项。</small></div>
+<div class="worked-example"><strong>手算例：</strong>关键点地面估计 0.02 m，近似点地面估计 0.05 m，则 δ=0.03 m。近似点一帧高 0.05 m、抬脚帧高 0.20 m，修后为 0.02 和 0.17 m，抬脚幅度仍是 0.15 m。减常数校正偏置，不会消除抬脚变化。</div>
+<p>手任务对齐双手位置与朝向；Close Drawer 等 foot-only 任务对齐双足位置，不使用足朝向目标。这些脚底目标<strong>不是测得的真实接触点</strong>，也没有自动恢复物体表面和接触力。</p>
+
+<h3 id="measured-error">误差到底怎么“测”？人体 SMPL 是精准真值吗？</h3>
+<p>目标侧来自 PICO 记录的身体/手部运动及上述配准。执行侧来自仿真 rollout 的机器人状态：仿真器知道基座姿态、关节实际角度和机器人几何，可以计算手掌/脚底点的位置，再转成与目标相容的局部表达。位置残差是“目标−执行”；手朝向残差用相对旋转向量，不能直接相减欧拉角或四元数。</p>
+<div class="worked-example"><strong>手算例：</strong>目标为 (0.45,0.20,0.30) m，仿真执行为 (0.42,0.20,0.28) m，残差为 (0.03,0,0.02) m，长度 √(0.03²+0.02²)≈0.0361 m，即 3.61 cm。若目标本身的采集/标定有偏差，即使这项误差为零，也不能证明真实接触点正确。</div>
+<aside class="evidence-note" data-evidence="inference">有数值坐标≠没有测量误差。SMPL 是人体表示，不自带物体精确表面、抓握摩擦与接触真值。本文量的是对记录目标的跟踪精度，不是手到现实物体的毫米级绝对距离。人体噪声、配准偏差和 sim-to-real 差距仍可能保留。</aside>
+
+<section class="formula-reading" id="eq-2" data-formula="2">
+<h3>Eq.2 · K 改完关节参考，为什么还要编码再执行？</h3>
+<p><strong>用途：</strong>K 得到的是机器人关节参考，但最终接口是 SONIC token，因此要把参考转换回执行器理解的表示。</p>
+<div class="equation">z<sub>1:T</sub><sup>0</sup> = E<sub>r</sub>(b<sub>1:T</sub><sup>ref</sup>)<small>原式 Eq.2 · §3.3.1，p.4</small></div>
+<dl class="symbol-list"><dt>b<sub>1:T</sub><sup>ref</sup></dt><dd>K 修正后的机器人身体参考序列，每帧 29 维；ref 是 reference。它不是人体 SMPL，也不是 VLA 的 43 维状态。</dd><dt>E<sub>r</sub></dt><dd>SONIC 的机器人运动编码器。此处编码机器人参考，不是重新调用人体编码器；本文紧凑写法不逐层展开编码器的窗口和速度等预处理。</dd><dt>z<sub>1:T</sub><sup>0</sup></dt><dd>D 开始时使用的 token 序列，每帧 64 维。这里上标 0 是优化起点，不应与 H 的 b⁰ 或任意初始 token 混成同一个变量。</dd></dl>
+<p>K 的运动学求解兼顾末端误差、接近初始参考和时间连续性。手任务只调整手臂与腰的参考关节。<strong>一轮 K 是一次处理整个参考轨迹的阶段，不是只做一步数值迭代。</strong>论文没有在该式给出完整 IK 目标及全部权重，不能把一个教学 IK 公式冒充其精确实现。</p>
+<div class="worked-example" data-example="eq2"><strong>形状算例，非论文实验：</strong>100 帧参考用 100×29 个关节角描述；经过编码得到按时间对齐的 100×64 token 表示。29→64 不是新增 35 个电机，也不是可手写的线性换算。随后 token replay 的手仍可能偏离目标，编码后的参考和实际执行不是同一对象。</div>
+<div class="worked-example"><strong>几何算例，非论文实验：</strong>忽略三维与动力学，平面两段机械臂各长 0.25 m，肩角 0°、肘角 90°时手在 (0.25,0.25) m。若目标为 (0.35,0.35) m，一组 IK 解约为肩 36.87°、肘 16.26°。IK 用机器人自己的连杆长度解角度，不改变机器人骨头长度；这个小例子不能验证全身平衡。</div>
+<p>为什么默认只做一轮 K？<a href="#table-8">Table 8</a> 中 K¹→K⁸ 的位置误差只从 4.86 降到 4.77 cm，处理成本从 0.65 增到 2.55 s/frame。继续修几何收益有限，而 K 后追加 D 更能修执行残差。它是本文设置下的实证，不是“K 只能做一次”的定理。</p>
+</section>
+
+<section class="formula-reading" id="eq-3" data-formula="3">
+<h3>Eq.3 · 改 token 后，实际手脚会移动多少？</h3>
+<p><strong>用途：</strong>在当前 rollout 附近建立可微的局部执行响应预测，避免在每一步优化里都对整个物理仿真反向传播。</p>
+<div class="equation">Δu(z) = D<sub>c</sub>(z,s<sup>k</sup>) − D<sub>c</sub>(z<sup>k</sup>,s<sup>k</sup>)<br>Δê(z) = R<sub>ψ</sub>(J<sup>k</sup> Δu(z))<small>原式 Eq.3 · §3.3.2 p.4。A.3 补充的历史与固定条件 cᵏ 被正文省略；R 不是无条件常数增益。</small></div>
+<dl class="symbol-list"><dt>k 与 t</dt><dd>k 是 D 外层优化轮次；t 是动作时间帧。不要把第八轮优化理解成第八帧动作。</dd><dt>z、z<sup>k</sup></dt><dd>正在尝试的候选 token 与本轮基线 token，逐帧 64 维；优化的是整个序列。</dd><dt>s<sup>k</sup>、D<sub>c</sub></dt><dd>本轮 rollout 的控制器观测历史，以及冻结的 SONIC 控制解码器。两次解码使用相同 sᵏ，隔离 token 改变造成的命令差异。</dd><dt>Δu ∈ ℝ²⁹</dt><dd>候选命令减基线命令，逐帧身体关节目标的变化。它不是已经执行出的关节变化。</dd><dt>J<sup>k</sup></dt><dd>本轮局部运动学 Jacobian，把小的关节命令变化近似映射成末端位置/旋转变化。全双手双足表示为 4×(3+3)=24 维，对应概念形状 24×29；当前任务可能只评价其中部分维度。</dd><dt>R<sub>ψ</sub>、Δê</dt><dd>参数 ψ 的执行响应模型及预测的末端执行变化；帽号表示预测，不是仿真测量。这里 ψ 是模型参数，Eq.5 的 ψₜ 则是 yaw，含义不同。</dd></dl>
+<p>“局部线性化”是用 J 近似当前姿态附近的小变化，不是假设整个机器人世界都是线性。命令几何变化经过响应模型，才估计控制器和动力学之后的效果；大幅修改可能离开这个近似的适用范围。</p>
+<div class="worked-example" data-example="eq3"><strong>手算例，非论文实验：</strong>只看一个关节和一个手部方向，J=0.4 m/rad，候选关节命令变化 0.05 rad，则几何预测变化 0.02 m。若一个简化的执行响应是 0.6 倍，则实际变化预测为 0.012 m。0.6 是自造的标量例子，不是本文 MLP 参数；真实模型含耦合、历史和状态条件，手任务还混合 unit response。</div>
+</section>
+
+<section class="formula-reading" id="eq-4" data-formula="4">
+<h3>Eq.4 · 为什么让“预测变化”去拟合“当前残差”？</h3>
+<div class="equation">L<sub>track</sub>(z) = ‖Δê(z) − r<sup>k</sup>‖²<small>原式 Eq.4 · §3.3.2，p.4</small></div>
+<p>rᵏ 是当前实际执行到固定目标还差多少：位置残差与手部相对旋转向量。Δê 是改 token 后预计能补多少。因此不是让 Δê 接近零，而是让它接近 rᵏ；两者差的平方和越小，说明预测修正越能消掉当前误差。L 是标量损失，‖·‖² 是各分量平方求和。实际优化还要考虑单位、任务权重、约束和正则，完整版本见 Eq.6。</p>
+<div class="worked-example" data-example="eq4"><strong>手算例，非论文实验：</strong>目标还差 0.02 m，旧候选预计补 0.012 m，损失是 (0.012−0.02)²=0.000064 m²；新候选预计补 0.018 m，损失变为 0.000004 m²，下降 16 倍。只是预测更好，仍须新 rollout 判断实际上是否补到了。</div>
+<p>梯度路径是 token → 冻结解码器 → 局部 Jacobian/历史变换 → 冻结响应网络 → loss。<strong>冻结网络权重不等于无法计算输入梯度。</strong>Adam 根据这条梯度更新 z；不是更新 SONIC、响应模型或 VLA 参数，也不穿过仿真器。</p>
+</section>
+
+<section class="formula-reading" id="eq-6" data-formula="6">
+<h3>Eq.6 · 只追末端误差会乱改动作，所以加局部范围与保姿约束</h3>
+<div class="equation">z<sup>k+1</sup> = arg min<sub>z ∈ N(zᵏ)</sub> { ‖Δê(z) − r<sup>k</sup>‖²<sub>Qτ</sub> + L<sub>reg</sub>(z,z<sup>k</sup>) }<small>原式 Eq.6 · Appendix A.2，pp.14–15</small></div>
+<dl class="symbol-list"><dt>arg min</dt><dd>返回使目标较小的 token，而不是只返回最小损失数值。实际使用有限步 Adam，不代表求得全局最优。</dd><dt>N(zᵏ)</dt><dd>当前 token 附近的允许邻域，限制一次修正幅度，降低局部响应模型被大步修改利用的风险；论文此处未给全部邻域半径细节。</dd><dt>Qτ 与加权平方范数</dt><dd>任务 τ 的末端误差权重；‖v‖²<sub>Q</sub>=vᵀQv。它和关节保姿权重 Wτ 不同，也不能把 cm 与 degree 的数值不经说明直接相加。</dd><dt>L<sub>reg</sub></dt><dd>组合关节命令变化惩罚 ‖Δu‖²<sub>Wτ</sub>、token 改变量、时间连续性和 IK 修正先验。论文列出了组成，但此处没有逐项公开全部系数/精确形式。</dd></dl>
+<div class="eval-table-wrap"><table class="eval-table compact-table"><caption>Wτ 的关节保姿权重：大权重表示更不愿改变，不是关节冻结</caption><thead><tr><th>任务</th><th>腿</th><th>腰</th><th>手臂</th></tr></thead><tbody><tr><td>手部交互</td><td>20</td><td>20</td><td>0.1</td></tr><tr><td>仅脚部交互</td><td>0.1</td><td>20</td><td>20</td></tr></tbody></table></div>
+<div class="worked-example" data-example="eq6"><strong>手算例，非论文实验：</strong>手任务中，单个腿关节和手臂关节若都提出 0.1 rad 命令修正，对应二次惩罚分别为 20×0.1²=0.2 与 0.1×0.1²=0.001。惩罚相差 200 倍，不代表最终动作幅度一定相差 200 倍；末端损失和其他约束还在共同起作用。</div>
+<h4>内层 400 步，外层 8 轮：不要混成“网络训练 3200 次”</h4>
+<ol class="process-list"><li><strong>本轮开始：</strong>由基线 token 的 rollout 得到残差 rᵏ、历史 sᵏ 和固定条件 cᵏ，局部线性化末端几何。</li><li><strong>内层优化：</strong>固定这些基线量和两个网络的参数，做 400 步 Adam，更新候选 token 序列。候选干预的因果历史随候选改变，不能把一切输入都冻结。</li><li><strong>外层反馈：</strong>用新 token 做一次新的完整仿真 rollout，检查误差/稳定性，并生成下一轮的上下文。不是在 400 步的每一步都重新完整 rollout。</li><li><strong>默认日程：</strong>先 1 轮 K，再 7 轮常规 D 和 1 轮保守 D，随后筛选。400 步描述 D 的局部 refinement，不能据此说 IK 本身也必定用 400 步 Adam。</li></ol>
+<p>保守轮的存在不意味着论文在这里公开了全部缩步超参数。梯度通过代理模型而不是仿真器，近似误差用下一次 rollout 纠正；这仍不能保证每轮单调改善或一定不摔倒。</p>
+</section>
+
+<h3 id="response-training">附录 A.3：响应网络怎样事先学到“命令变了，执行会变多少”？</h3>
+<div class="cn-read"><div class="cn-label">区分训练响应网络与使用响应网络</div><p>D 中网络冻结，说明它必须已经学好。A.3 用成对扰动仿真提供监督；不是在每个目标任务的 D 循环里一边训练网络、一边修改 token。</p></div>
+<p>取同一机器人初始仿真状态和相同控制历史，分别执行基线 token 与扰动 token。输入是相同基线观测下两份解码命令经 Jacobian 得到的末端变化；监督标签是两次 rollout 在<strong>一个 policy step 之后</strong>实际末端位姿之差。扰动包含平滑随机变化及 token 优化方向，不是只做毫无结构的白噪声。</p>
+<div class="eval-table-wrap"><table class="eval-table compact-table"><caption>A.3 数据与网络，不要把三个状态维数混用</caption><thead><tr><th>项目</th><th>论文给出的设置</th><th>理解边界</th></tr></thead><tbody>
+<tr><td>来源/划分</td><td>BONES-SEED G1 运动；训练 250 motions / 68 capture dates / 345,080 frame–perturbation pairs；验证 13 motions / 7 dates / 20,420 pairs。</td><td>date 分割降低同次采集泄漏风险；不是四个目标任务的机器人示范，也不是 345,080 条完整 episode。</td></tr>
+<tr><td>干预输入</td><td>双掌、双足各位置 3＋旋转 3，共 24 维。</td><td>预测器有足旋转通道不等于脚任务使用了旋转目标。</td></tr>
+<tr><td>因果历史</td><td>当前 24 维＋五种指数平滑版本，时间常数 0.02、0.1、0.5、2、5 秒，共 6×24=144 维。</td><td>不是六帧裸堆叠；不同平滑尺度表达短/长时间响应。</td></tr>
+<tr><td>固定条件</td><td>93 维 robot-state features 与 64 维基线 token。</td><td>93 维不是 VLA 的 43 维；正文也没有逐项列出它的字段。把 144+93+64=301 视为列出的特征总量，不能据此断言所有网络分支的实际首层布局。</td></tr>
+<tr><td>结构</td><td>冻结线性响应＋两层隐藏层、每层宽 64、SiLU 的 MLP residual；输出 24 维。</td><td>不是一个生成整段未来的世界模型。</td></tr>
+<tr><td>训练</td><td>AdamW，lr 3×10⁻⁵，weight decay 10⁻⁴，batch 512，梯度裁剪范数 5；最多 150 epochs，保留验证损失最低 checkpoint。</td><td>这些是响应模型训练参数，不是 D 的 token 优化超参数或 π₀.₅ 后训练配置。</td></tr>
+</tbody></table></div>
+<h4>为什么要减去“零干预”时的 MLP 输出？</h4>
+<div class="equation">response(x,c) = linear(x) + MLP(x,c) − MLP(0,c)<small>教学结构式，由 A.3 的文字描述整理；x 是候选干预历史，c 是固定基线条件。不是论文新增的编号方程，不声称还原其全部归一化实现。</small></div>
+<p>如果不改命令，干预历史 x=0，就希望预测变化也是 0。相同条件下相减让残差项严格归零，避免网络把基线偏置误当成修正效果。比如 MLP(0,c)=0.4，MLP(x,c)=0.7，则残差变化是 0.3，不是直接使用 0.7。</p>
+<p>输入/目标使用训练集统计量归一化；训练损失是归一化均方误差加权重为 1 的平方 residual 惩罚。这个 residual 指网络残差分量，不要与 D 当前的目标跟踪残差 rᵏ混淆。随机扰动占训练权重 75%，另外两类优化方向共享 25%；每类内部还平衡日期和源动作，权重不是简单的样本数量比例。</p>
+<h4>手任务没有完全相信 MLP</h4>
+<div class="equation">Δe<sub>used</sub> = 0.85·Δe<sub>unit</sub> + 0.15·Δe<sub>learned</sub><small>由 A.3 给出的 0.15 learned-response 权重整理。Unit response 把几何变化直接视为执行变化；脚任务使用 learned position response，不设朝向目标。</small></div>
+<div class="worked-example"><strong>手算例：</strong>几何变化 2 cm，MLP 预测执行变化 1.2 cm，则手任务混合响应是 0.85×2+0.15×1.2=1.88 cm。这也说明上面的“60% 增益”例子不能直接冒充手任务真实求解器。</div>
+<p class="source">来源：Appendix A.3 p.15；响应来源 <a href="https://huggingface.co/datasets/bones-studio/seed">BONES-SEED</a>。采样频率 50 Hz 对应 0.02 s；这个时间换算不推出高层 VLA 的部署推理延迟。</p>
+
+<h3 id="selection-deep">附录 A.4：为什么最后不一定选 D 的最后一轮？</h3>
+<p>局部模型可能预测错，后期修正可能变得不稳定，因此先记录 H、H＋K 和各轮 D 候选，再做验收。限制包含位置误差 5 cm、适用时朝向误差 15°、骨盆高度下降 0.10 m、基座倾斜 25°，另检查执行一致性。不能把这些经验阈值称为形式化安全保证。</p>
+<p>通过检查的候选先按最大归一化末端误差排序，再按平均归一化误差排序，按顺序独立 replay。可选回初始 H 或 H＋K；没有任何候选通过就拒收整段。最终接受的 replay 提供 state–action 对，不能把某一轮的状态与另一轮的动作随意拼接。</p>
+<p>冰箱轨迹预处理、窗帘手命令及序列尾部还存在任务专用设置；论文只说明其存在，没有在 A.4 逐项给出全部实现参数。所有任务共用低层 checkpoint，不做目标任务 SONIC 微调；它不等于 π₀.₅ 也不后训练。</p>
+<aside class="evidence-note" data-evidence="paper">这里是<strong>制作训练数据的验收</strong>。后面的 Table 1 离线误差、Table 2 初始化比较和深度曲线采用不同选优规则，详见 <a href="#selection-protocols">协议对照</a>。不能拿抽屉诊断均值 5.80 cm 直接反驳 5 cm 数据验收阈值。</aside>
+
+<h3 id="policy-training">附录 B.1–B.2：真正训练 π₀.₅ 时，哪些东西固定？</h3>
+<p>每个任务从相同 <code>pi05_base</code> 开始，bfloat16，30,000 步，global batch 256；AdamW、梯度裁剪 1.0、weight decay 10⁻¹⁰。学习率前 1,000 步 warmup 到 2.5×10⁻⁵，然后 cosine decay 到 2.5×10⁻⁶。固定骨干、动作接口和评测协议，通过改变示范预算或监督成分做比较。</p>
+<p>Q1 使用 25/50/100/200 条人体示范；Q2 分别训练人类数据策略和机器人数据策略，机器人预算 6/12/25/50。动作与视觉消融均用 200 条人体示范/任务。默认监督是 H＋K＋Dₛ，视觉用机器人臂渲染＋增强；脚关抽屉不做臂渲染。</p>
+<p>动作消融只改变 H、H＋K、完整监督的动作标签方案，保持视觉处理与训练设置；视觉消融保持对齐动作标签不变。部署输入机器人图像，只做标准预处理，不再做人臂分割、DiffuEraser 补全或八轮 D。</p>
+<div class="checkpoint"><p><strong>完整样本链：</strong>同步人体 RGB/身体/手姿 → 构造固定人体目标 → H/K/D/筛选得到同次机器人 replay 的状态和动作 → 根据对齐关节做视觉适配 → 与语言配对训练任务专用 VLA。这里优化 token 是离线制标签；训练 VLA 是拟合标签；部署 VLA 是根据新图像闭环预测，三件事不要混成一个在线优化器。</p></div>
+</section>

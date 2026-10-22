@@ -24,6 +24,7 @@ for(const width of [375,768,1440]){
   }
 }
 report.media=js('({figures:document.querySelectorAll(".figure-reading").length,brokenImages:[...document.images].filter(i=>!i.complete||!i.naturalWidth).map(i=>i.src),duplicateIds:[...document.querySelectorAll("[id]")].map(e=>e.id).filter((id,i,a)=>a.indexOf(id)!==i),missingAnchors:[...document.querySelectorAll("a[href^=\\"#\\"]")].map(a=>a.hash.slice(1)).filter(id=>id&&!document.getElementById(id))})');
+report.deepReading=js('({formulas:[...document.querySelectorAll("[data-formula]")].map(e=>+e.dataset.formula).sort((a,b)=>a-b),examples:[...document.querySelectorAll("[data-example]")].map(e=>e.dataset.example).sort(),tables:[...document.querySelectorAll("[data-paper-table]")].map(e=>+e.dataset.paperTable),diagrams:document.querySelectorAll(".pipeline-figure").length,tableRowWidths:[...document.querySelectorAll(".table-reading table")].every(t=>[...t.rows].every(r=>r.cells.length===t.rows[0].cells.length))})');
 for(let n=1;n<=10;n++){
   browse('js',`document.querySelector('.figure-index a[href="#figure-${n}"]').focus()`);
   browse('press','Enter');
@@ -33,7 +34,7 @@ browse('js','document.querySelector(".theme-toggle").focus()');
 browse('press','Enter');
 report.keyboardTheme=js('document.documentElement.dataset.theme')==='light';
 report.print=js('(()=>{const before=[...document.querySelectorAll("details")].map(d=>d.open);window.dispatchEvent(new Event("beforeprint"));const expanded=[...document.querySelectorAll("details")].every(d=>d.open);window.dispatchEvent(new Event("afterprint"));return {expanded,restored:JSON.stringify(before)===JSON.stringify([...document.querySelectorAll("details")].map(d=>d.open))}})()');
-report.passed=!missingFiles.length&&report.layouts.every(v=>v.width>=v.scrollWidth)&&report.media.figures===10&&!report.media.brokenImages.length&&!report.media.duplicateIds.length&&!report.media.missingAnchors.length&&report.keyboardAnchors.every(v=>v.hash===`#figure-${v.figure}`)&&report.keyboardTheme&&report.print.expanded&&report.print.restored;
+report.passed=!missingFiles.length&&report.layouts.every(v=>v.width>=v.scrollWidth)&&report.media.figures===10&&!report.media.brokenImages.length&&!report.media.duplicateIds.length&&!report.media.missingAnchors.length&&report.keyboardAnchors.every(v=>v.hash===`#figure-${v.figure}`)&&report.keyboardTheme&&report.print.expanded&&report.print.restored&&JSON.stringify(report.deepReading.formulas)==='[1,2,3,4,5,6,7,8,9]'&&report.deepReading.examples.length===9&&report.deepReading.tables.length===12&&report.deepReading.diagrams===2&&report.deepReading.tableRowWidths;
 fs.writeFileSync('assets/figures/egohumanoid-v2/validation.json',JSON.stringify(report,null,2)+'\n');
 console.log(JSON.stringify(report,null,2));
 if(!report.passed)process.exitCode=1;
