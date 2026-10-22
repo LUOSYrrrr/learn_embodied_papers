@@ -1,0 +1,450 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="description" content="KODA 论文中文交互式精读：从人类第一视角示范生成与控制器对齐的人形机器人 VLA 数据。">
+  <title>KODA · 人类第一视角示范如何变成可复用的人形机器人训练数据</title>
+  <link rel="stylesheet" href="../assets/css/style.css">
+  <link rel="stylesheet" href="../assets/css/humanoid-reading.css">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16/dist/katex.min.css">
+  <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16/dist/katex.min.js"></script>
+  <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16/dist/contrib/auto-render.min.js"></script>
+  <script src="../assets/js/theme.js"></script>
+  <script defer src="../assets/js/interactive.js"></script>
+  <style>
+    .koda-compare { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:14px; margin:18px 0; }
+    .koda-card { padding:18px; border:1px solid var(--border); border-radius:14px; background:var(--surface); }
+    .koda-card h3 { margin:0 0 8px; font-size:1rem; }
+    .koda-card p:last-child { margin-bottom:0; }
+    .koda-flow { display:grid; grid-template-columns:1fr auto 1fr auto 1fr; gap:10px; align-items:center; margin:18px 0; }
+    .koda-flow > div:not(.arrow) { min-height:118px; padding:14px; border:1px solid var(--border); border-radius:12px; background:var(--surface); }
+    .koda-flow .arrow { color:var(--accent); font-size:1.4rem; }
+    .formula-card { margin:16px 0; padding:18px; border:1px solid var(--border); border-radius:14px; background:var(--surface); overflow-x:auto; }
+    .formula-card .formula { text-align:center; font-size:1.06rem; margin:12px 0; }
+    .schema-row { display:grid; grid-template-columns:170px 1fr; gap:12px; padding:9px 0; border-bottom:1px dashed var(--border); }
+    .schema-row:last-child { border-bottom:0; }
+    .number-strip { display:grid; grid-template-columns:repeat(4,minmax(0,1fr)); gap:10px; margin:16px 0; }
+    .number-strip > div { padding:14px; text-align:center; border:1px solid var(--border); border-radius:12px; background:var(--surface); }
+    .number-strip strong { display:block; color:var(--accent); font-size:1.35rem; }
+    .small-note { color:var(--text2); font-size:.91rem; }
+    .verdict { border-left:4px solid var(--accent2); padding:15px 18px; margin:18px 0; background:var(--surface); border-radius:0 12px 12px 0; }
+    .risk-list li { margin:.5rem 0; }
+    @media (max-width:780px) {
+      .koda-compare,.number-strip { grid-template-columns:1fr; }
+      .koda-flow { grid-template-columns:1fr; }
+      .koda-flow .arrow { transform:rotate(90deg); text-align:center; }
+      .schema-row { grid-template-columns:1fr; }
+    }
+  </style>
+</head>
+<body>
+  <nav class="nav">
+    <a class="nav-logo" href="../index.html">~/paper-notes</a>
+    <div class="nav-links">
+      <a href="../index.html">← 返回首页</a>
+      <a href="../pdfs/loco-manipulation/koda.pdf" target="_blank" rel="noopener">PDF</a>
+    </div>
+  </nav>
+
+  <div class="page">
+    <div class="docs-layout">
+      <aside class="docs-sidebar-left" aria-label="章节导航">
+        <div class="ds-title">KODA</div>
+        <a class="ds-leaf-top" href="#overview">§1 两张总览图</a>
+        <details open>
+          <summary>§2 证据先行</summary>
+          <a class="ds-leaf" href="#evaluation">2.1 Sim / OOD / 真机</a>
+          <a class="ds-leaf" href="#evidence-strength">2.2 证据边界</a>
+        </details>
+        <details open>
+          <summary>§3 为什么需要 KODA</summary>
+          <a class="ds-leaf" href="#data-silos">3.1 HALOMI / EgoHumanoid</a>
+          <a class="ds-leaf" href="#canonical">3.2 可复用 canonical record</a>
+        </details>
+        <details>
+          <summary>§4 怎么做</summary>
+          <a class="ds-leaf" href="#pipeline">4.1 完整流水线</a>
+          <a class="ds-leaf" href="#motion">4.2 全身运动</a>
+          <a class="ds-leaf" href="#views">4.3 机器人视角</a>
+          <a class="ds-leaf" href="#commands">4.4 控制命令</a>
+        </details>
+        <a class="ds-leaf-top" href="#limits">§5 审稿式结论</a>
+      </aside>
+
+      <main class="docs-content">
+        <div class="docs-breadcrumb">
+          <a href="../index.html">paper-notes</a><span class="sep">/</span>
+          humanoid learning<span class="sep">/</span>Zhou et al. 2026
+        </div>
+
+        <h1>KODA：把人类第一视角示范转换成“运动、视觉、控制接口都对齐”的人形机器人数据</h1>
+        <p class="paper-meta">Kinematics–Observation Data Alignment for Humanoid Learning from Human Egocentric Demonstrations · arXiv:2610.21152v1 · 2026-10-16 · 33 页</p>
+        <div class="paper-badges">
+          <span class="badge badge-blue">Human → Humanoid</span>
+          <span class="badge badge-green">Unitree G1 真机</span>
+          <span class="badge badge-amber">两套控制器</span>
+          <span class="badge">GR00T N1.7</span>
+        </div>
+
+        <section class="core-insight" aria-labelledby="core-insight-title">
+          <div class="core-label" id="core-insight-title">一句话核心洞见</div>
+          <p>不要把人类视频直接翻译成某个控制器的标签；先生成一个与<strong>目标机器人本体</strong>对齐、但与<strong>具体控制接口</strong>解耦的 canonical record，再为 SONIC、HEFT 等控制器分别生成状态—动作标签。</p>
+        </section>
+
+        <section class="eval-overview" aria-label="评测结论总览">
+          <article class="eval-card">
+            <div class="eval-card-title">仿真 benchmark</div>
+            <div class="eval-card-value">未提供标准仿真任务成功率；仿真只用于运动优化与 rollout 跟踪误差诊断。</div>
+          </article>
+          <article class="eval-card">
+            <div class="eval-card-title">Robot-ID → Robot-OOD</div>
+            <div class="eval-card-value">100 条人类示范时：SONIC 72.5% → 48.75%；HEFT 76.25% → 51.25%。OOD 物体在人类数据里出现过。</div>
+          </article>
+          <article class="eval-card">
+            <div class="eval-card-title">真机证据</div>
+            <div class="eval-card-value">G1 + BrainCo hands，4 任务 × 20 次 × 2 条件 × 2 控制器；每配置只训练一次。</div>
+          </article>
+          <article class="eval-card">
+            <div class="eval-card-title">证据能支持到哪里</div>
+            <div class="eval-card-value">支持“同一 G1 本体上跨控制器重标注”；不支持跨机器人本体、跨相机布局的通用转换。</div>
+          </article>
+        </section>
+
+        <aside class="evidence-note" data-evidence="paper">
+          核心结果来自 Figure 1–4、Table 1–4 与 Appendix B–E。页面把论文事实、解释性推断和缺失证据分开标注。
+        </aside>
+
+        <h2 id="overview">§1 两张都像 overview，但回答的是不同问题</h2>
+        <div class="cn-read">
+          <div class="cn-label">先给你的截图一个定位</div>
+          <p><strong>Figure 1 是 thesis / system overview：</strong>解释 KODA 为什么存在、生成的数据处在什么位置、如何进入 VLA 训练。<strong>Figure 2 是 method / implementation overview：</strong>把三大模块拆成可执行的工程步骤。读图顺序应当是先 Figure 1 建立数据语义，再用 Figure 2 追踪信号。</p>
+        </div>
+
+        <div class="koda-compare">
+          <article class="koda-card">
+            <h3>Figure 1 · Why / What</h3>
+            <p>输入是什么？人类胸前 RGB、深度、头/相机位姿、3D 手信号与语言指令。</p>
+            <p>中间产物是什么？目标机器人运动 + 与运动一致的机器人第一视角。</p>
+            <p>关键 claim 是什么？canonical record 可复用，但控制器标签要按接口重新实例化。</p>
+          </article>
+          <article class="koda-card">
+            <h3>Figure 2 · How</h3>
+            <p>手如何 retarget？接触如何修正？全身运动如何在仿真中变得可执行？</p>
+            <p>人臂如何移除、场景如何重投影、机器人如何渲染并合成？</p>
+            <p>运动如何进一步转换成 SONIC / HEFT 的状态与动作标签？</p>
+          </article>
+        </div>
+
+        <div class="fig-interactive">
+          <div class="fig-block">
+            <div class="hotspot-wrap" data-hotspot-group="koda-overview">
+              <img src="../assets/figures/koda/fig-1.png" alt="Figure 1：KODA 系统与训练数据流总览" decoding="async">
+              <button type="button" class="hotspot" data-id="human" style="left:13%;top:43%;" data-title="人类第一视角输入" data-body="可规模化采集的 RGB、深度、相机/头部运动、3D 手信号与任务指令。"></button>
+              <button type="button" class="hotspot" data-id="motion" style="left:42%;top:34%;" data-title="① 全身运动生成" data-body="把稀疏的人类头—手线索变成目标 G1 在仿真里可行的全身轨迹。"></button>
+              <button type="button" class="hotspot" data-id="views" style="left:68%;top:34%;" data-title="② 机器人 onboard view" data-body="依据生成的机器人相机位姿重投影场景，并渲染机器人手臂，使视觉与运动对齐。"></button>
+              <button type="button" class="hotspot" data-id="canonical" style="left:42%;top:49%;" data-title="可复用 canonical record" data-body="机器人图像、目标机器人运动和语言指令组成可复用记录；它仍绑定本体，但不绑定 SONIC/HEFT 接口。"></button>
+              <button type="button" class="hotspot" data-id="commands" style="left:68%;top:49%;" data-title="③ 控制命令生成" data-body="针对每个控制器 rollout 并生成兼容的 state/action 标签。"></button>
+              <button type="button" class="hotspot" data-id="cotrain" style="left:64%;top:62%;" data-title="与真机数据共同训练" data-body="KODA 合成数据不是完全替代真机数据，而是补充对应控制器的 50 条真机示范。"></button>
+            </div>
+            <div class="fig-cap"><span class="fig-num">Fig. 1 · p.2</span>KODA 总览：从人类 egocentric demonstration 到 controller-specific 的人形 VLA 数据。<span class="fig-cn">点图中圆点查看每个语义层；注意“可复用”修饰 canonical record，不等于一个 action label 可被所有控制器直接消费。</span></div>
+          </div>
+          <div class="hotspot-panel" aria-live="polite"></div>
+        </div>
+
+        <table class="kv-table" aria-label="论文五问">
+          <tbody>
+            <tr><td>背景</td><td>人类第一视角视频比人形机器人遥操作数据更容易规模化，但人手、机器人运动、相机视角和控制接口并不天然一致。</td></tr>
+            <tr><td>站在哪些工作上</td><td>HAWOR 手姿估计、AnyTeleop 风格 retargeting、ScaleBFM、MJX/MuJoCo、Mink IK、DiffuEraser，以及 GR00T N1.7 VLA。</td></tr>
+            <tr><td>前人具体卡点</td><td>HALOMI / EgoHumanoid 也做 ego-to-robot，但监督标签与专用 policy/controller 接口绑定，难以并入另一套既有 whole-body 数据。</td></tr>
+            <tr><td>核心 insight</td><td>先对齐机器人运动与机器人观测，再把 controller-specific label generation 放到最后一层。</td></tr>
+            <tr><td>效果与代价</td><td>在 robot-OOD 上，相比 robot-only，SONIC +45 pp，HEFT +46.25 pp；代价是多级估计、仿真优化、渲染与 inpainting。</td></tr>
+            <tr><td>数据谱系</td><td>每任务 50 条真机示范/控制器 + 100 条人类示范，共 4 任务；人类数据通过 KODA 转成每套控制器的数据。</td></tr>
+          </tbody>
+        </table>
+
+        <details class="en-quote">
+          <summary>展开释义 · 核心 claim（非逐字引文）</summary>
+          <div class="quote-body">
+            <p>KODA 先把人类示范整理成可重复使用、不绑定最终部署控制器的 canonical record，再生成控制器专属标签。</p>
+            <div class="quote-cite">— 对 Introduction 与方法部分的中文释义</div>
+          </div>
+        </details>
+
+        <h2 id="evaluation">§2.1 证据先行：Sim、OOD、真机分别证明了什么？</h2>
+        <div class="tab-switcher" data-tabs>
+          <div class="tabs" role="tablist" aria-label="评测类别">
+            <button type="button" class="tab active" data-tab="sim">仿真 / 诊断</button>
+            <button type="button" class="tab" data-tab="ood">ID / OOD</button>
+            <button type="button" class="tab" data-tab="real">真机</button>
+          </div>
+
+          <section class="tab-panel active" data-panel="sim">
+            <div class="eval-table-wrap">
+              <table class="eval-table">
+                <caption>没有任务级 sim benchmark；只有运动与控制 rollout 的 tracking diagnostics</caption>
+                <thead><tr><th>阶段</th><th>方法</th><th>手腕位置误差</th><th>手腕旋转误差</th><th>相机/躯干位置误差</th><th>证据</th></tr></thead>
+                <tbody>
+                  <tr><td>全身运动</td><td>Direct</td><td>15.02 cm</td><td>0.2046 rad</td><td>16.27 cm</td><td>Table 4</td></tr>
+                  <tr><td>全身运动</td><td>SCO</td><td>3.03 cm</td><td>0.1106 rad</td><td>5.39 cm</td><td>Table 4</td></tr>
+                  <tr><td>全身运动</td><td>SCO + arm IK</td><td>0.33 cm</td><td>0.0296 rad</td><td>5.39 cm</td><td>Table 4</td></tr>
+                  <tr><td>SONIC rollout</td><td>SCO</td><td>2.88 cm</td><td>0.1292 rad</td><td>3.20 cm</td><td>Table 4</td></tr>
+                  <tr><td>HEFT rollout</td><td>SCO</td><td>2.94 cm</td><td>0.0552 rad</td><td>2.84 cm</td><td>Table 4</td></tr>
+                </tbody>
+              </table>
+            </div>
+            <aside class="evidence-note" data-evidence="missing">论文没有在仿真 benchmark 上报告任务成功率、与仿真策略基线对比或 sim-to-real gap。这里的数字只能证明轨迹跟踪更准，不能代替闭环任务成功率。</aside>
+          </section>
+
+          <section class="tab-panel" data-panel="ood">
+            <div class="eval-table-wrap">
+              <table class="eval-table">
+                <caption>100 条人类示范预算下的 macro-average 真机成功率</caption>
+                <thead><tr><th>控制器</th><th>配置</th><th>ID</th><th>Robot-OOD</th><th>绝对下降</th><th>保留率</th><th>证据</th></tr></thead>
+                <tbody>
+                  <tr class="eval-comparison" data-direction="higher" data-id-value="0.725" data-ood-value="0.4875"><td>SONIC</td><td>50 robot + 100 KODA / task</td><td>72.5%</td><td>48.75%</td><td data-eval-absolute-drop>—</td><td data-eval-retention>—</td><td>Table 1</td></tr>
+                  <tr class="eval-comparison" data-direction="higher" data-id-value="0.7625" data-ood-value="0.5125"><td>HEFT</td><td>50 robot + 100 KODA / task</td><td>76.25%</td><td>51.25%</td><td data-eval-absolute-drop>—</td><td data-eval-retention>—</td><td>Table 1</td></tr>
+                  <tr class="eval-comparison" data-direction="higher" data-id-value="0.625" data-ood-value="0.0375"><td>SONIC</td><td>robot-only</td><td>62.5%</td><td>3.75%</td><td data-eval-absolute-drop>—</td><td data-eval-retention>—</td><td>Table 1</td></tr>
+                  <tr class="eval-comparison" data-direction="higher" data-id-value="0.6875" data-ood-value="0.05"><td>HEFT</td><td>robot-only</td><td>68.75%</td><td>5.0%</td><td data-eval-absolute-drop>—</td><td data-eval-retention>—</td><td>Table 1</td></tr>
+                </tbody>
+              </table>
+            </div>
+            <div class="checkpoint">
+              <p><strong>这里的 OOD 是 robot-data OOD，不是 all-training-data OOD。</strong>测试中的棕瓶、白色包裹、倾斜篮把不在真机示范里，却出现在人类训练池中；每任务 100 条人类示范由 80 条 shifted + 20 条 matched 组成。</p>
+              <p>因此最准确的结论是：KODA 能把<strong>人类域已经覆盖的新外观/几何变化</strong>转移到机器人策略，而不是凭空 zero-shot 泛化到从未见过的对象。</p>
+            </div>
+          </section>
+
+          <section class="tab-panel" data-panel="real">
+            <div class="eval-table-wrap">
+              <table class="eval-table">
+                <caption>四任务合并后的真实机器人计数与 95% Wilson 区间</caption>
+                <thead><tr><th>控制器</th><th>配置</th><th>条件</th><th>成功数/总数</th><th>成功率</th><th>95% Wilson</th><th>证据</th></tr></thead>
+                <tbody>
+                  <tr class="eval-binomial" data-successes="58" data-trials="80"><td>SONIC</td><td>完整 KODA</td><td>ID</td><td>58/80</td><td>72.5%</td><td data-wilson-95>计算中</td><td>Table 1</td></tr>
+                  <tr class="eval-binomial" data-successes="39" data-trials="80"><td>SONIC</td><td>完整 KODA</td><td>Robot-OOD</td><td>39/80</td><td>48.75%</td><td data-wilson-95>计算中</td><td>Table 1</td></tr>
+                  <tr class="eval-binomial" data-successes="61" data-trials="80"><td>HEFT</td><td>完整 KODA</td><td>ID</td><td>61/80</td><td>76.25%</td><td data-wilson-95>计算中</td><td>Table 1</td></tr>
+                  <tr class="eval-binomial" data-successes="41" data-trials="80"><td>HEFT</td><td>完整 KODA</td><td>Robot-OOD</td><td>41/80</td><td>51.25%</td><td data-wilson-95>计算中</td><td>Table 1</td></tr>
+                </tbody>
+              </table>
+            </div>
+            <div class="number-strip">
+              <div><strong>4</strong>语言引导任务</div><div><strong>2</strong>控制器</div><div><strong>20</strong>每任务/条件试验</div><div><strong>1×</strong>每配置训练运行</div>
+            </div>
+            <p class="small-note">四个任务：杯子入篮、包裹上架、篮子上架、杯子入抽屉。成功标准是完成放置，且没有摔倒或无法恢复的操作失败。</p>
+          </section>
+        </div>
+
+        <h2 id="evidence-strength">§2.2 证据强度：最强结论与不能外推的部分</h2>
+        <table class="kv-table" aria-label="证据强度检查">
+          <tbody>
+            <tr><td>闭环性</td><td>真机是闭环 VLA 执行；tracking table 是仿真 rollout 诊断。</td></tr>
+            <tr><td>试验量</td><td>每任务/条件 20 次，四任务合并 n=80；但每训练配置只跑一次，没有跨 seed 方差。</td></tr>
+            <tr><td>基线公平性</td><td>主要基线是同一 backbone 的 robot-only 与内部模块消融；没有与 HALOMI/EgoHumanoid 做端到端成功率对齐。</td></tr>
+            <tr><td>OOD 真实性</td><td>相对 robot demos 未见，但人类训练数据覆盖；不属于完全未见类别或新任务组合。</td></tr>
+            <tr><td>跨本体</td><td>未做。实验始终是 Unitree G1 + BrainCo hands；变化的是 controller，不是 morphology。</td></tr>
+          </tbody>
+        </table>
+        <div class="checkpoint">
+          <p><strong>可支持：</strong>在同一目标本体和相机约定下，KODA 生成的对齐数据可以分别补充两种 whole-body controller 的数据集，并显著改善 human-covered 的 robot-OOD。</p>
+          <p><strong>暂不能支持：</strong>任意人形本体通用转换、完全未见对象 zero-shot 泛化、或 KODA 必然优于 HALOMI/EgoHumanoid 的端到端结论。</p>
+        </div>
+
+        <h2 id="data-silos">§3.1 为什么 HALOMI / EgoHumanoid 不能直接 enter other controller datasets？</h2>
+        <p>它们当然也是 <strong>ego-to-robot</strong>：都从人类第一视角示范得到机器人学习信号。区别不在输入，而在<strong>最终监督标签停在哪一层</strong>。</p>
+        <div class="koda-flow" aria-label="三类数据接口对比">
+          <div><strong>人类 ego 数据</strong><br><span class="small-note">视觉、头/手运动、任务语言</span></div>
+          <div class="arrow">→</div>
+          <div><strong>HALOMI / EgoHumanoid 路径</strong><br><span class="small-note">直接进入特定 policy/controller 所需的 action representation；数据标签与接口绑定。</span></div>
+          <div class="arrow">↛</div>
+          <div><strong>另一 controller 的现有数据</strong><br><span class="small-note">动作维度、状态定义、参考系和闭环动力学不同，不能只靠拼接数据解决。</span></div>
+        </div>
+
+        <div class="eval-table-wrap">
+        <table class="eval-table">
+          <caption>“不能直接进入”的具体含义</caption>
+          <thead><tr><th>不兼容层</th><th>为什么会冲突</th><th>KODA 怎么处理</th></tr></thead>
+          <tbody>
+            <tr><td>动作空间</td><td>SONIC 是 64 维 body label + 12 维 hand；HEFT 是 29 关节 + 9 pelvis + 12 hand，共 50 维。</td><td>从同一 canonical motion 分别 rollout，重新生成各自 action。</td></tr>
+            <tr><td>状态分布</td><td>同一个参考运动，被不同 low-level controller 跟踪后，实际关节与姿态会有残差。</td><td>用该 controller 的 rollout 记录实际 state，而非复制理想轨迹。</td></tr>
+            <tr><td>观测—动作配对</td><td>人类画面中的手臂外观、相机运动与机器人执行不一致。</td><td>把图像重建成 motion-aligned 的 robot onboard view。</td></tr>
+            <tr><td>数据 schema</td><td>已有 robot demos 已按某个 VLA/controller 预处理；接口不一致时无法直接 co-train。</td><td>最后一步做 controller-specific instantiation，匹配目标数据集 schema。</td></tr>
+          </tbody>
+        </table>
+        </div>
+        <aside class="evidence-note" data-evidence="inference">“data silo”不是说原始视频毫无复用价值，而是说<strong>现成的监督样本</strong>不能无损地换一个 action interface 使用。若重新做 retarget、仿真 rollout 和标签生成，本质上就在补 KODA 的这层转换。</aside>
+
+        <h2 id="canonical">§3.2 Canonical record：controller-agnostic，但不是 embodiment-agnostic</h2>
+        <div class="formula-card">
+          <p>一条人类示范可写成：</p>
+          <div class="formula">$$e^h = (\{I_t^h, D_t^h, C_t^h, J_t^h\}_{t=1}^{T},\; \ell)$$</div>
+          <p>经过运动与视角对齐，KODA 得到目标机器人 (R) 的 canonical record：</p>
+          <div class="formula">$$e_R^{\mathrm{can}} = (\{I_t^R, q_t^R\}_{t=1}^{T},\; \ell)$$</div>
+          <p>再用控制器 κ 的生成器 (G_\kappa) 实例化：</p>
+          <div class="formula">$$e_R^\kappa = G_\kappa(e_R^{\mathrm{can}}) = (\{I_t^R,s_t^\kappa,a_t^\kappa\}_{t=1}^{T},\;\ell)$$</div>
+        </div>
+        <div class="schema-row"><strong>(I_t^R)</strong><span>按目标机器人相机姿态合成的 onboard image。</span></div>
+        <div class="schema-row"><strong>(q_t^R)</strong><span>目标机器人本体的可执行 whole-body configuration；这里已经固定为 G1 + BrainCo。</span></div>
+        <div class="schema-row"><strong>(s_t^\kappa,a_t^\kappa)</strong><span>由指定 controller rollout 得到的状态和控制标签。</span></div>
+
+        <div class="koda-compare">
+          <article class="koda-card"><h3>同一 record → SONIC</h3><p>输出 76 维动作标签：64 body + 12 hand；状态也来自 SONIC rollout。</p></article>
+          <article class="koda-card"><h3>同一 record → HEFT</h3><p>输出 50 维动作标签：29 joint + 9 pelvis + 12 hand；状态来自 HEFT rollout。</p></article>
+        </div>
+        <div class="verdict"><strong>回答你的第三个问题：</strong>KODA 目前能从同一份 canonical G1 数据生成<strong>不同控制器</strong>所需的数据，不能直接把它当成“为不同机器人本体生成数据”的已验证方案。换本体要重新做 URDF/关节映射、手部 retarget、相机外参、碰撞与动力学约束、rendering，并重新验证；论文没有做这个实验。</div>
+
+        <div class="quiz" data-correct="b" data-explain="Canonical record 已经含目标机器人 R 的关节轨迹与相机视角，所以仍绑定 embodiment；解耦的是 controller interface。">
+          <div class="quiz-title">检查理解：KODA 的 controller-agnostic 等于 embodiment-agnostic 吗？</div>
+          <button type="button" class="q-opt" data-k="a">A. 等于；一份 record 可直接用于任意机器人</button>
+          <button type="button" class="q-opt" data-k="b">B. 不等于；它仍绑定目标本体和相机约定</button>
+          <button type="button" class="q-opt" data-k="c">C. 等于；只要 action 维度一致即可</button>
+          <div class="q-feedback" aria-live="polite"></div>
+        </div>
+
+        <h2 id="pipeline">§4.1 Figure 2：实现流水线，跟着信号走一遍</h2>
+        <div class="fig-interactive">
+          <div class="fig-block">
+            <div class="hotspot-wrap" data-hotspot-group="koda-pipeline">
+              <img src="../assets/figures/koda/fig-2.png" alt="Figure 2：KODA 完整工程流水线" loading="lazy" decoding="async">
+              <button type="button" class="hotspot" data-id="inputs" style="left:12%;top:43%;" data-title="多模态输入" data-body="相机位姿、手姿、深度与 RGB；语言指令贯穿最终训练样本。"></button>
+              <button type="button" class="hotspot" data-id="hands" style="left:35%;top:13%;" data-title="手部与接触修正" data-body="从 MANO 手姿到机器人手，再用物体接触几何修正不可靠的手指参考。"></button>
+              <button type="button" class="hotspot" data-id="wholebody" style="left:45%;top:42%;" data-title="全身运动生成" data-body="ScaleBFM + SCO 产生仿真可行运动，Mink IK 再精修手臂。"></button>
+              <button type="button" class="hotspot" data-id="viewgen" style="left:48%;top:79%;" data-title="机器人视角生成" data-body="人臂分割、点云重投影、机器人渲染、深度合成、残余孔洞修补。"></button>
+              <button type="button" class="hotspot" data-id="control" style="left:71%;top:43%;" data-title="控制命令生成" data-body="在共同物理参考空间用 sampling-based optimization 找到 controller 可跟踪的命令。"></button>
+              <button type="button" class="hotspot" data-id="dataset" style="left:90%;top:42%;" data-title="VLA 训练样本" data-body="robot onboard view + controller-specific states/actions + language instruction。"></button>
+            </div>
+            <div class="fig-cap"><span class="fig-num">Fig. 2 · p.3</span>KODA pipeline：上方是全身运动生成，中央是主数据流，下方是 onboard view synthesis。<span class="fig-cn">这张图比 Figure 1 更接近“模块设计图”，不承担 controller silo 的动机论证。</span></div>
+          </div>
+          <div class="hotspot-panel" aria-live="polite"></div>
+        </div>
+
+        <div class="step-walker" data-hotspot-group="koda-pipeline" aria-label="KODA 信号路径">
+          <div class="sw-header"><div class="sw-title">跟着一条人类示范走完整条数据链</div><div class="sw-controls"><button type="button" class="sw-btn prev" aria-label="上一步">◀</button><span class="sw-counter">1 / 6</span><button type="button" class="sw-btn next" aria-label="下一步">▶</button></div></div>
+          <div class="sw-progress"><div class="sw-dot"></div><div class="sw-dot"></div><div class="sw-dot"></div><div class="sw-dot"></div><div class="sw-dot"></div><div class="sw-dot"></div></div>
+          <div class="sw-body">
+            <div class="sw-step active" data-hotspot="inputs"><h4>第 1 步：读入人类 episode</h4><p>RGB/深度、相机位姿、双手 3D 信号和语言被同步成 50 Hz 序列。</p></div>
+            <div class="sw-step" data-hotspot="hands"><h4>第 2 步：先把手与接触关系弄对</h4><p>估计 MANO 手姿，位置 retarget 到机器人手，并借助物体表面接触修正抓取几何。</p></div>
+            <div class="sw-step" data-hotspot="wholebody"><h4>第 3 步：从稀疏头—手变成全身轨迹</h4><p>在物理仿真中优化 torso、legs、arms，使 G1 能站稳并跟踪手腕。</p></div>
+            <div class="sw-step" data-hotspot="viewgen"><h4>第 4 步：让图像看起来像机器人真的在那里</h4><p>相机跟随生成的机器人运动；场景点云和 robot render 通过深度遮挡关系合成。</p></div>
+            <div class="sw-step" data-hotspot="control"><h4>第 5 步：按 controller 重新 rollout</h4><p>SONIC 与 HEFT 分别接收优化过的参考命令，产生实际状态与动作标签。</p></div>
+            <div class="sw-step" data-hotspot="dataset"><h4>第 6 步：与对应真机数据共同训练</h4><p>同一语言任务下的图像、状态、动作打包为与目标 robot dataset 兼容的样本。</p></div>
+          </div>
+        </div>
+
+        <h2 id="motion">§4.2 Whole-Body Motion：为什么不是“把手腕轨迹 IK 一下”就结束？</h2>
+        <p>人类胸前相机和双手只给出稀疏约束。直接 IK 容易产生不可平衡、不可接触、控制器跟不上的轨迹。KODA 先构造手部目标，再用全身优化把它变成动力学上可执行的 G1 motion。</p>
+        <ol class="risk-list">
+          <li><strong>HAWOR：</strong>估计世界坐标下的 MANO 双手姿态。</li>
+          <li><strong>Position retargeting：</strong>映射到 BrainCo 手腕与手指参考。</li>
+          <li><strong>Contact-aware refinement：</strong>由 EfficientSAM3 物体 mask 与深度形成交互几何；没有可靠接触时保留初始化。</li>
+          <li><strong>ScaleBFM + SCO：</strong>将 torso 和双腕作为关键跟踪点，在 MJX 中滚动优化全身命令。</li>
+          <li><strong>Mink temporal IK：</strong>固定 SCO 的躯干/下肢结果，进一步压低手腕误差。</li>
+        </ol>
+        <div class="formula-card">
+          <p>SCO 的本质可写成“从候选命令分布里反复采样，选择累计 tracking cost 最低的 elite，再更新分布”：</p>
+          <div class="formula">$$u_{t:t+H-1}^{(i)} \sim \mathcal{N}(\mu,\Sigma),\quad J^{(i)}=\sum_{\tau=t}^{t+H-1} c(x_\tau,u_\tau),\quad (\mu,\Sigma)\leftarrow\mathrm{Fit}(\text{elite})$$</div>
+          <p class="small-note">论文配置：50 Hz、horizon 40、每轮 80 个候选、8 轮；全身阶段 10 个 elites。这里的公式是对 CEM/SCO 过程的概括，不是论文新推导。</p>
+        </div>
+        <figure class="fig-block">
+          <img src="../assets/figures/koda/fig-3.png" alt="Figure 3：KODA 全身运动与控制命令生成细节" loading="lazy" decoding="async">
+          <figcaption class="fig-cap"><span class="fig-num">Fig. 3 · p.6</span>运动生成与 controller command optimization 的可视化。<span class="fig-cn">同一参考运动进入不同 controller 后必须重新优化，这是 action label 不能直接互换的物理原因。</span></figcaption>
+        </figure>
+
+        <h2 id="views">§4.3 Robot Onboard View：不是“换皮”，而是重建观测—运动一致性</h2>
+        <p>如果只把人臂抹掉或固定偏移相机，机器人看到的桌面、物体与自身手臂仍可能和动作轨迹错位。KODA 让相机位姿来自 canonical robot configuration，再做几何优先的合成：</p>
+        <div class="koda-flow">
+          <div><strong>人臂分割</strong><br><span class="small-note">EfficientSAM3 得到要移除的区域</span></div><div class="arrow">→</div>
+          <div><strong>几何重建</strong><br><span class="small-note">metric depth backprojection + z-buffer + MuJoCo robot render</span></div><div class="arrow">→</div>
+          <div><strong>深度合成与补洞</strong><br><span class="small-note">冻结有效 scene/robot pixels；DiffuEraser 只补残余孔洞</span></div>
+        </div>
+        <div class="eval-table-wrap">
+          <table class="eval-table"><caption>Observation alignment ablation · SONIC macro-average</caption><thead><tr><th>观测处理</th><th>ID</th><th>Robot-OOD</th><th>说明</th></tr></thead><tbody>
+            <tr><td>No alignment</td><td>62.5%</td><td>18.75%</td><td>原人类图像与机器人 action 错配</td></tr>
+            <tr><td>Fixed offset</td><td>63.75%</td><td>23.75%</td><td>固定相机偏移不能表达真实全身运动</td></tr>
+            <tr><td>Motion-based reprojection</td><td>66.25%</td><td>37.5%</td><td>相机随机器人 motion 重投影</td></tr>
+            <tr><td>Full alignment</td><td>72.5%</td><td>48.75%</td><td>再加人臂移除、机器人渲染与合成</td></tr>
+          </tbody></table>
+        </div>
+        <aside class="evidence-note" data-evidence="inference">Full 相比 motion-based reprojection 同时改变了多项图像操作，因此不能从 Table 2 单独判断 arm removal、robot rendering 或 inpainting 各自贡献多少。</aside>
+
+        <h2 id="commands">§4.4 Controller-specific command generation：共享物理目标，不共享标签</h2>
+        <p>KODA 把 canonical G1 轨迹当作共同的物理参考，再让 SONIC 与 HEFT 分别 rollout。两者共享 44 维状态 schema：29 维 body joints 与 3 维 projected gravity 来自各自 controller rollout；12 维 hand angles 来自几何重定向估计，并非执行器测得的手部状态。动作 schema 则直接不同。</p>
+        <div class="eval-table-wrap">
+          <table class="eval-table"><caption>Control command SCO ablation · SONIC macro-average</caption><thead><tr><th>生成方式</th><th>ID</th><th>Robot-OOD</th><th>解释</th></tr></thead><tbody>
+            <tr><td>Without SCO</td><td>48.75%</td><td>7.5%</td><td>直接标签与真实 controller rollout 分布偏离</td></tr>
+            <tr><td>With SCO</td><td>72.5%</td><td>48.75%</td><td>在闭环中优化可跟踪命令，并记录相应 state/action</td></tr>
+          </tbody></table>
+        </div>
+        <aside class="evidence-note" data-evidence="paper">这个消融同时改变 state 与 action supervision，因此它证明“完整 command-generation pipeline 很重要”，但不能严格归因到 action label 单项。</aside>
+
+        <figure class="fig-block">
+          <img src="../assets/figures/koda/fig-4.png" alt="Figure 4：KODA 真机任务的定性执行序列" loading="lazy" decoding="async">
+          <figcaption class="fig-cap"><span class="fig-num">Fig. 4 · p.7</span>杯子入抽屉任务的定性执行序列。<span class="fig-cn">它提供行为形态的定性证据；四任务成功率统计仍应以 Table 1 的 20 trials/task/condition 为准。</span></figcaption>
+        </figure>
+
+        <section class="series-audit" id="controller-reuse-audit">
+          <div class="kicker">2026-10-23 · CONTROLLER INTERFACE AUDIT</div>
+          <h2>补充：换控制器，究竟哪些东西可以复用？</h2>
+          <p>“Controller-agnostic”是对<strong>最终部署接口</strong>而言，不是说数据生成过程完全不用控制器。Canonical motion 仍借助微调后的 ScaleBFM；canonical RGB、G1 形态、手型和相机也已经固定。将同一目标交给不同 controller，不等于原有观测—动作对无需重编译。</p>
+          <div class="eval-table-wrap"><table class="eval-table"><caption>paper · arXiv:2610.21152v1，§3、Appendix A</caption><thead><tr><th>层</th><th>可复用内容</th><th>换接口必须重查</th></tr></thead><tbody>
+          <tr><td>Canonical record</td><td>绑定本体与相机的 RGB、参考运动、指令</td><td>换机器人或相机时，需要重新 retarget / render；不是跨形态通用标签。</td></tr>
+          <tr><td>物理优化空间</td><td>SCO 第二阶段对未来 pelvis 6 + body 29 = 35 维参考，10 个 knots 共 350 维做优化</td><td>不是直接在 SONIC 的 64 维 latent token 上搜索。参考仍须通过目标 controller rollout。</td></tr>
+          <tr><td>SONIC 标签</td><td>64 body token + 12 hand = 76 维动作</td><td>encoder、decoder、归一化、时序、checkpoint 必须成套。维数相同不保证 latent 语义相同。</td></tr>
+          <tr><td>HEFT 标签</td><td>29 joint + 9 pelvis + 12 hand = 50 维动作</td><td>pelvis 9 维含旋转编码、相对位移及绝对高度；不能把绝对高度再次累计。</td></tr>
+          <tr><td>状态与画面</td><td>44 维统一状态 schema；canonical 画面</td><td>body/gravity 来自目标 rollout，hand 为几何估计；canonical camera 与新 rollout 只是近似对齐。</td></tr>
+          </tbody></table></div>
+          <p><strong>为什么不能只追求低腕误差：</strong>完整优化使 SONIC rollout 腕位置误差由 61.5 降到 2.88 cm，但相机旋转误差由 0.0784 变为 0.0808 rad，并非所有指标同时改善。优化结果必须分部位、分观测通道核验。</p>
+          <p><strong>OOD 的关键限定：</strong>每任务每控制器 50 条机器人示范；新增 100 条人类示范中有 80 条覆盖 robot-shifted 条件。SONIC 的 OOD 均值 3.75%→48.75%，HEFT 5.0%→51.25%，是人类数据补齐机器人分布的证据，不能写成“所有训练数据都未见的 OOD”。</p>
+          <p class="source">关联阅读：<a href="egohumanoid-v2.html#alignment">EgoHumanoid-V2 的 controller-consistent alignment</a> · <a href="sonic.html#interface-audit">SONIC 的接口契约</a> · <a href="humanoid-data-to-wam.html">六篇链路总览</a>。未审计用户实际部署 wrapper。</p>
+        </section>
+
+        <h2 id="limits">§5 审稿式结论：KODA 真正解决了什么，还差什么？</h2>
+        <div class="verdict">
+          <strong>最准确的一句话：</strong>KODA 是一个<strong>数据编译器</strong>：把人类 ego episode 编译成与指定机器人运动和视角一致的中间表示，再面向每个 controller 编译出可 co-train 的状态—动作样本。
+        </div>
+        <table class="kv-table" aria-label="贡献与边界">
+          <tbody>
+            <tr><td>真正新且有用</td><td>把 observation alignment 与 control-interface alignment 放在同一个 ego-to-humanoid 数据生成框架里；canonical record 明确了可复用边界。</td></tr>
+            <tr><td>最强实验信号</td><td>两个控制器的 robot-OOD 都随人类示范规模明显上升，且 full view alignment / command SCO 消融幅度大。</td></tr>
+            <tr><td>跨本体缺口</td><td>只验证 G1 + BrainCo；没有第二种 morphology、相机安装、手型或自由度。</td></tr>
+            <tr><td>统计缺口</td><td>每配置单次训练；预算子集独立采样而非 nested，论文未给采样比例细节、seed 方差或置信区间。</td></tr>
+            <tr><td>接触缺口</td><td>细粒度手—物交互仍不能完全复现，也不建模接触力；作者将 real-to-sim/contact modeling 列为未来工作。</td></tr>
+            <tr><td>比较缺口</td><td>没有与 HALOMI/EgoHumanoid 在同一 VLA、同一 controller、同一任务下直接比较。</td></tr>
+          </tbody>
+        </table>
+
+        <details class="prediction-pause">
+          <summary>如果要把 KODA 真正扩成 multi-embodiment，最少还要验证什么？</summary>
+          <p>至少需要第二种机器人形态，明确 canonical record 中哪些变量进入 embodiment-neutral task space，重新定义跨本体接触/可达性约束，并分别报告 view synthesis、controller rollout 和真机成功率。否则“可以适配”只是工程可行性推断，不是论文已经证明的结论。</p>
+        </details>
+
+        <details class="en-quote">
+          <summary>展开释义 · limitation（非逐字引文）</summary>
+          <div class="quote-body"><p>当前方法没有完整建模接触力，也不能保证细粒度手—物交互被准确复现。</p><div class="quote-cite">— 对 Limitations, p.11 的中文释义</div></div>
+        </details>
+
+        <aside class="evidence-note" data-evidence="missing">阅读这篇时最容易混淆三件事：跨 controller ≠ 跨 embodiment；robot-OOD ≠ human-data OOD；仿真 tracking error ≠ 仿真任务 benchmark。把这三条边界守住，论文的价值和局限都会清楚很多。</aside>
+        <h2 id="vla-connection">与 VLA / Embodied AI 的联系</h2>
+        <p>对 VLA / WAM，KODA 的产物是可训练的观测—状态—动作样本，不是可以忽略底层接口的万能人类数据。先冻结目标本体、controller checkpoint 和动作时间基准，再生成训练标签；换 controller 后重做标签与 rollout 验证，往往比只改动作头维度更重要。</p>
+      </main>
+    </div>
+  </div>
+  <script>
+    document.addEventListener('DOMContentLoaded', function () {
+      if (window.renderMathInElement) {
+        renderMathInElement(document.body, {
+          delimiters: [
+            { left: '$$', right: '$$', display: true },
+            { left: '\\[', right: '\\]', display: true },
+            { left: '$', right: '$', display: false },
+            { left: '\\(', right: '\\)', display: false }
+          ],
+          throwOnError: false,
+          strict: false,
+          trust: true
+        });
+      }
+    });
+  </script>
+</body>
+</html>

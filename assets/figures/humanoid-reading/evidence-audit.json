@@ -1,0 +1,18 @@
+{
+  "reviewed": "2026-10-23",
+  "sourceManifest": "source-manifest.json",
+  "scope": "Six fixed local PDFs, full main text, references, captions and embedded appendices. No external supplementary-video audit and no robot execution.",
+  "claims": [
+    {"paper":"GMR","location":"§III–V, Tables I–III, pp.3–7","claim":"21 single-motion tracking policies; sim2sim is not physical real-robot evidence.","status":"paper"},
+    {"paper":"GMR","location":"official commit bb1bbe40774794fceb2a7c579a3464a28e68c844, motion_retarget.py and bvh_lafan1_to_g1.json","claim":"Configuration limit enabled; velocity limit optional; solver damping and FrameTask damping differ.","status":"code"},
+    {"paper":"SONIC","location":"Figure 7, Appendix B–D","claim":"64-D universal token conditions a proprioceptive control decoder; 29 joint targets are not an open-loop trajectory decoder output.","status":"paper"},
+    {"paper":"EgoHumanoid-V2","location":"Table 1 and §4, Appendix C–D","claim":"51.67% is a four-task mean partial progress score, not full-task success; online IK diagnostics are not policy evaluation.","status":"paper"},
+    {"paper":"EgoHumanoid-V2","location":"Figure 4, visually verified against PDF","claim":"Curtain at 200 demonstrations is 53.33; a text-extraction ordering artifact was resolved against the original plot.","status":"resolved-extraction-artifact"},
+    {"paper":"KODA","location":"§3 and Appendix A, Tables 1 and 4","claim":"44-D state combines controller-rollout body/gravity with geometric hand estimates. Canonical reuse does not establish cross-embodiment transfer.","status":"paper"},
+    {"paper":"Fast-WAM","location":"§3, §4, Figure 4","claim":"Joint latency is 580 ms; principal Fast-WAM variant is 190 ms. Action cannot attend future video during either training or inference.","status":"paper"},
+    {"paper":"Fast-WAM","location":"Figure 4, visual inspection","claim":"Real towel-folding points are graphical estimates, about 75% for Fast-WAM and 90% for IDM; pretrained pi0.5 is strongest. Raw trial counts not supplied.","status":"paper-plot-estimate"},
+    {"paper":"VPP2","location":"§3–4, Appendices A–C","claim":"Future-video conditioning remains at inference; reported 220 ms lacks enough hardware context for a strict same-device comparison with Fast-WAM.","status":"paper"}
+  ],
+  "teachingOnly": ["GMR scalar weighted-least-squares slider is not a G1 simulator or official GMR reimplementation.","Six-paper interface checklist is synthesis, not a jointly validated system."],
+  "notPerformed": ["User deployment-wrapper audit", "Controller checkpoint compatibility execution", "Training", "Real-robot trials", "Latest-version exhaustive search"]
+}

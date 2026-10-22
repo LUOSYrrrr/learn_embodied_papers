@@ -6,6 +6,8 @@
   <title>Embodied AI Notes · 具身智能学习笔记</title>
   <link rel="stylesheet" href="assets/css/style.css">
   <script src="assets/js/theme.js"></script>
+  <link rel="stylesheet" href="assets/css/paper-catalog.css">
+  <script defer src="assets/js/paper-catalog.js"></script>
   <style>
     .intro-grid {
       display: grid; grid-template-columns: repeat(3, 1fr);
@@ -92,7 +94,7 @@
       box-shadow: var(--shadow-sm);
     }
     .wm-topic-shell::after {
-      content: 'WORLD ACTION MODEL'; position: absolute; right: -4px; top: -8px;
+      content: attr(data-watermark); position: absolute; right: -4px; top: -8px;
       font: 700 52px/1 var(--font-mono); letter-spacing: -0.06em;
       color: var(--text); opacity: .025; pointer-events: none;
     }
@@ -102,6 +104,8 @@
     .wm-topic-desc { margin: 0; max-width: 760px; color: var(--text2); font-size: 14px; line-height: 1.75; }
     .wm-topic-cta { flex: 0 0 auto; padding: 10px 14px; border: 1px solid var(--border2); border-radius: 9px; text-decoration: none; color: var(--text); font: 500 12px/1 var(--font-mono); background: var(--glass); }
     .wm-topic-cta:hover { border-color: var(--accent); color: var(--accent); }
+    .wm-topic-actions { display: flex; flex: 0 0 auto; gap: 8px; align-items: center; flex-wrap: wrap; justify-content: flex-end; }
+    .wm-topic-cta.primary { border-color: color-mix(in srgb, var(--accent) 52%, var(--border2)); color: var(--accent); }
     .wm-track { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; counter-reset: wmstep; }
     .wm-phase { position: relative; min-height: 168px; padding: 18px; background: var(--glass); border: 1px solid var(--glass-border); border-radius: 12px; }
     .wm-phase::before { counter-increment: wmstep; content: '0' counter(wmstep); display: block; margin-bottom: 12px; font: 500 11px/1 var(--font-mono); color: var(--accent); }
@@ -122,7 +126,7 @@
     @media (max-width: 640px) {
       .nav-links a:nth-of-type(3), .nav-links a:nth-of-type(4) { display: none; }
       .wm-topic { padding: 0 16px; } .wm-topic-shell { padding: 22px 18px; }
-      .wm-topic-head { display: block; } .wm-topic-cta { display: inline-block; margin-top: 14px; }
+      .wm-topic-head { display: block; } .wm-topic-actions { justify-content: flex-start; margin-top: 14px; } .wm-topic-cta { display: inline-block; }
       .wm-track, .wm-side { grid-template-columns: 1fr; } .wm-phase { min-height: 0; }
       .wm-phase::after { display: none; }
     }
@@ -215,11 +219,14 @@
     .dc-item.disabled .dc-item-main { font-weight: 400; }
   </style>
 </head>
-<body>
+<body class="reading-home">
   <nav class="nav">
     <a class="nav-logo" href="index.html">Paper Notes</a>
     <div class="nav-links">
+      <a href="papers/embodied-knowledge-map.html">知识总图</a>
+      <a href="#all-readings">全部解读</a>
       <a href="#world-model">World Model 专题</a>
+      <a href="#embodied-icl">Embodied ICL 专题</a>
       <a href="leaderboard/">论文榜单</a>
       <a href="https://github.com/LUOSYrrrr/learn_embodied_papers" target="_blank">GitHub</a>
       <a href="#about">关于</a>
@@ -235,12 +242,13 @@
         聚焦 VLA（视觉-语言-动作）模型、世界模型、控制策略等方向，每篇都有架构拆解 / 核心公式 /
         与工程实践的连接。
       </p>
+      <p style="margin-top:20px"><a class="wm-topic-cta primary" href="papers/embodied-knowledge-map.html">先看全局：具身智能知识总图 →</a> <a class="wm-topic-cta" href="#all-readings">查找全部解读 →</a></p>
     </div>
 
     <div class="intro-grid">
       <div class="intro-cell">
-        <div class="intro-cell-num">36</div>
-        <div class="intro-cell-label">已精读</div>
+        <div class="intro-cell-num">128</div>
+        <div class="intro-cell-label">解读页面</div>
       </div>
       <div class="intro-cell">
         <div class="intro-cell-num">30+</div>
@@ -253,7 +261,7 @@
     </div>
 
     <section class="wm-topic" id="world-model">
-      <div class="wm-topic-shell">
+      <div class="wm-topic-shell" data-watermark="WORLD ACTION MODEL">
         <div class="wm-topic-head">
           <div>
             <div class="wm-topic-kicker">专题 01 · 按 WAM 学习路线组织</div>
@@ -293,14 +301,14 @@
     </section>
 
     <section class="wm-topic" id="vla-rl">
-      <div class="wm-topic-shell">
+      <div class="wm-topic-shell" data-watermark="VLA POST-TRAINING">
         <div class="wm-topic-head">
           <div>
             <div class="wm-topic-kicker">专题 02 · VLA POST-TRAINING</div>
             <h2 class="wm-topic-title">VLA + Reinforcement Learning</h2>
             <p class="wm-topic-desc">从 VLA/SFT 基座出发，依次理解离线 RL、轻量在线真机微调、生成式动作头的原生策略梯度，以及 residual 数据闭环与世界模型想象训练。截图中的可疑简称已单独核验，不生成假论文页面。</p>
           </div>
-          <a class="wm-topic-cta" href="papers/vla-rl-roadmap.html">打开完整路线图 →</a>
+          <div class="wm-topic-actions"><a class="wm-topic-cta" href="papers/vla-rl-roadmap.html">打开完整路线图 →</a><a class="wm-topic-cta primary" href="papers/real-robot-rl-roadmap.html">真机 RL 零基础 / 求职 →</a></div>
         </div>
         <div class="wm-track">
           <article class="wm-phase"><span class="wm-phase-title">VLA 与 RL 地基</span><p>RT-2 / OpenVLA / π₀ 建立动作表示；IQL、AWAC、HIL-SERL 建立反馈学习直觉。</p><div class="wm-links"><a class="wm-chip" href="papers/rt-2.html">RT-2</a><a class="wm-chip" href="papers/iql.html">IQL</a><a class="wm-chip" href="papers/awac.html">AWAC</a><a class="wm-chip" href="papers/hil-serl.html">HIL-SERL</a></div></article>
@@ -311,12 +319,83 @@
       </div>
     </section>
 
+    <section class="wm-topic" id="embodied-icl">
+      <div class="wm-topic-shell" data-watermark="EMBODIED ICL">
+        <div class="wm-topic-head">
+          <div>
+            <div class="wm-topic-kicker">专题 03 · PHYSICAL PROMPTING</div>
+            <h2 class="wm-topic-title">Embodied In-Context Learning</h2>
+            <p class="wm-topic-desc">把任务示范从“训练数据”改成“推理时接口”：先分清 ICL 与参数更新，再拆跨本体、时间对齐和长上下文三道难题，最后比较 GEN-1.5、Skild S1、HOST 与 Zero-WAM 的四种取舍。</p>
+          </div>
+          <a class="wm-topic-cta" href="papers/embodied-icl-roadmap.html">打开完整专题 →</a>
+        </div>
+        <div class="wm-track">
+          <article class="wm-phase"><span class="wm-phase-title">ICL 概念地基</span><p>示范进入 context，同一 checkpoint 立即换任务；与 SFT、meta-learning、TTT 严格分开。</p><div class="wm-links"><a class="wm-chip" href="https://arxiv.org/abs/2005.14165" target="_blank" rel="noopener">GPT-3</a><a class="wm-chip" href="https://arxiv.org/abs/2408.15980" target="_blank" rel="noopener">ICRT</a></div></article>
+          <article class="wm-phase"><span class="wm-phase-title">规模化 Physical Prompt</span><p>GEN-1.5 看涌现式 one-shot；S1 看 demonstration-conditioned pretraining 与长程组合。</p><div class="wm-links"><a class="wm-chip" href="https://generalistai.com/blog/gen-1.5" target="_blank" rel="noopener">GEN-1.5</a><a class="wm-chip" href="https://www.skild.ai/blogs/s1" target="_blank" rel="noopener">Skild S1</a></div></article>
+          <article class="wm-phase"><span class="wm-phase-title">进度对齐与技能保持</span><p>HOST 用共享任务进度流形把“人类示范 → 机器人未来 → 动作”拆成三级级联。</p><div class="wm-links"><a class="wm-chip" href="https://arxiv.org/abs/2607.20033" target="_blank" rel="noopener">HOST</a><a class="wm-chip" href="https://github.com/CGuangyan-BIT/HOST" target="_blank" rel="noopener">Code</a></div></article>
+          <article class="wm-phase"><span class="wm-phase-title">World-Action ICL</span><p>Zero-WAM 用 HumanGen、prefix memory 与 future chunk prediction 把任务视频转成可执行未来。</p><div class="wm-links"><a class="wm-chip" href="https://arxiv.org/abs/2608.26103" target="_blank" rel="noopener">Zero-WAM</a><a class="wm-chip" href="https://huggingface.co/datasets/Robbyant-Research/HumanGen" target="_blank" rel="noopener">HumanGen</a></div></article>
+        </div>
+        <div class="wm-side">
+          <a class="wm-side-card" href="papers/embodied-icl-roadmap.html#problems"><span class="wm-side-label">THREE HARD PROBLEMS</span><span class="wm-side-title">本体 · 时间 · 上下文</span><span class="wm-side-copy">人手不等于夹爪；示范时间不等于执行时间；长视频不等于免费记忆。</span></a>
+          <a class="wm-side-card" href="papers/embodied-icl-roadmap.html#engineering"><span class="wm-side-label">DEPLOYMENT</span><span class="wm-side-title">ICL 冷启动，SFT 固化</span><span class="wm-side-copy">长尾任务先用视频快速验证，高频高可靠任务再进入 SFT / RL。</span></a>
+          <a class="wm-side-card" href="papers/embodied-icl-roadmap.html#audit"><span class="wm-side-label">EVIDENCE AUDIT</span><span class="wm-side-title">博客展示 ≠ 可复现论文</span><span class="wm-side-copy">成功率不跨协议硬排名，公开性拆成论文、代码、数据与权重四档。</span></a>
+        </div>
+      </div>
+    </section>
+
     <!-- ───────────────────────────────────────── -->
     <div class="section-header">
       <span><span class="sh-label">最近更新</span> Recent</span>
       <span class="sh-hint">按更新时间排序</span>
     </div>
     <div class="recent-wrap">
+      <a class="recent-card" href="papers/humanoid-data-to-wam.html">
+        <div class="recent-date">2026-10-23 · 六篇串读</div>
+        <div class="recent-title">人体数据 → 重定向 → 底层控制 → WAM 策略</div>
+        <div class="recent-sub">新增 GMR、EgoHumanoid-V2；补充 SONIC 控制接口与 KODA 标签复用边界，串读 Fast-WAM / VPP2 的未来信息通路。区分 Sim、OOD 与真机证据，含权重／阻尼／限幅教学算例。</div>
+        <div class="recent-tags"><span class="status-badge status-done">✓ 串读专题</span><span class="card-pill">六篇原文核读</span><span class="card-pill">接口 · 数据 · 控制</span></div>
+      </a>
+      <a class="recent-card" href="papers/koda.html">
+        <div class="recent-date">2026-10-20 · 新增交互精读</div>
+        <div class="recent-title">KODA · 人类 Ego 数据如何进入不同人形控制器的数据集？</div>
+        <div class="recent-sub">把 Figure 1 的数据语义总览与 Figure 2 的实现流水线分开读：先生成绑定 G1 本体、但不绑定控制接口的 canonical record，再为 SONIC / HEFT 分别生成 state-action 标签。含真机 ID/OOD 审计、Wilson 区间、视角与控制消融，以及跨 controller 不等于跨 embodiment 的边界。</div>
+        <div class="recent-tags"><span class="status-badge status-done">✓ 已精读</span><span class="card-pill">Zhou 等 · 2026</span><span class="card-pill">Ego-to-Humanoid · Data Alignment</span></div>
+      </a>
+      <a class="recent-card" href="papers/vpp2.html">
+        <div class="recent-date">2026-10-13 · 新增精读</div>
+        <div class="recent-title">VPP2 · 先预测对，再行动对</div>
+        <div class="recent-sub">从 VPP1 补起：完整事件视频训练、单步蒸馏与 MoT 动作专家；逐项对照 FastWAM，拆开真机、LIBERO 与 RoboDojo 配方，核查 OOD 与零样本证据。</div>
+        <div class="recent-tags"><span class="status-badge status-done">✓ 已精读</span><span class="card-pill">Guo 等 · 2026</span><span class="card-pill">WAM · Video Prediction · OOD</span></div>
+      </a>
+      <a class="recent-card" href="papers/lingbot-vla2.html">
+        <div class="recent-date">2026-10-09 · 论文 × 官方代码 × 参赛指南</div>
+        <div class="recent-title">LingBot‑VLA 2.0 · 从 Foundation 到可落地机器人策略</div>
+        <div class="recent-sub">
+          RobbyAnt / Ant Group（arXiv:2607.06403）：60k 小时数据、55D 跨本体动作接口、稀疏 MoE 动作专家与 Dual‑Query 未来表征监督。
+          笔记把论文真机结果与后续 RoboTwin 2.0 代码证据严格分开，并将 ID→OOD 退化、消融和显存约束翻译为挑战赛复现优先级。
+        </div>
+        <div class="recent-tags">
+          <span class="status-badge status-done">✓ 已精读</span>
+          <span class="card-pill">VLA · Cross-Embodiment</span>
+          <span class="card-pill">MoE · Dual-Query · RoboTwin</span>
+        </div>
+      </a>
+
+      <a class="recent-card" href="papers/intact.html">
+        <div class="recent-date">2026-10-06 · 进行中（§01 样稿已成）</div>
+        <div class="recent-title">INTACT · 世界模型会预测之后，怎样直接选动作？</div>
+        <div class="recent-sub">
+          浙江大学 + 清华 AIR（arXiv:2607.26056）：LeWorldModel 能预测“做这个动作会怎样”，却还要搜索“到底做哪个动作”。
+          INTACT 从旧示范中直接学习“想产生这种变化，就执行这个动作”，因此默认可零搜索控制，同时保留世界模型做后果检查。
+          当前页面用 A→B→C 示例、白话 Figure 1 和折叠进阶区解释作者所谓的 “True WAM”。
+        </div>
+        <div class="recent-tags">
+          <span class="status-badge status-done">◐ §01 已成</span>
+          <span class="card-pill">Search-Free World Model</span>
+          <span class="card-pill">Intent-to-Action · JEPA</span>
+        </div>
+      </a>
+
       <a class="recent-card" href="papers/ego2robot.html">
         <div class="recent-date">2026-08-04 · 刚完成（重点：数据质检）</div>
         <div class="recent-title">Ego2Robot · 从第一视角人类数据合成机器人数据</div>
@@ -680,12 +759,16 @@
             <span class="dir-name">VLA · 视觉-语言-动作</span>
             <span class="dir-sub">把 VLM 作为 backbone，直接从感知+指令映射到机器人动作。当前 embodied 主流路线。</span>
           </span>
-          <span class="dir-stats"><span class="dir-count">10</span> 篇已读</span>
+          <span class="dir-stats"><span class="dir-count">11</span> 篇已读</span>
           <span class="dir-arrow">&#9662;</span>
         </summary>
         <div class="dir-body">
           <div class="dc-group">
             <div class="dc-group-label label-core">① 主模型</div>
+            <a class="dc-item" href="papers/lingbot-vla2.html">
+              <span class="dc-item-main">LingBot‑VLA 2.0<span class="dc-item-en">RobbyAnt 2026 · 60k h · MoE · Dual‑Query</span></span>
+              <span class="status-badge status-done">✓</span>
+            </a>
             <a class="dc-item" href="papers/pi0-vla-flow-model.html">
               <span class="dc-item-main">π₀<span class="dc-item-en">Physical Intelligence 2024</span></span>
               <span class="status-badge status-done">✓</span>
@@ -842,7 +925,7 @@
             <span class="dir-name">Loco-Manipulation · 移动操作</span>
             <span class="dir-sub">边走边抓：腿/全身参与操作，扩大工作空间。分层 RL + Sim2Real 是主流路线。</span>
           </span>
-          <span class="dir-stats"><span class="dir-count">10</span> 篇已读</span>
+          <span class="dir-stats"><span class="dir-count">11</span> 篇已读</span>
           <span class="dir-arrow">&#9662;</span>
         </summary>
         <div class="dir-body">
@@ -871,6 +954,12 @@
               <span class="dc-item-main">OpenHLM<span class="dc-item-en">Hu et al. 2026 · 全身人形 Loco-Manip 经验配方 · 13 个受控实验 · π₀.₅ · Unitree G1</span></span>
               <span class="status-badge status-done">✓</span>
             </a>
+            <a class="dc-item" href="papers/koda.html">
+              <span class="dc-item-main">KODA<span class="dc-item-en">Zhou et al. 2026 · Ego→G1 数据编译 · 运动/观测对齐 · SONIC + HEFT</span></span>
+              <span class="status-badge status-done">✓</span>
+            </a>
+            <a class="dc-item" href="papers/gmr.html"><span class="dc-item-main">GMR<span class="dc-item-en">Retargeting Matters · 两阶段 IK · 控制前的参考质量</span></span><span class="status-badge status-done">✓</span></a>
+            <a class="dc-item" href="papers/egohumanoid-v2.html"><span class="dc-item-main">EgoHumanoid-V2<span class="dc-item-en">人体示范 · SONIC 一致性 · 真机任务进度</span></span><span class="status-badge status-done">✓</span></a>
             <a class="dc-item" href="papers/motionwam.html">
               <span class="dc-item-main">MotionWAM<span class="dc-item-en">Zheng et al. 2026 · 实时人形 Loco-Manipulation 世界-动作模型</span></span>
               <span class="status-badge status-done">✓</span>
@@ -989,6 +1078,7 @@
           </div>
           <div class="dc-group">
             <div class="dc-group-label label-improve">⑤ 实时 WAM</div>
+            <a class="dc-item" href="papers/vpp2.html"><span class="dc-item-main">VPP2<span class="dc-item-en">Guo 等 2026 · 事件预训练 · 单步预测 · 动作专家</span></span><span class="status-badge status-done">✓</span></a>
             <a class="dc-item" href="papers/dit4dit.html">
               <span class="dc-item-main">DiT4DiT<span class="dc-item-en">Ma et al. 2026 · Video + Action 联合建模</span></span>
               <span class="status-badge status-done">✓</span>
@@ -1042,6 +1132,149 @@
     </div>
 
     <!-- ───────────────────────────────────────── -->
+<!-- PAPER-CATALOG:START -->
+    <section class="paper-catalog" id="all-readings" aria-labelledby="all-readings-title">
+      <div class="hero-tag">// COMPLETE READING INDEX</div>
+      <h2 id="all-readings-title">全部 128 个解读页面</h2>
+      <p>包括论文精读、专题路线、源码与数据分析；不把页面数量等同于论文数量或精读完成度。上方分类导航保留，完整入口以这里为准。</p>
+      <label for="paper-catalog-search">按论文名、关键词或文件名搜索</label>
+      <input id="paper-catalog-search" type="search" placeholder="例如 SONIC、EgoHumanoid、WAM、RL" autocomplete="off" aria-controls="paper-catalog-list">
+      <p class="catalog-count" id="paper-catalog-count" role="status" aria-live="polite">显示 128 / 128 个页面</p>
+      <ul id="paper-catalog-list">
+        <li><a href="papers/4d-gaussian-splatting.html"><span>4D Gaussian Splatting · 动态场景实时渲染</span><small>papers/4d-gaussian-splatting.html</small></a></li>
+        <li><a href="papers/embodied-icl-roadmap.html"><span>具身智能上下文学习 · Embodied ICL 专题路线</span><small>papers/embodied-icl-roadmap.html</small></a></li>
+        <li><a href="papers/embodied-knowledge-map.html"><span>具身智能知识总图 · Paper Notes</span><small>papers/embodied-knowledge-map.html</small></a></li>
+        <li><a href="papers/humanoid-data-to-wam.html"><span>人体数据到 WAM · 六篇串读与接口审计</span><small>papers/humanoid-data-to-wam.html</small></a></li>
+        <li><a href="papers/infant-cognition-timeline.html"><span>婴儿认知发育时间线 · Paper Notes</span><small>papers/infant-cognition-timeline.html</small></a></li>
+        <li><a href="papers/real-robot-rl-roadmap.html"><span>真机强化学习 · 零基础求职路线</span><small>papers/real-robot-rl-roadmap.html</small></a></li>
+        <li><a href="papers/arfm.html"><span>ARFM · VLA+RL 详细精读</span><small>papers/arfm.html</small></a></li>
+        <li><a href="papers/avdc.html"><span>AVDC · Actionless Video Dense Correspondence 精读</span><small>papers/avdc.html</small></a></li>
+        <li><a href="papers/awac.html"><span>AWAC · VLA+RL 详细精读</span><small>papers/awac.html</small></a></li>
+        <li><a href="papers/bagelvla.html"><span>BagelVLA · 交织式视觉-语言-动作生成的长程操作</span><small>papers/bagelvla.html</small></a></li>
+        <li><a href="papers/being-m07.html"><span>Being-M0.7 · 人形机器人的隐空间世界-动作模型</span><small>papers/being-m07.html</small></a></li>
+        <li><a href="papers/bora.html"><span>BORA · VLA+RL 详细精读</span><small>papers/bora.html</small></a></li>
+        <li><a href="papers/c3ache.html"><span>C³ache · Cross-Chunk Cache 精读</span><small>papers/c3ache.html</small></a></li>
+        <li><a href="papers/generation/classifier-free-guidance.html"><span>Classifier-Free Guidance：无分类器条件引导 · Paper Notes</span><small>papers/generation/classifier-free-guidance.html</small></a></li>
+        <li><a href="papers/co-rft.html"><span>CO-RFT · VLA+RL 详细精读</span><small>papers/co-rft.html</small></a></li>
+        <li><a href="papers/generation/cogvideox.html"><span>CogVideoX · 中文精读</span><small>papers/generation/cogvideox.html</small></a></li>
+        <li><a href="papers/consistency-models.html"><span>Consistency Models · Song et al. 2023</span><small>papers/consistency-models.html</small></a></li>
+        <li><a href="papers/cosmos3.html"><span>Cosmos 3 · 全模态世界模型（Omnimodal MoT）</span><small>papers/cosmos3.html</small></a></li>
+        <li><a href="papers/cosmos-predict2.html"><span>Cosmos-Predict2.5 · NVIDIA 视频世界模型基座</span><small>papers/cosmos-predict2.html</small></a></li>
+        <li><a href="papers/cot-vla.html"><span>CoT-VLA · Visual Chain-of-Thought 精读</span><small>papers/cot-vla.html</small></a></li>
+        <li><a href="papers/generation/ddim.html"><span>DDIM：同一训练，不同采样轨迹 · Paper Notes</span><small>papers/generation/ddim.html</small></a></li>
+        <li><a href="papers/generation/ddpm.html"><span>DDPM：扩散模型的训练地基 · Paper Notes</span><small>papers/generation/ddpm.html</small></a></li>
+        <li><a href="papers/deepwbc.html"><span>DeepWBC · 腿臂统一全身控制策略（VBC 前身）</span><small>papers/deepwbc.html</small></a></li>
+        <li><a href="papers/diffusion-policy.html"><span>Diffusion Policy · Visuomotor Policy Learning via Action Diffusion</span><small>papers/diffusion-policy.html</small></a></li>
+        <li><a href="papers/dit.html"><span>DiT · Scalable Diffusion Models with Transformers</span><small>papers/dit.html</small></a></li>
+        <li><a href="papers/dit4dit.html"><span>DiT4DiT · 联合建模视频动力学与动作生成</span><small>papers/dit4dit.html</small></a></li>
+        <li><a href="papers/dppo.html"><span>DPPO · VLA+RL 详细精读</span><small>papers/dppo.html</small></a></li>
+        <li><a href="papers/dreamdojo.html"><span>DreamDojo · 通用机器人世界模型（大规模人类视频）</span><small>papers/dreamdojo.html</small></a></li>
+        <li><a href="papers/dreamer-v1.html"><span>Dreamer · Dream to Control: Learning Behaviors by Latent Imagination</span><small>papers/dreamer-v1.html</small></a></li>
+        <li><a href="papers/dreamzero.html"><span>DreamZero · Zero-shot WAM 精读</span><small>papers/dreamzero.html</small></a></li>
+        <li><a href="papers/dsrl-latent-policy-rl.html"><span>DSRL · VLA+RL 详细精读</span><small>papers/dsrl-latent-policy-rl.html</small></a></li>
+        <li><a href="papers/dygro-vla.html"><span>DyGRO-VLA · VLA+RL 详细精读</span><small>papers/dygro-vla.html</small></a></li>
+        <li><a href="papers/efficient-wam.html"><span>Efficient-WAM · 低成本未来想象为何仍能控制</span><small>papers/efficient-wam.html</small></a></li>
+        <li><a href="papers/ego2robot.html"><span>Ego2Robot · 从第一视角人类数据合成机器人数据（重点：三级质检）</span><small>papers/ego2robot.html</small></a></li>
+        <li><a href="papers/egohumanoid-v2.html"><span>EgoHumanoid-V2 · 先修参考，再修执行响应</span><small>papers/egohumanoid-v2.html</small></a></li>
+        <li><a href="papers/expo-ft.html"><span>EXPO-FT · VLA+RL 详细精读</span><small>papers/expo-ft.html</small></a></li>
+        <li><a href="papers/fast-wam.html"><span>Fast-WAM · 世界动作模型需要测试时未来想象吗？</span><small>papers/fast-wam.html</small></a></li>
+        <li><a href="papers/fawam.html"><span>FAWAM · Force-Aware WAM 精读</span><small>papers/fawam.html</small></a></li>
+        <li><a href="papers/flare.html"><span>FLARE · Implicit World Modeling 精读</span><small>papers/flare.html</small></a></li>
+        <li><a href="papers/flash-wam.html"><span>Flash-WAM · 为什么视频与动作不能共用一种蒸馏函数</span><small>papers/flash-wam.html</small></a></li>
+        <li><a href="papers/generation/flow-matching.html"><span>Flow Matching for Generative Modeling · Paper Notes</span><small>papers/generation/flow-matching.html</small></a></li>
+        <li><a href="papers/flowpro.html"><span>FlowPRO · VLA+RL 详细精读</span><small>papers/flowpro.html</small></a></li>
+        <li><a href="papers/gaussgym.html"><span>GaussGym · 像素级行走 Real-to-Sim 精读</span><small>papers/gaussgym.html</small></a></li>
+        <li><a href="papers/genie.html"><span>Genie · Generative Interactive Environments 精读</span><small>papers/genie.html</small></a></li>
+        <li><a href="papers/gmr.html"><span>GMR · 重定向质量如何决定底层控制的上限</span><small>papers/gmr.html</small></a></li>
+        <li><a href="papers/gr-1.html"><span>GR-1 · 生成式机器人预训练精读</span><small>papers/gr-1.html</small></a></li>
+        <li><a href="papers/gr-2.html"><span>GR-2 · Web-scale VLA 精读</span><small>papers/gr-2.html</small></a></li>
+        <li><a href="papers/gsworld.html"><span>GSWorld · 闭环照片级仿真精读</span><small>papers/gsworld.html</small></a></li>
+        <li><a href="papers/hil-serl.html"><span>HIL-SERL · VLA+RL 详细精读</span><small>papers/hil-serl.html</small></a></li>
+        <li><a href="papers/himem-wam.html"><span>HiMem-WAM · 层次记忆精读</span><small>papers/himem-wam.html</small></a></li>
+        <li><a href="papers/humanoid-gpt.html"><span>Humanoid-GPT · Scaling Data and Structure for Zero-Shot Motion Tracking · Paper Notes</span><small>papers/humanoid-gpt.html</small></a></li>
+        <li><a href="papers/humi.html"><span>HuMI · 为什么“跟真实状态不一致”反而更稳</span><small>papers/humi.html</small></a></li>
+        <li><a href="papers/ijepa-self-supervised.html"><span>I-JEPA · Self-Supervised Learning from Images with a Joint-Embedding Predictive Architecture</span><small>papers/ijepa-self-supervised.html</small></a></li>
+        <li><a href="papers/intact.html"><span>INTACT 零基础精读 · 世界模型怎样直接选动作</span><small>papers/intact.html</small></a></li>
+        <li><a href="papers/iql.html"><span>IQL · VLA+RL 详细精读</span><small>papers/iql.html</small></a></li>
+        <li><a href="papers/koda.html"><span>KODA · 人类第一视角示范如何变成可复用的人形机器人训练数据</span><small>papers/koda.html</small></a></li>
+        <li><a href="papers/lapa.html"><span>LAPA · Latent Action Pretraining 精读</span><small>papers/lapa.html</small></a></li>
+        <li><a href="papers/generation/latent-diffusion.html"><span>Latent Diffusion Models · 中文精读</span><small>papers/generation/latent-diffusion.html</small></a></li>
+        <li><a href="papers/lecun-autonomous-intelligence.html"><span>LeCun · A Path Towards Autonomous Machine Intelligence</span><small>papers/lecun-autonomous-intelligence.html</small></a></li>
+        <li><a href="papers/leworldmodel.html"><span>LeWorldModel · 稳定端到端 JEPA</span><small>papers/leworldmodel.html</small></a></li>
+        <li><a href="papers/lingbot-va.html"><span>LingBot-VA · Causal World Modeling 精读</span><small>papers/lingbot-va.html</small></a></li>
+        <li><a href="papers/lingbot-vla2.html"><span>LingBot-VLA 2.0 · 论文精读与参赛指南</span><small>papers/lingbot-vla2.html</small></a></li>
+        <li><a href="papers/learning-while-deploying.html"><span>LWD · VLA+RL 详细精读</span><small>papers/learning-while-deploying.html</small></a></li>
+        <li><a href="papers/motionwam.html"><span>MotionWAM · 实时人形机器人Loco-Manipulation世界-动作模型</span><small>papers/motionwam.html</small></a></li>
+        <li><a href="papers/datasets-analysis.html"><span>MotionWAM 数据集分析 · Paper Notes</span><small>papers/datasets-analysis.html</small></a></li>
+        <li><a href="papers/motus.html"><span>Motus · Unified Latent Action World Model 精读</span><small>papers/motus.html</small></a></li>
+        <li><a href="papers/omnivta.html"><span>OmniVTA · 视触觉世界模型精读</span><small>papers/omnivta.html</small></a></li>
+        <li><a href="papers/generation/open-sora.html"><span>Open-Sora · 中文精读</span><small>papers/generation/open-sora.html</small></a></li>
+        <li><a href="papers/openhlm.html"><span>OpenHLM · 全身人形 Loco-Manipulation 的经验配方</span><small>papers/openhlm.html</small></a></li>
+        <li><a href="papers/openvla.html"><span>OpenVLA · An Open-Source Vision-Language-Action Model</span><small>papers/openvla.html</small></a></li>
+        <li><a href="papers/pad.html"><span>PAD · Joint Denoising WAM 精读</span><small>papers/pad.html</small></a></li>
+        <li><a href="papers/physics-iq.html"><span>Physics-IQ · 真实物理续写精读</span><small>papers/physics-iq.html</small></a></li>
+        <li><a href="papers/self-improving-vla.html"><span>PLD Self-Improving VLA · VLA+RL 详细精读</span><small>papers/self-improving-vla.html</small></a></li>
+        <li><a href="papers/qgf.html"><span>QGF · VLA+RL 详细精读</span><small>papers/qgf.html</small></a></li>
+        <li><a href="papers/qwen-robotmanip.html"><span>Qwen-RobotManip · 从异构数据到 G1 / 多本体训练</span><small>papers/qwen-robotmanip.html</small></a></li>
+        <li><a href="papers/rankq.html"><span>RankQ · VLA+RL 详细精读</span><small>papers/rankq.html</small></a></li>
+        <li><a href="papers/reinflow.html"><span>ReinFlow · VLA+RL 详细精读</span><small>papers/reinflow.html</small></a></li>
+        <li><a href="papers/rise-compositional-world-model.html"><span>RISE · VLA+RL 详细精读</span><small>papers/rise-compositional-world-model.html</small></a></li>
+        <li><a href="papers/rl-vla-generalization.html"><span>RL → VLA 泛化 · VLA+RL 详细精读</span><small>papers/rl-vla-generalization.html</small></a></li>
+        <li><a href="papers/rl-token.html"><span>RL Token · VLA+RL 详细精读</span><small>papers/rl-token.html</small></a></li>
+        <li><a href="papers/rl-vla3.html"><span>RL-VLA³ · VLA+RL 详细精读</span><small>papers/rl-vla3.html</small></a></li>
+        <li><a href="papers/rt1.html"><span>RT-1 · Robotics Transformer 精读</span><small>papers/rt1.html</small></a></li>
+        <li><a href="papers/rt2.html"><span>RT-2 · Vision-Language-Action Models Transfer Web Knowledge to Robotic Control</span><small>papers/rt2.html</small></a></li>
+        <li><a href="papers/rt-2.html"><span>RT-2 · VLA+RL 详细精读</span><small>papers/rt-2.html</small></a></li>
+        <li><a href="papers/sa-vla.html"><span>SA-VLA · VLA+RL 详细精读</span><small>papers/sa-vla.html</small></a></li>
+        <li><a href="papers/sac-flow.html"><span>SAC Flow · VLA+RL 详细精读</span><small>papers/sac-flow.html</small></a></li>
+        <li><a href="papers/simfoundry.html"><span>SimFoundry · 从真实视频到可交互仿真</span><small>papers/simfoundry.html</small></a></li>
+        <li><a href="papers/sonic.html"><span>SONIC · 超大规模运动追踪与通用全身控制</span><small>papers/sonic.html</small></a></li>
+        <li><a href="papers/generation/sora-world-simulators.html"><span>Sora · Video Generation Models as World Simulators</span><small>papers/generation/sora-world-simulators.html</small></a></li>
+        <li><a href="papers/splatsim.html"><span>SplatSim · GS Sim2Real 精读</span><small>papers/splatsim.html</small></a></li>
+        <li><a href="papers/stare-vla.html"><span>STARE-VLA · VLA+RL 详细精读</span><small>papers/stare-vla.html</small></a></li>
+        <li><a href="papers/unipi.html"><span>UniPi · Text-Guided Video Policy 精读</span><small>papers/unipi.html</small></a></li>
+        <li><a href="papers/uva.html"><span>UVA · Unified Video Action Model 精读</span><small>papers/uva.html</small></a></li>
+        <li><a href="papers/uwm.html"><span>UWM · Coupled Video-Action Diffusion 精读</span><small>papers/uwm.html</small></a></li>
+        <li><a href="papers/vjepa.html"><span>V-JEPA · 视频表征空间预测</span><small>papers/vjepa.html</small></a></li>
+        <li><a href="papers/vjepa2.html"><span>V-JEPA 2 · 理解、预测与规划</span><small>papers/vjepa2.html</small></a></li>
+        <li><a href="papers/vjepa21.html"><span>V-JEPA 2.1 · Dense Video Features</span><small>papers/vjepa21.html</small></a></li>
+        <li><a href="papers/generation/vae.html"><span>VAE · Auto-Encoding Variational Bayes 精读</span><small>papers/generation/vae.html</small></a></li>
+        <li><a href="papers/vbc-loco-manipulation.html"><span>VBC · 腿足机器人视觉全身控制 Loco-Manipulation</span><small>papers/vbc-loco-manipulation.html</small></a></li>
+        <li><a href="papers/vbench-2.html"><span>VBench-2.0 · Intrinsic Faithfulness 精读</span><small>papers/vbench-2.html</small></a></li>
+        <li><a href="papers/vidar.html"><span>Vidar · Embodied Video Diffusion 精读</span><small>papers/vidar.html</small></a></li>
+        <li><a href="papers/videophy.html"><span>VideoPhy · 物理常识评测精读</span><small>papers/videophy.html</small></a></li>
+        <li><a href="papers/villa-x.html"><span>villa-X · Latent Action 与物理 grounding 精读</span><small>papers/villa-x.html</small></a></li>
+        <li><a href="papers/vla-rl-roadmap.html"><span>VLA + RL 学习路线 · 已核验论文</span><small>papers/vla-rl-roadmap.html</small></a></li>
+        <li><a href="papers/vla-jepa.html"><span>VLA-JEPA · Latent World Model 精读</span><small>papers/vla-jepa.html</small></a></li>
+        <li><a href="papers/vlk.html"><span>VLK · 从重建场景的合成交互学习人形 Loco-Manipulation</span><small>papers/vlk.html</small></a></li>
+        <li><a href="papers/vlm-collection.html"><span>VLM 架构合集 · 按组件拆解 · Paper Notes</span><small>papers/vlm-collection.html</small></a></li>
+        <li><a href="papers/vpp.html"><span>VPP · Predictive Visual Representations 精读</span><small>papers/vpp.html</small></a></li>
+        <li><a href="papers/vpp2.html"><span>VPP2 · 先预测对，再行动对 | Paper Notes</span><small>papers/vpp2.html</small></a></li>
+        <li><a href="papers/wam-ttt.html"><span>WAM-TTT · 测试时看人类演示，把技能写进快权重</span><small>papers/wam-ttt.html</small></a></li>
+        <li><a href="papers/generation/wan.html"><span>Wan · 中文精读</span><small>papers/generation/wan.html</small></a></li>
+        <li><a href="papers/wb-quality-vs-qwen.html"><span>WB-WAM 数据质检 · 与 Qwen-RobotManip 的逐步对照</span><small>papers/wb-quality-vs-qwen.html</small></a></li>
+        <li><a href="papers/wam-roadmap.html"><span>World Action Model 学习路线 · 2026</span><small>papers/wam-roadmap.html</small></a></li>
+        <li><a href="papers/worldmodelbench.html"><span>WorldModelBench · 世界模型视频评测精读</span><small>papers/worldmodelbench.html</small></a></li>
+        <li><a href="papers/worldscore.html"><span>WorldScore · 世界生成统一评测精读</span><small>papers/worldscore.html</small></a></li>
+        <li><a href="papers/worldsimbench.html"><span>WorldSimBench · Action Plausibility 精读</span><small>papers/worldsimbench.html</small></a></li>
+        <li><a href="papers/worldvla.html"><span>WorldVLA · 自回归动作世界模型精读</span><small>papers/worldvla.html</small></a></li>
+        <li><a href="papers/pi06-recap-rl.html"><span>π*₀.₆ · A VLA That Learns From Experience (RECAP)</span><small>papers/pi06-recap-rl.html</small></a></li>
+        <li><a href="papers/pi0-vla-flow-model.html"><span>π₀ · A Vision-Language-Action Flow Model for General Robot Control</span><small>papers/pi0-vla-flow-model.html</small></a></li>
+        <li><a href="papers/pi0-code-reading.html"><span>π₀ / π₀.5 代码阅读笔记 · Paper Notes</span><small>papers/pi0-code-reading.html</small></a></li>
+        <li><a href="papers/pi0-data-pipeline.html"><span>π₀ 数据 Pipeline · Transform 设计 · Paper Notes</span><small>papers/pi0-data-pipeline.html</small></a></li>
+        <li><a href="papers/pi-series-training-guide.html"><span>π₀ 系列训练指南：预训练、后训练与 Human-in-the-Loop · Paper Notes</span><small>papers/pi-series-training-guide.html</small></a></li>
+        <li><a href="papers/pi05-open-world.html"><span>π₀.₅ · A Vision-Language-Action Model with Open-World Generalization</span><small>papers/pi05-open-world.html</small></a></li>
+        <li><a href="papers/pi07-steerable-generalist.html"><span>π₀.₇ · A Steerable Generalist Robotic Foundation Model</span><small>papers/pi07-steerable-generalist.html</small></a></li>
+        <li><a href="papers/pi-rl.html"><span>πRL · VLA+RL 详细精读</span><small>papers/pi-rl.html</small></a></li>
+        <li><a href="papers/tau0-wm.html"><span>τ₀-WM · 统一视频-动作世界模型用于机器人操作</span><small>papers/tau0-wm.html</small></a></li>
+        <li><a href="papers/chi0.html"><span>χ₀ · VLA+RL 详细精读</span><small>papers/chi0.html</small></a></li>
+        <li><a href="papers/psi0.html"><span>Ψ₀ · 通用人形 Loco-Manipulation 的开放基础模型</span><small>papers/psi0.html</small></a></li>
+      </ul>
+      <p id="paper-catalog-empty" hidden>没有匹配页面。试试英文简称，或清空搜索。</p>
+      <noscript><p>搜索需要 JavaScript；全部页面链接已完整显示，可使用浏览器的页面查找。</p></noscript>
+    </section>
+    <!-- PAPER-CATALOG:END -->
+
     <div id="about" style="max-width:780px; margin:0 auto; padding:64px 40px;">
       <div style="font-family:var(--font-mono); font-size:11px; color:var(--text3); letter-spacing:0.08em; margin-bottom:8px;">// ABOUT</div>
       <h2 style="font-family:var(--font-serif); font-size:22px; font-weight:700; margin:0 0 18px; color:var(--text);">关于本项目</h2>

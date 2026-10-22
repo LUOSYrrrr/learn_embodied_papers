@@ -1,0 +1,16 @@
+.paper-catalog{max-width:1160px;margin:32px auto;padding:32px clamp(16px,4vw,40px);border-top:1px solid var(--border2);scroll-margin-top:85px}
+.paper-catalog h2{font-family:var(--font-serif);font-size:28px;color:var(--text)}
+.paper-catalog p{color:var(--text2);line-height:1.8}
+.paper-catalog label{display:block;color:var(--text);margin:22px 0 8px}
+.paper-catalog input{box-sizing:border-box;width:100%;padding:13px 15px;font:inherit;color:var(--text);background:var(--bg2);border:1px solid var(--border2);border-radius:8px}
+.paper-catalog input:focus-visible,.paper-catalog a:focus-visible{outline:2px solid var(--accent);outline-offset:3px}
+.paper-catalog ul{list-style:none;padding:0;margin:16px 0;display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px}
+.paper-catalog li{min-width:0}.paper-catalog [hidden]{display:none!important}
+.paper-catalog li a{display:flex;flex-direction:column;gap:8px;height:100%;box-sizing:border-box;padding:14px;border:1px solid var(--border2);border-radius:8px;color:var(--text);text-decoration:none;overflow-wrap:anywhere;background:var(--bg2)}
+.paper-catalog li a:hover{border-color:var(--accent)}
+.paper-catalog li small{font:11px/1.5 var(--font-mono);color:var(--text2)}
+.paper-catalog .catalog-count{font-size:13px}
+@media(max-width:900px){.paper-catalog ul{grid-template-columns:repeat(2,minmax(0,1fr))}}
+@media(max-width:540px){.paper-catalog ul{grid-template-columns:1fr}.paper-catalog h2{font-size:24px}}
+@media(max-width:680px){.reading-home .nav-logo{white-space:nowrap}.reading-home .nav-links{gap:14px}.reading-home .nav-links a{white-space:nowrap}.reading-home .nav-links a:not([href="#all-readings"]):not([href="https://github.com/LUOSYrrrr/learn_embodied_papers"]){display:none}}
+@media print{.paper-catalog input,.paper-catalog label,.catalog-count{display:none}.paper-catalog li[hidden]{display:block!important}.paper-catalog li a{break-inside:avoid}}

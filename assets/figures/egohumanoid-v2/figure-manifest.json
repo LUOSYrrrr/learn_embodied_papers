@@ -1,0 +1,150 @@
+{
+  "reviewed": "2026-10-23",
+  "arxiv": "2609.37181v1",
+  "pdf": "pdfs/loco-manipulation/egohumanoid-v2.pdf",
+  "pages": 24,
+  "sha256": "d6b9bfb64b6d4444b83bbcd11d9e29d3a82f0eff991f347ea80bf8b412553d8e",
+  "scope": "Figures 1–10: original image and caption, main text and embedded appendices. External supplementary videos not audited.",
+  "figures": [
+    {
+      "figure": 1,
+      "page": 1,
+      "dpi": 350,
+      "file": "fig-1.png",
+      "previewDpi": 85,
+      "previewCrop": [
+        127,
+        275,
+        470,
+        291
+      ],
+      "explanationAnchor": "figure-1"
+    },
+    {
+      "figure": 2,
+      "page": 3,
+      "dpi": 500,
+      "file": "fig-2.png",
+      "previewDpi": 85,
+      "previewCrop": [
+        360,
+        583,
+        239,
+        225
+      ],
+      "explanationAnchor": "figure-2"
+    },
+    {
+      "figure": 3,
+      "page": 5,
+      "dpi": 300,
+      "file": "fig-3.png",
+      "previewDpi": 85,
+      "previewCrop": [
+        125,
+        96,
+        474,
+        315
+      ],
+      "explanationAnchor": "figure-3"
+    },
+    {
+      "figure": 4,
+      "page": 6,
+      "dpi": 300,
+      "file": "fig-4.png",
+      "previewDpi": 85,
+      "previewCrop": [
+        127,
+        96,
+        470,
+        302
+      ],
+      "explanationAnchor": "figure-4"
+    },
+    {
+      "figure": 5,
+      "page": 7,
+      "dpi": 350,
+      "file": "fig-5.png",
+      "previewDpi": 85,
+      "previewCrop": [
+        127,
+        98,
+        470,
+        245
+      ],
+      "explanationAnchor": "figure-5"
+    },
+    {
+      "figure": 6,
+      "page": 9,
+      "dpi": 350,
+      "file": "fig-6.png",
+      "previewDpi": 85,
+      "previewCrop": [
+        127,
+        92,
+        470,
+        232
+      ],
+      "explanationAnchor": "figure-6"
+    },
+    {
+      "figure": 7,
+      "page": 20,
+      "dpi": 350,
+      "file": "fig-7.png",
+      "previewDpi": 85,
+      "previewCrop": [
+        127,
+        299,
+        470,
+        224
+      ],
+      "explanationAnchor": "figure-7"
+    },
+    {
+      "figure": 8,
+      "page": 22,
+      "dpi": 300,
+      "file": "fig-8.png",
+      "previewDpi": 85,
+      "previewCrop": [
+        127,
+        209,
+        470,
+        540
+      ],
+      "explanationAnchor": "figure-8"
+    },
+    {
+      "figure": 9,
+      "page": 23,
+      "dpi": 300,
+      "file": "fig-9.png",
+      "previewDpi": 85,
+      "previewCrop": [
+        127,
+        209,
+        470,
+        540
+      ],
+      "explanationAnchor": "figure-9"
+    },
+    {
+      "figure": 10,
+      "page": 24,
+      "dpi": 300,
+      "file": "fig-10.png",
+      "previewDpi": 85,
+      "previewCrop": [
+        127,
+        209,
+        470,
+        540
+      ],
+      "explanationAnchor": "figure-10"
+    }
+  ]
+}

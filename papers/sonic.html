@@ -7,6 +7,8 @@
 <title>SONIC · 超大规模运动追踪与通用全身控制</title>
 <link href="../assets/css/style.css" rel="stylesheet"/>
 <script src="../assets/js/theme.js"></script>
+<link rel="stylesheet" href="../assets/css/humanoid-reading.css">
+<script defer src="../assets/js/humanoid-reading.js"></script>
 <script defer="" src="../assets/js/interactive.js"></script>
 <link href="https://cdn.jsdelivr.net/npm/katex@0.16/dist/katex.min.css" rel="stylesheet"/>
 <script defer="" src="https://cdn.jsdelivr.net/npm/katex@0.16/dist/katex.min.js"></script>
@@ -79,6 +81,8 @@
     .math-explain dl { margin: 0; }
     .math-explain dt { color: var(--accent); font-weight: 600; font-size: 14px; margin-top: 10px; }
     .math-explain dd { margin: 4px 0 0 16px; font-size: 13px; color: var(--text2); line-height: 1.6; }
+    .math-explain { overflow-x:auto; }
+    @media(max-width:700px) { .kv-table { display:block; max-width:100%; overflow-x:auto; } }
 
     .result-bar-wrap { margin: 20px 0; }
     .result-bar-item { display: flex; align-items: center; gap: 12px; margin: 10px 0; font-size: 13px; }
@@ -133,6 +137,7 @@
 <aside class="sidebar">
 <div class="sidebar-title">SONIC 目录</div>
 <ul class="sidebar-tree">
+<li><a href="#interface-audit">新增 · 控制接口与证据审计</a></li>
 <li><a href="#intro">§01 核心问题</a></li>
 <li><a href="#architecture">§02 通用控制策略架构</a></li>
 <li><a href="#fsq">§03 FSQ Universal Token</a></li>
@@ -155,6 +160,40 @@
 </div>
 </div>
 <!-- §01 核心问题 -->
+<section class="series-audit" id="interface-audit">
+<div class="kicker">READING 02 · 参考运动 ≠ TOKEN ≠ 电机命令</div>
+<h2>先读这一节：SONIC 如何接住上游的“动作”？</h2>
+<p class="source">2026-10-23 补充核读 · 本页依据本地 arXiv:2511.07820v3（2026-05-21），37 页，含 S1–S8；不是宣称已覆盖后续版本。<a href="../pdfs/sonic.pdf">本地 PDF</a> · <a href="https://arxiv.org/abs/2511.07820v3">固定版本</a> · <a href="humanoid-data-to-wam.html">六篇链路</a></p>
+<section class="eval-overview" aria-label="评测结论总览"><article class="eval-card"><div class="eval-card-title">扩展实验</div><div class="eval-card-value">Isaac Lab test-content：99.6%，MPJPE-L 23.8 mm；不能混成 MuJoCo 横向基线评测的 98.7%。</div></article><article class="eval-card"><div class="eval-card-title">OOD</div><div class="eval-card-value">6,998 novel-content clips；6,306 已见类型的新表演；外部 PHUMA 约 68k。三者的 OOD 强度不同。</div></article><article class="eval-card"><div class="eval-card-title">真机</div><div class="eval-card-value">123 条运动各一次，99.2% tracking success；VLA 五任务均值 75%，每项 10–20 次，且使用机器人遥操作数据。</div></article><article class="eval-card"><div class="eval-card-title">最强结论</div><div class="eval-card-value">大规模 tracking 与统一 token 在 G1 上可支持多个下游接口；不保证精确接触、安全性或任意本体泛化。</div></article></section>
+<div class="cn-read"><div class="cn-label">从 GMR 留下的问题进入</div><p>GMR 提供的机器人参考不是 PD target。SONIC 先把“想怎么动”编码，再结合“现在身体怎样”生成控制。理解这两条输入，才能解释为什么同一个 token 在不同状态下不应输出完全相同的关节目标。</p></div>
+<figure><img src="../assets/figures/sonic/fig-7.png" alt="SONIC 原始架构图：机器人、人类、混合三种编码器共享 token 和运动、控制两个解码器" loading="lazy" decoding="async"><figcaption>论文原图 Figure 7 · p.14 · 300 DPI。图中简化的 control 分支应结合正文读：D<sub>c</sub> 还接本体感知历史，D<sub>r</sub> 则只看 token。</figcaption></figure>
+<div class="eval-table-wrap"><table class="eval-table"><caption>逐层接口 · §3.2，pp.14–16；Table S1 p.31；S7–S8</caption><thead><tr><th>层</th><th>输入</th><th>输出与频率</th><th>不能混淆</th></tr></thead><tbody>
+<tr><td>参考运动 → encoder</td><td>Eᵣ：机器人关节位置/速度，10 帧、间隔 0.1 s；Eₕ：人体 3D 关节，10 帧、间隔 0.02 s；Eₘ：当前上身 keypoints + 未来下身</td><td>FSQ 后 2×32=64 维 token</td><td>窗口长度与下发频率是不同概念；实时流如何补足窗口需核对实际 wrapper。</td></tr>
+<tr><td>本体感知 → D꜀</td><td>q、q̇、root angular velocity、projected gravity、previous action 的 10 步历史，均按部署可用观测构造</td><td>D꜀(z,sᵖ) → 29 维目标关节位置；policy 50 Hz</td><td>不是只输入 z 的固定运动解码器；高层 VLA 的 43/44 维状态不等于此观测向量。</td></tr>
+<tr><td>辅助 motion decoder</td><td>只输入 z</td><td>Dᵣ(z) → 重建机器人 motion command</td><td>用于辅助重建/隐式重定向，不能拿它的输出代替有状态的 control decoder。</td></tr>
+<tr><td>底层执行</td><td>PD joint targets</td><td>命令 writer 500 Hz 发送最新目标；operator 100 Hz；kinematic planner 10 Hz</td><td>500 Hz 是命令传送，不等于神经网络每 2 ms 重新规划。</td></tr>
+<tr><td>whole-body VLA</td><td>GR00T N1.5 预测 64 token + 14 hand joints</td><td>78 维 action；token-only streaming 可绕过 onboard encoder</td><td>与 EgoHumanoid-V2 / KODA 的 64+12=76 维手接口不同。</td></tr>
+</tbody></table></div>
+<div class="equation">aₜ = D<sub>c</sub>(zₜ, sᵖ<sub>t−9:t</sub>)，aₜ∈R²⁹<br>ĝᵣ = D<sub>r</sub>(zₜ)，zₜ∈R⁶⁴<small>paper · p.15。按列出的 29+29+3+3+29 推算每步 93 维、10 步 930 维只是 schema 层推算；实际部署 flatten order、额外字段与归一化必须按 checkpoint config 核对，不将其宣称为已验证的导出张量。</small></div>
+<p><strong>解释性算例：</strong>同一个“伸手”token，站稳时和上身已经前倾时，D꜀ 可以因 sᵖ 不同给出不同腿/腰目标以补偿。若数据转换把人类关节直接填到 robot state，即便 token 对，条件分布也会错。再假设 PD 的 Kp=40 Nm/rad、目标 0.30 rad、实际 0.25 rad、Kd=1、速度 0.1 rad/s，则 τ=40×0.05−1×0.1=1.9 Nm；这是教学例子，不是 SONIC 实机增益。</p>
+<h3>训练时用了重定向，运行时为什么可以不用？</h3>
+<p>约 700 h 人体 mocap 经 GMR / PyRoki 转到 G1并过滤，训练集为 611 h、317,189 clips、8,447 subcategories、100M+ frames。同步的人类/机器人/混合输入以重建、三对 token 对齐和 cycle loss 对齐，再联合 PPO 训练。Eₕ 因此学会直接进入共享 latent；“运行时不显式 retarget”不等于“训练不需要 retargeted data”。BONES-SEED 公开 288 h 是其中一部分，不能等同全部 611 h。</p>
+<h3>三类评测必须保留协议标签</h3>
+<div class="eval-table-wrap"><table class="eval-table"><caption>仿真 benchmark 与公平性</caption><thead><tr><th>实验</th><th>数据/次数</th><th>观测、动作、时域</th><th>结果</th><th>边界</th></tr></thead><tbody>
+<tr><td>Isaac Lab scaling</td><td>test-content 6,998 / test-repetition 6,306；50k training iterations；每配置 6 evaluation checkpoints</td><td>局部参考 + 本体历史 → joint targets；50 Hz；clips 1–180 s；根/末端高度偏差 &gt;0.25m 或 root angle &gt;1rad 失败</td><td>42M：content 99.6%、23.8 mm；1.2M：98.0%、27.7 mm</td><td>6 checkpoints 不等于证实 6 个独立训练 seeds；Fig.2 caption 的 seeds 用语与正文统计描述需谨慎区分。</td></tr>
+<tr><td>MuJoCo 横向 tracker</td><td>相同三个测试集，同终止条件；多轮评估次数未另明确</td><td>SONIC / GMT / Any2Track / BeyondMimic；local tracking，不要求全局路径误差小</td><td>SONIC content/repetition/PHUMA：98.7/99.6/97.0%；BeyondMimic：81.6/85.8/73.4%</td><td>训练源、retargeting、算力不同；不是 data-matched 架构因果实验。</td></tr>
+<tr><td>速度 specialist 对照</td><td>MuJoCo，命令 0–5 m/s；次数未报告</td><td>SONIC + planner 对比 OpenHomie</td><td>survival 98.5% vs 43.0%</td><td>不是 SONIC tracker 单模块消融，也不是实际 6 m/s 跑速保证。</td></tr>
+</tbody></table></div>
+<div class="eval-table-wrap"><table class="eval-table"><caption>ID/OOD 分维度 · Table 2、§2.1、S3–S5</caption><thead><tr><th>维度</th><th>训练/测试关系</th><th>值</th><th>解释</th></tr></thead><tbody><tr><td>新表演 test-repetition</td><td>类型全重合、具体 clip 不重合；12 h</td><td>MuJoCo 99.6%</td><td>可称 seen-type held-out，不是训练集表现</td></tr><tr><td>新内容 test-content</td><td>182 subcategories 与训练 0% 重合；15 h</td><td>MuJoCo 98.7%</td><td>任务集合/数量不同，不自动计算相对 repetition 的保留率</td></tr><tr><td>数据源/重定向 PHUMA</td><td>外部视频运动恢复与不同 retargeting</td><td>97.0%</td><td>复合域移，不能独立归因单一维度</td></tr><tr><td>外力</td><td>约 11 kg 物体落到机器人</td><td>定性展示，次数未报告</td><td>不能推出任意碰撞安全率</td></tr><tr><td>复杂地面接触</td><td>zombie crawl、cross-legged sit</td><td>失败例，无分组统计</td><td>运动学限制/持续接触仍是边界</td></tr></tbody></table></div>
+<div class="eval-table-wrap"><table class="eval-table"><caption>真机任务 · Table 1 p.10；成功数由明确 n 与未取整至模糊区间的百分比换算，非额外试验</caption><thead><tr><th>任务 / 训练示范</th><th>成功数 / 次数</th><th>成功率</th><th>95% Wilson</th></tr></thead><tbody>
+<tr class="eval-binomial" data-successes="18" data-trials="20"><td>Apple→plate / 300；3-point</td><td>18/20</td><td>90%</td><td data-wilson-95>69.9–97.2%</td></tr><tr class="eval-binomial" data-successes="15" data-trials="20"><td>Carrot pickup / 3,900 multi-object</td><td>15/20</td><td>75%</td><td data-wilson-95>53.1–88.8%</td></tr><tr class="eval-binomial" data-successes="19" data-trials="20"><td>Scrub pickup / 同一 object-pickup policy</td><td>19/20</td><td>95%</td><td data-wilson-95>76.4–99.1%</td></tr><tr class="eval-binomial" data-successes="7" data-trials="10"><td>脚开垃圾桶 / 200</td><td>7/10</td><td>70%</td><td data-wilson-95>39.7–89.2%</td></tr><tr class="eval-binomial" data-successes="6" data-trials="10"><td>易拉罐→垃圾桶 / 1,000 multi-object</td><td>6/10</td><td>60%</td><td data-wilson-95>31.3–83.2%</td></tr><tr class="eval-binomial" data-successes="7" data-trials="10"><td>钻机/盒子搬运 / 300</td><td>7/10</td><td>70%</td><td data-wilson-95>39.7–89.2%</td></tr></tbody></table></div>
+<p>五任务均值 75% 将 carrot/scrub 先平均为一个任务；不是六行直接平均。G1 29 actuators；whole-body hand 接口为 14 维，本文相关章节未完整报告手硬件/相机清单、完成时间及安全停止总数。S1.1 声明演示执行无需人工干预；不能据此补造每条试验的安全日志。</p>
+<p>运动 tracking 的 123 条真机序列各一次：成功率 99.2%，MPJPE-L 25.7 mm，仿真为 100% / 22.3 mm；脚部 53.7 vs 29.0 mm 的 gap 最大。本文给的是四舍五入百分比，本页不把推回的整数当原始失败记录。</p>
+<h3>落到你项目的 wrapper，还需核对这份契约</h3>
+<ol><li>encoder mode、joint names/order、四元数顺序、局部系与 yaw anchor。</li><li>参考窗口的采样间隔、未来帧不足时的补齐、history 启动 padding。</li><li>token 是量化后的 64 维值、索引还是其他封装；normalize/denormalize 是否相同。</li><li>policy 50 Hz 与高层 action chunk 的时钟、重采样、过期数据与切换连续性。</li><li>手部维度与驱动独立核对；不要把 SONIC 论文的 78-D 硬接到 76-D 数据。</li></ol>
+<aside class="evidence-note" data-evidence="missing">本次只核对论文接口，未读取你实际部署仓库或运行 checkpoint。以上是接入检查表，不是对你当前 wrapper 的行为断言。S7 的 token-only streaming 也不能证明任何第三方封装都接受相同 payload。</aside>
+<div class="reading-links"><a href="gmr.html">← GMR</a><a href="egohumanoid-v2.html">下一篇：执行误差如何离线修正 →</a><a href="koda.html#controller-reuse-audit">跨控制器数据语义</a></div>
+</section>
 <div class="section" id="intro">
 <div class="section-num">§ 01</div>
 <h2>核心问题：人形控制为什么难以扩展？</h2>
@@ -162,8 +201,8 @@
 <div class="cn-label">一句话概括</div>
 <p>
             SONIC 的论点：<strong>运动追踪（motion tracking）是人形控制的可扩展基础任务</strong>——
-            它提供逐帧监督信号、可复用人类动作捕捉数据、天然与奖励工程解耦，
-            因此能像 LLM 一样随数据/模型/算力增长而稳定提升。
+            它提供逐帧追踪目标、可复用人类动作捕捉数据，并减少逐任务重设计奖励的需求。
+            本文在所测试的数据、模型和算力范围内观察到扩展收益；仍有明确的奖励、惩罚和域随机化设计。
           </p>
 </div>
 <p>
@@ -173,7 +212,7 @@
 <p>
           运动追踪的突破口：人类动作捕捉数据集（walking / running / dancing / fighting / tool-use …）
           已经在数十年的研究中积累到规模——每帧都有明确的目标姿态，监督信号天然稠密，
-          模型收到的是"你现在离目标姿态有多远"的精确梯度，不需要稀疏奖励 shaping。
+          每帧误差进入稠密追踪奖励，再通过 PPO 的策略梯度更新网络；不是把姿态误差穿过物理仿真器直接反传成“精确梯度”。
         </p>
 <table class="kv-table">
 <tr><td>论文全称</td><td><strong>S</strong>upersizing m<strong>O</strong>tion tracking for <strong>N</strong>atural human<strong>o</strong>ld <strong>C</strong>ontrol（SONIC）</td></tr>
@@ -279,7 +318,7 @@
 </marker>
 </defs>
 </svg>
-<div class="diagram-caption">SONIC 通用控制策略：三种编码器 → FSQ 量化 → Universal Token → 机器人关节命令</div>
+<div class="diagram-caption">解释图，非论文原图。三种编码器 → FSQ → Universal Token；实际控制解码器还需要本体感知历史。论文原图与接口核查见下方新增章节。</div>
 </div>
 <h3>2.1 状态空间</h3>
 <p>策略在每时刻接收两类输入：</p>
@@ -310,7 +349,7 @@
 <div class="module-card-desc">
               输入：未来 $F_h$ 帧的 3D 人类关节坐标（SMPL 格式）。
               适用于：视频/文字/音乐驱动的运动生成（GEM），以及 VR 全身遥操作。
-              <strong>关键能力：把人→机器人的 retargeting 内化到编码器</strong>，无需显式对齐。
+              <strong>关键能力：学习人→机器人运动映射</strong>，运行时可省去显式 retargeter；训练数据仍需重定向与跨编码器对齐。
             </div>
 </div>
 <div class="module-card">
@@ -330,7 +369,7 @@
 <div class="module-card-title">关节命令解码器</div>
 <div class="module-card-desc">
               输入：universal token $\mathbf{z}$ + 本体感受 $s_t^p$，输出：目标关节位置 $a_t$。
-              由 PD 控制器跟踪执行。训练时和部署时输入相同，无 sim-to-real gap。
+              由 PD 控制器跟踪执行。训练与部署使用同一输入表示，但真实接触、传感与动力学仍产生 sim-to-real gap。
             </div>
 </div>
 <div class="module-card">
@@ -363,7 +402,7 @@
 <td>
 <strong>Codebook Collapse</strong>：大量 codebook 槽位空置不用，只有少数几个被激活。
               需要额外的 commitment loss + EMA codebook 更新来缓解，训练不稳定，
-              且这些辅助损失与 PPO 优化不兼容（梯度干扰）。
+              本文选 FSQ 以减少这类维护，并实测其追踪误差更低；这不证明 VQ-VAE 与 PPO 在原理上不兼容。
             </td>
 </tr>
 <tr>
@@ -377,14 +416,14 @@
 </table>
 <h3>3.2 Token 的结构</h3>
 <div class="math-block">
-          $$\mathbf{z} = \text{FSQ}(\text{Encoder output}) \in \left\{-1, -\frac{L_z-2}{L_z}, \ldots, \frac{L_z-2}{L_z}, 1\right\}^{2 \times D_z}$$
+          $$\mathbf{z} = \text{FSQ}(\text{Encoder output}) \in \mathcal{Q}_{L_z}^{2 \times D_z},\quad |\mathcal{Q}_{L_z}|=L_z$$
           <span class="math-label">Universal Token 取值集合 · 2个token × 每token D_z维 × L_z档位</span>
 </div>
 <table class="kv-table">
 <tr><td>Token 数量</td><td>2 个 token（每个独立量化）</td></tr>
 <tr><td>每 token 维度</td><td>$D_z$（论文验证了多种配置）</td></tr>
-<tr><td>每维度档位</td><td>$L_z$ 档（MotionWAM 中使用 32 档）</td></tr>
-<tr><td>取值范围</td><td>$[-1, 1]$ 均匀分 $L_z$ 档：$\{-1, -\frac{L_z-2}{L_z}, \ldots, 1\}$</td></tr>
+<tr><td>每维度档位</td><td>本版 SONIC 默认 FSQ-32-32：每维 32 档，每 token 32 维，共 64 维（Table 4）</td></tr>
+<tr><td>取值约定</td><td>用 $\mathcal Q_{32}$ 表示 32 个量化级；具体归一化与偶数级端点应以所用 checkpoint 的实现为准，不从维数反推。</td></tr>
 <tr><td>梯度</td><td>Straight-through estimation（前向 round，反向直接传梯度）</td></tr>
 </table>
 <div class="callout blue">
@@ -409,7 +448,7 @@
 <dd>标准 PPO 强化学习损失。奖励 = 追踪误差（关节位置/速度/方向）+ 末端执行器位置 + 反抖动惩罚 + 足部加速度惩罚（促进平滑落地）。</dd>
 <dt>$\mathcal{L}_{\text{recon}} = \sum_{i \in \{r,h,m\}} \|\mathcal{D}_r(\mathbf{z}_i) - g_r\|^2$</dt>
 <dd>重建损失：三种编码器路径产生的 token 都能被 $\mathcal{D}_r$ 重建回机器人运动。当输入是人类运动 $g_h$ 时，这就是 retargeting loss——让模型学会"把人类动作翻译成机器人可执行的版本"。</dd>
-<dt>$\mathcal{L}_{\text{token}} = \|z_r - z_h\|^2 + \|z_r - z_m\|^2$</dt>
+<dt>$\mathcal{L}_{\text{token}} = \|z_r - z_h\|^2 + \|z_r - z_m\|^2 + \|z_m - z_h\|^2$</dt>
 <dd>Token 对齐损失：强制三种编码器对同一底层运动产生相似 token，确保统一 token 空间真的统一。</dd>
 <dt>$\mathcal{L}_{\text{cycle}} = \|\mathcal{E}_r(\mathcal{D}_r(z_h)) - z_r\|^2$</dt>
 <dd>循环一致性：从人类 token $z_h$ 重建出机器人运动，再重新编码成机器人 token，应该等于原始 $z_r$。强化跨模态翻译的质量。</dd>
@@ -605,7 +644,7 @@
 <!-- §06 与 MotionWAM 的关系 -->
 <div class="section" id="relation">
 <div class="section-num">§ 06</div>
-<h2>与 MotionWAM 的关系：SONIC 作为底层运动引擎</h2>
+<h2>与 VLA / Embodied AI 的联系：MotionWAM 的底层运动引擎</h2>
 <div class="cn-read">
 <div class="cn-label">核心关系</div>
 <p>

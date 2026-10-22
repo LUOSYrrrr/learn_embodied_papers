@@ -1,0 +1,395 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>INTACT 零基础精读 · 世界模型怎样直接选动作</title>
+  <link rel="stylesheet" href="../assets/css/style.css">
+  <style>
+    .paper-official-title {
+      color: var(--text3); font-family: var(--font-mono); font-size: 12px;
+      line-height: 1.7; margin: -12px 0 2px;
+    }
+    @media (max-width: 760px) {
+      .docs-sidebar-left { display: none; }
+      .docs-content h1 { font-size: 31px; }
+    }
+    /* 本页架构图文字密集：热点使用空心小环，选中时也不遮住图中文字。 */
+    .intact-page .hotspot {
+      width: 10px; height: 10px;
+      background: transparent; color: transparent;
+      border: 1.5px solid rgba(181, 121, 52, 0.9);
+      box-shadow: 0 1px 3px rgba(0,0,0,0.3);
+      opacity: 0.62;
+    }
+    .intact-page .hotspot::after {
+      content: ""; position: absolute; inset: -9px; border-radius: 50%;
+    }
+    .intact-page .hotspot-wrap:hover .hotspot { opacity: 0.76; }
+    .intact-page .hotspot:hover {
+      opacity: 1 !important;
+      background: transparent;
+      transform: translate(-50%, -50%);
+    }
+    .intact-page .hotspot.active {
+      opacity: 1 !important;
+      background: transparent; color: transparent;
+      border-color: var(--amber);
+      box-shadow: 0 0 0 2px rgba(251,191,36,0.18), 0 1px 3px rgba(0,0,0,0.3);
+      transform: translate(-50%, -50%);
+      animation: none;
+    }
+  </style>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16/dist/katex.min.css">
+  <script src="../assets/js/theme.js"></script>
+  <script defer src="../assets/js/interactive.js"></script>
+  <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16/dist/katex.min.js"></script>
+  <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16/dist/contrib/auto-render.min.js"
+          onload="renderMathInElement(document.body,{delimiters:[{left:'$$',right:'$$',display:true},{left:'$',right:'$',display:false}]})"></script>
+</head>
+<body class="intact-page">
+  <nav class="nav">
+    <a class="nav-logo" href="../index.html">Paper Notes</a>
+    <div class="nav-links">
+      <a href="leworldmodel.html">← LeWorldModel</a>
+      <a href="wam-roadmap.html">WAM 路线</a>
+      <a href="../pdfs/world-model/WAM/intact.pdf" target="_blank" rel="noopener">📄 PDF</a>
+    </div>
+  </nav>
+
+  <div class="docs-layout">
+    <aside class="docs-sidebar-left">
+      <div class="ds-title">INTACT · 零基础版</div>
+      <a class="ds-leaf-top" href="#overview">§01 先抓住主线</a>
+      <a class="ds-leaf-top" href="#example">一个具体例子</a>
+      <a class="ds-leaf-top" href="#true-wam">“True WAM” 是什么</a>
+      <a class="ds-leaf-top" href="#training">它到底怎么学</a>
+      <a class="ds-leaf-top" href="#figure">看懂 Figure 1</a>
+      <a class="ds-leaf-top" href="#planning">Figure 2：怎么规划</a>
+      <a class="ds-leaf-top" href="#evidence">数据与结果</a>
+      <a class="ds-leaf-top" href="#roadmap">后续章节</a>
+    </aside>
+
+    <main class="docs-content">
+      <div class="docs-breadcrumb">
+        <a href="../index.html">paper-notes</a><span class="sep">/</span>
+        <a href="wam-roadmap.html">world model</a><span class="sep">/</span>INTACT
+      </div>
+
+      <h1>INTACT：世界模型怎样从“会预测”变成“会选动作”</h1>
+      <p class="paper-official-title">
+        原论文：Isomorphic Intent-to-Action Learning for Search-Free World Models<br>
+        Junhan Sun · Hao Zhao · Guofeng Zhang · arXiv:2607.26056v1 · 2026
+      </p>
+      <div class="paper-badges">
+        <span class="badge badge-green">目标图像 → 直接动作</span>
+        <span class="badge badge-blue">保留世界预测</span>
+        <span class="badge badge-amber">搜索变成可选项</span>
+      </div>
+
+      <h2 id="overview">§01 先别管标题：这篇论文只想解决一个问题</h2>
+      <div class="cn-read">
+        <div class="cn-label">先读这三句话</div>
+        <p><strong>1.</strong> 机器人看到“现在的画面”和“目标画面”，需要决定下一步动作。</p>
+        <p><strong>2.</strong> 旧的 LeWorldModel 会预测“某个动作做完会怎样”，却不会直接告诉机器人“应该做哪个动作”，所以要试很多候选动作。</p>
+        <p><strong>3.</strong> INTACT 新增了一条捷径：直接学习“我想让画面这样变化 → 应该执行什么动作”。</p>
+      </div>
+
+      <div class="callout">
+        <div class="callout-label">一句话记忆</div>
+        <p><strong>LeWM 是后果预测器；INTACT 在它旁边训练了一个动作选择器。</strong>动作选择器给出答案，原来的世界模型负责预测后果、必要时检查答案。</p>
+      </div>
+
+      <details class="en-quote">
+        <summary>展开原文 · 作者怎样描述这个缺口</summary>
+        <div class="quote-body">
+          <p>“The world model learns what an action will do, but not which action should realize a requested latent change.”</p>
+          <div class="quote-cite">— §1 Introduction, p.2</div>
+        </div>
+      </details>
+
+      <h3 id="example">用 TwoRoom 任务想一遍</h3>
+      <div class="cn-read">
+        <div class="cn-label">具体场景</div>
+        <p>红点现在在左边房间，目标画面显示它应该去右边房间。真正的问题不是“向右走会发生什么”，而是<strong>“为了到达目标，现在先往哪个方向走？”</strong></p>
+      </div>
+
+      <div class="module-grid">
+        <div class="module-card">
+          <div class="module-card-name">旧方法 · LEWM + CEM</div>
+          <div class="module-card-title">先乱猜，再逐个模拟</div>
+          <div class="module-card-desc">先随机提出许多动作序列；让世界模型预测每条序列的结果；保留更接近目标的动作，再重复。论文里的常用配置最多要评估 9,000 条候选序列。</div>
+        </div>
+        <div class="module-card">
+          <div class="module-card-name">INTACT · DIRECT</div>
+          <div class="module-card-title">看目标，直接给动作</div>
+          <div class="module-card-desc">比较当前画面与目标画面，直接输出接下来五步动作；执行一小段，再看新的真实画面继续决定。默认不需要候选搜索。</div>
+        </div>
+      </div>
+
+      <table class="kv-table">
+        <tr><td>输入</td><td>当前图像 + 目标图像</td></tr>
+        <tr><td>LeWM 的做法</td><td>“我先试一堆动作，看哪一条模拟结果最像目标。”</td></tr>
+        <tr><td>INTACT 的做法</td><td>“训练时我已经见过‘状态变化和动作’的配对，现在直接读出动作。”</td></tr>
+        <tr><td>世界模型还要吗</td><td>要。它仍负责预测动作后果，可以检查 Direct 动作，也可以在执行后重新规划。</td></tr>
+      </table>
+
+      <h3 id="true-wam">所以作者说的 “True WAM” 是什么意思？</h3>
+      <div class="cn-read">
+        <div class="cn-label">不要被 “True” 吓到</div>
+        <p>这不是学界统一术语，而是作者在演讲里的强调方式。他认为一个完整的 World–Action Model 最好同时有两种能力：<strong>预测动作后果</strong>，以及<strong>根据目标直接选动作</strong>。</p>
+      </div>
+
+      <table class="kv-table">
+        <tr><td>普通 VLA</td><td>看到图像和指令后直接输出动作；未必有一个明确的模块预测动作后果。</td></tr>
+        <tr><td>Forward-only 世界模型</td><td>知道“做动作 A 会发生什么”，但面对目标时仍要搜索“到底应该做哪个动作”。</td></tr>
+        <tr><td>INTACT 所谓 True WAM</td><td>既保留“动作 → 后果”，又学会“目标变化 → 动作”；两种训练共同塑造视觉表示。</td></tr>
+      </table>
+
+      <div class="callout blue">
+        <div class="callout-label">最容易误解的地方</div>
+        <p>INTACT 并没有把两个模块合成一个网络。<strong>Forward Predictor</strong> 负责预测未来，<strong>INTACT Predictor</strong> 负责选动作。它们共享视觉编码结果，并在同一次训练中共同更新视觉编码器。</p>
+      </div>
+
+      <h3 id="training">它到底从一条示范轨迹里学到了什么？</h3>
+      <div class="cn-read">
+        <div class="cn-label">关键直觉就在这里</div>
+        <p>假设示范里记录了：机器人处于画面 A，执行动作“向右”，下一刻到达 B，之后最终到达目标 C。INTACT 会从同一条记录造出两个训练问题。</p>
+      </div>
+
+      <div class="module-grid">
+        <div class="module-card">
+          <div class="module-card-name">问题 1 · 看真实下一步</div>
+          <div class="module-card-title">A → B 的变化，是哪个动作造成的？</div>
+          <div class="module-card-desc">答案是数据里真实记录的“向右”。这一问让模型理解物理上真实发生的一步变化。</div>
+        </div>
+        <div class="module-card">
+          <div class="module-card-name">问题 2 · 看未来目标</div>
+          <div class="module-card-title">从 A 想去 C，现在该先做什么？</div>
+          <div class="module-card-desc">答案仍是同一个“向右”。这一问把训练条件变成部署时真正拿得到的当前画面和目标画面。</div>
+        </div>
+      </div>
+
+      <div class="callout amber">
+        <div class="callout-label">为什么要让同一个动作模块回答两问</div>
+        <p>第一问很真实，但机器人行动前还看不到下一帧 B；第二问部署时可用，但目标 C 不是“一步之后”的真实画面。让同一个模块同时学习两问，就把<strong>真实的一步运动</strong>和<strong>部署时的目标请求</strong>连接起来了。</p>
+      </div>
+
+      <details class="en-quote">
+        <summary>进阶可选 · 两个 intent 的公式到底在说什么</summary>
+        <div class="quote-body" style="font-style:normal;">
+          <p>Local intent：$m_t^{local}=z_{t+1}-z_t$。白话：真实下一帧 B 相比当前帧 A 变了多少。</p>
+          <p>Goal intent：$m_t^{goal}=\mathrm{sg}(z_g)-z_t$。白话：未来目标 C 相比当前帧 A 还差多少。</p>
+          <p>论文说的 isomorphic，首先只是指两种问题使用<strong>相同输入格式、同一个动作模块、同一种动作输出</strong>；不是说两个差值必须数值相等。</p>
+          <div class="quote-cite">— §3.1–§3.2, pp.6–8 · Eqs. 6–14</div>
+        </div>
+      </details>
+
+      <h3 id="five-questions">论文五问 · 白话版</h3>
+      <table class="kv-table">
+        <tr><td>为什么要做</td><td>旧世界模型会预测后果，但每次控制都要重新搜索动作，慢，而且浪费离线示范中已有的动作监督。</td></tr>
+        <tr><td>基于什么</td><td>直接建立在 LeWorldModel 上：沿用它的视觉编码器和前向世界预测器，再增加一个目标到动作的模块。</td></tr>
+        <tr><td>旧方法缺什么</td><td>缺少一个部署时能直接调用的“当前状态 + 目标状态 → 动作”接口。</td></tr>
+        <tr><td>核心发现</td><td>每条离线示范已经同时告诉我们“画面怎样变化”和“哪个动作造成了变化”，这些标签可以直接训练目标到动作的接口。</td></tr>
+        <tr><td>效果怎样</td><td>四任务 Direct 平均成功率 95.33%，推理 2.9–5.5 ms；可选的小规模检查把结果提升到 96.86%。</td></tr>
+      </table>
+
+      <h3 id="figure">现在再看 Figure 1：只找六个东西</h3>
+      <div class="fig-interactive panel-below">
+        <div class="fig-block">
+          <div class="hotspot-wrap" data-hotspot-group="intact-fig1">
+            <img src="../assets/figures/intact/fig-1.png" alt="INTACT Figure 1：共享视觉编码器、两种训练问题、动作选择器和世界预测器" loading="lazy">
+            <div class="hotspot" data-id="domains" style="left:11.9%;top:42.6%;"
+                 data-title="① 四种模拟任务"
+                 data-body="左边只是四种不同环境的当前图像和目标图像。先不要管任务细节，只记住模型总是看到‘现在’和‘目标’。"></div>
+            <div class="hotspot" data-id="encoder" style="left:34.9%;top:34.7%;"
+                 data-title="② 视觉翻译器"
+                 data-body="Encoder 把图像翻译成模型容易计算的一串数字。四个任务共用它，所以不同任务都能帮助训练这套视觉表示。"></div>
+            <div class="hotspot" data-id="dual-intent" style="left:53.9%;top:33.9%;"
+                 data-title="③ 同一条示范造出两道题"
+                 data-body="橙色问‘真实下一步变化对应什么动作’，绿色问‘朝目标前进现在做什么’。两道题都用示范里的真实动作作答案。"></div>
+            <div class="hotspot" data-id="shared-actor" style="left:69%;top:34.7%;"
+                 data-title="④ 同一个动作选择器"
+                 data-body="两道题交给同一个 INTACT Predictor 回答。这样部署时给它目标问题，它也知道应该输出什么动作。"></div>
+            <div class="hotspot" data-id="forward" style="left:61.5%;top:71.7%;"
+                 data-title="⑤ 原来的世界模型还在"
+                 data-body="下方 Forward Predictor 继续学习‘执行这个动作后会怎样’。INTACT 新增动作选择能力，没有删除后果预测能力。"></div>
+            <div class="hotspot" data-id="direct" style="left:90.9%;top:28.9%;"
+                 data-title="⑥ 部署时直接输出动作"
+                 data-body="右上角是默认用法：根据目标直接给出五步动作。右下角的世界 rollout 只在想检查动作或重新规划时使用。"></div>
+          </div>
+          <div class="fig-cap">
+            <span class="fig-num">Fig 1 · p.2</span>
+            Shared-encoder INTACT training and recurrent control.
+            <span class="fig-cn">从左往右读：现在与目标 → 图像变成数字 → 同一示范生成两道题 → 同一个模块学会回答 → 直接动作；下方保留世界预测。</span>
+          </div>
+        </div>
+        <div class="hotspot-panel"></div>
+      </div>
+
+      <div class="step-walker" data-hotspot-group="intact-fig1">
+        <div class="sw-header">
+          <div class="sw-title">🪜 不看公式，跟着一条数据走</div>
+          <div class="sw-controls"><button class="sw-btn prev">◀</button><span class="sw-counter">1 / 6</span><button class="sw-btn next">▶</button></div>
+        </div>
+        <div class="sw-progress"><div class="sw-dot"></div><div class="sw-dot"></div><div class="sw-dot"></div><div class="sw-dot"></div><div class="sw-dot"></div><div class="sw-dot"></div></div>
+        <div class="sw-body">
+          <div class="sw-step active" data-hotspot="domains"><h4>1 · 拿出一条旧示范</h4><p>示范里有连续图像和机器人当时执行的动作，没有额外 reward 或语言标注。</p></div>
+          <div class="sw-step" data-hotspot="encoder"><h4>2 · 把图像翻译成数字</h4><p>当前图像、下一图像和未来目标都经过同一个视觉编码器。</p></div>
+          <div class="sw-step" data-hotspot="dual-intent"><h4>3 · 从示范生成两道问题</h4><p>一道问真实下一步，一道问未来目标；正确答案都是示范中当时执行的动作。</p></div>
+          <div class="sw-step" data-hotspot="shared-actor"><h4>4 · 同一个动作选择器同时练两题</h4><p>它因此既懂真实的一步变化，也懂部署时给出的目标请求。</p></div>
+          <div class="sw-step" data-hotspot="forward"><h4>5 · 同时保留后果预测</h4><p>另一条分支继续学习动作后的未来状态，所以系统不是单纯行为克隆。</p></div>
+          <div class="sw-step" data-hotspot="direct"><h4>6 · 部署时只问目标问题</h4><p>给当前画面和目标画面，动作选择器直接输出下一段动作；执行后再看真实画面继续循环。</p></div>
+        </div>
+      </div>
+
+      <h3 id="planning">Figure 2：Search-free 不等于 Rollout-free</h3>
+      <div class="cn-read">
+        <div class="cn-label">从训练图切换到推理图</div>
+        <p>上一张图说明两个 Predictor 怎样一起训练，但还没回答“真正控制机器人时怎么跑”。这张图只比较<strong>推理时动作计划从哪里来</strong>：LeWM 必须盲搜很多候选；INTACT 先直接提出一条计划，再决定要不要局部检查。</p>
+      </div>
+
+      <div class="callout blue">
+        <div class="callout-label">先记住这句</div>
+        <p><strong>Search-free 不是不使用 Forward Predictor，也不是完全不 rollout。</strong>Direct 仍用 $F_\psi$ 推演自己提出的那一条计划；它省掉的是“采样几百条候选、逐条比较、反复更新”的搜索过程。</p>
+      </div>
+
+      <div class="fig-interactive panel-below">
+        <div class="fig-block">
+          <div class="hotspot-wrap" data-hotspot-group="intact-fig2">
+            <img src="../assets/figures/intact/fig-2.png" alt="INTACT Figure 2：LeWM 大范围动作搜索与 INTACT Direct、Guarded A 的比较" loading="lazy">
+            <div class="hotspot" data-id="lewm-rollout" style="left:32.2%;top:24.1%;"
+                 data-title="① LeWM：每条候选都要 rollout"
+                 data-body="CEM 先提出很多动作序列；Forward Predictor 分别把每条序列推到预测终点。蓝色链条不是在生成动作，而是在模拟给定动作的后果。"></div>
+            <div class="hotspot" data-id="lewm-search" style="left:58.5%;top:36.7%;"
+                 data-title="② LeWM：Cost 反过来更新动作"
+                 data-body="预测终点与目标 z_g 算距离，CEM 保留较好的候选并更新动作分布，再重新采样和 rollout。因此搜索是控制所必需的。"></div>
+            <div class="hotspot" data-id="goal-gap" style="left:20.1%;top:90.9%;"
+                 data-title="③ INTACT：先计算还差多远"
+                 data-body="在当前或想象状态 z̃_k 上计算 m_k^goal = z_g − z̃_k。它不是下一帧，而是给动作预测器的目标请求。"></div>
+            <div class="hotspot" data-id="actor" style="left:32.2%;top:91.3%;"
+                 data-title="④ Gη：直接预测下一段动作"
+                 data-body="INTACT Predictor 根据当前状态和目标差值输出动作分布；Direct 使用其均值 ā_k。这个动作由示范动作监督学得，不是随机猜出来的。"></div>
+            <div class="hotspot" data-id="direct-rollout" style="left:32.4%;top:70.7%;"
+                 data-title="⑤ Fψ：沿唯一计划推进 latent"
+                 data-body="Forward Predictor 用 ā_k 得到下一想象状态，再让 Gη 预测下一段动作。这里确实是 latent rollout，但只有一条 actor 提出的轨迹，没有候选竞争。"></div>
+            <div class="hotspot" data-id="execute" style="left:58.4%;top:92.0%;"
+                 data-title="⑥ Direct：绕过 Cost 直接执行"
+                 data-body="收集动作块得到计划 Ā 后，绿色路径直接执行，不调用 CEM，也不计算终点 Cost。通常只执行第一个动作块，取得新观测后再规划。"></div>
+            <div class="hotspot" data-id="guarded" style="left:58.7%;top:83.6%;"
+                 data-title="⑦ Guarded A：可选的局部检查"
+                 data-body="如果想检查 Direct 计划，就以 Ā 为中心、小方差采样附近候选，再用 Forward Predictor 和 Cost 比较。它是局部验证，不是严格的安全保证。"></div>
+          </div>
+          <div class="fig-cap">
+            <span class="fig-num">Fig 2 · p.7</span>
+            INTACT converts mandatory search into optional verification.
+            <span class="fig-cn">上：LeWM 从无信息的动作分布出发，靠大量 rollout 才获得目标方向。下：INTACT 直接生成计划；需要时才在计划附近做小范围验证。</span>
+          </div>
+        </div>
+        <div class="hotspot-panel"></div>
+      </div>
+
+      <div class="step-walker" data-hotspot-group="intact-fig2">
+        <div class="sw-header">
+          <div class="sw-title">🪜 跟着 Figure 2 跑一次推理</div>
+          <div class="sw-controls"><button class="sw-btn prev">◀</button><span class="sw-counter">1 / 7</span><button class="sw-btn next">▶</button></div>
+        </div>
+        <div class="sw-progress"><div class="sw-dot"></div><div class="sw-dot"></div><div class="sw-dot"></div><div class="sw-dot"></div><div class="sw-dot"></div><div class="sw-dot"></div><div class="sw-dot"></div></div>
+        <div class="sw-body">
+          <div class="sw-step active" data-hotspot="lewm-rollout"><h4>1 · LeWM 先猜许多动作序列</h4><p>每条候选都交给 $F_\psi$，从真实当前 latent 开始推演出一个预测终点。</p></div>
+          <div class="sw-step" data-hotspot="lewm-search"><h4>2 · Cost 告诉 CEM 哪些猜测比较好</h4><p>CEM 根据终点离 $z_g$ 的距离更新动作分布，并重复采样与 rollout；所以它离不开搜索。</p></div>
+          <div class="sw-step" data-hotspot="goal-gap"><h4>3 · INTACT 直接读取目标差值</h4><p>先算 $m_k^{goal}=z_g-\tilde z_k$，把“从这里到目标还差多少”作为动作条件。</p></div>
+          <div class="sw-step" data-hotspot="actor"><h4>4 · $G_\eta$ 输出动作</h4><p>Direct 取动作分布均值 $\bar a_k$；它是从示范中学出的动作预测，不是 CEM 的随机候选。</p></div>
+          <div class="sw-step" data-hotspot="direct-rollout"><h4>5 · $F_\psi$ 推进这一条轨迹</h4><p>用 $\bar a_k$ 预测 $\tilde z_{k+1}$，重新计算目标差，再让 $G_\eta$ 给下一段动作，最终组成 $\bar A$。</p></div>
+          <div class="sw-step" data-hotspot="execute"><h4>6 · Direct 直接执行</h4><p>绿色路径绕过 Cost 和 CEM。执行第一个动作块后读取新的真实图像，再闭环重规划。</p></div>
+          <div class="sw-step" data-hotspot="guarded"><h4>7 · Guarded A 只是可选检查</h4><p>它以 $\bar A$ 为中心做 128×3 的局部 CEM；传统 LeWM 从零开始做 300×30/10 的大范围搜索。</p></div>
+        </div>
+      </div>
+
+      <table class="kv-table">
+        <tr><td>LeWM</td><td>随机候选 → 多条 rollout → Cost → CEM 更新；搜索是必须的。</td></tr>
+        <tr><td>INTACT Direct</td><td>$G_\eta$ 给动作，$F_\psi$ 沿唯一计划推进；0 候选、0 次终点 Cost。</td></tr>
+        <tr><td>INTACT Guarded A</td><td>在 Direct 计划附近采样少量候选，再用 rollout 与 Cost 做局部验证。</td></tr>
+      </table>
+
+      <details class="en-quote">
+        <summary>展开原文 · 作者怎样区分 Direct 与局部验证</summary>
+        <div class="quote-body">
+          <p>“INTACT converts mandatory search into optional verification.”</p>
+          <div class="quote-cite">— Figure 2 caption, §3.1, p.7</div>
+        </div>
+      </details>
+
+      <div class="quiz"
+           data-correct="c"
+           data-explain="Direct 仍让 Forward Predictor 沿着 Gη 提出的唯一计划推进 latent；它不做候选采样、终点 Cost 比较或 CEM 更新。见 Fig. 2 与 Algorithm 2。"
+           data-explain-wrong="Search-free 去掉的是候选动作优化，不是 Forward Predictor。只有 Guarded A 才重新加入局部候选搜索和 Cost。">
+        <div class="q-label">🧠 理解检查</div>
+        <div class="q-text">为什么 INTACT Direct 使用 Forward Predictor，仍然可以称为 search-free？</div>
+        <div class="q-options">
+          <button class="q-opt" data-k="a">因为它完全不预测未来状态</button>
+          <button class="q-opt" data-k="b">因为它把 CEM 的候选数量减少到一条</button>
+          <button class="q-opt" data-k="c">因为它只推进 actor 给出的计划，不采样并比较候选</button>
+          <button class="q-opt" data-k="d">因为它在训练时已经知道测试目标</button>
+        </div>
+        <div class="q-feedback"></div>
+      </div>
+
+      <h3 id="evidence">数据和结果：只先记三个数字</h3>
+      <div class="module-grid">
+        <div class="module-card"><div class="module-card-name">TRAINING DATA</div><div class="module-card-title">50,000 条模拟轨迹</div><div class="module-card-desc">PushT 20k；Cube、Reacher、TwoRoom 各 10k。每条都有 RGB 和动作，没有 reward。</div></div>
+        <div class="module-card"><div class="module-card-name">DIRECT</div><div class="module-card-title">95.33% · 0 条候选</div><div class="module-card-desc">四个单任务模型只训练一个完整数据 epoch，直接输出动作，宏平均成功率 95.33%。</div></div>
+        <div class="module-card"><div class="module-card-name">OPTIONAL CHECK</div><div class="module-card-title">96.86% · 384 条候选</div><div class="module-card-desc">在 Direct 动作附近做小范围检查；传统大范围 CEM 使用 9,000 条候选。</div></div>
+        <div class="module-card"><div class="module-card-name">LATENCY</div><div class="module-card-title">2.9–5.5 ms</div><div class="module-card-desc">论文报告的 planner-side Direct 推理时间；不是完整机器人系统的端到端延迟。</div></div>
+      </div>
+
+      <details class="en-quote">
+        <summary>展开四个数据集的规模、采集方式和用途</summary>
+        <div class="quote-body" style="font-style:normal;">
+          <table class="kv-table">
+            <tr><td>PushT</td><td>20,000 条 expert episodes，平均 196 steps；二维连续推挤任务。</td></tr>
+            <tr><td>Cube</td><td>10,000 条 episodes，每条 200 steps；benchmark heuristic 控制机械臂移动立方体。</td></tr>
+            <tr><td>Reacher</td><td>10,000 条 episodes，每条 200 steps；由 SAC policy 采集双关节机械臂运动。</td></tr>
+            <tr><td>TwoRoom</td><td>10,000 条 episodes，平均 92 steps；noisy heuristic 先走向门，再走向目标。</td></tr>
+            <tr><td>模型输入</td><td>RGB 观测与五步 action block；模拟器 state 只用于 probe 和成功判定，不输入主模型。</td></tr>
+            <tr><td>评测</td><td>通常使用 3 个 evaluation seeds，每个 seed 100 episodes；Official 与 CLEAR Moderate 分开报告。</td></tr>
+          </table>
+          <div class="quote-cite">— INTACT §4, pp.9–10；数据规模继承自 LeWorldModel Appendix E</div>
+        </div>
+      </details>
+
+      <div class="callout red">
+        <div class="callout-label">这篇论文还没有证明什么</div>
+        <p>实验只有四个模拟环境和固定图像目标，没有真机、分布外目标、跨机器人本体实验。它证明的是<strong>这种训练接口在当前 benchmark 上有效</strong>，不是“机器人已经拥有通用世界理解”。</p>
+      </div>
+
+      <div class="quiz"
+           data-correct="b"
+           data-explain="INTACT 的主要变化是新增一个可在部署时直接使用的目标到动作接口；原来的 Forward Predictor 继续保留，用于预测动作后果与可选检查。见 Fig. 1 与 §3.1–§3.3。"
+           data-explain-wrong="INTACT 没有删除世界模型，也不是把目标图像当下一帧。它保留 Forward Predictor，同时让另一个模块直接从当前状态和目标状态选择动作。">
+        <div class="q-label">🧠 理解检查</div>
+        <div class="q-text">INTACT 相比 LeWM 最关键的变化是什么？</div>
+        <div class="q-options">
+          <button class="q-opt" data-k="a">删除世界预测器，只保留一个普通策略</button>
+          <button class="q-opt" data-k="b">新增目标到动作的直接接口，同时保留世界预测器</button>
+          <button class="q-opt" data-k="c">把目标图像强制当作真实下一帧</button>
+          <button class="q-opt" data-k="d">在推理时搜索更多随机动作序列</button>
+        </div>
+        <div class="q-feedback"></div>
+      </div>
+
+      <h2 id="roadmap">后续章节会继续保持这个难度</h2>
+      <div class="cn-read">
+        <div class="cn-label">接下来再逐层加深</div>
+        <p>这一版先把主线讲通。后续不会直接扔出术语，而是先用 A→B→C 的例子，再分别解释为什么两种训练问题能共用模块、三项 loss 各做什么、Direct 与搜索怎样配合。</p>
+      </div>
+      <div class="module-grid">
+        <div class="module-card"><div class="module-card-name">§02</div><div class="module-card-title">为什么会预测还不够</div><div class="module-card-desc">用“导航软件会算到达时间，但不会替你开车”的类比解释 Forward–Action Gap。</div></div>
+        <div class="module-card"><div class="module-card-name">§03</div><div class="module-card-title">两道题为什么能共用模块</div><div class="module-card-desc">最后才引出 isomorphic 和 action quotient，不从定义开始讲。</div></div>
+        <div class="module-card"><div class="module-card-name">§04</div><div class="module-card-title">三种训练信号各管什么</div><div class="module-card-desc">世界预测、真实一步到动作、未来目标到动作，逐项画清梯度去向。</div></div>
+        <div class="module-card"><div class="module-card-name">§05–§07</div><div class="module-card-title">怎么执行、证据够不够、边界在哪</div><div class="module-card-desc">比较 Direct、局部检查和大范围 CEM，再审计实验能支持到哪一步。</div></div>
+      </div>
+    </main>
+  </div>
+</body>
+</html>

@@ -1,0 +1,212 @@
+<mxfile host="65bd71144e">
+    <diagram id="fast-wam-detail" name="Fast-WAM 训练与推理细化">
+        <mxGraphModel dx="1994" dy="1247" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1900" pageHeight="1180" math="0" shadow="0" adaptiveColors="auto">
+            <root>
+                <mxCell id="0"/>
+                <mxCell id="1" parent="0"/>
+                <mxCell id="title" parent="1" style="text;html=1;align=left;verticalAlign=middle;whiteSpace=wrap;strokeColor=none;fillColor=none;fontFamily=PingFang SC;fontSize=26;fontStyle=1;fontColor=#1F2937;" value="Fast-WAM 内部数据流：训练时学视频与动作，推理时只生成动作" vertex="1">
+                    <mxGeometry height="45" width="1500" x="40" y="20" as="geometry"/>
+                </mxCell>
+                <mxCell id="legend" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#F8FAFC;strokeColor=#CBD5E1;fontFamily=PingFang SC;fontSize=14;fontColor=#475569;align=left;spacingLeft=12;" value="❄ 冻结参数　🔥 可训练参数　蓝色＝视频路径　橙色＝动作路径　虚线＝只在训练或可选模式出现" vertex="1">
+                    <mxGeometry height="40" width="1810" x="40" y="70" as="geometry"/>
+                </mxCell>
+                <mxCell id="trainBox" parent="1" style="swimlane;horizontal=1;startSize=40;rounded=1;whiteSpace=wrap;html=1;fillColor=#FFFFFF;swimlaneFillColor=#EEF6FF;strokeColor=#6B9BC3;strokeWidth=2;fontFamily=PingFang SC;fontSize=20;fontStyle=1;fontColor=#244A69;" value="训练阶段" vertex="1">
+                    <mxGeometry height="570" width="1810" x="40" y="130" as="geometry"/>
+                </mxCell>
+                <mxCell id="curRGB" parent="trainBox" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFF7ED;strokeColor=#C58B55;fontFamily=PingFang SC;fontSize=16;fontStyle=1;" value="当前 RGB 帧&#xa;f₀" vertex="1">
+                    <mxGeometry height="65" width="140" x="30" y="70" as="geometry"/>
+                </mxCell>
+                <mxCell id="futureRGB" parent="trainBox" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFF7ED;strokeColor=#C58B55;fontFamily=PingFang SC;fontSize=15;dashed=1;" value="真实未来帧&#xa;f₁:H（监督目标）" vertex="1">
+                    <mxGeometry height="70" width="140" x="30" y="160" as="geometry"/>
+                </mxCell>
+                <mxCell id="proprio" parent="trainBox" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#F0FDF4;strokeColor=#70A77B;fontFamily=PingFang SC;fontSize=15;" value="当前本体状态&#xa;s₀＝关节角/速度" vertex="1">
+                    <mxGeometry height="70" width="140" x="30" y="295" as="geometry"/>
+                </mxCell>
+                <mxCell id="language" parent="trainBox" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FAF5FF;strokeColor=#9B77B2;fontFamily=PingFang SC;fontSize=15;" value="语言指令 ℓ&#xa;Pick up the fruit" vertex="1">
+                    <mxGeometry height="70" width="140" x="30" y="395" as="geometry"/>
+                </mxCell>
+                <mxCell id="actionGT" parent="trainBox" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFF7ED;strokeColor=#D69745;fontFamily=PingFang SC;fontSize=15;dashed=1;" value="真实动作块&#xa;a₁:H（监督目标）" vertex="1">
+                    <mxGeometry height="65" width="140" x="30" y="480" as="geometry"/>
+                </mxCell>
+                <mxCell id="videoVAE" parent="trainBox" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFE9D6;strokeColor=#C58B55;fontFamily=PingFang SC;fontSize=15;fontStyle=1;" value="Video VAE Encoder ❄&#xa;像素压缩到 latent" vertex="1">
+                    <mxGeometry height="90" width="170" x="220" y="95" as="geometry"/>
+                </mxCell>
+                <mxCell id="propEnc" parent="trainBox" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#E8F7EA;strokeColor=#70A77B;fontFamily=PingFang SC;fontSize=15;fontStyle=1;" value="Proprio Encoder 🔥&#xa;s₀ → p₀ tokens" vertex="1">
+                    <mxGeometry height="80" width="170" x="220" y="285" as="geometry"/>
+                </mxCell>
+                <mxCell id="textEnc" parent="trainBox" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#F2E7FA;strokeColor=#9B77B2;fontFamily=PingFang SC;fontSize=15;fontStyle=1;" value="Text Encoder ❄&#xa;ℓ → eℓ" vertex="1">
+                    <mxGeometry height="75" width="170" x="220" y="390" as="geometry"/>
+                </mxCell>
+                <mxCell id="actEnc" parent="trainBox" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFF1D8;strokeColor=#D69745;fontFamily=PingFang SC;fontSize=15;" value="Action Encoder&#xa;a₁:H → a⁰" vertex="1">
+                    <mxGeometry height="70" width="170" x="220" y="475" as="geometry"/>
+                </mxCell>
+                <mxCell id="x0" parent="trainBox" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#DCEEFF;strokeColor=#4D87B6;fontFamily=PingFang SC;fontSize=15;fontStyle=1;" value="干净当前帧 token&#xa;x₀" vertex="1">
+                    <mxGeometry height="65" width="150" x="440" y="65" as="geometry"/>
+                </mxCell>
+                <mxCell id="zFuture" parent="trainBox" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#EAF4FF;strokeColor=#6B9BC3;fontFamily=PingFang SC;fontSize=15;dashed=1;" value="未来 latent&#xa;z_future" vertex="1">
+                    <mxGeometry height="60" width="150" x="440" y="155" as="geometry"/>
+                </mxCell>
+                <mxCell id="noiseVideo" parent="trainBox" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#F1F5F9;strokeColor=#64748B;fontFamily=PingFang SC;fontSize=14;dashed=1;" value="采样 τ、噪声 εv&#xa;zτ=(1−τ)z+τεv" vertex="1">
+                    <mxGeometry height="70" width="150" x="440" y="230" as="geometry"/>
+                </mxCell>
+                <mxCell id="noiseAction" parent="trainBox" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFF8E7;strokeColor=#D69745;fontFamily=PingFang SC;fontSize=14;dashed=1;" value="采样 τ、噪声 εa&#xa;aτ=(1−τ)a⁰+τεa" vertex="1">
+                    <mxGeometry height="80" width="150" x="440" y="465" as="geometry"/>
+                </mxCell>
+                <mxCell id="mot" parent="trainBox" style="swimlane;horizontal=1;startSize=35;rounded=1;whiteSpace=wrap;html=1;fillColor=#FFFFFF;swimlaneFillColor=#F8FAFC;strokeColor=#64748B;strokeWidth=2;fontFamily=PingFang SC;fontSize=17;fontStyle=1;" value="Mixture-of-Transformers：两个 DiT，共同做 masked shared attention" vertex="1">
+                    <mxGeometry height="460" width="670" x="640" y="55" as="geometry"/>
+                </mxCell>
+                <mxCell id="videoDit" parent="mot" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#E4F1FC;strokeColor=#4D87B6;strokeWidth=2;fontFamily=PingFang SC;fontSize=15;align=left;spacingLeft=14;verticalAlign=middle;" value="Video DiT 🔥&#xa;&#xa;输入 token：[x₀, zτ_future]&#xa;1. x₀ 位置形成当前世界隐藏表征 h₀&#xa;2. future 位置预测视频 flow  v̂vid&#xa;3. x₀ 不读取未来 token" vertex="1">
+                    <mxGeometry height="220" width="290" x="25" y="55" as="geometry"/>
+                </mxCell>
+                <mxCell id="actionDit" parent="mot" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFF0DC;strokeColor=#D69745;strokeWidth=2;fontFamily=PingFang SC;fontSize=15;align=left;spacingLeft=14;verticalAlign=middle;" value="Action DiT 🔥&#xa;&#xa;输入 token：[p₀, aτ]&#xa;通过共享注意力读取 h₀ 和语言 eℓ&#xa;预测动作 flow  v̂act&#xa;禁止读取 zτ_future，避免偷看答案" vertex="1">
+                    <mxGeometry height="220" width="290" x="355" y="55" as="geometry"/>
+                </mxCell>
+                <mxCell id="mask" parent="mot" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#94A3B8;fontFamily=PingFang SC;fontSize=14;align=left;spacingLeft=12;" value="注意力可见性（行＝谁在读取）&#xa;x₀ → 只看 x₀、语言&#xa;future → 看 x₀ + future、语言&#xa;action → 看 x₀ + proprio + action、语言&#xa;action ⇥ future：屏蔽" vertex="1">
+                    <mxGeometry height="125" width="620" x="25" y="305" as="geometry"/>
+                </mxCell>
+                <mxCell id="e15" edge="1" parent="mot" source="videoDit" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;endArrow=block;endFill=1;strokeColor=#3B82A0;strokeWidth=3;" target="actionDit" value="h₀：只含当前上下文">
+                    <mxGeometry relative="1" as="geometry"/>
+                </mxCell>
+                <mxCell id="vidLoss" parent="trainBox" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#EAF4FF;strokeColor=#4D87B6;fontFamily=PingFang SC;fontSize=14;fontStyle=1;" value="视频 flow loss&#xa;Lvid=‖v̂vid−(εv−z_future)‖²" vertex="1">
+                    <mxGeometry height="85" width="220" x="1360" y="65" as="geometry"/>
+                </mxCell>
+                <mxCell id="actLoss" parent="trainBox" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFF1D8;strokeColor=#D69745;fontFamily=PingFang SC;fontSize=14;fontStyle=1;" value="动作 flow loss&#xa;Lact=‖v̂act−(εa−a⁰)‖²" vertex="1">
+                    <mxGeometry height="85" width="220" x="1360" y="265" as="geometry"/>
+                </mxCell>
+                <mxCell id="totalLoss" parent="trainBox" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#F8FAFC;strokeColor=#334155;strokeWidth=2;fontFamily=PingFang SC;fontSize=15;fontStyle=1;" value="总损失&#xa;L=Lact+λLvid&#xa;&#xa;更新关系：&#xa;θvideo ← Lact + λLvid&#xa;θaction ← Lact" vertex="1">
+                    <mxGeometry height="180" width="160" x="1620" y="170" as="geometry"/>
+                </mxCell>
+                <mxCell id="gradNote" parent="trainBox" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFFDF5;strokeColor=#C6A15B;fontFamily=PingFang SC;fontSize=14;align=left;spacingLeft=12;" value="为什么动作损失也更新 Video DiT？&#xa;因为 v̂act 依赖 h₀，而 h₀ 是 Video DiT 计算出的。&#xa;但 Lvid 不更新 Action DiT：视频分支看不到动作 token。" vertex="1">
+                    <mxGeometry height="120" width="420" x="1360" y="395" as="geometry"/>
+                </mxCell>
+                <mxCell id="e1" edge="1" parent="trainBox" source="curRGB" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;endArrow=block;endFill=1;strokeColor=#C58B55;strokeWidth=2;" target="videoVAE">
+                    <mxGeometry relative="1" as="geometry"/>
+                </mxCell>
+                <mxCell id="e2" edge="1" parent="trainBox" source="futureRGB" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;endArrow=block;endFill=1;strokeColor=#C58B55;strokeWidth=2;dashed=1;" target="videoVAE">
+                    <mxGeometry relative="1" as="geometry"/>
+                </mxCell>
+                <mxCell id="e3" edge="1" parent="trainBox" source="videoVAE" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;endArrow=block;endFill=1;strokeColor=#4D87B6;strokeWidth=2;" target="x0">
+                    <mxGeometry relative="1" as="geometry"/>
+                </mxCell>
+                <mxCell id="e4" edge="1" parent="trainBox" source="videoVAE" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;endArrow=block;endFill=1;strokeColor=#6B9BC3;strokeWidth=2;dashed=1;" target="zFuture">
+                    <mxGeometry relative="1" as="geometry"/>
+                </mxCell>
+                <mxCell id="e5" edge="1" parent="trainBox" source="zFuture" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;endArrow=block;endFill=1;strokeColor=#6B9BC3;strokeWidth=2;dashed=1;" target="noiseVideo">
+                    <mxGeometry relative="1" as="geometry"/>
+                </mxCell>
+                <mxCell id="e6" edge="1" parent="trainBox" source="x0" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;endArrow=block;endFill=1;strokeColor=#4D87B6;strokeWidth=2;" target="videoDit">
+                    <mxGeometry relative="1" as="geometry"/>
+                </mxCell>
+                <mxCell id="e7" edge="1" parent="trainBox" source="noiseVideo" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;endArrow=block;endFill=1;strokeColor=#6B9BC3;strokeWidth=2;dashed=1;" target="videoDit">
+                    <mxGeometry relative="1" as="geometry"/>
+                </mxCell>
+                <mxCell id="e8" edge="1" parent="trainBox" source="proprio" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;endArrow=block;endFill=1;strokeColor=#70A77B;strokeWidth=2;" target="propEnc">
+                    <mxGeometry relative="1" as="geometry"/>
+                </mxCell>
+                <mxCell id="e9" edge="1" parent="trainBox" source="propEnc" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;endArrow=block;endFill=1;strokeColor=#70A77B;strokeWidth=2;">
+                    <mxGeometry relative="1" as="geometry">
+                        <Array as="points">
+                            <mxPoint x="1040" y="350"/>
+                        </Array>
+                        <mxPoint x="1040" y="330" as="targetPoint"/>
+                    </mxGeometry>
+                </mxCell>
+                <mxCell id="e10" edge="1" parent="trainBox" source="language" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;endArrow=block;endFill=1;strokeColor=#9B77B2;strokeWidth=2;" target="textEnc">
+                    <mxGeometry relative="1" as="geometry"/>
+                </mxCell>
+                <mxCell id="e11" edge="1" parent="trainBox" source="textEnc" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;endArrow=block;endFill=1;strokeColor=#9B77B2;strokeWidth=2;" target="mot" value="cross-attention">
+                    <mxGeometry relative="1" as="geometry"/>
+                </mxCell>
+                <mxCell id="e12" edge="1" parent="trainBox" source="actionGT" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;endArrow=block;endFill=1;strokeColor=#D69745;strokeWidth=2;dashed=1;" target="actEnc">
+                    <mxGeometry relative="1" as="geometry"/>
+                </mxCell>
+                <mxCell id="e13" edge="1" parent="trainBox" source="actEnc" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;endArrow=block;endFill=1;strokeColor=#D69745;strokeWidth=2;dashed=1;" target="noiseAction">
+                    <mxGeometry relative="1" as="geometry"/>
+                </mxCell>
+                <mxCell id="e14" edge="1" parent="trainBox" source="noiseAction" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;endArrow=block;endFill=1;strokeColor=#D69745;strokeWidth=2;dashed=1;" target="actionDit">
+                    <mxGeometry relative="1" as="geometry"/>
+                </mxCell>
+                <mxCell id="e16" edge="1" parent="trainBox" source="videoDit" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;endArrow=block;endFill=1;strokeColor=#4D87B6;strokeWidth=2;" target="vidLoss" value="v̂vid">
+                    <mxGeometry relative="1" x="0.075" as="geometry">
+                        <Array as="points">
+                            <mxPoint x="810" y="100"/>
+                        </Array>
+                    </mxGeometry>
+                </mxCell>
+                <mxCell id="e17" edge="1" parent="trainBox" source="actionDit" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;endArrow=block;endFill=1;strokeColor=#D69745;strokeWidth=2;" target="actLoss" value="v̂act">
+                    <mxGeometry relative="1" as="geometry"/>
+                </mxCell>
+                <mxCell id="e18" edge="1" parent="trainBox" source="vidLoss" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;endArrow=block;endFill=1;strokeColor=#4D87B6;strokeWidth=2;" target="totalLoss">
+                    <mxGeometry relative="1" as="geometry"/>
+                </mxCell>
+                <mxCell id="e19" edge="1" parent="trainBox" source="actLoss" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;endArrow=block;endFill=1;strokeColor=#D69745;strokeWidth=2;" target="totalLoss">
+                    <mxGeometry relative="1" as="geometry"/>
+                </mxCell>
+                <mxCell id="inferBox" parent="1" style="swimlane;horizontal=1;startSize=40;rounded=1;whiteSpace=wrap;html=1;fillColor=#FFFFFF;swimlaneFillColor=#F0FDF4;strokeColor=#6B9B74;strokeWidth=2;fontFamily=PingFang SC;fontSize=20;fontStyle=1;fontColor=#285A34;" value="基础 Fast-WAM 推理阶段：不创建未来 token，不预测视频" vertex="1">
+                    <mxGeometry height="390" width="1810" x="40" y="730" as="geometry"/>
+                </mxCell>
+                <mxCell id="inferInputs" parent="inferBox" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#F8FAFC;strokeColor=#64748B;fontFamily=PingFang SC;fontSize=15;fontStyle=1;" value="当前输入&#xa;RGB f₀ + proprio s₀ + 指令 ℓ" vertex="1">
+                    <mxGeometry height="80" width="185" x="30" y="85" as="geometry"/>
+                </mxCell>
+                <mxCell id="inferVAE" parent="inferBox" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFE9D6;strokeColor=#C58B55;fontFamily=PingFang SC;fontSize=15;" value="VAE Encoder ❄&#xa;f₀ → x₀" vertex="1">
+                    <mxGeometry height="80" width="150" x="260" y="85" as="geometry"/>
+                </mxCell>
+                <mxCell id="inferVideoDit" parent="inferBox" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#E4F1FC;strokeColor=#4D87B6;strokeWidth=2;fontFamily=PingFang SC;fontSize=15;fontStyle=1;" value="Video DiT 单次前向 🔥&#xa;只有 x₀，没有 future slots&#xa;输出内部世界表征 h₀&#xa;不会输出预测视频" vertex="1">
+                    <mxGeometry height="120" width="230" x="455" y="65" as="geometry"/>
+                </mxCell>
+                <mxCell id="actNoise" parent="inferBox" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFF8E7;strokeColor=#D69745;fontFamily=PingFang SC;fontSize=14;dashed=1;" value="随机动作噪声&#xa;aτ=1 ≈ εa" vertex="1">
+                    <mxGeometry height="65" width="150" x="730" y="180" as="geometry"/>
+                </mxCell>
+                <mxCell id="inferActionDit" parent="inferBox" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFF0DC;strokeColor=#D69745;strokeWidth=2;fontFamily=PingFang SC;fontSize=15;fontStyle=1;" value="Action DiT 反复去噪 🔥&#xa;条件：h₀、p₀、eℓ&#xa;&#xa;εa → a0.9 → … → â₁:H" vertex="1">
+                    <mxGeometry height="135" width="230" x="925" y="65" as="geometry"/>
+                </mxCell>
+                <mxCell id="actionChunk" parent="inferBox" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFF8E7;strokeColor=#D69745;fontFamily=PingFang SC;fontSize=15;fontStyle=1;" value="高层动作块 â₁:H&#xa;身体+根部：29+3 维&#xa;双手：20+20 维" vertex="1">
+                    <mxGeometry height="125" width="205" x="1200" y="70" as="geometry"/>
+                </mxCell>
+                <mxCell id="sonic" parent="inferBox" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#F2F8DF;strokeColor=#8BA354;fontFamily=PingFang SC;fontSize=14;fontStyle=1;" value="身体/根部路径&#xa;SONIC Encoder&#xa;→ 64-D motion latent&#xa;→ SONIC Decoder&#xa;→ 低层跟踪控制" vertex="1">
+                    <mxGeometry height="145" width="190" x="1450" y="55" as="geometry"/>
+                </mxCell>
+                <mxCell id="hands" parent="inferBox" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#EEF2F7;strokeColor=#64748B;fontFamily=PingFang SC;fontSize=15;fontStyle=1;" value="双手路径&#xa;直接关节命令" vertex="1">
+                    <mxGeometry height="75" width="190" x="1450" y="230" as="geometry"/>
+                </mxCell>
+                <mxCell id="robot" parent="inferBox" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#F8FAFC;strokeColor=#334155;strokeWidth=2;fontFamily=PingFang SC;fontSize=15;fontStyle=1;" value="机器人执行&#xa;身体由 tracker 跟踪&#xa;手部直接控制" vertex="1">
+                    <mxGeometry height="125" width="100" x="1680" y="115" as="geometry"/>
+                </mxCell>
+                <mxCell id="optionalIDM" parent="inferBox" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#F8FAFC;strokeColor=#7C8795;fontFamily=PingFang SC;fontSize=14;align=left;spacingLeft=12;dashed=1;" value="可选 IDM / future-imagination 变体（不是基础 Fast-WAM）&#xa;未来噪声 → Video DiT 多步去噪 → 未来 latent → VAE Decoder → 预测视频&#xa;若作为 IDM，则 Action DiT 再读取预测未来；计算更慢且可能有生成误差。" vertex="1">
+                    <mxGeometry height="85" width="1145" x="260" y="260" as="geometry"/>
+                </mxCell>
+                <mxCell id="i1" edge="1" parent="inferBox" source="inferInputs" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;endArrow=block;endFill=1;strokeColor=#64748B;strokeWidth=2;" target="inferVAE">
+                    <mxGeometry relative="1" as="geometry"/>
+                </mxCell>
+                <mxCell id="i2" edge="1" parent="inferBox" source="inferVAE" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;endArrow=block;endFill=1;strokeColor=#4D87B6;strokeWidth=2;" target="inferVideoDit">
+                    <mxGeometry relative="1" as="geometry"/>
+                </mxCell>
+                <mxCell id="i3" edge="1" parent="inferBox" source="inferVideoDit" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;endArrow=block;endFill=1;strokeColor=#3B82A0;strokeWidth=3;" target="inferActionDit" value="h₀">
+                    <mxGeometry relative="1" as="geometry"/>
+                </mxCell>
+                <mxCell id="i4" edge="1" parent="inferBox" source="actNoise" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;endArrow=block;endFill=1;strokeColor=#D69745;strokeWidth=2;dashed=1;" target="inferActionDit">
+                    <mxGeometry relative="1" as="geometry"/>
+                </mxCell>
+                <mxCell id="i5" edge="1" parent="inferBox" source="inferActionDit" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;endArrow=block;endFill=1;strokeColor=#D69745;strokeWidth=2;" target="actionChunk">
+                    <mxGeometry relative="1" as="geometry"/>
+                </mxCell>
+                <mxCell id="i6" edge="1" parent="inferBox" source="actionChunk" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;endArrow=block;endFill=1;strokeColor=#8BA354;strokeWidth=2;" target="sonic" value="身体+根部">
+                    <mxGeometry relative="1" as="geometry"/>
+                </mxCell>
+                <mxCell id="i7" edge="1" parent="inferBox" source="actionChunk" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;endArrow=block;endFill=1;strokeColor=#64748B;strokeWidth=2;" target="hands" value="双手">
+                    <mxGeometry relative="1" as="geometry">
+                        <Array as="points">
+                            <mxPoint x="1302.5" y="240"/>
+                        </Array>
+                    </mxGeometry>
+                </mxCell>
+                <mxCell id="i8" edge="1" parent="inferBox" source="sonic" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;endArrow=block;endFill=1;strokeColor=#8BA354;strokeWidth=2;" target="robot">
+                    <mxGeometry relative="1" as="geometry"/>
+                </mxCell>
+                <mxCell id="i9" edge="1" parent="inferBox" source="hands" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;endArrow=block;endFill=1;strokeColor=#64748B;strokeWidth=2;" target="robot">
+                    <mxGeometry relative="1" as="geometry"/>
+                </mxCell>
+            </root>
+        </mxGraphModel>
+    </diagram>
+</mxfile>

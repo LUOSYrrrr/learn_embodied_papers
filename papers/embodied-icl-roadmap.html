@@ -1,0 +1,181 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>具身智能上下文学习 · Embodied ICL 专题路线</title>
+  <link rel="stylesheet" href="../assets/css/style.css">
+  <script src="../assets/js/theme.js"></script>
+  <script defer src="../assets/js/interactive.js"></script>
+  <style>
+    .roadmap{max-width:1160px;margin:0 auto;padding:86px 28px 90px}
+    .hero{position:relative;overflow:hidden;padding:38px;border:1px solid var(--border);border-radius:20px;background:linear-gradient(145deg,color-mix(in srgb,var(--accent) 7%,var(--bg2)),var(--bg2) 48%,color-mix(in srgb,var(--blue) 7%,var(--bg2)))}
+    .hero::after{content:'IN-CONTEXT';position:absolute;right:-12px;top:-9px;font:800 64px/1 var(--font-mono);letter-spacing:-.07em;color:var(--text);opacity:.025;pointer-events:none}
+    .eyebrow{font:600 11px/1 var(--font-mono);letter-spacing:.13em;color:var(--accent)}
+    h1{max-width:850px;margin:14px 0 12px;font:700 44px/1.15 var(--font-serif)}
+    .lead{max-width:880px;margin:0;color:var(--text2);font-size:15px;line-height:1.85}
+    .hero-actions{display:flex;gap:9px;flex-wrap:wrap;margin-top:22px}.hero-action{padding:9px 13px;border:1px solid var(--border2);border-radius:9px;color:var(--text2);text-decoration:none;font:500 11px/1.2 var(--font-mono);background:var(--glass)}.hero-action:hover{border-color:var(--accent);color:var(--accent)}
+    .stamp{display:flex;gap:14px;flex-wrap:wrap;margin-top:20px;color:var(--text3);font:500 10px/1.5 var(--font-mono)}
+    .phase{margin-top:26px;padding:26px;border:1px solid var(--border);border-radius:16px;background:var(--bg2)}
+    .phase h2{margin:0 0 7px;font:650 25px/1.3 var(--font-serif)}.phase>p{margin:0 0 18px;color:var(--text3);line-height:1.75}
+    .thesis{display:grid;grid-template-columns:1fr auto 1fr auto 1fr;gap:10px;align-items:stretch;margin:18px 0}
+    .thesis-node{padding:16px;border:1px solid var(--border);border-radius:12px;background:var(--bg3);font-size:12.5px;line-height:1.7;color:var(--text2)}.thesis-node strong{display:block;margin-bottom:5px;color:var(--text);font:650 14px/1.35 var(--font-serif)}.thesis-tag{display:block;margin-bottom:7px;color:var(--accent);font:600 9px/1 var(--font-mono);letter-spacing:.08em}.thesis-arrow{align-self:center;color:var(--accent);font-family:var(--font-mono)}
+    .problem-grid,.paper-grid,.evidence-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px}.paper-grid{grid-template-columns:repeat(2,minmax(0,1fr))}
+    .problem,.paper-card,.evidence-card{padding:18px;border:1px solid var(--border);border-radius:13px;background:var(--bg3)}
+    .problem-num,.paper-kicker,.evidence-label{display:block;margin-bottom:10px;color:var(--accent);font:600 10px/1 var(--font-mono);letter-spacing:.09em}.problem h3,.paper-card h3,.evidence-card h3{margin:0 0 7px;font:650 17px/1.35 var(--font-serif)}.problem p,.paper-card p,.evidence-card p{margin:0;color:var(--text2);font-size:12.5px;line-height:1.72}
+    .paper-card{position:relative;padding:21px}.paper-card.vendor{border-top:3px solid color-mix(in srgb,var(--amber) 72%,var(--border))}.paper-card.open{border-top:3px solid color-mix(in srgb,var(--accent) 70%,var(--border))}
+    .paper-meta{display:flex;gap:6px;flex-wrap:wrap;margin:12px 0}.badge{padding:4px 7px;border:1px solid var(--border);border-radius:999px;color:var(--text3);font:500 9px/1.2 var(--font-mono)}.badge.green{border-color:color-mix(in srgb,var(--accent) 48%,var(--border));color:var(--accent)}.badge.amber{border-color:color-mix(in srgb,var(--amber) 48%,var(--border));color:var(--amber)}
+    .metric-row{display:grid;grid-template-columns:repeat(3,1fr);gap:7px;margin-top:14px}.metric{padding:10px;border:1px solid var(--border);border-radius:9px;background:var(--bg2)}.metric strong{display:block;color:var(--text);font:650 16px/1.1 var(--font-serif)}.metric span{display:block;margin-top:4px;color:var(--text3);font:500 9px/1.35 var(--font-mono)}
+    .card-links{display:flex;gap:8px;flex-wrap:wrap;margin-top:15px}.card-links a{color:var(--accent);font:500 10px/1.4 var(--font-mono);text-decoration:none}.card-links a:hover{text-decoration:underline}
+    .source-note{margin-top:12px;padding-top:12px;border-top:1px solid var(--border);color:var(--text3);font-size:11px;line-height:1.65}.source-note strong{color:var(--text2)}
+    .matrix-wrap{overflow:auto;border:1px solid var(--border);border-radius:12px}.matrix{width:100%;min-width:880px;border-collapse:collapse;font-size:12px}.matrix th,.matrix td{padding:11px 12px;border-bottom:1px solid var(--border);text-align:left;vertical-align:top;line-height:1.55}.matrix th{background:var(--bg3);color:var(--text3);font:600 10px/1.4 var(--font-mono);letter-spacing:.04em}.matrix td:first-child{color:var(--text);font-weight:650}.matrix tr:last-child td{border-bottom:0}.matrix .good{color:var(--accent)}.matrix .warn{color:var(--amber)}
+    .axis{display:grid;grid-template-columns:155px 1fr;gap:18px;padding:15px 0;border-top:1px solid var(--border)}.axis:first-of-type{border-top:0}.axis-label{color:var(--accent);font:600 11px/1.5 var(--font-mono)}.axis-copy{color:var(--text2);font-size:13px;line-height:1.75}.axis-copy strong{color:var(--text)}
+    .route{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:8px}.route-step{position:relative;padding:16px;border:1px solid var(--border);border-radius:12px;background:var(--bg3)}.route-step:not(:last-child)::after{content:'→';position:absolute;right:-9px;top:47%;z-index:2;color:var(--accent);font-family:var(--font-mono)}.route-step span{display:block;margin-bottom:9px;color:var(--accent);font:600 9px/1 var(--font-mono);letter-spacing:.08em}.route-step strong{display:block;margin-bottom:6px;color:var(--text);font:650 14px/1.35 var(--font-serif)}.route-step p{margin:0;color:var(--text3);font-size:11.5px;line-height:1.65}
+    .side-links{display:flex;gap:8px;flex-wrap:wrap;margin-top:16px}.side-link{padding:6px 9px;border:1px solid var(--border);border-radius:8px;color:var(--text2);text-decoration:none;font:500 10px/1.25 var(--font-mono)}.side-link:hover{border-color:var(--accent);color:var(--accent)}
+    .callout{margin-top:18px}.callout p{margin-bottom:0}.quote-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:9px}.quote-grid .en-quote{margin:0}
+    .decision{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:9px}.decision-card{padding:16px;border-left:3px solid var(--accent);border-radius:0 10px 10px 0;background:var(--bg3)}.decision-card strong{display:block;margin-bottom:6px;color:var(--text)}.decision-card p{margin:0;color:var(--text2);font-size:12.5px;line-height:1.7}
+    @media(max-width:850px){.paper-grid,.problem-grid,.evidence-grid{grid-template-columns:1fr}.route{grid-template-columns:1fr 1fr}.route-step:nth-child(2)::after{display:none}.thesis{grid-template-columns:1fr}.thesis-arrow{text-align:center;transform:rotate(90deg)}.quote-grid,.decision{grid-template-columns:1fr}}
+    @media(max-width:600px){.roadmap{padding:72px 16px}.hero,.phase{padding:22px}h1{font-size:33px}.route{grid-template-columns:1fr}.route-step::after{display:none!important}.metric-row{grid-template-columns:1fr}.axis{grid-template-columns:1fr}.hero::after{font-size:42px}}
+  </style>
+</head>
+<body>
+  <nav class="nav"><a class="nav-logo" href="../index.html">Paper Notes</a><div class="nav-links"><a href="wam-roadmap.html">WAM 路线</a><a href="vla-rl-roadmap.html">VLA+RL 路线</a><a href="../index.html#embodied-icl">首页专题</a></div></nav>
+
+  <main class="roadmap">
+    <section class="hero">
+      <div class="eyebrow">TOPIC 03 · VERIFIED 2026-09-26</div>
+      <h1>Embodied In-Context Learning：把示范从训练数据变成任务接口</h1>
+      <p class="lead">语言模型里的 ICL 是“在 prompt 里给例子，不更新权重”；搬到机器人后，例子变成连续视频或传感—动作轨迹，输出变成闭环动作。真正困难的不是把视频塞进 context，而是让模型跨本体理解意图、跨速度追踪进度，并在有限上下文和控制延迟里把未来转成可执行动作。</p>
+      <div class="hero-actions"><a class="hero-action" href="#compare">先看四篇横向对比</a><a class="hero-action" href="#route">打开学习路线</a><a class="hero-action" href="#engineering">看 ICL 与 SFT 如何分工</a></div>
+      <div class="stamp"><span>● 原始来源：2 篇研究博客 + 2 篇 arXiv 论文</span><span>● 指标只在各自协议内解释，不跨团队硬排名</span></div>
+    </section>
+
+    <section class="phase" id="definition">
+      <h2>§1 一句话先钉死：ICL 不是“在线微调”</h2>
+      <div class="cn-read"><div class="cn-label">这一节解决什么</div><p>上一节还没有定义“学会”。这里先把两种适应分开：<strong>ICL 改的是推理时输入，SFT / TTT 改的是参数或快权重</strong>。二者可以组合，但不能把“给 10 步梯度”也叫一次性 ICL。</p></div>
+      <div class="thesis">
+        <div class="thesis-node"><span class="thesis-tag">DEMONSTRATE</span><strong>给任务示范</strong>语言模型收到 token 例子；机器人收到视频、轨迹或传感—动作片段。</div>
+        <div class="thesis-arrow">→</div>
+        <div class="thesis-node"><span class="thesis-tag">INFER</span><strong>在上下文里解释</strong>模型从示范推断目标、对象、顺序、接触方式和任务进度。</div>
+        <div class="thesis-arrow">→</div>
+        <div class="thesis-node"><span class="thesis-tag">ACT · NO UPDATE</span><strong>权重不变，动作改变</strong>同一 checkpoint 因 context 不同而执行不同任务；撤掉示范后能力不再被永久写入。</div>
+      </div>
+      <div class="callout blue"><div class="callout-label">最容易混淆的边界</div><p>GEN-1.5 同时报告 0 步的 one-shot ICL 与 1–10 步的快速适配；59% 属于 ICL，83% 属于 10 步梯度更新。把两者写成同一种“上下文学习”会掩盖真正的系统差异。</p></div>
+    </section>
+
+    <section class="phase" id="problems">
+      <h2>§2 为什么具身 ICL 比语言 ICL 难：三道对齐题</h2>
+      <p>定义清楚后，问题不再是“有没有 context window”，而是这个窗口里的经验能否在另一台机器、另一条时间轴和真实控制周期里成立。</p>
+      <div class="problem-grid">
+        <article class="problem"><span class="problem-num">01 · EMBODIMENT</span><h3>跨本体：人手与夹爪不是同一件事</h3><p>示范表达的是任务意图和接触结构，不是可直接复制的关节角。模型需要把“抓住—转动—放置”映射为目标本体可执行的运动。</p></article>
+        <article class="problem"><span class="problem-num">02 · TIME</span><h3>时间对齐：示范和执行没有逐帧对应</h3><p>人类可能 10 秒做完，机器人可能要 30 秒并中途重试。系统必须定位“我做到哪一步了”，而不是按录像时间戳机械回放。</p></article>
+        <article class="problem"><span class="problem-num">03 · CONTEXT</span><h3>上下文成本：视频 token 会吞掉算力</h3><p>长示范、多视角和高控制频率迅速放大 token 数。工程上需要前缀缓存、进度压缩、future chunk 或分层任务表示。</p></article>
+      </div>
+    </section>
+
+    <section class="phase" id="compare">
+      <h2>§3 四篇工作不是同一种方案</h2>
+      <p>前两篇证明规模化预训练后可以出现或强化 video prompting；HOST 显式解决时间与本体对齐；Zero-WAM 则把“先预测机器人未来、再读出动作”做成可规模训练的 WAM 路线。</p>
+      <div class="paper-grid">
+        <article class="paper-card vendor">
+          <span class="paper-kicker">GENERALIST AI · 2026-08-19</span><h3>GEN-1.5 · 能力从连续预训练里“长出来”</h3>
+          <p>把 3–12 秒 sensorimotor demonstration 放进 30 秒上下文，模型直接输出 100 Hz 动作。作者强调没有为 ICL 设计专门结构或 meta-learning 循环；physical prompting 是规模预训练后的涌现行为。</p>
+          <div class="paper-meta"><span class="badge amber">研究博客</span><span class="badge">短程原子任务</span><span class="badge">人 / 机器人 / 仿真 prompt</span></div>
+          <div class="metric-row"><div class="metric"><strong>59%</strong><span>0 步 · one-shot</span></div><div class="metric"><strong>66.5%</strong><span>1 步 · 1 分钟</span></div><div class="metric"><strong>83%</strong><span>10 步 · 5 分钟</span></div></div>
+          <div class="card-links"><a href="https://generalistai.com/blog/gen-1.5" target="_blank" rel="noopener">原始研究博客 ↗</a></div>
+          <div class="source-note"><strong>证据边界：</strong>没有公开模型、代码或完整评测协议；“涌现”是团队对内部模型的解释，不能由现有材料独立复核。</div>
+        </article>
+
+        <article class="paper-card vendor">
+          <span class="paper-kicker">SKILD AI · 2026-08-18</span><h3>Skild S1 · 把 ICL 明确写进预训练任务</h3>
+          <p>训练时每个 episode 都由示范指定任务，迫使模型从不同视角、场景和本体的视频里解析意图。重点不是单个精细动作，而是 4–10 分钟未见任务的技能组合、进度追踪与错误恢复。</p>
+          <div class="paper-meta"><span class="badge amber">研究博客</span><span class="badge">长程任务</span><span class="badge">视频 prompt vs 语言</span></div>
+          <div class="metric-row"><div class="metric"><strong>66%</strong><span>100k h · unseen</span></div><div class="metric"><strong>9%</strong><span>同规模语言 VLA</span></div><div class="metric"><strong>≈380</strong><span>一条 prompt 的 SFT 等价点</span></div></div>
+          <div class="card-links"><a href="https://www.skild.ai/blogs/s1" target="_blank" rel="noopener">原始研究博客 ↗</a></div>
+          <div class="source-note"><strong>证据边界：</strong>内部数据、任务集和模型细节未公开；66% 与其他工作的成功率不能直接比较。</div>
+        </article>
+
+        <article class="paper-card open">
+          <span class="paper-kicker">HOST · ARXIV:2607.20033 v4</span><h3>HOST · 用“任务进度”拆开跨本体映射</h3>
+          <p>先用 Smooth DTW 把人类视频与机器人轨迹落到共享进度流形，再级联预测：当前进度 → 下一段机器人视角未来 → 动作。这样把“人类像素直接回归机器人动作”的难题拆成两个更稳的接口。</p>
+          <div class="paper-meta"><span class="badge green">论文</span><span class="badge green">代码</span><span class="badge">单条人类视频</span></div>
+          <div class="metric-row"><div class="metric"><strong>29 s</strong><span>平均技能获取时间</span></div><div class="metric"><strong>62%</strong><span>8 个未见任务</span></div><div class="metric"><strong>99%</strong><span>旧技能保留</span></div></div>
+          <div class="card-links"><a href="https://arxiv.org/abs/2607.20033" target="_blank" rel="noopener">论文 ↗</a><a href="https://host-site.host-robotics.workers.dev/" target="_blank" rel="noopener">项目页 ↗</a><a href="https://github.com/CGuangyan-BIT/HOST" target="_blank" rel="noopener">GitHub ↗</a></div>
+          <div class="source-note"><strong>证据边界：</strong>62% 仍不是部署级可靠性；Smooth DTW 的单调时间假设在重试、跳步和多人示范分歧时需要额外检验。</div>
+        </article>
+
+        <article class="paper-card open">
+          <span class="paper-kicker">ZERO-WAM · ARXIV:2608.26103</span><h3>Zero-WAM · 让世界模型承担 ICL 的中间层</h3>
+          <p>人类视频被编码为 prefix memory；模型先生成机器人执行该任务的未来视频 chunk，再从预测未来解码动作。HumanGen 用机器人轨迹反向生成匹配的人类示范，IFP 训练目标迫使主干读取示范里的长期任务信息。</p>
+          <div class="paper-meta"><span class="badge green">论文</span><span class="badge green">代码 / 数据 / 权重</span><span class="badge">WAM · future chunk</span></div>
+          <div class="metric-row"><div class="metric"><strong>74.2K</strong><span>human–robot ICL pairs</span></div><div class="metric"><strong>8.6K</strong><span>HumanGen 任务</span></div><div class="metric"><strong>46.95%</strong><span>7 个 RoboTwin 未见任务</span></div></div>
+          <div class="card-links"><a href="https://arxiv.org/abs/2608.26103" target="_blank" rel="noopener">论文 ↗</a><a href="https://robbyant-research.github.io/Zero-WAM/" target="_blank" rel="noopener">项目页 ↗</a><a href="https://github.com/robbyant-research/Zero-WAM" target="_blank" rel="noopener">GitHub ↗</a><a href="https://huggingface.co/datasets/Robbyant-Research/HumanGen" target="_blank" rel="noopener">HumanGen ↗</a></div>
+          <div class="source-note"><strong>证据边界：</strong>仿真主结果来自 7 个 held-out tasks；真机展示覆盖长程与精细插入，但论文没有把控制延迟和频率作为主指标报告。</div>
+        </article>
+      </div>
+    </section>
+
+    <section class="phase" id="matrix">
+      <h2>§4 横向对比：同叫 ICL，模型到底从哪里读任务</h2>
+      <div class="matrix-wrap"><table class="matrix">
+        <thead><tr><th>工作</th><th>上下文是什么</th><th>训练时如何逼模型使用 context</th><th>推理链</th><th>是否更新权重</th><th>最强证据</th><th>公开性</th></tr></thead>
+        <tbody>
+          <tr><td>GEN-1.5</td><td>3–12 s sensorimotor demo</td><td>没有专门 ICL 结构；依赖连续大规模物理预训练</td><td>context → 100 Hz action trajectory</td><td class="good">ICL：否；few-step：是</td><td>0 步 59%；10 步 83%</td><td class="warn">博客</td></tr>
+          <tr><td>Skild S1</td><td>一条视频示范</td><td>episode 级 demonstration-conditioned pretraining</td><td>video prompt → long-horizon action</td><td class="good">否</td><td>unseen：视频 66% vs 语言 9%</td><td class="warn">博客</td></tr>
+          <tr><td>HOST</td><td>单条约 29 s 人类视频</td><td>共享 task-progress manifold + coupled targets</td><td>进度 → 未来观测 → 动作</td><td class="good">否</td><td>62%；旧技能保留 99%</td><td class="good">论文 + 代码</td></tr>
+          <tr><td>Zero-WAM</td><td>人类视频 prefix memory</td><td>HumanGen 配对 + IFP 预测多段未来</td><td>未来视频 chunk → 动作 chunk</td><td class="good">否</td><td>46.95% vs 17.45% / 10.98%</td><td class="good">论文 + 代码 + 数据 + 权重</td></tr>
+        </tbody>
+      </table></div>
+      <div class="callout red"><div class="callout-label">不要做排行榜</div><p>四组数字来自不同机器人、任务长度、成功定义、干预协议和数据规模。正确读法是看<strong>每篇内部的受控对比与消融</strong>，而不是说 66% 的 S1 “超过” 62% 的 HOST。</p></div>
+    </section>
+
+    <section class="phase" id="mechanism">
+      <h2>§5 从四篇工作抽出一条统一机制</h2>
+      <p>把论文名拿掉，四条路线都在回答同一个问题：怎样把示范压缩成可执行的任务状态，并在机器人不断偏离示范时重新定位。</p>
+      <div class="axis"><div class="axis-label">输入层</div><div class="axis-copy"><strong>示范必须携带语言难以编码的动作细节。</strong> 对象实例、接触位置、工具姿态、步骤顺序和完成标准都可由视频提供；语言更适合选任务与组合高层目标。</div></div>
+      <div class="axis"><div class="axis-label">表征层</div><div class="axis-copy"><strong>不要强迫人和机器人在像素或关节上直接一致。</strong> GEN/S1 依赖大规模模型隐式吸收对应关系；HOST 显式构造 task-progress manifold；Zero-WAM 用未来机器人视频作为跨本体中间表示。</div></div>
+      <div class="axis"><div class="axis-label">时间层</div><div class="axis-copy"><strong>执行状态必须持续对齐到“示范做到哪”。</strong> 长程任务需要进度记忆和失败恢复；未来 chunk 预测的价值，是把遥远目标变成当前可监督的中间未来。</div></div>
+      <div class="axis"><div class="axis-label">动作层</div><div class="axis-copy"><strong>动作是读出接口，不一定是唯一主干。</strong> HOST 与 Zero-WAM 都先构造更容易跨本体的未来，再解码动作；这正是 ICL 与 world model 合流的位置。</div></div>
+    </section>
+
+    <section class="phase" id="route">
+      <h2>§6 建议学习路线：先学“任务接口”，再学“未来中间层”</h2>
+      <div class="route">
+        <article class="route-step"><span>STEP 01</span><strong>语言 ICL 地基</strong><p>GPT-3：示例改变当前函数行为，但不改变参数。先把 ICL、SFT、meta-learning、TTT 四个概念分开。</p></article>
+        <article class="route-step"><span>STEP 02</span><strong>动作序列 ICL</strong><p>ICRT、Instant Policy、Behavior Prompting：示范怎样作为 policy context，而不是任务训练集。</p></article>
+        <article class="route-step"><span>STEP 03</span><strong>规模与长程</strong><p>GEN-1.5 看涌现式 physical prompt；S1 看 demonstration-conditioned scaling 与长程组合。</p></article>
+        <article class="route-step"><span>STEP 04</span><strong>显式对齐与 WAM</strong><p>HOST 学进度流形；Zero-WAM 学 future chunk、HumanGen 与 IFP，进入世界模型—动作合流。</p></article>
+      </div>
+      <div class="side-links"><a class="side-link" href="https://arxiv.org/abs/2005.14165" target="_blank" rel="noopener">GPT-3 · ICL</a><a class="side-link" href="https://arxiv.org/abs/2408.15980" target="_blank" rel="noopener">ICRT</a><a class="side-link" href="https://arxiv.org/abs/2411.12633" target="_blank" rel="noopener">Instant Policy</a><a class="side-link" href="https://arxiv.org/abs/2606.30457" target="_blank" rel="noopener">Behavior Prompting Policy</a><a class="side-link" href="https://arxiv.org/abs/2607.15275" target="_blank" rel="noopener">RoboTTT</a><a class="side-link" href="https://arxiv.org/abs/2509.23745" target="_blank" rel="noopener">LocoFormer</a></div>
+    </section>
+
+    <section class="phase" id="engineering">
+      <h2>§7 工程判断：ICL 不替代 SFT，而是重新分工</h2>
+      <p>四篇材料最值得保留的不是“机器人也有 ChatGPT 时刻”，而是新的部署分层：先用 ICL 冷启动并快速验证，再决定是否值得把任务固化进参数。</p>
+      <div class="decision">
+        <div class="decision-card"><strong>任务多变、长尾、要快速上线 → 先 ICL</strong><p>新任务只出现几次，示范容易获得，允许中等成功率和人工复核。目标是分钟级试运行、发现上下文设计问题。</p></div>
+        <div class="decision-card"><strong>任务高频、固定、要求 99.9% → 再 SFT / RL</strong><p>通过 ICL 验证任务价值并收集真实失败后，再把技能固化为专用策略；产线下料不应只依赖一次视频 prompt。</p></div>
+        <div class="decision-card"><strong>示范者与执行者差异大 → 显式中间层</strong><p>优先考虑 HOST 的进度流形或 Zero-WAM 的机器人未来视频，避免把人手像素直接回归成机器人动作。</p></div>
+        <div class="decision-card"><strong>长上下文或高频控制 → 做系统预算</strong><p>必须同时报告 prompt 编码耗时、prefix cache、每步延迟、控制频率、显存和示范长度，成功率单点不够。</p></div>
+      </div>
+      <div class="quiz" data-correct="c" data-explain="具身 ICL 的核心是用示范改变当前推理行为，不修改模型参数；把能力长期写入参数属于 SFT、RL 或 TTT。" data-explain-wrong="注意区分 context 内适应与参数更新。">
+        <div class="q-label">🧠 理解检查</div><div class="q-text">下面哪一种最严格地属于 embodied in-context learning？</div>
+        <div class="q-options"><button class="q-opt" data-k="a">看一条示范后做 10 步梯度下降</button><button class="q-opt" data-k="b">为新任务收集 50 条示范再 LoRA</button><button class="q-opt" data-k="c">把一条视频放进 prompt，用同一权重立即执行</button><button class="q-opt" data-k="d">在线 rollout 后更新 critic</button></div><div class="q-feedback"></div>
+      </div>
+    </section>
+
+    <section class="phase" id="audit">
+      <h2>§8 证据审计：哪些结论现在可以信到什么程度</h2>
+      <div class="evidence-grid">
+        <article class="evidence-card"><span class="evidence-label">STRONGEST</span><h3>方向性结论</h3><p>视频比语言承载更多动作与时间细节；跨本体需要中间表示；任务多样性比单纯轨迹数量更关键。这些判断在四条路线中相互印证。</p></article>
+        <article class="evidence-card"><span class="evidence-label">PROMISING</span><h3>方法性结论</h3><p>进度对齐、future chunk 与 IFP 能提升未见任务表现，但仍需更多本体、移动操作、柔性物体和非单调执行的独立复现。</p></article>
+        <article class="evidence-card"><span class="evidence-label">NOT YET</span><h3>“ChatGPT 时刻”</h3><p>现有成功率、私有任务集、算力门槛和控制延迟仍不足以支持通用产品结论。ICL 是新的任务接口，不等于可靠通用机器人已经完成。</p></article>
+      </div>
+      <div class="quote-grid" style="margin-top:12px">
+        <details class="en-quote"><summary>展开原文 · GEN-1.5</summary><div class="quote-body"><p>“learn a new task in seconds, from a single example”</p><div class="quote-cite">— Generalist AI research blog, 2026-08-19</div></div></details>
+        <details class="en-quote"><summary>展开原文 · Zero-WAM</summary><div class="quote-body"><p>“the natural task specification for manipulation is a human video”</p><div class="quote-cite">— Zero-WAM abstract, arXiv:2608.26103</div></div></details>
+      </div>
+    </section>
+  </main>
+</body>
+</html>

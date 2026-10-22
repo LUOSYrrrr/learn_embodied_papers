@@ -1,0 +1,131 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>真机强化学习 · 零基础求职路线</title>
+  <link rel="stylesheet" href="../assets/css/style.css">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.css">
+  <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.js"></script>
+  <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/contrib/auto-render.min.js" onload="renderMathInElement(document.body,{delimiters:[{left:'$$',right:'$$',display:true},{left:'$',right:'$',display:false}]})"></script>
+  <script src="../assets/js/theme.js"></script><script src="../assets/js/interactive.js" defer></script>
+  <style>
+    .rr{max-width:1160px;margin:0 auto;padding:86px 28px 90px}.hero{padding:34px;border:1px solid var(--border);border-radius:18px;background:linear-gradient(145deg,var(--bg2),var(--bg3))}.eyebrow{font:600 11px/1 var(--font-mono);letter-spacing:.12em;color:var(--accent)}h1{font:700 42px/1.15 var(--font-serif);margin:14px 0}.lead{max-width:900px;color:var(--text2);line-height:1.85}.hero-actions{display:flex;gap:10px;flex-wrap:wrap;margin-top:20px}.hero-action{padding:9px 13px;border:1px solid var(--border);border-radius:9px;color:var(--text2);text-decoration:none;font-size:12px;background:var(--bg)}.hero-action.primary{border-color:rgba(74,222,154,.5);color:var(--accent)}
+    .section{margin-top:26px;padding:25px;border:1px solid var(--border);border-radius:15px;background:var(--bg2)}.section h2{margin:0 0 8px;font:650 25px/1.3 var(--font-serif)}.section h3{margin:23px 0 9px;font:650 18px/1.4 var(--font-serif)}.section>p,.section li{color:var(--text2);line-height:1.8}.plain{padding:18px 20px;border-left:4px solid var(--accent);border-radius:0 12px 12px 0;background:var(--bg3);line-height:1.85;color:var(--text2)}.plain strong{color:var(--text)}
+    .relation-map{margin:18px 0;padding:18px;border:1px solid var(--border);border-radius:14px;background:var(--bg3)}.rm-head{display:flex;justify-content:space-between;align-items:baseline;gap:12px;margin-bottom:14px}.rm-title{font-weight:700;color:var(--text);font-size:15px}.rm-rule{font:500 10px/1.4 var(--font-mono);color:var(--text3)}.rm-flow{display:flex;align-items:stretch;gap:8px}.rm-node{flex:1;min-width:0;padding:12px 13px;border:1px solid var(--border);border-radius:10px;background:var(--bg);color:var(--text2);font-size:12px;line-height:1.65;text-decoration:none}.rm-node strong{display:block;color:var(--text);font-size:13px;margin-bottom:3px}.rm-kind{display:block;color:var(--accent);font:600 9px/1.3 var(--font-mono);letter-spacing:.06em;margin-bottom:6px}.rm-node.core{border-color:rgba(74,222,154,.48);box-shadow:inset 0 3px 0 rgba(74,222,154,.42)}.rm-node.alt{border-color:rgba(251,191,36,.48);box-shadow:inset 0 3px 0 rgba(251,191,36,.4)}.rm-node.target{border-color:rgba(96,165,250,.5);box-shadow:inset 0 3px 0 rgba(96,165,250,.42)}.rm-arrow{align-self:center;flex:0 0 auto;color:var(--accent);font-family:var(--font-mono);font-weight:700}.rm-note{margin:12px 2px 0;color:var(--text3);font-size:11px;line-height:1.7}.rm-note strong{color:var(--amber)}
+    .term-grid,.paper-grid,.skill-grid,.week-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px;margin:14px 0}.term,.paper,.skill,.week{padding:15px;border:1px solid var(--border);border-radius:11px;background:var(--bg3)}.term b,.paper b,.skill b,.week b{display:block;color:var(--text);margin-bottom:6px}.term p,.paper p,.skill p,.week p{margin:0;color:var(--text2);font-size:12px;line-height:1.72}.paper{position:relative;padding-top:36px}.paper .prio{position:absolute;top:12px;left:14px;font:700 9px/1 var(--font-mono);letter-spacing:.08em;color:var(--accent)}.paper.p0{border-color:rgba(74,222,154,.48)}.paper.p1{border-color:rgba(251,191,36,.42)}.paper a{color:var(--text);text-decoration:none}.paper a:hover{color:var(--accent)}
+    .compare,.job-table{width:100%;border-collapse:collapse;margin:14px 0;font-size:12px}.compare th,.compare td,.job-table th,.job-table td{padding:11px;border:1px solid var(--border);text-align:left;vertical-align:top;line-height:1.65}.compare th,.job-table th{background:var(--bg3);color:var(--accent);font-family:var(--font-mono)}.checklist{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:9px;margin:12px 0}.check{padding:12px 14px;border:1px solid var(--border);border-radius:9px;background:var(--bg3);color:var(--text2);font-size:12px;line-height:1.65}.check strong{color:var(--text)}
+    .warning{margin:16px 0;padding:16px 18px;border:1px solid rgba(248,113,113,.4);border-left:4px solid #f87171;border-radius:0 11px 11px 0;background:color-mix(in srgb,#f87171 5%,var(--bg3));color:var(--text2);line-height:1.8}.warning strong{color:#f87171}.step-walker{margin-top:16px}
+    @media(max-width:800px){.rr{padding:72px 16px}.hero{padding:24px}h1{font-size:32px}.rm-head{display:block}.rm-rule{display:block;margin-top:5px}.rm-flow{display:grid;grid-template-columns:1fr}.rm-arrow{text-align:center;transform:rotate(90deg)}.term-grid,.paper-grid,.skill-grid,.week-grid,.checklist{grid-template-columns:1fr}.compare,.job-table{display:block;overflow:auto}}
+  </style>
+</head>
+<body>
+<nav class="nav"><a class="nav-logo" href="../index.html">Paper Notes</a><div class="nav-links"><a href="vla-rl-roadmap.html">VLA+RL 关系图</a><a href="hil-serl.html#method">HIL-SERL 闭环</a><a href="../index.html#vla-rl">首页专题</a></div></nav>
+<main class="rr">
+  <section class="hero" id="top"><div class="eyebrow">JOB ROUTE · REAL-WORLD ROBOT RL</div><h1>真机强化学习：从完全不知道，到能读系统、做实验、参加面试</h1><p class="lead">这页面向“岗位可能主要做真机 RL，但现在不知道 RL 是什么”的起点。阅读顺序不是先背 PPO/SAC 公式，而是先看机器人一次真实训练怎样闭环，再理解每个算法模块解决哪种工程风险，最后把论文映射成岗位能力。</p><div class="hero-actions"><a class="hero-action primary" href="#what">从零开始</a><a class="hero-action" href="#must-read">直接看必读论文</a><a class="hero-action" href="#job">看岗位技能表</a></div></section>
+
+  <section class="section" id="what"><h2>§1 真机 RL 到底是什么</h2><div class="plain"><strong>一句话：</strong>让策略在真实机器人上执行动作，根据动作造成的结果获得反馈，再用这些新数据改进下一版策略。它和普通监督学习最大的区别是：模型输出的动作会改变之后看到的数据，因此训练数据分布会被策略自己改变。</div>
+    <div class="relation-map"><div class="rm-head"><div class="rm-title">一轮真正的真机 RL</div><div class="rm-rule">observe → act → consequence → learn → act again</div></div><div class="rm-flow"><div class="rm-node core"><span class="rm-kind">OBSERVE</span><strong>读取真实状态 $s_t$</strong>相机、关节、末端位姿、夹爪、力/触觉以及任务指令。</div><div class="rm-arrow">→</div><div class="rm-node"><span class="rm-kind">POLICY</span><strong>策略提出动作 $a_t$</strong>末端增量、关节目标、夹爪命令或一段 action chunk。</div><div class="rm-arrow">→</div><div class="rm-node alt"><span class="rm-kind">REAL WORLD</span><strong>机器人执行并改变环境</strong>可能成功、抓偏、碰撞，或进入演示从没出现的状态。</div><div class="rm-arrow">→</div><div class="rm-node target"><span class="rm-kind">FEEDBACK</span><strong>记录 $r_t,s_{t+1}$ 并更新</strong>奖励/成功检测进入 replay，critic 与 actor 学习后返回新参数。</div></div><p class="rm-note"><strong>真机 RL ≠ 从随机动作开始撞机器：</strong>现代系统通常从演示或 SFT policy 起步，配合安全控制器、动作边界、人类接管和可回滚 checkpoint。</p></div>
+
+    <h3>先把七个词翻译成人话</h3><div class="term-grid">
+      <div class="term"><b>State / Observation</b><p>机器人做决定时能看到的信息。严格说 state 是完整世界状态，camera observation 往往只是部分可见。</p></div>
+      <div class="term"><b>Action</b><p>策略能控制的量。可能是关节位置、末端位姿增量、力矩、夹爪开合或未来若干步动作。</p></div>
+      <div class="term"><b>Policy / Actor</b><p>真正提出动作的函数：输入观测，输出动作或动作分布。VLA 也可以充当 policy。</p></div>
+      <div class="term"><b>Reward</b><p>告诉系统结果好坏的数值。真机上常是成功分类器的 0/1、几何进度或人工偏好，而非天然存在。</p></div>
+      <div class="term"><b>Critic / Q</b><p>不给机器人直接发动作，而是估计“在这个状态做这个动作，长期来看有多好”。</p></div>
+      <div class="term"><b>Replay Buffer</b><p>保存 $(s,a,r,s')$ 交互记录的经验库。off-policy 算法能反复使用昂贵的旧真机数据。</p></div>
+      <div class="term"><b>Rollout</b><p>策略连续观察、行动、得到反馈形成的一段闭环轨迹。视频只是 rollout 的一部分，还要保存动作和时序。</p></div>
+      <div class="term"><b>Reset</b><p>把任务恢复到可再次尝试的初始状态。真机 reset 常比算法更新更耗人工，是系统设计核心。</p></div>
+      <div class="term"><b>Intervention</b><p>人发现危险或错误苗头时暂时接管。它既保护硬件，也提供当前 policy 最缺的恢复示范。</p></div>
+    </div>
+
+    <h3>它和 SFT、离线 RL、仿真 RL 有什么区别</h3><table class="compare"><thead><tr><th>范式</th><th>数据会不会继续增加</th><th>主要学习信号</th><th>最典型风险</th></tr></thead><tbody>
+      <tr><td>BC / SFT</td><td>固定专家示范</td><td>“专家在这个观测做了什么”</td><td>闭环误差把策略带到示范外状态</td></tr>
+      <tr><td>Offline RL</td><td>固定 replay</td><td>历史奖励、value、advantage</td><td>critic 对数据外动作虚高</td></tr>
+      <tr><td>Sim Online RL</td><td>仿真里廉价增加</td><td>环境 reward</td><td>利用 simulator 漏洞，sim-to-real 失败</td></tr>
+      <tr><td>Real-Robot Online RL</td><td>真实机器人闭环增加</td><td>真实结果、成功分类器、人类反馈</td><td>硬件安全、数据成本、reset、延迟和灾难性更新</td></tr>
+    </tbody></table>
+  </section>
+
+  <section class="section" id="loop"><h2>§2 跟着一次安全的真机训练走完八步</h2><p>下面的顺序比先背算法名重要。任何真机 RL 论文，都应该能放回这八个接口中。</p>
+    <div class="step-walker"><div class="sw-header"><div class="sw-title">一次真实训练循环</div><div class="sw-controls"><button class="sw-btn prev">←</button><span class="sw-counter"></span><button class="sw-btn next">→</button></div></div><div class="sw-progress"><span class="sw-dot"></span><span class="sw-dot"></span><span class="sw-dot"></span><span class="sw-dot"></span><span class="sw-dot"></span><span class="sw-dot"></span><span class="sw-dot"></span><span class="sw-dot"></span></div><div class="sw-body">
+      <div class="sw-step"><h4>1. 先定义任务、动作空间和安全边界</h4><p>确定观测、动作频率、最大位移/力矩、碰撞阈值、终止和 reset。算法只能在这些接口允许的范围内学习。</p><div class="step-beginner"><div class="sb-label">为什么先做这个</div><p><strong>输入是什么：</strong>机器人硬件能力、任务成功条件和允许的工作空间。</p><p><strong>这一步究竟做什么：</strong>把开放现实问题变成一个有限、可执行、可停止的控制问题。</p><p><strong>输出到哪里：</strong>形成环境 API、安全控制器和训练配置。</p><p><strong>为什么不能省略：</strong>奖励再聪明也无法事后撤销硬件碰撞。</p></div></div>
+      <div class="sw-step"><h4>2. 用示范或 SFT policy 冷启动</h4><p>先采少量成功演示、训练行为克隆或加载 VLA，让机器人至少能够接近任务解，而非从全随机动作探索。</p><div class="step-beginner"><div class="sb-label">核心直觉</div><p><strong>输入是什么：</strong>遥操作演示、已有 policy 或 VLA checkpoint。</p><p><strong>这一步究竟做什么：</strong>把策略带到成功轨迹附近，并初始化 demo replay。</p><p><strong>输出到哪里：</strong>得到可上机但尚不鲁棒的初始策略。</p><p><strong>为什么不能省略：</strong>真实世界探索空间太大、太贵且可能危险。</p></div></div>
+      <div class="sw-step"><h4>3. 建立可验证的奖励与终止</h4><p>用传感器、几何规则或成功分类器判断任务是否完成，同时单独记录安全终止与失败原因。</p><div class="step-beginner"><div class="sb-label">最常见的坑</div><p><strong>输入是什么：</strong>任务后状态、相机/力觉和成功/失败样本。</p><p><strong>这一步究竟做什么：</strong>把“做好了没有”转成模型可学习的数值。</p><p><strong>输出到哪里：</strong>奖励和 done 标记随 transition 写入 replay。</p><p><strong>为什么不能省略：</strong>错误奖励会让机器人非常高效地学会错误捷径。</p></div></div>
+      <div class="sw-step"><h4>4. Actor 在真机上执行，人类随时可接管</h4><p>策略以固定频率输出动作；安全控制器限幅，人发现异常时覆盖 policy action，并保留介入标记。</p><div class="step-beginner"><div class="sb-label">不是人工替机器人做完</div><p><strong>输入是什么：</strong>当前观测、policy action 和可选 human action。</p><p><strong>这一步究竟做什么：</strong>选择实际执行动作，并及时阻断危险状态。</p><p><strong>输出到哪里：</strong>动作进入低层控制器，来源标签进入轨迹。</p><p><strong>为什么不能省略：</strong>介入数据正好覆盖当前策略最薄弱的状态。</p></div></div>
+      <div class="sw-step"><h4>5. 把 transition 写入不同 replay</h4><p>保存时间对齐的观测、实际动作、奖励、下一观测、终止与介入来源；demo、online、failure 可分池管理。</p><div class="step-beginner"><div class="sb-label">数据不只是视频</div><p><strong>输入是什么：</strong>一次真实控制周期的完整记录。</p><p><strong>这一步究竟做什么：</strong>构造可重复训练的 $(s,a,r,s')$ 数据。</p><p><strong>输出到哪里：</strong>learner 按比例从多个 replay 抽 batch。</p><p><strong>为什么不能省略：</strong>时间错位会让 critic 学到动作与后果的错误对应。</p></div></div>
+      <div class="sw-step"><h4>6. Critic 学价值，Actor 做受约束更新</h4><p>off-policy learner 用 Bellman target 训练 critic，再让 actor 偏向高价值动作；通常冻结视觉/VLA 主干，只更新小模块。</p><div class="step-beginner"><div class="sb-label">算法真正工作的地方</div><p><strong>输入是什么：</strong>replay batch、target network 和当前 actor/critic。</p><p><strong>这一步究竟做什么：</strong>把延迟成功信号分配给较早动作，并产生参数更新。</p><p><strong>输出到哪里：</strong>得到候选新 checkpoint。</p><p><strong>为什么不能省略：</strong>只存失败视频不会自动改变策略。</p></div></div>
+      <div class="sw-step"><h4>7. 先离线验证，再灰度发布新 checkpoint</h4><p>检查 Q 值、动作范围、离线回放、仿真/影子模式和少量受控 rollout；失败时可快速回滚。</p><div class="step-beginner"><div class="sb-label">真机工程和论文算法的分界</div><p><strong>输入是什么：</strong>候选参数、离线验证集和安全阈值。</p><p><strong>这一步究竟做什么：</strong>拦截数值爆炸、动作漂移和灾难性遗忘。</p><p><strong>输出到哪里：</strong>通过门槛的新策略才下发 actor。</p><p><strong>为什么不能省略：</strong>训练 loss 正常不代表闭环动作安全。</p></div></div>
+      <div class="sw-step"><h4>8. 同时看成功率、人工成本和墙钟时间</h4><p>评测成功率之外，还记录 intervention rate、reset 次数、cycle time、训练小时、延迟和安全违规。</p><div class="step-beginner"><div class="sb-label">什么叫真的进步</div><p><strong>输入是什么：</strong>多次闭环评测与完整运行日志。</p><p><strong>这一步究竟做什么：</strong>判断性能是否来自策略，而不是更多人工或更宽松评测。</p><p><strong>输出到哪里：</strong>决定继续采样、修改奖励、回滚或停止训练。</p><p><strong>为什么不能省略：</strong>“成功率 90%”可能隐藏每次都需要人类接管。</p></div></div>
+    </div></div>
+  </section>
+
+  <section class="section" id="hard"><h2>§3 为什么真机 RL 比仿真难得多</h2><div class="skill-grid">
+    <div class="skill"><b>样本贵且不能并行无限复制</b><p>一次失败可能需要人重新摆物体、清理场景或维修硬件。样本效率和真实墙钟时间比单纯 environment steps 更重要。</p></div>
+    <div class="skill"><b>探索会造成真实后果</b><p>策略噪声、critic 过估计或 checkpoint 崩坏可能碰撞。动作限幅、阻抗控制、人类接管和回滚属于算法系统的一部分。</p></div>
+    <div class="skill"><b>Reward 通常不存在</b><p>机器人不会天然告诉你“插好了”。成功分类器可能误判，几何 shaping 可能诱导捷径，需要视频审计与单元测试。</p></div>
+    <div class="skill"><b>Reset 是隐藏瓶颈</b><p>仿真调用 reset() 即可；真机可能要重新摆放、抓回物体、清除缠绕。可自动 reset 的任务更容易规模化 RL。</p></div>
+    <div class="skill"><b>控制有多重时间尺度</b><p>policy 可能 5–20 Hz，低层控制 200–1000 Hz，相机、动作、奖励若时间戳错位，模型会学习错误因果。</p></div>
+    <div class="skill"><b>分布由策略自己改变</b><p>新策略会访问旧 replay 没覆盖的状态；off-policy critic 在这些区域最可能过估计，需要保守更新和在线验证。</p></div>
+  </section>
+
+  <section class="section" id="must-read"><h2>§4 岗位必读：先学什么，哪些只是前沿加分项</h2><p><strong>P0</strong> 是真机 RL 岗位必须能讲清的基础；<strong>P1</strong> 是 VLA+RL 工程常见路线；<strong>P2</strong> 是生成式策略和世界模型前沿。不要倒序学习。</p>
+    <h3>P0 · 必须知道</h3><div class="paper-grid">
+      <div class="paper p0"><span class="prio">P0 · SYSTEM</span><b><a href="hil-serl.html">HIL-SERL</a></b><p>最适合作为真机 RL 第一篇：actor/learner、双 replay、人类介入、成功分类器、RLPD、低层安全控制怎样组成完整系统。</p></div>
+      <div class="paper p0"><span class="prio">P0 · POLICY BASELINE</span><b><a href="diffusion-policy.html">Diffusion Policy</a></b><p>它本身主要是行为克隆而非 RL，但现代机器人动作头大量沿用 action chunk 与 diffusion；不懂它就看不懂 DPPO/DSRL。</p></div>
+      <div class="paper p0"><span class="prio">P0 · OFFLINE RL</span><b><a href="iql.html">IQL</a></b><p>理解固定数据、expectile value、advantage-weighted policy update，以及为什么 offline RL 不能信任数据外动作。</p></div>
+      <div class="paper p0"><span class="prio">P0 · OFFLINE→ONLINE</span><b><a href="awac.html">AWAC</a></b><p>理解如何从 replay 学 critic，再用 advantage 加权行为克隆；是“先用示范、再在线改进”的基本桥梁。</p></div>
+      <div class="paper p0"><span class="prio">P0 · WORLD MODEL RL</span><b><a href="dreamer-v1.html">Dreamer</a></b><p>理解真实数据训练 latent dynamics、模型内 imagination rollout、actor/value 学习，以及 model bias 为什么危险。</p></div>
+      <div class="paper p0"><span class="prio">P0 · EVIDENCE</span><b><a href="rl-vla-generalization.html">What Can RL Bring to VLA Generalization?</a></b><p>训练任务成功率上升不等于获得所有泛化；学会拆分抗干扰、恢复、视觉变化和新任务迁移。</p></div>
+    </div>
+    <h3>P0 · 论文之外必须掌握的算法词</h3><div class="plain"><strong>SAC / TD3：</strong>连续动作 off-policy actor-critic，是很多真机 learner 的算法底座。<strong>PPO：</strong>on-policy 策略梯度，稳定但通常更耗真实交互；DPPO/πRL 会借用其目标。想直观看 PPO 的 critic 基线与 GRPO 的组内基线，可读<a href="vla-rl-roadmap.html#ppo-grpo">PPO / GRPO 对比图</a>；GRPO 在这里是算法对照，不是真机 RL 的必备方法。<strong>DQN：</strong>离散动作 value learning，HIL-SERL 用独立 grasp critic 处理夹爪开合。<strong>DAgger：</strong>在 learner 实际访问的状态上请求专家动作，是理解 human intervention 数据价值的前身。<strong>RLPD：</strong>高 UTD、ensemble/regularization 与 demo/online 混合采样，是 HIL-SERL/SERL 的核心 learner。</div>
+
+    <h3>P1 · VLA 真机后训练</h3><div class="paper-grid">
+      <div class="paper p1"><span class="prio">P1 · BASE MODEL</span><b><a href="openvla.html">OpenVLA</a> / <a href="pi0-vla-flow-model.html">π₀</a></b><p>理解现代 VLA 的视觉—语言骨干、离散或 flow 动作头，以及为什么全参在线更新风险高。</p></div>
+      <div class="paper p1"><span class="prio">P1 · LIGHT UPDATE</span><b><a href="expo-ft.html">EXPO-FT</a> / <a href="rl-token.html">RL Token</a></b><p>冻结大基座，只训练 residual、token 或小 critic，把真机更新成本和灾难性遗忘风险压低。</p></div>
+      <div class="paper p1"><span class="prio">P1 · DATA LOOP</span><b><a href="learning-while-deploying.html">Learning While Deploying</a></b><p>把自主 rollout、人类干预和 fleet 数据持续写回训练池，关注部署期间的安全和异步学习。</p></div>
+      <div class="paper p1"><span class="prio">P1 · OFFLINE→ONLINE</span><b><a href="bora.html">BORA</a> / <a href="rankq.html">RankQ</a></b><p>先从历史数据挖 value/排序信号，再用少量在线 residual 适配，降低真机冷启动成本。</p></div>
+      <div class="paper p1"><span class="prio">P1 · SYSTEM</span><b><a href="rl-vla3.html">RL-VLA³</a></b><p>异步 simulator/actor/generator/learner 架构，关注动态 batching、吞吐、延迟和数据队列。</p></div>
+      <div class="paper p1"><span class="prio">P1 · RELIABILITY</span><b><a href="chi0.html">χ₀</a></b><p>长程双臂任务里，阶段优势、参数合并与可靠性工程比单个平均成功率更重要。</p></div>
+    </div>
+
+    <h3>P2 · 生成式动作头与想象 RL</h3><div class="paper-grid">
+      <div class="paper"><span class="prio">P2 · DIFFUSION RL</span><b><a href="dppo.html">DPPO</a> / <a href="dsrl-latent-policy-rl.html">DSRL</a></b><p>一个更新完整去噪链，一个冻结 policy 只学习 latent steering；比较梯度链长度和真机稳定性。</p></div>
+      <div class="paper"><span class="prio">P2 · FLOW RL</span><b><a href="reinflow.html">ReinFlow</a> / <a href="sac-flow.html">SAC-Flow</a> / <a href="pi-rl.html">πRL</a></b><p>让确定性 flow 具备探索、likelihood 或可优化序列决策结构，再接 SAC/PPO。</p></div>
+      <div class="paper"><span class="prio">P2 · TEST-TIME</span><b><a href="qgf.html">QGF</a> / <a href="flowpro.html">FlowPRO</a></b><p>critic 梯度或轨迹偏好在采样期引导动作，减少手工 dense reward 设计。</p></div>
+      <div class="paper"><span class="prio">P2 · SELF-IMPROVE</span><b><a href="self-improving-vla.html">PLD Self-Improving VLA</a></b><p>RL 负责发现失败和恢复数据，最终把新轨迹蒸馏回简单 VLA，降低部署复杂度。</p></div>
+      <div class="paper"><span class="prio">P2 · IMAGINATION</span><b><a href="rise-compositional-world-model.html">RISE</a></b><p>把大部分 rollout 搬进 world model，只让真实机器人承担校准和最终验证。</p></div>
+      <div class="paper"><span class="prio">P2 · STAGE CREDIT</span><b><a href="stare-vla.html">STARE-VLA</a></b><p>把长程任务拆成 reach/grasp/transport/place 等阶段，为稀疏末端成功提供更密集信用分配。</p></div>
+    </div>
+  </section>
+
+  <section class="section" id="job"><h2>§5 真机 RL 岗位真正会考察什么</h2><table class="job-table"><thead><tr><th>能力块</th><th>你至少要能解释/实现什么</th><th>面试证据</th></tr></thead><tbody>
+    <tr><td>机器人与控制</td><td>EEF/关节动作、position/velocity/torque、阻抗控制、动作限幅、控制频率、坐标系和 IK。</td><td>能解释 policy 10 Hz 与低层 1 kHz 如何衔接，为什么 RL 不直接绕过安全控制器。</td></tr>
+    <tr><td>RL 算法</td><td>Bellman target、target network、actor/critic、on/off-policy、entropy、advantage、UTD、Q overestimation。</td><td>能从一条 transition 写出 critic 更新，并说明 actor 为什么可能利用错误 Q 值。</td></tr>
+    <tr><td>数据系统</td><td>teleop、replay schema、时间戳、demo/online/intervention 分池、采样比例、归一化和失败数据保留。</td><td>能画出从 robot actor 到 learner 再回 actor 的异步数据流。</td></tr>
+    <tr><td>Reward 与评测</td><td>成功分类器、sparse/shaped reward、reward hacking、终止、reset、任务级成功率与置信区间。</td><td>能说明怎样发现 reward classifier 假阳性，以及为何必须保存失败视频。</td></tr>
+    <tr><td>安全与运维</td><td>intervention、E-stop、checkpoint gate、灰度发布、回滚、动作分布监控和硬件故障恢复。</td><td>能提出新 policy 上机前的验证门槛，而不是只说“loss 下降了”。</td></tr>
+    <tr><td>VLA/生成策略</td><td>action chunk、receding horizon、diffusion/flow sampling、冻结主干、adapter/residual 与推理延迟。</td><td>能解释为何 Diffusion Policy 不是 RL，以及 RL 可以接在生成链的哪些位置。</td></tr>
+  </tbody></table>
+    <div class="warning"><strong>岗位避坑：</strong>不要只背 PPO/SAC 公式。真机团队更关心你能否发现时间对齐、reset、reward 误判、Q 爆炸、动作延迟和 checkpoint 崩坏；这些问题会直接浪费机器时间或损坏硬件。</div>
+  </section>
+
+  <section class="section" id="plan"><h2>§6 零基础 4 周学习安排</h2><div class="week-grid">
+    <div class="week"><b>第 1 周 · 建立 RL 语言</b><p>学 MDP、return、Bellman、actor/critic、on/off-policy、PPO/SAC。用一个低维 Gym 连续控制任务观察 replay 与 Q 学习，不碰 VLA。</p></div>
+    <div class="week"><b>第 2 周 · 数据与 offline RL</b><p>读 IQL、AWAC；比较 BC、offline RL 和 online finetune。亲手检查 dataset coverage、return 分布和 OOD action。</p></div>
+    <div class="week"><b>第 3 周 · 真机系统</b><p>精读 HIL-SERL 方法总览；画 actor/learner/replay/intervention 图。设计 reward classifier、reset 和 checkpoint gate 的测试表。</p></div>
+    <div class="week"><b>第 4 周 · 接上 VLA</b><p>读 Diffusion Policy、OpenVLA/π₀，再选 DPPO 或 RL Token。准备一个“冻结什么、更新什么、如何安全上线”的项目方案。</p></div>
+  </div>
+    <h3>读完后应能回答的面试题</h3><div class="checklist">
+      <div class="check"><strong>为什么 BC 在训练集成功，闭环却失败？</strong><br>动作改变之后的观测，误差把策略带到示范分布外。</div>
+      <div class="check"><strong>为什么真机偏爱 off-policy？</strong><br>昂贵旧数据能被 replay 多次使用，而 on-policy 通常要求不断采新数据。</div>
+      <div class="check"><strong>人类 intervention 应放哪个 buffer？</strong><br>要说明它既是在线轨迹的一部分，也是困难状态上的高质量示范，并讨论采样比例。</div>
+      <div class="check"><strong>如何防止一次更新毁掉机器人？</strong><br>冻结主干、小步更新、离线门控、动作分布检查、灰度 rollout、E-stop 和可回滚 checkpoint。</div>
+      <div class="check"><strong>成功率提高就够了吗？</strong><br>还要看介入率、reset、cycle time、训练小时、延迟、安全违规与统计置信度。</div>
+      <div class="check"><strong>Diffusion Policy 与 DPPO 什么关系？</strong><br>前者先以示范训练生成式动作 policy；后者把其去噪过程纳入 RL 优化。</div>
+    </div>
+  </section>
+
+  <section class="section" id="start"><h2>§7 如果今天只做三件事</h2><ol><li>先打开 <a href="hil-serl.html#method">HIL-SERL 方法总览</a>，把 actor、learner、replay、人类接管和参数回传完整讲一遍。</li><li>读 <a href="iql.html">IQL</a> 与 <a href="awac.html">AWAC</a>，建立 offline/off-policy 价值学习直觉。</li><li>回到 <a href="vla-rl-roadmap.html">VLA+RL 关系图</a>，再选择你岗位更接近轻量在线、生成式动作 RL，还是 world-model imagination。</li></ol></section>
+</main>
+</body>
+</html>

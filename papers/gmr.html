@@ -1,0 +1,104 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>GMR · 重定向质量如何决定底层控制的上限</title>
+<meta name="description" content="Retargeting Matters 中文精读：非均匀局部尺度、两阶段 IK、官方代码、权重阻尼实验及仿真证据边界。">
+<link rel="stylesheet" href="../assets/css/style.css"><link rel="stylesheet" href="../assets/css/humanoid-reading.css">
+<script src="../assets/js/theme.js"></script><script defer src="../assets/js/interactive.js"></script><script defer src="../assets/js/humanoid-reading.js"></script>
+</head>
+<body class="series">
+<a class="skip" href="#content">跳到正文</a>
+<nav class="nav"><a class="nav-logo" href="../index.html">~/paper-notes</a><div class="nav-links"><a href="humanoid-data-to-wam.html">链路总览</a><a href="../pdfs/loco-manipulation/gmr.pdf">PDF</a></div></nav>
+<div class="page"><div class="docs-layout">
+<aside class="docs-sidebar-left" aria-label="章节导航"><div class="ds-title">01 / GMR</div><a class="ds-leaf-top" href="#overview">结论与证据</a><a class="ds-leaf-top" href="#failure">为什么 RL 没有兜底</a><a class="ds-leaf-top" href="#geometry">坐标、尺度与 offset</a><a class="ds-leaf-top" href="#ik">两阶段 IK 与算例</a><a class="ds-leaf-top" href="#code">官方实现核对</a><a class="ds-leaf-top" href="#evaluation">Sim / OOD / 真机</a><a class="ds-leaf-top" href="#handoff">与 VLA / Embodied AI</a></aside>
+<main class="docs-content" id="content">
+<div class="kicker">HUMAN DATA → RETARGETING · READING 01</div>
+<h1>GMR：先修好参考运动，再要求控制器跟上</h1>
+<p class="paper-meta">Retargeting Matters: General Motion Retargeting for Humanoid Motion Tracking<br>Araújo, Ze, Xu, Wu &amp; Liu · arXiv:2510.02252v1 · 2025-10-02 · 9 页 · 本次核读 2026-10-22</p>
+<div class="paper-badges"><span class="badge">运动重定向</span><span class="badge badge-blue">两阶段 IK</span><span class="badge badge-amber">不是动力学保证</span></div>
+<section class="core-insight" id="overview"><div class="core-label">一句话核心洞见</div><p>人体动作换到 G1 后的穿地、自相交和关节跳变，会变成 RL 的互相冲突的学习目标。GMR 用<strong>分部位局部缩放 + 两阶段 IK</strong>改善参考；论文的关键贡献还在于固定 BeyondMimic 配方，观察重定向质量如何改变策略表现。</p></section>
+<section class="eval-overview" aria-label="评测结论总览">
+<article class="eval-card"><div class="eval-card-title">仿真</div><div class="eval-card-value">21 条 LAFAN1 运动、每条单独训练策略。平均全局位置误差：GMR 104.1 mm，PHC 247.8，ProtoMotions 139.7，Unitree 77.2。</div></article>
+<article class="eval-card"><div class="eval-card-title">扰动与 OOD</div><div class="eval-card-value">IsaacSim / sim-dr / MuJoCo-ROS；不是未见运动泛化。GMR Dance 5 在 sim2sim 只有 51%，并非全面胜出。</div></article>
+<article class="eval-card"><div class="eval-card-title">真机</div><div class="eval-card-value">这版论文未报告真机闭环成功率。sim2sim 的传感估计与时序更接近部署，但仍是仿真。</div></article>
+<article class="eval-card"><div class="eval-card-title">最强可支持结论</div><div class="eval-card-value">在单一 G1、本数据源、固定 tracker 配方下，参考质量显著影响鲁棒性；不能推出任意接触操作都可行。</div></article>
+</section>
+<p class="source">证据：§III–V，Table I–III，pp.3–7。<a href="https://arxiv.org/abs/2510.02252v1">固定版本</a> · <a href="https://github.com/YanjieZe/GMR/tree/bb1bbe40774794fceb2a7c579a3464a28e68c844">官方代码快照 bb1bbe4</a> · <a href="../assets/figures/humanoid-reading/source-manifest.json">PDF 哈希与图源</a></p>
+
+<h2 id="failure">1. 为什么“交给 RL 修正”不总是成立？</h2>
+<div class="cn-read"><div class="cn-label">从参考到控制的第一道边界</div><p>高层想要的是“同一种动作”，不是复刻人体坐标。先区分外形相似、关节可达、动力学可跟踪，才能判断误差发生在哪一层；这篇没有把三者视为同一件事。</p></div>
+<p>人和机器人骨长、关节拓扑、活动范围、质量分布都不同。把人体姿态原样搬过去，好比把一个人的衣服尺寸直接当成另一个人的关节约束：局部看起来对，脚却可能进入地板。RL 同时收到“追参考”和“不要摔倒”的要求，只有妥协或失败。</p>
+<div class="eval-table-wrap"><table class="eval-table"><caption>论文五问 · §I–III</caption><thead><tr><th>问题</th><th>回答</th></tr></thead><tbody>
+<tr><td>背景</td><td>全身 tracking 是遥操作和分层控制的基础，人类运动是可扩展参考来源。</td></tr>
+<tr><td>直接依赖</td><td>PHC：SMPL 形状拟合 + 位置 IK；ProtoMotions：按世界轴缩放 + Mink；BeyondMimic：统一训练与评测 tracker。</td></tr>
+<tr><td>具体失败</td><td>PHC Dance 1/2 穿地；ProtoMotions stop-and-go 跑步腿部自相交；GMR Dance 5 腰部突跳。</td></tr>
+<tr><td>押注</td><td>先修参考，能在不逐动作调奖励的条件下改善可跟踪性。作者不是声称 reward engineering 永远无效。</td></tr>
+<tr><td>效果与代价</td><td>开源方法中更低的平均 tracking error、更高保真偏好；仍需人工匹配、尺度/权重选择，且只做运动学优化。</td></tr>
+</tbody></table></div>
+<figure><img src="../assets/figures/gmr/fig-3.png" alt="PHC 穿地、ProtoMotions 腿部相交及 GMR 腰部角度突跳三类失败" loading="lazy" decoding="async"><figcaption>论文原图 Figure 3 · p.7 · 300 DPI。第三例提醒：GMR 也会把优化跳变写进参考，权重不是一次调好就对所有动作有效。</figcaption></figure>
+<aside class="evidence-note" data-evidence="paper">论文比较的是重定向之后训练出的策略；tracking error 只在策略仍存活的帧上计算。因此应与完成率一起看，不能用低误差掩盖早停。</aside>
+
+<h2 id="geometry">2. 先处理坐标和尺度，别用权重掩盖几何错误</h2>
+<div class="cn-read"><div class="cn-label">上一节的穿地从哪里来？</div><p>IK 只会逼近你提供的目标。如果目标本身被错误缩放，求解得再准也没有用。本节先确定目标，再讨论求解器。</p></div>
+<figure><img src="../assets/figures/gmr/fig-2.png" alt="GMR 五步：关键体匹配、静止姿态坐标对齐、局部尺度、第一阶段与第二阶段 IK" loading="lazy" decoding="async"><figcaption>论文原图 Figure 2 · p.4 · 400 DPI。先定义“应该跟哪里”，再求关节运动。</figcaption></figure>
+<ol><li><strong>匹配关键刚体：</strong>为人体与机器人建立对应表。关键体原点不一定是你想象中的掌心或脚底。</li><li><strong>静止姿态对齐：</strong>用旋转 offset 对齐局部轴，必要时加局部位置 offset。否则同一个四元数在两个骨架上可能代表不同朝向。</li><li><strong>非均匀局部缩放：</strong>根位置统一缩放；各部位相对根的位置使用自己的比例，保留不同身段的适配自由度。</li><li><strong>两阶段 IK：</strong>先摆好朝向和关键末端，再调全身位置。</li><li><strong>序列处理：</strong>前一帧解作为下一帧初值，最后做整段最低高度校正；这不是接触动力学求解。</li></ol>
+<div class="equation">p<sub>b</sub><sup>target</sup> = α s<sub>b</sub>(p<sub>b</sub><sup>human</sup> − p<sub>root</sub><sup>human</sup>) + α s<sub>root</sub>p<sub>root</sub><sup>human</sup><small>paper Eq.2–3，p.5。α = 人体实际高度 / 配置参考高度；位置为 R³，单位 m；s 为无量纲缩放。这里的“局部”是减去根平移，不应擅自理解为额外旋转到 pelvis-yaw 系。</small></div>
+<p><strong>解释性算例，非论文实验：</strong>α=1，根 x=1.0 m，手 x=1.5 m；根比例 0.9、手比例 0.75，目标手 x=0.75×0.5+0.9=1.275 m。若把世界坐标直接乘 0.75，则得到 1.125 m，连根的行走位移也被改了。</p>
+<aside class="evidence-note" data-evidence="code">固定提交的 <code>bvh_lafan1_to_g1.json</code>：参考人体高度 1.8 m；Hips/腿 0.9、手臂/手 0.75。<code>offset_human_data</code> 先右乘局部旋转 offset，再用更新后的旋转把局部平移 offset 转到世界系；四元数是 scalar-first。</aside>
+
+<h2 id="ik">3. 权重、阻尼与约束，分别在管什么？</h2>
+<div class="cn-read"><div class="cn-label">目标确定后，才轮到优化</div><p>身体通常无法同时满足所有目标。权重选择优先保谁，阻尼限制局部步幅，硬约束限定允许区域。它们不能互相替代，更不能代替正确的标定。</p></div>
+<p>论文第一阶段主要对齐各关键体朝向与手脚位置，第二阶段再纳入全身位置目标并换一组权重。两阶段的直觉是先让链条朝对方向，再用位置微调减少局部极小值。每帧沿用上一帧解，但暖启动不等于显式速度连续性约束。</p>
+<div class="equation">δq* = argmin<sub>δq</sub> ‖e(q)+J(q)δq‖²<sub>W</sub> + λ‖δq‖²<br>subject to q<sup>−</sup> ≤ q ⊕ δq ≤ q<sup>+</sup><small>对论文 Eq.4–6 的局部最小二乘解释，加入阻尼项帮助读代码，不是逐字转写论文公式。e∈Rᵐ 是位置/旋转残差，J∈Rᵐˣⁿ 是 Jacobian，δq∈Rⁿ 是配置的切空间增量；浮动基用流形积分 ⊕，不能直接对四元数做普通加法。位置与旋转残差单位不同，W 同时承担尺度权衡。</small></div>
+<p>无约束的线性小步解为 <code>δq = −(JᵀWJ + λI)⁻¹JᵀWe</code>。真实 GMR 调用 Mink 的速度 IK，并用 <code>integrate_inplace(velocity, dt)</code> 更新。论文提醒 Δt 是求解器参数，不一定等于视频帧间隔。</p>
+<div class="parameter-lab" data-ik-lab>
+<h3>动手试：想把手前移，为什么全身保姿会“拉回来”？</h3>
+<p>教学模型仅有一个修正量 Δq。手目标要求 +0.2，保姿希望 0；把局部 Jacobian 归一化为 1。最小化 <code>wₕ(Δq−0.2)² + 1·Δq² + λΔq²</code>，并要求 <code>0 ≤ Δq ≤ cap</code>。闭式解是 <code>min(cap, 0.2wₕ/(wₕ+1+λ))</code>。</p>
+<div class="lab-controls">
+<label>手目标权重 wₕ：<output data-value="hand">1</output><input name="hand" type="range" min="1" max="50" step="1" value="1"></label>
+<label>阻尼 λ：<output data-value="damping">0</output><input name="damping" type="range" min="0" max="50" step="1" value="0"></label>
+<label>允许修正 cap：<output data-value="limit">0.2</output><input name="limit" type="range" min="0.01" max="0.2" step="0.01" value="0.2"></label>
+</div><div class="lab-output" data-lab-result aria-live="polite">修正 Δq = 0.1000 rad；手部剩余误差 = 0.1000；保姿偏移 = 0.1000 rad</div>
+<div class="eval-table-wrap"><table class="eval-table"><caption>可离线阅读的预设结果 · 教学模型，不是 G1 rollout</caption><thead><tr><th>wₕ</th><th>λ</th><th>cap</th><th>Δq</th><th>解释</th></tr></thead><tbody><tr><td>1</td><td>0</td><td>0.2</td><td>0.1000</td><td>手和保姿各让一步</td></tr><tr><td>25</td><td>0</td><td>0.2</td><td>0.1923</td><td>更偏手目标，姿态改变更大</td></tr><tr><td>25</td><td>25</td><td>0.2</td><td>0.0980</td><td>阻尼压小局部修正</td></tr><tr><td>25</td><td>0</td><td>0.08</td><td>0.0800</td><td>硬限幅生效，增加权重也不能越界</td></tr></tbody></table></div>
+<p class="source">归一化残差是为了手算；这里的 wₕ 是目标函数系数，不等同于 Mink 的 position_cost 数值。阻尼在完整非线性迭代中影响收敛，不代表必然永久保留同样偏差。</p>
+</div>
+<details class="prediction-pause"><summary>检查理解：脚在地面滑动时，第一步就增大足端权重吗？</summary><p>先查时钟、尺度、根平移、脚底定义和 frame offset。只有目标几何正确而优化仍让步时，增大权重才在解决对的问题。随后还要查速度峰值、自碰撞和实际 controller replay。</p></details>
+
+<h2 id="code">4. 论文公式到官方实现：哪些默认值值得留意？</h2>
+<div class="cn-read"><div class="cn-label">模型直觉不能替代配置检查</div><p>上节告诉我们调参的方向；本节确认固定提交实际用了什么。代码可能已晚于论文，下面的不一致作为版本差异保留，不擅自判断哪一个代表作者当年的实验。</p></div>
+<div class="eval-table-wrap"><table class="eval-table"><caption>code · bb1bbe40774794fceb2a7c579a3464a28e68c844 · 核查日期 2026-10-22</caption><thead><tr><th>位置 / 参数</th><th>实际含义</th><th>易误读之处</th></tr></thead><tbody>
+<tr><td><code>__init__</code></td><td>solver=daqp，damping=0.5；FrameTask 的 lm_damping=1。</td><td>两个 damping 不是同一个参数；旁边的旧注释不优先于可执行默认值。</td></tr>
+<tr><td><code>ik_limits</code></td><td>ConfigurationLimit 默认开启；VelocityLimit 可选，默认关闭，开时为 3π。</td><td>此函数没有默认碰撞约束或动力学平衡保证。</td></tr>
+<tr><td>match table 1 → 2</td><td>脚踝 position/orientation cost 为 50/10；腕部从 0/10 变为 10/5；骨盆从 0/10 变为 100/5。</td><td>论文“阶段一包含手脚”是一般形式；该 BVH→G1 配置第一阶段腕位置权重实际为 0。</td></tr>
+<tr><td><code>retarget</code></td><td>每阶段先求解一次，再最多循环 10 次；按误差改善 &gt;0.001 继续。</td><td>因此该实现最多可达 11 次调用，不等于论文描述的最多 10 次。</td></tr>
+<tr><td><code>update_targets</code></td><td>目标先使用 table1 的 offsets，两个阶段复用目标；table2 offsets 虽被读入，但这里未另用。</td><td>当前所核配置两表 offsets 相同；若未来调 table2 offset，需检查这条代码路径。</td></tr>
+<tr><td>地面校正</td><td>论文描述整段 FK 最低高度平移；当前类另有可选逐帧脚点贴地与手工 ground offset。</td><td>完整离线导出要连同调用脚本核对，不能拿一个可选函数替代论文的序列处理。</td></tr>
+</tbody></table></div>
+<p class="source"><a href="https://github.com/YanjieZe/GMR/blob/bb1bbe40774794fceb2a7c579a3464a28e68c844/general_motion_retargeting/motion_retarget.py">motion_retarget.py</a> · <a href="https://github.com/YanjieZe/GMR/blob/bb1bbe40774794fceb2a7c579a3464a28e68c844/general_motion_retargeting/ik_configs/bvh_lafan1_to_g1.json">bvh_lafan1_to_g1.json</a>。论文 p.5 用 exp 描述 SO(3) 差的 so(3) 表达，记号不规范；本页用旋转 Log / rotation vector 解释，不将其照抄成实现。</p>
+
+<h2 id="evaluation">5. 不把 sim2sim、保真度和真机混成一个分数</h2>
+<div class="cn-read"><div class="cn-label">把机制接回证据</div><p>改善 IK 并不自动证明策略更好。本节分别检查整段完成、存活帧 tracking error 和人的动作保真偏好，最后指出这些证据没有跨过的部署边界。</p></div>
+<div class="eval-table-wrap"><table class="eval-table"><caption>仿真协议 · §III，pp.3–4；Table I–II，p.6</caption><thead><tr><th>场景</th><th>任务 / 划分</th><th>观测 / 动作 / 时域</th><th>次数与指标</th><th>结论与公平性</th></tr></thead><tbody>
+<tr><td>IsaacSim sim</td><td>21 条 LAFAN1，G1；每条参考独立训练，不是统一策略 held-out split</td><td>BeyondMimic tracker；本文未完整列出观测维数/控制 Hz。每条 5.5–130.5 s，违背 anchor 高度/朝向阈值早停，阈值数值未在本版列全。</td><td>100 rollouts / policy；整段完成率；位置 mm、关节角 10⁻³ rad</td><td>固定配方；PHC/PM 还需要 BVH→SMPL(-X) 转换，GMR 直接用 BVH，输入链并非逐环节完全相同。</td></tr>
+<tr><td>IsaacSim sim-dr</td><td>相同参考；打开 domain randomization</td><td>参考与控制器不变，测参数/观测扰动鲁棒性</td><td>4096 rollouts / policy</td><td>不应称为未见任务成功率；训练 seeds 数未报告。</td></tr>
+<tr><td>MuJoCo + ROS sim2sim</td><td>相同参考；不同模拟器及估计/通信路径</td><td>默认站姿启动；不读特权全局根姿态；参考完整时域</td><td>100 rollouts / policy</td><td>可安全模拟部署路径，但不是物理机器人测试。</td></tr>
+</tbody></table></div>
+<div class="eval-table-wrap"><table class="eval-table"><caption>分维度 ID/OOD 证据</caption><thead><tr><th>维度</th><th>对照与结果</th><th>可比较范围</th></tr></thead><tbody>
+<tr><td>观测 / 参数扰动</td><td>GMR Dance 5：sim 96%，sim-dr 92.75%</td><td>不同试验量、复合扰动，不计算 ID/OOD 保留率；不能隔离哪个噪声导致下降。</td></tr>
+<tr><td>模拟器 / 时序迁移</td><td>Dance 5 sim2sim 51%；Run stop-and-go 为 100%</td><td>不同模拟器协议，不把变化只归因于 retargeter。</td></tr>
+<tr><td>初始参考帧</td><td>Walk 2 从 frame 0 改为 7：GMR 64%→100%</td><td>Table III，p.7；Table I 星号结果采用修正起帧，不能忽略该处理。</td></tr>
+<tr><td>未见对象 / 复杂交互 / 机器人本体</td><td>未报告</td><td>仅 G1、LAFAN1；没有对象交互 benchmark。</td></tr>
+</tbody></table></div>
+<div class="eval-table-wrap"><table class="eval-table"><caption>真机证据状态</caption><thead><tr><th>平台</th><th>任务成功数 / 总数</th><th>完成时间 / 人工干预 / 安全停止</th><th>可支持结论</th></tr></thead><tbody><tr><td>本文未报告物理机器人定量测试</td><td>未报告；不能计算 Wilson 区间</td><td>未报告</td><td>只能使用仿真与用户研究证据，不能把 ROS rollout 记成 G1 真机。</td></tr></tbody></table></div>
+<details><summary>全部 21 个动作的 sim2sim 完成率（%）</summary><div class="eval-table-wrap"><table class="eval-table"><caption>Table I · p.6 · 每方法每动作 100 次；* 调整起始参考帧</caption><thead><tr><th>动作</th><th>PHC</th><th>GMR</th><th>ProtoMotions</th><th>Unitree</th></tr></thead><tbody>
+<tr><td>Walk 1</td><td>100</td><td>100</td><td>100</td><td>100</td></tr><tr><td>Walk 2*</td><td>100</td><td>100</td><td>100</td><td>100</td></tr><tr><td>Turn 1*</td><td>100</td><td>100</td><td>99</td><td>100</td></tr><tr><td>Turn 2</td><td>99</td><td>100</td><td>100</td><td>99</td></tr><tr><td>Walk old</td><td>100</td><td>100</td><td>100</td><td>100</td></tr><tr><td>Walk army</td><td>100</td><td>100</td><td>99</td><td>100</td></tr><tr><td>Hop</td><td>100</td><td>100</td><td>100</td><td>100</td></tr><tr><td>Walk knees</td><td>100</td><td>100</td><td>100</td><td>100</td></tr><tr><td>Dance 1</td><td>0</td><td>100</td><td>100</td><td>100</td></tr><tr><td>Dance 2</td><td>0</td><td>100</td><td>100</td><td>100</td></tr><tr><td>Dance 3</td><td>99</td><td>100</td><td>100</td><td>100</td></tr><tr><td>Dance 4</td><td>99</td><td>100</td><td>100</td><td>100</td></tr><tr><td>Dance 5</td><td>100</td><td>51</td><td>100</td><td>100</td></tr><tr><td>Run slow</td><td>100</td><td>100</td><td>100</td><td>100</td></tr><tr><td>Run</td><td>100</td><td>100</td><td>100</td><td>100</td></tr><tr><td>Run stop &amp; go</td><td>74</td><td>100</td><td>26</td><td>100</td></tr><tr><td>Hop around</td><td>100</td><td>100</td><td>100</td><td>100</td></tr><tr><td>Hopscotch</td><td>100</td><td>100</td><td>100</td><td>100</td></tr><tr><td>Jump and rotate</td><td>99</td><td>100</td><td>100</td><td>99</td></tr><tr><td>Kung fu</td><td>100</td><td>100</td><td>100</td><td>100</td></tr><tr><td>Various sports</td><td>100</td><td>100</td><td>100</td><td>99</td></tr>
+</tbody></table></div></details>
+<figure><img src="../assets/figures/gmr/fig-4.png" alt="20 位参与者对 GMR 与三种方法的动作相似性偏好统计" loading="lazy" decoding="async"><figcaption>论文原图 Figure 4 · p.7。20 位参与者，每人 45 个两两比较问题；GMR 对 PHC/PM 的偏好为 74%/63%，对 Unitree 为 25%（无偏好 37%，偏好 Unitree 38%）。这是保真偏好，不是策略成功率。</figcaption></figure>
+
+<h2 id="handoff">6. 与 VLA / Embodied AI 的联系</h2>
+<p>GMR 输出的是参考运动，不是天然兼容所有控制器的 action label。下一步要问：SONIC 的哪个 encoder 接收它？所需未来窗口、joint order、根坐标、单位和控制时钟是什么？再往上，WAM 学的是 token、关节目标还是末端位姿？名称同为 action 不能代替接口契约。</p>
+<aside class="evidence-note" data-evidence="inference">建议的调参顺序：先统一时钟和坐标 → 核对尺度/offset → 看 IK 残差与关节速度峰值 → 检查穿地/自碰撞 → 用目标 controller replay → 最后验证视觉和执行轨迹配对。这里是从论文与源码归纳的工程排查顺序，不是额外实证结论。</aside>
+<div class="reading-links"><a href="sonic.html#interface-audit">下一篇：SONIC 的执行接口 →</a><a href="egohumanoid-v2.html">为何还要 dynamics-aware refinement？</a><a href="humanoid-data-to-wam.html">回到链路总览</a></div>
+</main></div></div>
+</body></html>

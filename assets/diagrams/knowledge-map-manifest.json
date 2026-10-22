@@ -1,0 +1,568 @@
+{
+  "date": "2026-09-26",
+  "noteCount": 120,
+  "groups": [
+    {
+      "id": "routes",
+      "title": "专题路线与训练指南",
+      "note": "入口页面，不计作独立论文。",
+      "papers": [
+        {
+          "slug": "wam-roadmap",
+          "title": "World Action Model 学习路线 · 2026"
+        },
+        {
+          "slug": "vla-rl-roadmap",
+          "title": "VLA + RL 学习路线 · 已核验论文"
+        },
+        {
+          "slug": "real-robot-rl-roadmap",
+          "title": "真机强化学习 · 零基础求职路线"
+        },
+        {
+          "slug": "embodied-icl-roadmap",
+          "title": "具身智能上下文学习 · Embodied ICL 专题路线"
+        },
+        {
+          "slug": "pi-series-training-guide",
+          "title": "π₀ 系列训练指南：预训练、后训练与 Human-in-the-Loop"
+        }
+      ]
+    },
+    {
+      "id": "policy",
+      "title": "动作策略 · VLA",
+      "note": "按主要学习用途归档，不是互斥分类。π₀.₇ 等同时连接预测与规划；Diffusion Policy 不必以语言为条件。",
+      "papers": [
+        {
+          "slug": "rt1",
+          "title": "RT-1 · Robotics Transformer 精读"
+        },
+        {
+          "slug": "rt2",
+          "title": "RT-2 · Vision-Language-Action Models Transfer Web Knowledge to Robotic Control"
+        },
+        {
+          "slug": "rt-2",
+          "title": "RT-2"
+        },
+        {
+          "slug": "openvla",
+          "title": "OpenVLA · An Open-Source Vision-Language-Action Model"
+        },
+        {
+          "slug": "pi0-vla-flow-model",
+          "title": "π₀ · A Vision-Language-Action Flow Model for General Robot Control"
+        },
+        {
+          "slug": "pi05-open-world",
+          "title": "π₀.₅ · A Vision-Language-Action Model with Open-World Generalization"
+        },
+        {
+          "slug": "pi07-steerable-generalist",
+          "title": "π₀.₇ · A Steerable Generalist Robotic Foundation Model"
+        },
+        {
+          "slug": "diffusion-policy",
+          "title": "Diffusion Policy · Visuomotor Policy Learning via Action Diffusion"
+        },
+        {
+          "slug": "bagelvla",
+          "title": "BagelVLA · 交织式视觉-语言-动作生成的长程操作"
+        }
+      ]
+    },
+    {
+      "id": "wm",
+      "title": "世界预测 · World Model",
+      "note": "学习状态、表征或观测怎样变化；是否接受动作、是否生成像素，要看具体模型。",
+      "papers": [
+        {
+          "slug": "dreamer-v1",
+          "title": "Dreamer · Dream to Control: Learning Behaviors by Latent Imagination"
+        },
+        {
+          "slug": "vjepa",
+          "title": "V-JEPA · 视频表征空间预测"
+        },
+        {
+          "slug": "vjepa2",
+          "title": "V-JEPA 2 · 理解、预测与规划"
+        },
+        {
+          "slug": "vjepa21",
+          "title": "V-JEPA 2.1 · Dense Video Features"
+        },
+        {
+          "slug": "leworldmodel",
+          "title": "LeWorldModel · 稳定端到端 JEPA"
+        },
+        {
+          "slug": "cosmos-predict2",
+          "title": "Cosmos-Predict2.5 · NVIDIA 视频世界模型基座"
+        },
+        {
+          "slug": "cosmos3",
+          "title": "Cosmos 3 · 全模态世界模型（Omnimodal MoT）"
+        },
+        {
+          "slug": "dreamdojo",
+          "title": "DreamDojo · 通用机器人世界模型（大规模人类视频）"
+        },
+        {
+          "slug": "genie",
+          "title": "Genie · Generative Interactive Environments 精读"
+        }
+      ]
+    },
+    {
+      "id": "wam",
+      "title": "预测与动作的结合 · WAM 及相邻路线",
+      "note": "同时覆盖级联、联合与预测表征辅助策略。并非每篇都自称 WAM，也不是每篇推理时都生成未来视频。",
+      "papers": [
+        {
+          "slug": "unipi",
+          "title": "UniPi · Text-Guided Video Policy 精读"
+        },
+        {
+          "slug": "avdc",
+          "title": "AVDC · Actionless Video Dense Correspondence 精读"
+        },
+        {
+          "slug": "vidar",
+          "title": "Vidar · Embodied Video Diffusion 精读"
+        },
+        {
+          "slug": "vpp",
+          "title": "VPP · Predictive Visual Representations 精读"
+        },
+        {
+          "slug": "gr-1",
+          "title": "GR-1 · 生成式机器人预训练精读"
+        },
+        {
+          "slug": "gr-2",
+          "title": "GR-2 · Web-scale VLA 精读"
+        },
+        {
+          "slug": "worldvla",
+          "title": "WorldVLA · 自回归动作世界模型精读"
+        },
+        {
+          "slug": "cot-vla",
+          "title": "CoT-VLA · Visual Chain-of-Thought 精读"
+        },
+        {
+          "slug": "vla-jepa",
+          "title": "VLA-JEPA · Latent World Model 精读"
+        },
+        {
+          "slug": "pad",
+          "title": "PAD · Joint Denoising WAM 精读"
+        },
+        {
+          "slug": "uwm",
+          "title": "UWM · Coupled Video-Action Diffusion 精读"
+        },
+        {
+          "slug": "uva",
+          "title": "UVA · Unified Video Action Model 精读"
+        },
+        {
+          "slug": "dreamzero",
+          "title": "DreamZero · Zero-shot WAM 精读"
+        },
+        {
+          "slug": "lingbot-va",
+          "title": "LingBot-VA · Causal World Modeling 精读"
+        },
+        {
+          "slug": "dit4dit",
+          "title": "DiT4DiT · 联合建模视频动力学与动作生成"
+        },
+        {
+          "slug": "motionwam",
+          "title": "MotionWAM · 实时人形机器人Loco-Manipulation世界-动作模型"
+        },
+        {
+          "slug": "tau0-wm",
+          "title": "τ₀-WM · 统一视频-动作世界模型用于机器人操作"
+        },
+        {
+          "slug": "being-m07",
+          "title": "Being-M0.7 · 人形机器人的隐空间世界-动作模型"
+        },
+        {
+          "slug": "villa-x",
+          "title": "villa-X · Latent Action 与物理 grounding 精读"
+        },
+        {
+          "slug": "motus",
+          "title": "Motus · Unified Latent Action World Model 精读"
+        },
+        {
+          "slug": "flare",
+          "title": "FLARE · Implicit World Modeling 精读"
+        },
+        {
+          "slug": "fast-wam",
+          "title": "Fast-WAM · 世界动作模型需要测试时未来想象吗？"
+        },
+        {
+          "slug": "flash-wam",
+          "title": "Flash-WAM · 为什么视频与动作不能共用一种蒸馏函数"
+        },
+        {
+          "slug": "efficient-wam",
+          "title": "Efficient-WAM · 低成本未来想象为何仍能控制"
+        },
+        {
+          "slug": "c3ache",
+          "title": "C³ache · Cross-Chunk Cache 精读"
+        },
+        {
+          "slug": "himem-wam",
+          "title": "HiMem-WAM · 层次记忆精读"
+        },
+        {
+          "slug": "omnivta",
+          "title": "OmniVTA · 视触觉世界模型精读"
+        },
+        {
+          "slug": "fawam",
+          "title": "FAWAM · Force-Aware WAM 精读"
+        }
+      ]
+    },
+    {
+      "id": "learning",
+      "title": "学习、适应与策略改进",
+      "note": "BC/SFT、DAgger、RL、ICL 和测试时训练属于不同机制；QGF 等是推理引导，不等于部署时更新策略权重。",
+      "papers": [
+        {
+          "slug": "iql",
+          "title": "IQL"
+        },
+        {
+          "slug": "awac",
+          "title": "AWAC"
+        },
+        {
+          "slug": "hil-serl",
+          "title": "HIL-SERL"
+        },
+        {
+          "slug": "pi06-recap-rl",
+          "title": "π*₀.₆ · A VLA That Learns From Experience (RECAP)"
+        },
+        {
+          "slug": "rl-vla-generalization",
+          "title": "RL → VLA 泛化"
+        },
+        {
+          "slug": "expo-ft",
+          "title": "EXPO-FT"
+        },
+        {
+          "slug": "rl-token",
+          "title": "RL Token"
+        },
+        {
+          "slug": "bora",
+          "title": "BORA"
+        },
+        {
+          "slug": "rankq",
+          "title": "RankQ"
+        },
+        {
+          "slug": "dygro-vla",
+          "title": "DyGRO-VLA"
+        },
+        {
+          "slug": "learning-while-deploying",
+          "title": "LWD"
+        },
+        {
+          "slug": "rl-vla3",
+          "title": "RL-VLA³"
+        },
+        {
+          "slug": "chi0",
+          "title": "χ₀"
+        },
+        {
+          "slug": "arfm",
+          "title": "ARFM"
+        },
+        {
+          "slug": "co-rft",
+          "title": "CO-RFT"
+        },
+        {
+          "slug": "flowpro",
+          "title": "FlowPRO"
+        },
+        {
+          "slug": "dppo",
+          "title": "DPPO"
+        },
+        {
+          "slug": "dsrl-latent-policy-rl",
+          "title": "DSRL"
+        },
+        {
+          "slug": "reinflow",
+          "title": "ReinFlow"
+        },
+        {
+          "slug": "sac-flow",
+          "title": "SAC Flow"
+        },
+        {
+          "slug": "pi-rl",
+          "title": "πRL"
+        },
+        {
+          "slug": "sa-vla",
+          "title": "SA-VLA"
+        },
+        {
+          "slug": "qgf",
+          "title": "QGF"
+        },
+        {
+          "slug": "self-improving-vla",
+          "title": "PLD Self-Improving VLA"
+        },
+        {
+          "slug": "stare-vla",
+          "title": "STARE-VLA"
+        },
+        {
+          "slug": "rise-compositional-world-model",
+          "title": "RISE"
+        },
+        {
+          "slug": "wam-ttt",
+          "title": "WAM-TTT · 测试时看人类演示，把技能写进快权重"
+        }
+      ]
+    },
+    {
+      "id": "foundation",
+      "title": "表征与生成模型基础",
+      "note": "共享工具箱：可用于世界预测，也可用于动作生成。I-JEPA 是图像表征方法，不自动等于动作条件动力学模型。",
+      "papers": [
+        {
+          "slug": "vlm-collection",
+          "title": "VLM 架构合集 · 按组件拆解"
+        },
+        {
+          "slug": "ijepa-self-supervised",
+          "title": "I-JEPA · Self-Supervised Learning from Images with a Joint-Embedding Predictive Architecture"
+        },
+        {
+          "slug": "dit",
+          "title": "DiT · Scalable Diffusion Models with Transformers"
+        },
+        {
+          "slug": "consistency-models",
+          "title": "Consistency Models · Song et al. 2023"
+        },
+        {
+          "slug": "generation/ddpm",
+          "title": "DDPM：扩散模型的训练地基"
+        },
+        {
+          "slug": "generation/ddim",
+          "title": "DDIM：同一训练，不同采样轨迹"
+        },
+        {
+          "slug": "generation/classifier-free-guidance",
+          "title": "Classifier-Free Guidance：无分类器条件引导"
+        },
+        {
+          "slug": "generation/vae",
+          "title": "VAE · Auto-Encoding Variational Bayes 精读"
+        },
+        {
+          "slug": "generation/latent-diffusion",
+          "title": "Latent Diffusion Models"
+        },
+        {
+          "slug": "generation/flow-matching",
+          "title": "Flow Matching for Generative Modeling"
+        },
+        {
+          "slug": "generation/sora-world-simulators",
+          "title": "Sora · Video Generation Models as World Simulators"
+        },
+        {
+          "slug": "generation/cogvideox",
+          "title": "CogVideoX"
+        },
+        {
+          "slug": "generation/open-sora",
+          "title": "Open-Sora"
+        },
+        {
+          "slug": "generation/wan",
+          "title": "Wan"
+        }
+      ]
+    },
+    {
+      "id": "data",
+      "title": "数据、表征对齐与实现",
+      "note": "数据管线、质量检查和 latent action 预训练为多种模型服务，不是某一个模型的专属子类。",
+      "papers": [
+        {
+          "slug": "pi0-data-pipeline",
+          "title": "π₀ 数据 Pipeline · Transform 设计"
+        },
+        {
+          "slug": "pi0-code-reading",
+          "title": "π₀ / π₀.5 代码阅读笔记"
+        },
+        {
+          "slug": "datasets-analysis",
+          "title": "MotionWAM 数据集分析"
+        },
+        {
+          "slug": "qwen-robotmanip",
+          "title": "Qwen-RobotManip · 从异构数据到 G1 / 多本体训练"
+        },
+        {
+          "slug": "wb-quality-vs-qwen",
+          "title": "WB-WAM 数据质检 · 与 Qwen-RobotManip 的逐步对照"
+        },
+        {
+          "slug": "ego2robot",
+          "title": "Ego2Robot · 从第一视角人类数据合成机器人数据（重点：三级质检）"
+        },
+        {
+          "slug": "lapa",
+          "title": "LAPA · Latent Action Pretraining 精读"
+        }
+      ]
+    },
+    {
+      "id": "sim",
+      "title": "场景重建、仿真与迁移",
+      "note": "GS 是表示／渲染技术；可交互仿真还需要碰撞、动力学、控制和任务定义。",
+      "papers": [
+        {
+          "slug": "4d-gaussian-splatting",
+          "title": "4D Gaussian Splatting · 动态场景实时渲染"
+        },
+        {
+          "slug": "simfoundry",
+          "title": "SimFoundry · 从真实视频到可交互仿真"
+        },
+        {
+          "slug": "splatsim",
+          "title": "SplatSim · GS Sim2Real 精读"
+        },
+        {
+          "slug": "gsworld",
+          "title": "GSWorld · 闭环照片级仿真精读"
+        },
+        {
+          "slug": "gaussgym",
+          "title": "GaussGym · 像素级行走 Real-to-Sim 精读"
+        }
+      ]
+    },
+    {
+      "id": "control",
+      "title": "运动、全身控制与 Loco-Manipulation",
+      "note": "策略输出还要在具体本体上落地；此处包括学习式运动策略与全身控制系统。",
+      "papers": [
+        {
+          "slug": "sonic",
+          "title": "SONIC · 超大规模运动追踪与通用全身控制"
+        },
+        {
+          "slug": "deepwbc",
+          "title": "DeepWBC · 腿臂统一全身控制策略（VBC 前身）"
+        },
+        {
+          "slug": "vbc-loco-manipulation",
+          "title": "VBC · 腿足机器人视觉全身控制 Loco-Manipulation"
+        },
+        {
+          "slug": "humanoid-gpt",
+          "title": "Humanoid-GPT · Scaling Data and Structure for Zero-Shot Motion Tracking"
+        },
+        {
+          "slug": "psi0",
+          "title": "Ψ₀ · 通用人形 Loco-Manipulation 的开放基础模型"
+        },
+        {
+          "slug": "vlk",
+          "title": "VLK · 从重建场景的合成交互学习人形 Loco-Manipulation"
+        },
+        {
+          "slug": "humi",
+          "title": "HuMI · 为什么“跟真实状态不一致”反而更稳"
+        },
+        {
+          "slug": "openhlm",
+          "title": "OpenHLM · 全身人形 Loco-Manipulation 的经验配方"
+        }
+      ]
+    },
+    {
+      "id": "evaluation",
+      "title": "评测与证据边界",
+      "note": "视觉质量、物理一致性、动作可用性和真机闭环是不同层次，不能互相代替。",
+      "papers": [
+        {
+          "slug": "videophy",
+          "title": "VideoPhy · 物理常识评测精读"
+        },
+        {
+          "slug": "vbench-2",
+          "title": "VBench-2.0 · Intrinsic Faithfulness 精读"
+        },
+        {
+          "slug": "worldmodelbench",
+          "title": "WorldModelBench · 世界模型视频评测精读"
+        },
+        {
+          "slug": "physics-iq",
+          "title": "Physics-IQ · 真实物理续写精读"
+        },
+        {
+          "slug": "worldscore",
+          "title": "WorldScore · 世界生成统一评测精读"
+        },
+        {
+          "slug": "worldsimbench",
+          "title": "WorldSimBench · Action Plausibility 精读"
+        }
+      ]
+    },
+    {
+      "id": "theory",
+      "title": "自主智能与认知背景",
+      "note": "理论组织与认知启发，不是某个机器人系统必须运行的组件。",
+      "papers": [
+        {
+          "slug": "lecun-autonomous-intelligence",
+          "title": "LeCun · A Path Towards Autonomous Machine Intelligence"
+        },
+        {
+          "slug": "infant-cognition-timeline",
+          "title": "婴儿认知发育时间线"
+        }
+      ]
+    }
+  ],
+  "layout": {
+    "width": 1600,
+    "height": 1430
+  },
+  "scope": "Existing note pages, not a claim of completed reading or unique paper count"
+}

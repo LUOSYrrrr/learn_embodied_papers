@@ -1,0 +1,518 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>LingBot-VLA 2.0 · 论文精读与参赛指南</title>
+  <link rel="stylesheet" href="../assets/css/style.css">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16/dist/katex.min.css">
+  <script src="../assets/js/theme.js"></script>
+  <script defer src="../assets/js/interactive.js"></script>
+  <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16/dist/katex.min.js"></script>
+  <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16/dist/contrib/auto-render.min.js"></script>
+  <style>
+    .source-links { display:flex; flex-wrap:wrap; gap:8px; margin:14px 0 26px; }
+    .source-links a { font:11px var(--font-mono); color:var(--text2); text-decoration:none; padding:7px 10px; border:1px solid var(--border); border-radius:8px; }
+    .source-links a:hover { color:var(--accent); border-color:var(--accent); }
+    .priority-grid { display:grid; grid-template-columns:repeat(4,minmax(0,1fr)); gap:10px; margin:18px 0 26px; }
+    .priority-card { padding:15px; border:1px solid var(--border); border-radius:var(--radius); background:var(--bg2); }
+    .priority-card .rank { color:var(--accent); font:600 10px var(--font-mono); letter-spacing:.08em; }
+    .priority-card h4 { margin:7px 0 6px; font-size:14px; }
+    .priority-card p { margin:0; font-size:12.5px; line-height:1.65; }
+    .compact-list { margin-left:20px; }
+    .compact-list li { margin-bottom:5px; }
+    .fig-wide { margin:22px 0; }
+    .fig-wide img { width:100%; display:block; border-radius:8px; background:#fff; }
+    .metric-up { color:var(--accent); font-weight:600; }
+    .metric-down { color:var(--accent3); font-weight:600; }
+    .competition-path { counter-reset:compstep; display:grid; gap:10px; margin:18px 0 24px; }
+    .competition-path article { position:relative; padding:16px 18px 16px 60px; border:1px solid var(--border); border-radius:var(--radius); background:var(--bg2); }
+    .competition-path article::before { counter-increment:compstep; content:counter(compstep); position:absolute; left:18px; top:17px; width:25px; height:25px; border-radius:50%; display:grid; place-items:center; color:var(--bg); background:var(--accent); font:600 11px var(--font-mono); }
+    .competition-path h4 { margin:0 0 5px; font-size:14px; }
+    .competition-path p { margin:0; font-size:13px; line-height:1.7; }
+    @media(max-width:900px){.priority-grid{grid-template-columns:1fr 1fr}}
+    @media(max-width:760px){.docs-sidebar-left{display:none}.docs-content{padding-top:24px}}
+    @media(max-width:560px){.priority-grid{grid-template-columns:1fr}}
+    @media(max-width:560px){.docs-content h1{font-size:30px;line-height:1.12;margin-bottom:16px}.paper-meta{font-size:12px}.source-links{margin-bottom:18px}}
+  </style>
+</head>
+<body>
+  <nav class="nav">
+    <a class="nav-logo" href="../index.html">~/paper-notes</a>
+    <div class="nav-links">
+      <a href="../index.html">← 返回首页</a>
+      <a href="https://technology.robbyant.com/lingbot-vla-v2" target="_blank" rel="noopener">项目页</a>
+      <a href="https://github.com/Robbyant/lingbot-vla-v2" target="_blank" rel="noopener">代码</a>
+      <a href="../pdfs/vla/lingbot-vla2.pdf" target="_blank" rel="noopener">PDF</a>
+    </div>
+  </nav>
+
+  <div class="page">
+    <div class="docs-layout">
+      <aside class="docs-sidebar-left" aria-label="章节导航">
+        <div class="ds-title">LingBot-VLA 2.0</div>
+        <a class="ds-leaf-top" href="#overview">§1 两分钟总览</a>
+        <details open>
+          <summary>§2 证据先行</summary>
+          <a class="ds-leaf" href="#evaluation">2.1 仿真 / OOD / 真机</a>
+          <a class="ds-leaf" href="#evidence-strength">2.2 证据强度</a>
+        </details>
+        <details open>
+          <summary>§3 数据地基</summary>
+          <a class="ds-leaf" href="#data-pipeline">3.1 60k 小时如何得到</a>
+          <a class="ds-leaf" href="#action-space">3.2 55D 统一动作</a>
+        </details>
+        <details open>
+          <summary>§4 模型机制</summary>
+          <a class="ds-leaf" href="#architecture">4.1 全架构信号流</a>
+          <a class="ds-leaf" href="#moe">4.2 MoE 动作专家</a>
+          <a class="ds-leaf" href="#dual-query">4.3 Dual-Query</a>
+        </details>
+        <details open>
+          <summary>§5 结果与消融</summary>
+          <a class="ds-leaf" href="#gm100">5.1 GM-100</a>
+          <a class="ds-leaf" href="#ood-results">5.2 长时程 OOD</a>
+          <a class="ds-leaf" href="#ablations">5.3 参赛最值钱的消融</a>
+        </details>
+        <details open>
+          <summary>§6 挑战赛落地</summary>
+          <a class="ds-leaf" href="#competition">6.1 参赛优先级</a>
+          <a class="ds-leaf" href="#reproduction">6.2 复现路线</a>
+        </details>
+        <details>
+          <summary>§7 怀疑式审读</summary>
+          <a class="ds-leaf" href="#audit">7.1 Claim 与边界</a>
+          <a class="ds-leaf" href="#conflicts">7.2 论文 / 代码差异</a>
+        </details>
+      </aside>
+
+      <main class="docs-content">
+        <div class="docs-breadcrumb">
+          <a href="../index.html">paper-notes</a><span class="sep">/</span>
+          <a href="../index.html#vla-rl">VLA</a><span class="sep">/</span>Wu et al. · 2026
+        </div>
+
+        <h1>From Foundation to Application: Improving VLA Models in Practice</h1>
+        <p class="paper-meta">LingBot‑VLA 2.0 · Wu 等 · RobbyAnt / Ant Group · arXiv:2607.06403v1 · 2026-07-07 · PDF 20 页 · 无附录</p>
+
+        <div class="source-links" aria-label="外部来源">
+          <a href="https://arxiv.org/abs/2607.06403" target="_blank" rel="noopener">arXiv</a>
+          <a href="https://technology.robbyant.com/lingbot-vla-v2" target="_blank" rel="noopener">官方项目页</a>
+          <a href="https://github.com/Robbyant/lingbot-vla-v2/tree/be969b8fd117fb70550c5d4bf4bc328211b5b1b6" target="_blank" rel="noopener">代码快照 · 2026-09-23</a>
+          <a href="https://huggingface.co/collections/robbyant/lingbot-vla-v2" target="_blank" rel="noopener">模型权重</a>
+        </div>
+
+        <section class="core-insight" aria-labelledby="core-insight-title">
+          <div class="core-label" id="core-insight-title">一句话核心洞见</div>
+          <p>LingBot‑VLA 2.0 的关键不是单独发明一个更强动作头，而是把<strong>数据质量、跨本体动作接口、稀疏容量和“预测未来”辅助监督</strong>同时对齐到真实机器人；对参赛者而言，最先复现的应是数据 schema、动作目标与归一化，而不是改 MoE。</p>
+        </section>
+
+        <section class="eval-overview" aria-label="评测结论总览">
+          <article class="eval-card">
+            <div class="eval-card-title">仿真 benchmark · 代码证据</div>
+            <div class="eval-card-value">官方 RoboTwin 2.0 后训练配方在 50 任务上报告 <strong>Clean 93.52%</strong>、<strong>Randomized 92.80%</strong>；每任务 100 episodes。论文正文没有这组实验。</div>
+          </article>
+          <article class="eval-card">
+            <div class="eval-card-title">ID → OOD · 真机</div>
+            <div class="eval-card-value">冰箱整理成功率 <strong>60.0% → 13.3%</strong>（−46.7 pp，保留 22.2%）；灶台清洁 <strong>66.7% → 40.0%</strong>（−26.7 pp，保留 60.0%）。</div>
+          </article>
+          <article class="eval-card">
+            <div class="eval-card-title">GM-100 · 真机</div>
+            <div class="eval-card-value">AgileX 九任务平均进度 / 成功率 <strong>66.2 / 34.4</strong>；Galaxea 为 <strong>34.6 / 15.6</strong>。平均成功率仍不高，跨本体差距显著。</div>
+          </article>
+          <article class="eval-card">
+            <div class="eval-card-title">证据能支持到哪里</div>
+            <div class="eval-card-value">能支持“在给定平台和协议上优于列出的基线”；不能证明未见机器人 zero-shot、广义动态鲁棒性，或 Dual‑Query 本身带来多少控制收益。</div>
+          </article>
+        </section>
+
+        <aside class="evidence-note" data-evidence="paper">首屏真机结论来自 Table 5–6、Figure 8，PDF p.12–14；仿真结论来自官方代码仓库 README 与 RoboTwin 评测指南，固定到 commit <code>be969b8</code>。</aside>
+        <aside class="evidence-note" data-evidence="missing">公开项目页和代码中没有检索到“灵波具身挑战赛”的正式赛制、提交接口或截止日期。本页的比赛路线因此按官方 RoboTwin / 真机后训练接口给出；若你的赛题规则不同，应以赛方文档覆盖。</aside>
+
+        <h2 id="overview">§1 两分钟总览：作者真正押注了什么？</h2>
+        <div class="cn-read">
+          <div class="cn-label">阅读路径</div>
+          <p>先看评测协议，确认“跨本体、OOD、动态预测”分别被什么证据支持；再回到三条设计主线：60k 小时数据、55D 统一动作、MoE + Dual‑Query。最后把论文消融翻译成参赛优先级。</p>
+        </div>
+
+        <table class="kv-table" aria-label="论文五问">
+          <tbody>
+            <tr><td>背景</td><td>VLA 在实验台上能做多任务，但真实部署要求更多机器人形态、更多自由度、长时程移动操作与未来状态判断。</td></tr>
+            <tr><td>直接依赖</td><td>LingBot‑VLA 1.0；Qwen3‑VL 视觉语言骨干；Flow / diffusion action expert；DeepSeek‑V3 式无辅助损失路由；DINOv3、LingBot‑Depth；π₀.₅ 与 GR00T N1.7 基线。</td></tr>
+            <tr><td>具体失败场景</td><td>不同机器人 action schema 不一致；脏轨迹与视频—状态错位污染监督；只对当前帧反应，难以完成未来几步才显现后果的操作；长任务常完成前半段却卡在精确放置或释放。</td></tr>
+            <tr><td>核心 insight</td><td>实用 VLA 的瓶颈是“数据 × 本体 × 时序”的联合对齐，而不是只放大 VLM。<span style="color:var(--purple)">这是对三组设计的综合解释，属于 inference。</span></td></tr>
+            <tr><td>效果与代价</td><td>真机平均值优于基线，但绝对成功率有限；需要约 60k 小时预训练数据、外部深度 / 视频教师、6B 级模型、FSDP2 和高显存部署。</td></tr>
+            <tr><td>数据谱系</td><td>90k h 机器人池 → 50k h 过滤后机器人数据；20k h ego 池 → 10k h 过滤 / 重建后手轨迹；另用 5M 视频 clips 训练 DINO‑Video 教师。</td></tr>
+          </tbody>
+        </table>
+
+        <details class="en-quote">
+          <summary>展开原文 · 核心 claim</summary>
+          <div class="quote-body">
+            <p>“predictive dynamics modeling for improved temporal reasoning.”</p>
+            <div class="quote-cite">— Abstract, PDF p.1</div>
+          </div>
+        </details>
+
+        <div class="callout amber">
+          <div class="callout-label">先别混淆两个模型</div>
+          <p><strong>LingBot‑VLA 2.0</strong> 是本文的直接 VLA：视觉 / 语言 / 状态 → action chunk，并用未来表征作辅助监督。<strong>LingBot‑VA 2.0</strong> 是另一篇 Video‑Action 世界模型论文。本页所有数字只来自 VLA 2.0。</p>
+        </div>
+
+        <h2 id="evaluation">§2.1 评测证据：仿真、ID/OOD、真机各自说明什么？</h2>
+        <div class="cn-read">
+          <div class="cn-label">先分来源</div>
+          <p>论文只报告真机 GM‑100 和两项长时程移动操作。RoboTwin 是论文发布后的官方代码证据，不能倒写成论文结论。OOD 也不是一个统一难度：冰箱任务同时换了初始位置和物体类别，灶台任务主要只扰动初始位置。</p>
+        </div>
+
+        <div class="tab-switcher" data-tabs id="evaluation-tabs">
+          <div class="tabs" role="tablist" aria-label="评测类别">
+            <button type="button" class="tab active" data-tab="sim">仿真</button>
+            <button type="button" class="tab" data-tab="ood">ID / OOD</button>
+            <button type="button" class="tab" data-tab="real">真机</button>
+          </div>
+
+          <section class="tab-panel active" data-panel="sim">
+            <div class="eval-table-wrap">
+              <table class="eval-table">
+                <caption>RoboTwin 2.0 · 官方代码仓库后训练与闭环评测</caption>
+                <thead><tr><th>Benchmark</th><th>任务 / split</th><th>观察 / 动作</th><th>控制与试验量</th><th>方法</th><th>结果</th><th>证据</th></tr></thead>
+                <tbody>
+                  <tr>
+                    <td>RoboTwin 2.0；固定 revision <code>13c3c47</code></td>
+                    <td>50 任务；Clean 与 Randomized；训练混合两类数据</td>
+                    <td>top + 左右 wrist RGB；12D 双臂 + 2D gripper 映射进 55D；默认 chunk 50</td>
+                    <td>闭环仿真；每任务 100 episodes；seeds / 控制 Hz 未报告</td>
+                    <td>Muon；50k steps；32 GPUs；global batch 1024；FP32 release eval</td>
+                    <td><strong>93.52%</strong> Clean；<strong>92.80%</strong> Randomized</td>
+                    <td>code · README / experiment guide</td>
+                  </tr>
+                  <tr>
+                    <td>同上</td><td>同上</td><td>同上</td><td>同上</td>
+                    <td>Distributed Muon；单节点 H20</td>
+                    <td>91.56 / 91.34；4.31 s/it（Muon 5.93 s/it）</td>
+                    <td>code · README, 2026-09-22</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+            <aside class="evidence-note" data-evidence="code">一个 FP32 policy server + simulator 约需 32 GB 显存；24 GB 卡通常要 BF16，但官方明确提示 BF16 可能显著改变成功率。<code>video_fps=10</code> 是录像帧率，不应误写成控制频率。</aside>
+          </section>
+
+          <section class="tab-panel" data-panel="ood">
+            <div class="eval-table-wrap">
+              <table class="eval-table">
+                <caption>长时程真机 ID / OOD · 相同协议下可直接计算下降与保留率</caption>
+                <thead><tr><th>任务 / OOD 维度</th><th>训练 / ID</th><th>OOD 变化</th><th>指标</th><th>ID</th><th>OOD</th><th>下降</th><th>保留率</th><th>证据</th></tr></thead>
+                <tbody>
+                  <tr class="eval-comparison" data-direction="higher" data-id-value="0.771" data-ood-value="0.370">
+                    <td>冰箱整理 · 初始状态 + 对象类别</td><td>名义初始位姿；训练分布物体</td><td>基座前后左右 ±10 cm；两种水果与水瓶换为未见类别</td><td>进度分</td><td>77.1%</td><td>37.0%</td><td data-eval-absolute-drop>40.1 pp</td><td data-eval-retention>48.0%</td><td>Table 6, p.13</td>
+                  </tr>
+                  <tr class="eval-comparison" data-direction="higher" data-id-value="0.600" data-ood-value="0.133">
+                    <td>冰箱整理 · 同上</td><td>同上</td><td>同上</td><td>成功率</td><td>60.0%</td><td>13.3%</td><td data-eval-absolute-drop>46.7 pp</td><td data-eval-retention>22.2%</td><td>9/15 → 2/15</td>
+                  </tr>
+                  <tr class="eval-comparison" data-direction="higher" data-id-value="0.843" data-ood-value="0.675">
+                    <td>灶台清洁 · 初始状态</td><td>名义初始位姿；同场景物体</td><td>基座前后左右 ±10 cm；物体与场景结构保持</td><td>进度分</td><td>84.3%</td><td>67.5%</td><td data-eval-absolute-drop>16.8 pp</td><td data-eval-retention>80.1%</td><td>Table 6, p.13</td>
+                  </tr>
+                  <tr class="eval-comparison" data-direction="higher" data-id-value="0.667" data-ood-value="0.400">
+                    <td>灶台清洁 · 同上</td><td>同上</td><td>同上</td><td>成功率</td><td>66.7%</td><td>40.0%</td><td data-eval-absolute-drop>26.7 pp</td><td data-eval-retention>60.0%</td><td>10/15 → 6/15</td>
+                  </tr>
+                  <tr><td>语言改写 / 新任务组合</td><td colspan="7" data-status="missing">未报告可配对 ID / OOD 数字</td><td>missing</td></tr>
+                  <tr><td>动力学 / 载荷 / 摩擦 / 延迟</td><td colspan="7" data-status="missing">未报告</td><td>missing</td></tr>
+                  <tr><td>未见机器人 embodiment</td><td colspan="7" data-status="missing">评测平台都出现在预训练机器人列表中，不能视为未见本体 zero-shot</td><td>Table 1 + Table 6</td></tr>
+                </tbody>
+              </table>
+            </div>
+          </section>
+
+          <section class="tab-panel" data-panel="real">
+            <div class="eval-table-wrap">
+              <table class="eval-table">
+                <caption>真机任务、计数与不确定性</caption>
+                <thead><tr><th>机器人</th><th>任务 / 设置</th><th>成功数 / 总数</th><th>成功率</th><th>95% Wilson</th><th>适配</th><th>失败 / 干预</th><th>证据</th></tr></thead>
+                <tbody>
+                  <tr><td>AgileX Cobot Magic</td><td>GM‑100 九任务 generalist mixed-training 平均</td><td>试验数未报告</td><td>34.4%</td><td>无法计算</td><td>该本体单策略九任务后训练</td><td>最终精确放置 / 释放常失败；干预与安停未报告</td><td>Table 5, p.12</td></tr>
+                  <tr><td>Galaxea R1 Pro</td><td>GM‑100 九任务 generalist mixed-training 平均</td><td>试验数未报告</td><td>15.6%</td><td>无法计算</td><td>该本体单策略九任务后训练</td><td>相机、运动学、动作对齐造成显著本体差距；失败未逐 rollout 分类</td><td>Table 5, p.12</td></tr>
+                  <tr class="eval-binomial" data-successes="9" data-trials="15"><td>Astribot S1</td><td>冰箱整理 · ID</td><td>9 / 15</td><td>60.0%</td><td data-wilson-95>[35.7%, 80.2%]</td><td>后训练；非 zero-shot</td><td>完成时间、人工干预、安全停止未报告</td><td>Table 6, p.13</td></tr>
+                  <tr class="eval-binomial" data-successes="2" data-trials="15"><td>Astribot S1</td><td>冰箱整理 · OOD 对象 + 位姿</td><td>2 / 15</td><td>13.3%</td><td data-wilson-95>[3.7%, 37.9%]</td><td>测试变化无需再训练</td><td>失败类型未分类</td><td>Table 6, p.13</td></tr>
+                  <tr class="eval-binomial" data-successes="10" data-trials="15"><td>Cobot Magic‑ARX X5</td><td>灶台清洁 · ID</td><td>10 / 15</td><td>66.7%</td><td data-wilson-95>[41.7%, 84.8%]</td><td>后训练；非 zero-shot</td><td>完成时间、人工干预、安全停止未报告</td><td>Table 6, p.13</td></tr>
+                  <tr class="eval-binomial" data-successes="6" data-trials="15"><td>Cobot Magic‑ARX X5</td><td>灶台清洁 · OOD 位姿</td><td>6 / 15</td><td>40.0%</td><td data-wilson-95>[19.8%, 64.3%]</td><td>测试变化无需再训练</td><td>失败类型未分类</td><td>Table 6, p.13</td></tr>
+                </tbody>
+              </table>
+            </div>
+          </section>
+        </div>
+
+        <h2 id="evidence-strength">§2.2 证据强度：最强结论与不能外推的部分</h2>
+        <table class="kv-table" aria-label="证据强度检查">
+          <tbody>
+            <tr><td>闭环性</td><td>GM‑100、移动操作与 RoboTwin 都是闭环 rollout；Dual‑Query 的展示本身只是表征可视化。</td></tr>
+            <tr><td>试验量</td><td>移动操作明确每个 task-setting 15 trials；GM‑100 未写 trials / seeds / 方差；RoboTwin 指南写每任务 100 episodes，但未报告 seeds。</td></tr>
+            <tr><td>基线公平性</td><td>论文给出 GR00T N1.7、π₀.₅、VLA‑1.0 数字，但没有完整披露同数据量、同算力、同后训练步数；因此不能把差值全归因于单一模块。</td></tr>
+            <tr><td>OOD 真实性</td><td>未见对象类别是真 OOD；±10 cm 初始位姿是局部扰动。两者在冰箱任务中被混合，无法分解各自贡献。</td></tr>
+            <tr><td>跨本体</td><td>展示多平台能力，但测试本体都在预训练列表中；它证明“一个预训练底座可适配多本体”，不是未见本体零样本迁移。</td></tr>
+            <tr><td>仿真 → 真机</td><td>官方仓库同时给出仿真和真机流程，但不是同任务、同策略的成对 sim-to-real 实验。</td></tr>
+          </tbody>
+        </table>
+        <div class="checkpoint">
+          <p><strong>可支持的最强结论：</strong>在作者给定的后训练与评测协议下，LingBot‑VLA 2.0 在两种已参与预训练的真机平台上总体优于列出的基线，并对局部初始位姿扰动保留一定长时程能力。</p>
+          <p><strong>暂时不能支持：</strong>广义的 open-world 鲁棒性、未见 embodiment zero-shot、动态扰动恢复、以及 Dual‑Query 对最终成功率的独立因果贡献。</p>
+        </div>
+
+        <h2 id="data-pipeline">§3.1 60k 小时不是“收集量”，而是过滤后的训练量</h2>
+        <div class="cn-read">
+          <div class="cn-label">上一节留下的问题</div>
+          <p>既然性能不能只归因于架构，数据到底做了什么？机器人池从 90k h 过滤到 50k h，ego 池从 20k h 过滤到 10k h；这意味着数据清洗本身就是模型的一部分。</p>
+        </div>
+        <figure class="fig-wide">
+          <img src="../assets/figures/lingbot-vla2/fig-3.png" alt="Figure 3：LingBot-VLA 2.0 机器人与第一视角数据清洗流水线" loading="lazy" decoding="async">
+          <figcaption class="fig-cap"><span class="fig-num">Fig 3 · PDF p.4</span> 机器人数据按平滑度、画面质量和视频—状态一致性过滤；ego 数据先用 VLM 过滤，再重建世界坐标系手轨迹并做 SLAM / 运动质量检查。</figcaption>
+        </figure>
+        <div class="module-grid">
+          <div class="module-card"><div class="module-card-name">ROBOT · 90k → 50k h</div><div class="module-card-title">动作平滑 + 视觉 / 状态对齐</div><div class="module-card-desc">jerk 与速度 / 加速度 Z-score 超阈值即丢弃；静态信号占比 >95% 丢弃；URDF 回放投影由人工检查错位。</div></div>
+          <div class="module-card"><div class="module-card-name">EGO · 20k → 10k h</div><div class="module-card-title">从视频恢复可训练的手轨迹</div><div class="module-card-desc">VLM 先排除无交互与第三视角；SLAM + MANO 恢复手轨迹；有效手帧低于 20%、轨迹跳变或违背生理约束则丢弃。</div></div>
+          <div class="module-card"><div class="module-card-name">LANGUAGE</div><div class="module-card-title">自动 task / subtask 标注</div><div class="module-card-desc">Qwen3.6‑27B 把视频切成连续子任务，用 15 个操作 primitive + transit / idle / other 的闭词表描述动作，物体名保持开放词表。</div></div>
+          <div class="module-card"><div class="module-card-name">VIDEO TEACHER</div><div class="module-card-title">5M clips 训练 DINO‑Video</div><div class="module-card-desc">Internet + ego + robot clips；每样本 16 帧；因果时间注意力 + 3D-RoPE；这是额外的预训练成本。</div></div>
+        </div>
+        <aside class="evidence-note" data-evidence="inference">比赛启示：如果你的数据量远小于 60k h，最可迁移的不是规模，而是过滤规则。先画每维 action/state 的速度、加速度、jerk 和静态占比，再核对多相机时间戳与机器人状态，比直接延长训练更可能减少灾难性样本。</aside>
+
+        <h2 id="action-space">§3.2 55D 统一动作空间：共享接口不等于共享控制规律</h2>
+        <div class="cn-read">
+          <div class="cn-label">为什么现在谈 action schema</div>
+          <p>清洗解决“样本是否可信”，统一动作空间解决“不同机器人是否能进同一网络”。它把各本体映射到固定 55D 向量，缺失部位 padding；真正决定是否好学的仍是 action target、坐标系与归一化。</p>
+        </div>
+        <figure class="fig-wide">
+          <img src="../assets/figures/lingbot-vla2/fig-4.png" alt="Figure 4：不同机器人本体映射到统一动作分量" loading="lazy" decoding="async">
+          <figcaption class="fig-cap"><span class="fig-num">Fig 4 · PDF p.6</span> 统一槽位覆盖双臂 joint、EEF、gripper、手指、腰、头和移动底盘；单臂 / 双臂 / ego / humanoid 只激活各自存在的字段。</figcaption>
+        </figure>
+        <div class="eval-table-wrap">
+          <table class="eval-table">
+            <caption>55D canonical state/action vector</caption>
+            <thead><tr><th>字段</th><th>维度</th><th>表示</th><th>比赛中最容易错的地方</th></tr></thead>
+            <tbody>
+              <tr><td>arm.position</td><td>14</td><td>双臂 joint position 的最大槽位</td><td>原始 slice 次序、左右臂拼接、绝对 / 相对 target</td></tr>
+              <tr><td>end.position</td><td>14</td><td>每臂 XYZ + quaternion，共 7D × 2</td><td>四元数顺序、坐标系、相对旋转在当前代码中不支持</td></tr>
+              <tr><td>effector.position</td><td>2</td><td>双 gripper</td><td>通常不做 subtract_state</td></tr>
+              <tr><td>hand.position</td><td>12</td><td>双手关节</td><td>缺失手部必须正确 mask / pad</td></tr>
+              <tr><td>waist / head / base</td><td>4 / 2 / 3</td><td>全身与移动控制</td><td>单位、速度 / 位置语义、控制频率必须与数据配置一致</td></tr>
+              <tr><td>reserved</td><td>4</td><td>保留位</td><td>不要误把 padding 当有效监督</td></tr>
+            </tbody>
+          </table>
+        </div>
+        <aside class="evidence-note" data-evidence="code">官方自定义数据指南要求 LeRobot v2.1 / v3.0；robot config 同时定义 state/action slice、camera key 和 norm stats。字段名、维度或相机名不一致会直接抛错。真实 AgileX 示例对 arm 使用 <code>subtract_state: true</code>，对 gripper 使用 false。</aside>
+
+        <h2 id="architecture">§4.1 全架构：当前感知、未来表征和动作生成如何连接？</h2>
+        <div class="cn-read">
+          <div class="cn-label">读图目标</div>
+          <p>图 1 同时画了输入 schema、动作专家和两个教师。关键时间关系是：未来图像只在训练时提供蒸馏 target；部署时模型只从当前 / 历史输入产生 future query 和 action，不会看到真实未来。</p>
+        </div>
+        <div class="fig-interactive panel-below">
+          <div class="fig-block">
+            <div class="hotspot-wrap" data-hotspot-group="vla2-fig1">
+              <img src="../assets/figures/lingbot-vla2/fig-1.png" alt="Figure 1：LingBot-VLA 2.0 架构、MoE 动作专家与 Dual-Query Distillation" loading="lazy" decoding="async">
+              <button type="button" class="hotspot" aria-label="查看统一动作空间说明" data-id="unified" style="left:20.0%; top:14.9%;" data-title="统一动作空间" data-body="不同本体先映射到共享字段；不存在的身体部位 padding。统一的是接口，不是动力学。"></button>
+              <button type="button" class="hotspot" aria-label="查看 Current / Future Queries 说明" data-id="queries" style="left:26.9%; top:65.8%;" data-title="Current / Future Queries" data-body="当前 query 对齐当下深度与视频特征；未来 query 预测动作 chunk 末端的几何与时序表征。"></button>
+              <button type="button" class="hotspot" aria-label="查看 Action Expert 说明" data-id="action" style="left:34.9%; top:82.0%;" data-title="Action Expert" data-body="机器人状态、加噪 action 与 VLM 上下文进入连续动作专家；所有 FFN 可换为稀疏 MoE。"></button>
+              <button type="button" class="hotspot" aria-label="查看 Shared + Routed Experts 说明" data-id="moe" style="left:50.9%; top:61.8%;" data-title="Shared + Routed Experts" data-body="共享专家始终激活；路由专家按 token 选 Top-K。路由 bias 只影响选择，不改原始 mixture 权重。"></button>
+              <button type="button" class="hotspot" aria-label="查看 Dual-Query Distillation 说明" data-id="teachers" style="left:83.9%; top:53.8%;" data-title="Dual-Query Distillation" data-body="LingBot-Depth 提供几何 target，DINO-Video 提供因果时序 target；训练时使用未来帧构造教师目标。"></button>
+            </div>
+            <div class="fig-cap"><span class="fig-num">Fig 1 · PDF p.2</span> 左侧是 VLM + action expert，右侧展开 query 到教师 target 的对齐头。</div>
+          </div>
+          <div class="hotspot-panel" aria-live="polite"></div>
+        </div>
+        <div class="step-walker" data-hotspot-group="vla2-fig1" aria-label="LingBot-VLA 2.0 信号流">
+          <div class="sw-header"><div class="sw-title">跟着一条训练样本走</div><div class="sw-controls"><button type="button" class="sw-btn prev" aria-label="上一步">◀</button><span class="sw-counter">1 / 5</span><button type="button" class="sw-btn next" aria-label="下一步">▶</button></div></div>
+          <div class="sw-progress"><div class="sw-dot"></div><div class="sw-dot"></div><div class="sw-dot"></div><div class="sw-dot"></div><div class="sw-dot"></div></div>
+          <div class="sw-body">
+            <div class="sw-step active" data-hotspot="unified"><h4>1. 先统一接口</h4><p>原始机器人 state/action 被 robot config 切片、拼接、padding，并使用与配置绑定的统计量归一化到 55D schema。</p></div>
+            <div class="sw-step" data-hotspot="queries"><h4>2. 插入两组任务 query</h4><p>$Q_t$ 读取当前场景，$Q_{t+T}$ 在因果上下文中学习预判 action chunk 末端的场景。</p></div>
+            <div class="sw-step" data-hotspot="action"><h4>3. 动作专家回归连续 action chunk</h4><p>当前视觉、语言、机器人状态与加噪动作共同条件化生成过程；输出不是离散 action token。</p></div>
+            <div class="sw-step" data-hotspot="moe"><h4>4. 每个 action token 选择专家</h4><p>共享专家保留通用控制先验，路由专家承载本体 / 任务 / 阶段的可变模式；论文不预先规定专家语义。</p></div>
+            <div class="sw-step" data-hotspot="teachers"><h4>5. 用当前与未来 target 约束隐藏状态</h4><p>教师只提供辅助 loss。未来帧不作为部署输入；如果代码误把 future target 泄漏到 action 路径，离线指标会虚高。</p></div>
+          </div>
+        </div>
+
+        <h2 id="moe">§4.2 MoE：让容量按 token 分配，而不是让所有动作都走同一 FFN</h2>
+        <p>对第 $\ell$ 层第 $t$ 个 token 的隐藏向量 <span data-symbol="u">$u_{\ell,t}\in\mathbb{R}^{d}$</span>，输出是共享专家加上被选中的 routed experts：</p>
+        <div class="math-block">$$m_\ell(u)=E_\ell^{(s)}(u)+\lambda\sum_{j\in\mathcal{R}(u)}g_{\ell,j}(u)E_{\ell,j}^{(r)}(u)$$<span class="math-label">Eq. 2 · PDF p.8</span></div>
+        <div class="math-explain">
+          <div class="me-title">逐项拆解</div>
+          <dl>
+            <dt data-symbol="u">$u_{\ell,t}$</dt><dd>一个 action token 在进入 FFN 前的 $d$ 维表示。</dd>
+            <dt data-symbol="shared">$E^{(s)}$</dt><dd>共享专家，每个 token 都走，承载跨本体的公共控制逻辑。</dd>
+            <dt data-symbol="route">$\mathcal{R}(u)$</dt><dd>用 $\operatorname{TopK}(\sigma(u^\top e_j)+b_j)$ 选出的专家集合。</dd>
+            <dt data-symbol="weight">$g_j$</dt><dd>只用未加 bias 的原始 sigmoid affinity 归一化；平衡 bias 不直接篡改 mixture 权重。</dd>
+            <dt data-symbol="lambda">$\lambda$</dt><dd>routed output 的缩放系数。</dd>
+          </dl>
+        </div>
+        <aside class="evidence-note" data-evidence="inference"><strong>手算例，非论文实验：</strong>三位专家原始 affinity 为 [0.82, 0.62, 0.21]，平衡 bias 为 [−0.10, +0.20, 0]。Top‑2 按 [0.72, 0.82, 0.21] 选择专家 2 与 1，但 mixture 权重仍按原始值归一化，约为 0.431 与 0.569。这样负载平衡改变“谁被选”，不伪造模型对专家的置信度。</aside>
+        <figure class="fig-wide">
+          <img src="../assets/figures/lingbot-vla2/fig-7.png" alt="Figure 7：MoE 与 Dense 在匹配活跃参数下的训练损失与验证动作误差" loading="lazy" decoding="async">
+          <figcaption class="fig-cap"><span class="fig-num">Fig 7 · PDF p.9</span> 匹配 active parameters 时，MoE 的预训练 loss 和 GM‑100 validation action error 更低；论文未给对应真机成功率消融。</figcaption>
+        </figure>
+
+        <h2 id="dual-query">§4.3 Dual‑Query：把“看见当前”与“预判 chunk 末端”分成两个槽位</h2>
+        <p>令动作 chunk 长度为 $T$。<span data-symbol="qt">$Q_t$</span> 对齐当前帧，<span data-symbol="qf">$Q_{t+T}$</span> 对齐未来帧；两者分别接受深度 L1 和视频特征 MSE：</p>
+        <div class="math-block">$$\mathcal{L}_{depth}=\|P_d(Q_t)-D_t\|_1+\|P_d(Q_{t+T})-D_{t+T}\|_1$$<span class="math-label">Eq. 8 · PDF p.9</span></div>
+        <div class="math-block">$$\mathcal{L}_{video}=\|P_v(Q_t)-Z_t\|_F^2+\|P_v(Q_{t+T})-Z_{t+T}\|_F^2$$<span class="math-label">Eq. 9 · PDF p.9</span></div>
+        <div class="module-grid">
+          <div class="module-card"><div class="module-card-name">CURRENT QUERY</div><div class="module-card-title">现在的几何与运动状态</div><div class="module-card-desc">LingBot‑Depth target 强调深度几何；DINO‑Video target 带因果时间上下文，不是逐帧独立 DINO 特征。</div></div>
+          <div class="module-card"><div class="module-card-name">FUTURE QUERY</div><div class="module-card-title">动作执行后的未来表征</div><div class="module-card-desc">训练时从未来帧抽 target，推理时必须仅凭当前 / 历史 token 预测；它是 proxy，不是显式像素世界模型。</div></div>
+        </div>
+        <details class="prediction-pause"><summary>先预测：为什么 Dual‑Query 可能不能直接提升成功率？</summary><p>辅助表征可能学会深度 / 视频特征，却不一定把信息送进控制所需的 action subspace。论文只给 Figure 13 的感知可视化，没有“去掉 current / future depth / future video 后真机成功率”的独立消融，所以机制合理但控制增益尚未隔离。</p></details>
+        <div class="quiz" data-correct="b" data-explain="未来帧用于训练教师 target；部署时未来 query 必须从当前与历史上下文预测。" data-explain-wrong="如果部署输入含真实未来帧，任务就发生了未来信息泄漏，不再是可执行策略。">
+          <div class="q-label">理解检查</div><div class="q-text">Dual‑Query 在部署时怎样使用未来信息？</div>
+          <div class="q-options"><button type="button" class="q-opt" data-k="a">直接读取真实未来图像</button><button type="button" class="q-opt" data-k="b">从当前 / 历史上下文预测未来表征</button><button type="button" class="q-opt" data-k="c">先生成完整未来视频再执行</button></div><div class="q-feedback"></div>
+        </div>
+
+        <h2 id="gm100">§5.1 GM‑100：总体赢了，但很多任务仍“会做前半段、收不了尾”</h2>
+        <div class="eval-table-wrap">
+          <table class="eval-table">
+            <caption>九项 generalist 真机任务 · 进度分 / 成功率（%）</caption>
+            <thead><tr><th>任务</th><th>AgileX · π₀.₅</th><th>AgileX · VLA‑2</th><th>Galaxea · π₀.₅</th><th>Galaxea · VLA‑2</th><th>读数</th></tr></thead>
+            <tbody>
+              <tr><td>平均</td><td>59.1 / 32.2</td><td><strong>66.2 / 34.4</strong></td><td>27.4 / 8.9</td><td><strong>34.6 / 15.6</strong></td><td>总体提升，但绝对成功率不高</td></tr>
+              <tr><td>Block sorting</td><td>90.4 / 60</td><td>56.8 / 0</td><td>12.4 / 0</td><td>33.2 / 0</td><td>VLA‑2 在 AgileX 明显退化</td></tr>
+              <tr><td>Retrieve keychain</td><td>20 / 20</td><td><strong>100 / 100</strong></td><td>0 / 0</td><td>0 / 0</td><td>强依赖本体 / 视角</td></tr>
+              <tr><td>Replace paper roll</td><td>62.8 / 10</td><td>55.2 / 20</td><td>72 / 50</td><td>57.6 / 40</td><td>进度与成功不总同向</td></tr>
+              <tr><td>Sort snacks</td><td>82.4 / 30</td><td>66.2 / 10</td><td>28.1 / 0</td><td>26.1 / 0</td><td>总体平均掩盖退化任务</td></tr>
+              <tr><td>Pack eggs</td><td>72.4 / 20</td><td>44.4 / 0</td><td>6.7 / 0</td><td>4.4 / 0</td><td>精细抓放仍弱</td></tr>
+              <tr><td>Pick out toy bone</td><td>100 / 100</td><td>95 / 90</td><td>72.5 / 30</td><td><strong>87.5 / 70</strong></td><td>两平台都较强</td></tr>
+              <tr><td>Push ball into box</td><td>38 / 20</td><td>41 / 20</td><td>21 / 0</td><td>18 / 0</td><td>完成率无提升</td></tr>
+              <tr><td>Microwave bowl</td><td>0 / 0</td><td><strong>77.5 / 70</strong></td><td>7.5 / 0</td><td>65 / 30</td><td>articulated-object 增益明显</td></tr>
+              <tr><td>Tool packing</td><td>66 / 30</td><td>60 / 0</td><td>26 / 0</td><td>20 / 0</td><td>长序列末端失败</td></tr>
+            </tbody>
+          </table>
+        </div>
+        <aside class="evidence-note" data-evidence="paper">作者将提升归因于更强 VLM grounding 与 future conditioning，但 Table 5 同时存在多项退化，且未给模块级成功率消融。更稳妥的结论是“平均提升但任务异质性大”。</aside>
+
+        <h2 id="ood-results">§5.2 长时程 OOD：对象变化比 ±10 cm 位姿变化难得多</h2>
+        <figure class="fig-wide">
+          <img src="../assets/figures/lingbot-vla2/fig-8.png" alt="Figure 8：两项长时程任务在 ID 与 OOD 设置下的逐子任务完成分" loading="lazy" decoding="async">
+          <figcaption class="fig-cap"><span class="fig-num">Fig 8 · PDF p.13</span> 冰箱任务在 OOD 后从第 2–3 个对象操作开始明显坍塌；灶台任务保留更多中间步骤。浅色是 OOD，深色是 ID。</figcaption>
+        </figure>
+        <div class="checkpoint">
+          <p><strong>比赛读法：</strong>不要只报最终 success。逐 subtask 曲线能定位第一次系统性失败发生在哪一步。冰箱任务的难点不是单纯导航，而是“位姿偏移 + 新对象类别 + 多次抓放”叠加；应分别做 object-only、pose-only、combined 三套验证。</p>
+        </div>
+
+        <h2 id="ablations">§5.3 最值钱的消融：先改 target / normalization，再谈复杂架构</h2>
+        <figure class="fig-wide">
+          <img src="../assets/figures/lingbot-vla2/fig-10.png" alt="Figure 10：动作目标、动作空间、归一化和损失函数在四项真机任务上的消融" loading="lazy" decoding="async">
+          <figcaption class="fig-cap"><span class="fig-num">Fig 10 · PDF p.15</span> 四项 GM‑100 真机任务。每组最后一列是平均成功率。</figcaption>
+        </figure>
+        <div class="priority-grid" aria-label="参赛消融优先级">
+          <article class="priority-card"><div class="rank">P0 · 最大已证实增益</div><h4>绝对 joint → 相对 joint</h4><p><strong>33.7 → 55.0</strong>，+21.3 pp。相对 target 把全局姿态回归变成局部修正；原始标准差从约 0.80 降到 0.28。</p></article>
+          <article class="priority-card"><div class="rank">P0 · 数据尺度保持</div><h4>MeanStd 归一化</h4><p><strong>55.0</strong>，优于 MinMax 47.5 和 Q01–Q99 47.4。原因不是 clipping，而是后两者压缩了有效动态范围。</p></article>
+          <article class="priority-card"><div class="rank">P1 · 任务依赖</div><h4>Joint vs EEF</h4><p>平均 <strong>55.0 vs 56.0</strong> 几乎持平；Barcode 偏 joint，Ketchup 偏 EEF。不要全局拍脑袋选一种。</p></article>
+          <article class="priority-card"><div class="rank">P1 · 回归精度</div><h4>L2 vs L1</h4><p>平均 <strong>55.0 vs 46.4</strong>。多数局部修正适合 L2；接触丰富、长尾动作可能更偏 L1。</p></article>
+        </div>
+        <aside class="evidence-note" data-evidence="paper">这些消融只在四项 GM‑100 真机任务上成立。官方 RoboTwin config 反而使用 absolute action、<code>bounds_99_woclip</code> 和 <code>L1_fm</code>；这不是矛盾，而是提醒你不能跨协议照抄。</aside>
+
+        <h2 id="competition">§6.1 面向灵波具身挑战赛：先把分数损失最大的接口问题消掉</h2>
+        <div class="cn-read">
+          <div class="cn-label">适用前提</div>
+          <p>下列路线以官方开源的 RoboTwin 2.0 / LeRobot 接口为锚。正式赛题规则未提供，所以把“必须核对赛方文档”的项放在第 0 步；其余是即使规则不同也成立的实验纪律。</p>
+        </div>
+        <div class="competition-path">
+          <article><h4>锁死评测协议</h4><p>记录任务列表、成功判定、episode horizon、相机顺序、action 频率、允许的外部数据 / 权重、推理精度和 GPU 限制。不要把录像 FPS 当控制 Hz。</p></article>
+          <article><h4>先跑官方 checkpoint，不训练</h4><p>固定 RoboTwin revision <code>13c3c47</code>，先用 FP32 跑 1 个 task smoke，再跑 clean / randomized。保存每任务 100 episodes 的日志和视频，确认分数口径一致。</p></article>
+          <article><h4>验证数据映射与 norm stats</h4><p>抽 32 条样本逆变换，人工核对左右臂 slice、gripper、相机 key、单位和 padding；画 raw / normalized action 分布。错误 norm JSON 可以让训练 loss 正常、闭环直接崩。</p></article>
+          <article><h4>建立 failure taxonomy</h4><p>至少分成 grounding、reach / IK、gripper / contact、chunk timing、recovery 五类，并记录“第一次失败子任务”。优化目标是把失败从高频类别中移走，不是只盯总平均。</p></article>
+          <article><h4>只做有证据的第一轮 ablation</h4><p>若是真机 joint control，先试 relative joint + MeanStd + L2；若是 RoboTwin，先复现官方 absolute + Q99-no-clip + L1_fm，再逐项改单变量。每次保持同 seeds 与 episodes。</p></article>
+          <article><h4>最后再动 MoE / teacher loss</h4><p>确认 schema 与基线稳定后，才调 routed experts、Top-K、aux / z-loss、future depth / video loss。否则架构变化会掩盖数据管线 bug。</p></article>
+        </div>
+
+        <div class="callout blue">
+          <div class="callout-label">一周冲刺顺序</div>
+          <p><strong>D1</strong> 环境 + 官方权重 smoke；<strong>D2</strong> 完整基线与失败分桶；<strong>D3</strong> 数据 / norm 审计；<strong>D4</strong> action target / chunk / camera ablation；<strong>D5</strong> 训练与 checkpoint 选择；<strong>D6</strong> randomized / OOD 回归；<strong>D7</strong> 固化提交镜像、日志和复现实验表。</p>
+        </div>
+
+        <h2 id="reproduction">§6.2 官方复现路线：哪些默认值会影响排行榜</h2>
+        <div class="eval-table-wrap">
+          <table class="eval-table">
+            <caption>可直接执行的官方工程接口 · commit be969b8</caption>
+            <thead><tr><th>环节</th><th>官方默认 / 证据</th><th>参赛风险</th><th>你的验收条件</th></tr></thead>
+            <tbody>
+              <tr><td>模型</td><td><code>lingbot-vla-v2-6b</code>；Qwen3‑VL‑4B‑Instruct + 6B 级 VLA 权重</td><td>模型根目录与导出的 <code>hf_ckpt</code> 路径混淆</td><td>服务器成功加载全部 safetensors，无 missing / unexpected key</td></tr>
+              <tr><td>数据</td><td>LeRobot v2.1 / v3.0；single dataset 或 <code>multi</code> 列表</td><td>config 名与数据行首列不一致</td><td>随机样本 apply → unapply 后数值 / key 可逆</td></tr>
+              <tr><td>相机</td><td><code>camera_top</code>、<code>camera_wrist_left/right</code></td><td>左右腕相机交换、时间戳不同步</td><td>三视图同一动作时刻可视化对齐</td></tr>
+              <tr><td>训练</td><td>RoboTwin: 32 GPUs、global batch 1024、50k steps、Muon、FP32 action expert</td><td>缩放 GPU 后 global batch / LR 未同步</td><td>首 1k step loss、router load、吞吐与官方量级一致</td></tr>
+              <tr><td>MoE</td><td>release post-training: 32 experts、Top‑4；sequence-wise aux 1e‑3 + z-loss 1e‑4</td><td>把论文“loss-free”误当当前 config</td><td>记录每层 expert load；无 expert collapse</td></tr>
+              <tr><td>推理</td><td>默认 chunk 50；<code>torch.compile</code>；release benchmark 用 FP32</td><td>BF16 分数可能不同；首请求 compile warmup</td><td>正式计时前 warmup；FP32 / BF16 分开报</td></tr>
+              <tr><td>真机延迟</td><td>4090D、10 denoising steps 约 130 ms / call</td><td>call latency ≠ 控制频率；chunk 执行策略决定闭环时延</td><td>同时记录模型延迟、action horizon、replan 周期、端到端 Hz</td></tr>
+            </tbody>
+          </table>
+        </div>
+        <p>官方入口：</p>
+        <ul class="compact-list">
+          <li><a href="https://github.com/Robbyant/lingbot-vla-v2/blob/be969b8fd117fb70550c5d4bf4bc328211b5b1b6/lingbotvla/data/vla_data/README.md" target="_blank" rel="noopener">Custom Data Guide</a>：数据集、robot config 与 norm stats。</li>
+          <li><a href="https://github.com/Robbyant/lingbot-vla-v2/blob/be969b8fd117fb70550c5d4bf4bc328211b5b1b6/configs/vla/Training_Config.md" target="_blank" rel="noopener">Training Config</a>：RoboTwin 与真机完整参数。</li>
+          <li><a href="https://github.com/Robbyant/lingbot-vla-v2/blob/be969b8fd117fb70550c5d4bf4bc328211b5b1b6/experiment/robotwin/README.md" target="_blank" rel="noopener">RoboTwin Evaluation Guide</a>：固定 revision、100 episodes、显存与精度说明。</li>
+          <li><a href="https://github.com/Robbyant/lingbot-vla-v2/blob/be969b8fd117fb70550c5d4bf4bc328211b5b1b6/deploy/lingbot_vla_v2_policy.py" target="_blank" rel="noopener">Deployment Server</a>：chunk cache、BF16 / FP32、compile 与 websocket 接口。</li>
+        </ul>
+
+        <h2 id="audit">§7.1 Claim → mechanism → evidence → boundary</h2>
+        <div class="eval-table-wrap">
+          <table class="eval-table">
+            <caption>不要把四条证据链混成一句“更泛化”</caption>
+            <thead><tr><th>Claim</th><th>机制</th><th>直接证据</th><th>边界</th></tr></thead>
+            <tbody>
+              <tr><td>跨任务 / 跨本体更强</td><td>60k h、20 robot configs、55D schema</td><td>两平台 GM‑100 均值；两平台长时程任务</td><td>无数据规模消融；测试本体不是未见本体</td></tr>
+              <tr><td>MoE 更高效地扩容量</td><td>shared expert + token Top‑K routed experts</td><td>匹配 active parameters 的 train loss 与 validation action error</td><td>无匹配总参数 / 数据 / 训练时长的真机成功率消融</td></tr>
+              <tr><td>预测未来改善 temporal reasoning</td><td>future depth / DINO query distillation</td><td>定性感知重建；总体模型胜过基线</td><td>没有去掉 future query 的独立控制消融</td></tr>
+              <tr><td>动作设计影响真机成功率</td><td>relative target、MeanStd、L2</td><td>四项 GM‑100 真机消融，差值明确</td><td>只覆盖四任务；RoboTwin 最优配方不同</td></tr>
+              <tr><td>OOD 更稳健</td><td>更广数据 + future-aware representation</td><td>两任务各 15 trials，优于 π₀.₅</td><td>只测对象 / 初始位姿；CI 很宽；无动力学 / 干扰 / 语言 OOD</td></tr>
+            </tbody>
+          </table>
+        </div>
+
+        <h2 id="conflicts">§7.2 论文、项目页和代码的不一致 / 未对齐项</h2>
+        <div class="module-grid">
+          <div class="module-card"><div class="module-card-name">MOE SIZE</div><div class="module-card-title">项目页 128 / Top‑8，release config 32 / Top‑4</div><div class="module-card-desc">可能分别对应预训练与后训练，但论文没有给数值，也没有正式解释这层映射。复现时以具体 checkpoint 随附 config 为准。</div></div>
+          <div class="module-card"><div class="module-card-name">LOSS-FREE ROUTING</div><div class="module-card-title">论文 loss-free，RoboTwin 默认有 aux + z-loss</div><div class="module-card-desc">README 明确说明如何切回 loss-free：移除两项损失并把 bias update speed 设为 0.00025。不要只看论文名词。</div></div>
+          <div class="module-card"><div class="module-card-name">ACTION RECIPE</div><div class="module-card-title">真机消融 ≠ 仿真默认</div><div class="module-card-desc">真机最佳是 relative + MeanStd + L2；RoboTwin release 是 absolute + Q99-no-clip + L1_fm。协议和数据分布不同。</div></div>
+          <div class="module-card"><div class="module-card-name">SIM EVIDENCE</div><div class="module-card-title">RoboTwin 数字只在代码仓库</div><div class="module-card-desc">它是 2026-07-25 之后的工程结果，不属于 arXiv v1 的 Table / Figure。页面已单独标为 code evidence。</div></div>
+        </div>
+
+        <div class="callout red">
+          <div class="callout-label">这篇论文最薄弱的地方</div>
+          <p>核心系统同时改了数据、骨干、动作空间、MoE 和辅助监督，却没有把这些变化在最终成功率上逐一隔离。论文证明了“整套系统可工作”，但没有充分回答“哪一个模块贡献多少”。挑战赛里应反过来做：锁住官方基线，单变量实验，并用 per-task / per-failure 结果决定下一步。</p>
+        </div>
+
+        <div class="callout purple">
+          <div class="callout-label">与 VLA / Embodied AI 的联系</div>
+          <p>LingBot‑VLA 2.0 代表从“单本体 action head”向“跨本体 canonical interface + 稀疏动作容量 + 表征级未来预测”过渡的一条工程路线。它不像 Video‑Action 世界模型那样显式生成未来视频，而是把世界模型的价值压缩成 future query 的监督信号，换取更直接的部署路径。</p>
+        </div>
+      </main>
+    </div>
+  </div>
+
+  <script>
+    document.addEventListener('DOMContentLoaded', function () {
+      if (window.renderMathInElement) {
+        renderMathInElement(document.body, {
+          delimiters: [
+            { left: '$$', right: '$$', display: true },
+            { left: '$', right: '$', display: false }
+          ],
+          throwOnError: false,
+          strict: false
+        });
+      }
+      var headings = document.querySelectorAll('.docs-content h2[id], .docs-content h3[id]');
+      var links = document.querySelectorAll('.docs-sidebar-left a[href^="#"]');
+      if ('IntersectionObserver' in window) {
+        var observer = new IntersectionObserver(function (entries) {
+          entries.forEach(function (entry) {
+            if (!entry.isIntersecting) return;
+            links.forEach(function (link) {
+              link.classList.toggle('active', link.getAttribute('href') === '#' + entry.target.id);
+            });
+          });
+        }, { rootMargin: '-80px 0px -70% 0px' });
+        headings.forEach(function (heading) { observer.observe(heading); });
+      }
+    });
+  </script>
+</body>
+</html>

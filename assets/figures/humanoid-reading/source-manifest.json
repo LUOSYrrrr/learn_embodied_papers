@@ -1,0 +1,115 @@
+{
+  "reviewed": "2026-10-22",
+  "scope": "Full local PDF text, references, captions and embedded appendices read. External supplementary videos not audited. No claim of latest-version coverage.",
+  "sources": {
+    "gmr": {
+      "path": "pdfs/loco-manipulation/gmr.pdf",
+      "arxiv": "2510.02252v1",
+      "pages": 9,
+      "date": "2025-10-02",
+      "sha256": "cc910a8606c2de1d87c5f34a9e1753165f3cdbefe2b1d61f1bf608dbd419f0a5"
+    },
+    "sonic": {
+      "path": "pdfs/sonic.pdf",
+      "arxiv": "2511.07820v3",
+      "pages": 37,
+      "date": "2026-05-21",
+      "sha256": "772a2b296d0c2b640950deafd658001b51058bc4b129ef56ce531504b8adc1e5"
+    },
+    "egohumanoid-v2": {
+      "path": "pdfs/loco-manipulation/egohumanoid-v2.pdf",
+      "arxiv": "2609.37181v1",
+      "pages": 24,
+      "date": "2026-09-29",
+      "sha256": "d6b9bfb64b6d4444b83bbcd11d9e29d3a82f0eff991f347ea80bf8b412553d8e"
+    },
+    "koda": {
+      "path": "pdfs/loco-manipulation/koda.pdf",
+      "arxiv": "2610.21152v1",
+      "pages": 33,
+      "date": "2026-10-15",
+      "sha256": "219382f932f47da007b4f59ca3b8404941075d33feec4862691b071252bb128b"
+    },
+    "fast-wam": {
+      "path": "pdfs/world-model/fastwam.pdf",
+      "arxiv": "2603.16666v2",
+      "pages": 13,
+      "date": "2026-03-23",
+      "sha256": "4eea24883dcc4d8a5c0f760870f501baabb07db4eb65e5fd6c3b4b500601be8d"
+    },
+    "vpp2": {
+      "path": "pdfs/world-model/vpp2.pdf",
+      "arxiv": "2610.10270v2",
+      "pages": 21,
+      "date": "2026-10-08",
+      "sha256": "e2caee1cc9d2187901e29910b11e654183646a218d93b0f9420ebef36e817db3"
+    }
+  },
+  "crops": [
+    {
+      "slug": "gmr",
+      "page": 4,
+      "file": "fig-2.png",
+      "dpi": 400,
+      "previewDpi": 85,
+      "previewCrop": [
+        368,
+        276,
+        293,
+        188
+      ]
+    },
+    {
+      "slug": "gmr",
+      "page": 7,
+      "file": "fig-3.png",
+      "dpi": 300,
+      "previewDpi": 85,
+      "previewCrop": [
+        61,
+        73,
+        293,
+        410
+      ]
+    },
+    {
+      "slug": "gmr",
+      "page": 7,
+      "file": "fig-4.png",
+      "dpi": 400,
+      "previewDpi": 85,
+      "previewCrop": [
+        61,
+        492,
+        294,
+        211
+      ]
+    },
+    {
+      "slug": "egohumanoid-v2",
+      "page": 5,
+      "file": "fig-3.png",
+      "dpi": 300,
+      "previewDpi": 85,
+      "previewCrop": [
+        125,
+        96,
+        474,
+        315
+      ]
+    },
+    {
+      "slug": "sonic",
+      "page": 14,
+      "file": "fig-7.png",
+      "dpi": 300,
+      "previewDpi": 85,
+      "previewCrop": [
+        70,
+        95,
+        562,
+        272
+      ]
+    }
+  ]
+}

@@ -1,0 +1,91 @@
+{
+  "date": "2026-10-23",
+  "file": "papers/egohumanoid-v2.html",
+  "missingFiles": [],
+  "layouts": [
+    {
+      "width": 375,
+      "theme": "light",
+      "scrollWidth": 375
+    },
+    {
+      "width": 375,
+      "theme": "dark",
+      "scrollWidth": 375
+    },
+    {
+      "width": 768,
+      "theme": "light",
+      "scrollWidth": 768
+    },
+    {
+      "width": 768,
+      "theme": "dark",
+      "scrollWidth": 768
+    },
+    {
+      "width": 1440,
+      "theme": "light",
+      "scrollWidth": 1440
+    },
+    {
+      "width": 1440,
+      "theme": "dark",
+      "scrollWidth": 1440
+    }
+  ],
+  "keyboardAnchors": [
+    {
+      "figure": 1,
+      "hash": "#figure-1"
+    },
+    {
+      "figure": 2,
+      "hash": "#figure-2"
+    },
+    {
+      "figure": 3,
+      "hash": "#figure-3"
+    },
+    {
+      "figure": 4,
+      "hash": "#figure-4"
+    },
+    {
+      "figure": 5,
+      "hash": "#figure-5"
+    },
+    {
+      "figure": 6,
+      "hash": "#figure-6"
+    },
+    {
+      "figure": 7,
+      "hash": "#figure-7"
+    },
+    {
+      "figure": 8,
+      "hash": "#figure-8"
+    },
+    {
+      "figure": 9,
+      "hash": "#figure-9"
+    },
+    {
+      "figure": 10,
+      "hash": "#figure-10"
+    }
+  ],
+  "media": {
+    "figures": 10,
+    "brokenImages": [],
+    "duplicateIds": [],
+    "missingAnchors": []
+  },
+  "keyboardTheme": true,
+  "print": {
+    "expanded": true,
+    "restored": true
+  },
+  "passed": true
+}

@@ -5,7 +5,7 @@
 <meta charset="utf-8"/>
 <meta content="width=device-width, initial-scale=1.0" name="viewport"/>
 <title>Fast-WAM · 世界动作模型需要测试时未来想象吗？</title>
-<link href="../assets/css/style.css" rel="stylesheet"/>
+<link href="../assets/css/style.css" rel="stylesheet"/><link href="../assets/css/humanoid-reading.css" rel="stylesheet"/>
 <script src="../assets/js/theme.js"></script>
 <script defer="" src="../assets/js/interactive.js"></script>
 <link href="https://cdn.jsdelivr.net/npm/katex@0.16/dist/katex.min.css" rel="stylesheet"/>
@@ -242,9 +242,9 @@
 <div class="hotspot" data-body="Joint 范式：视频 token（蓝色, GT latent frames）和动作 token（黄色, GT actions）在同一个 Transformer 里联合去噪。未来视频和动作共享 attention，视频动态直接影响动作生成过程。代表作：Cosmos Policy、LingBot-VA 等。" data-id="joint-train" data-title="(A) 联合 · 训练阶段" style="left:16%; top:30%;"></div>
 <div class="hotspot" data-body="Causal/IDM 范式：先单独训练视频 DiT 预测未来帧，再用一个逆动力学模型（Inverse Dynamics Model）把预测的未来帧转化为动作。两阶段解耦：视频是中间媒介，动作条件化于视频。代表作：UniSim、SWIM 等。" data-id="idm-train" data-title="(B) IDM · 训练阶段" style="left:50%; top:30%;"></div>
 <div class="hotspot" data-body="Fast-WAM 训练：和 Joint/IDM 一样，同时训练视频 DiT（处理未来帧 f₁..fₙ）和动作 DiT（处理动作 a₁..aₙ）。关键约束：动作 token 不能直接 attend 到未来视频 token（用结构化掩码阻止信息流），避免动作生成泄漏未来视频信息。" data-id="fastwam-train" data-title="(C) Fast-WAM (Ours) · 训练阶段" style="left:83%; top:30%;"></div>
-<div class="hotspot" data-body="&lt;div class='hp-body'&gt;&lt;p&gt;&lt;strong&gt;这处在图里表示什么：&lt;/strong&gt;推理时：联合去噪未来视频 token 和动作 token，需要完整运行多步去噪。动作和视频同时从噪声中还原。推理延迟较高（需要完整视频去噪步骤）。 它对应逐步导览中的“变体 A：Fast-WAM-Joint（推理最重）”。&lt;/p&gt;&lt;p&gt;&lt;strong&gt;输入与实际操作：&lt;/strong&gt; 随机噪声，以及当前画面、语言指令或机器人状态等条件信息。噪声只是生成过程的起点，不是机器人真的要执行的动作。 训练和推理都做联合去噪。视频和动作 token 共享 attention，动作生成全程&quot;看到&quot;视频去噪过程。推理需要多步联合去噪，延迟约 190ms（因为是并行去噪，比 IDM 快）。&lt;/p&gt;&lt;p&gt;&lt;strong&gt;输出、前后关系与必要性：&lt;/strong&gt; 一组比原始输入更紧凑的内部特征；它不是最终动作或画面。这个结果会交给下一步“变体 B：Fast-WAM-IDM（推理最慢）”继续处理。 图中下一环节是“变体 B：Fast-WAM-IDM（推理最慢）”。 它把未经处理的原始问题变成后续模块可以计算的输入，是整条链路的起点。&lt;/p&gt;&lt;/div&gt;" data-id="joint-infer" data-title="(A) 联合 · 推理阶段" style="left:16%; top:74%;"></div>
-<div class="hotspot" data-body="&lt;div class='hp-body'&gt;&lt;p&gt;&lt;strong&gt;这处在图里表示什么：&lt;/strong&gt;推理时两步走：① 先完整跑视频 DiT，多步去噪生成未来帧（用 KV Cache 加速但仍需迭代去噪）；② 再把生成的视频帧送入动作 DiT 去噪预测动作。延迟最高：810ms（参见 Fig 4）。 它对应逐步导览中的“变体 B：Fast-WAM-IDM（推理最慢）”。&lt;/p&gt;&lt;p&gt;&lt;strong&gt;输入与实际操作：&lt;/strong&gt; 来自上一步“变体 A：Fast-WAM-Joint（推理最重）”的产物：一组比原始输入更紧凑的内部特征；它不是最终动作或画面。本步骤还会按论文设置读取当前条件、时间步或训练信号。 两段串行：先跑 5B 视频 DiT 完整去噪生成未来帧（多步，最慢部分），再把生成帧送入动作 DiT。串行导致延迟叠加，810ms。但这也是最接近&quot;视频作为显式推理媒介&quot;这一理念的变体。&lt;/p&gt;&lt;p&gt;&lt;strong&gt;输出、前后关系与必要性：&lt;/strong&gt; 一个或多个候选未来、动作或轨迹，以及必要的中间状态。这个结果会交给下一步“变体 C：Fast-WAM（推理最快）”继续处理。 图中下一环节是“变体 C：Fast-WAM（推理最快）”。 它承担上下两步之间的接口；缺少它，前一步产生的信息无法以正确格式或正确含义传到下一步。&lt;/p&gt;&lt;/div&gt;" data-id="idm-infer" data-title="(B) IDM · 推理阶段（最慢）" style="left:50%; top:74%;"></div>
-<div class="hotspot" data-body="&lt;div class='hp-body'&gt;&lt;p&gt;&lt;strong&gt;这处在图里表示什么：&lt;/strong&gt;推理时：完全跳过未来视频生成！只保留第一帧干净 latent token，做一次前向 pass 提取世界表征，直接去噪动作。无需生成 f₁..fₙ，无需视频去噪迭代，延迟仅 190ms。 它对应逐步导览中的“变体 C：Fast-WAM（推理最快）”。&lt;/p&gt;&lt;p&gt;&lt;strong&gt;输入与实际操作：&lt;/strong&gt; 来自上一步“变体 B：Fast-WAM-IDM（推理最慢）”的产物：一个或多个候选未来、动作或轨迹，以及必要的中间状态。本步骤还会按论文设置读取当前条件、时间步或训练信号。 推理时只用第一帧干净 latent 做一次单向前向，提取世界表征 z(o,l)，再跑 10 步动作去噪。没有视频生成，没有多步视频去噪，190ms。训练时保留视频 co-training 损失，让 video DiT 学到好表征但推理时不用它生成未来。&lt;/p&gt;&lt;p&gt;&lt;strong&gt;输出、前后关系与必要性：&lt;/strong&gt; 一组比原始输入更紧凑的内部特征；它不是最终动作或画面。这个结果会交给下一步“对照组：w.o. video co-train（训练缺失）”继续处理。 图中下一环节是“对照组：w.o. video co-train（训练缺失）”。 它承担上下两步之间的接口；缺少它，前一步产生的信息无法以正确格式或正确含义传到下一步。&lt;/p&gt;&lt;/div&gt;" data-id="fastwam-infer" data-title="(C) Fast-WAM · 推理阶段（最快）" style="left:83%; top:74%;"></div>
+<div class="hotspot" data-body="&lt;div class='hp-body'&gt;&lt;p&gt;&lt;strong&gt;这处在图里表示什么：&lt;/strong&gt;推理时：联合去噪未来视频 token 和动作 token，需要完整运行多步去噪。动作和视频同时从噪声中还原。推理延迟较高（需要完整视频去噪步骤）。 它对应逐步导览中的“变体 A：Fast-WAM-Joint（联合去噪）”。&lt;/p&gt;&lt;p&gt;&lt;strong&gt;输入与实际操作：&lt;/strong&gt; 随机噪声，以及当前画面、语言指令或机器人状态等条件信息。噪声只是生成过程的起点，不是机器人真的要执行的动作。 训练和推理都做联合去噪。视频和动作 token 共享 attention，动作生成全程&quot;看到&quot;视频去噪过程。推理需要多步联合去噪，延迟约 580ms（联合去噪，比 IDM 的 810ms 快）。&lt;/p&gt;&lt;p&gt;&lt;strong&gt;输出、前后关系与必要性：&lt;/strong&gt; 一组比原始输入更紧凑的内部特征；它不是最终动作或画面。该变体直接输出动作；IDM 是另一套对照方法，不是它的下游。 图中 B、C 是并列对照，不是执行顺序。 它把未经处理的原始问题变成后续模块可以计算的输入，是整条链路的起点。&lt;/p&gt;&lt;/div&gt;" data-id="joint-infer" data-title="(A) 联合 · 推理阶段" style="left:16%; top:74%;"></div>
+<div class="hotspot" data-body="&lt;div class='hp-body'&gt;&lt;p&gt;&lt;strong&gt;这处在图里表示什么：&lt;/strong&gt;推理时两步走：① 先完整跑视频 DiT，多步去噪生成未来帧（用 KV Cache 加速但仍需迭代去噪）；② 再把生成的视频帧送入动作 DiT 去噪预测动作。延迟最高：810ms（参见 Fig 4）。 它对应逐步导览中的“变体 B：Fast-WAM-IDM（推理最慢）”。&lt;/p&gt;&lt;p&gt;&lt;strong&gt;输入与实际操作：&lt;/strong&gt; 来自上一步“变体 A：Fast-WAM-Joint（联合去噪）”的产物：一组比原始输入更紧凑的内部特征；它不是最终动作或画面。本步骤还会按论文设置读取当前条件、时间步或训练信号。 两段串行：先跑 5B 视频 DiT 完整去噪生成未来帧（多步，最慢部分），再把生成帧送入动作 DiT。串行导致延迟叠加，810ms。但这也是最接近&quot;视频作为显式推理媒介&quot;这一理念的变体。&lt;/p&gt;&lt;p&gt;&lt;strong&gt;输出、前后关系与必要性：&lt;/strong&gt; 一个或多个候选未来、动作或轨迹，以及必要的中间状态。这个结果会交给下一步“变体 C：Fast-WAM（推理最快）”继续处理。 图中下一环节是“变体 C：Fast-WAM（推理最快）”。 它承担上下两步之间的接口；缺少它，前一步产生的信息无法以正确格式或正确含义传到下一步。&lt;/p&gt;&lt;/div&gt;" data-id="idm-infer" data-title="(B) IDM · 推理阶段（最慢）" style="left:50%; top:74%;"></div>
+<div class="hotspot" data-body="&lt;div class='hp-body'&gt;&lt;p&gt;&lt;strong&gt;这处在图里表示什么：&lt;/strong&gt;推理时：完全跳过未来视频生成！只保留第一帧干净 latent token，做一次前向 pass 提取世界表征，直接去噪动作。无需生成 f₁..fₙ，无需视频去噪迭代，延迟仅 190ms。 它对应逐步导览中的“变体 C：Fast-WAM（推理最快）”。&lt;/p&gt;&lt;p&gt;&lt;strong&gt;输入与实际操作：&lt;/strong&gt; 当前观测和语言条件；Fast-WAM 不接收 IDM 的输出，也不读取未来视频 token。 推理时只用第一帧干净 latent 做一次单向前向，提取世界表征 z(o,l)，再跑 10 步动作去噪。没有视频生成，没有多步视频去噪，190ms。训练时保留视频 co-training 损失，让 video DiT 学到好表征但推理时不用它生成未来。&lt;/p&gt;&lt;p&gt;&lt;strong&gt;输出、前后关系与必要性：&lt;/strong&gt; 一组比原始输入更紧凑的内部特征；它不是最终动作或画面。该变体输出动作；w.o. video co-train 是训练消融，不是下游步骤。 该对照只移除训练期视频损失。 它承担上下两步之间的接口；缺少它，前一步产生的信息无法以正确格式或正确含义传到下一步。&lt;/p&gt;&lt;/div&gt;" data-id="fastwam-infer" data-title="(C) Fast-WAM · 推理阶段（最快）" style="left:83%; top:74%;"></div>
 </div>
 <div class="fig-cap">
 <span class="fig-num">Fig 1 · p.2</span>
@@ -274,7 +274,7 @@
 <div class="module-card-name">FAST-WAM (OURS) · 变体 C</div>
 <div class="module-card-title">只保留训练时视频目标</div>
 <div class="module-card-desc">
-              训练时保留视频 co-training，<strong>推理时完全跳过视频生成</strong>，单次前向直出动作。190ms，4× 更快，是本文的核心贡献。
+              训练时保留视频 co-training，<strong>推理时完全跳过视频生成</strong>，当前帧表征只提取一次，再进行 10 步动作去噪。190ms，4× 更快，是本文的核心贡献。
             </div>
 </div>
 <div class="module-card" style="border-color: var(--accent3);">
@@ -310,16 +310,16 @@
 </div>
 <div class="sw-body">
 <div class="sw-step active" data-hotspot="joint-infer">
-<h4>变体 A：Fast-WAM-Joint（推理最重）</h4>
-<p>训练和推理都做联合去噪。视频和动作 token 共享 attention，动作生成全程"看到"视频去噪过程。推理需要多步联合去噪，延迟约 190ms（因为是并行去噪，比 IDM 快）。</p><div class="step-beginner"><div class="sb-label">给第一次接触这个领域的读者</div><p><strong>输入是什么：</strong>随机噪声，以及当前画面、语言指令或机器人状态等条件信息。噪声只是生成过程的起点，不是机器人真的要执行的动作。</p><p><strong>这一步究竟做什么：</strong>训练和推理都做联合去噪。视频和动作 token 共享 attention，动作生成全程"看到"视频去噪过程。推理需要多步联合去噪，延迟约 190ms（因为是并行去噪，比 IDM 快）。</p><p><strong>输出到哪里：</strong>一组比原始输入更紧凑的内部特征；它不是最终动作或画面。这个结果会交给下一步“变体 B：Fast-WAM-IDM（推理最慢）”继续处理。</p><p><strong>为什么不能省略：</strong>它把未经处理的原始问题变成后续模块可以计算的输入，是整条链路的起点。</p><div class="sb-terms"><strong>术语先翻译：</strong>token：模型处理信息的基本小单元；在这里通常是一小段图像、语言、动作或其压缩向量；diffusion（扩散生成）：从随机噪声出发，经过多次去噪得到结构化动作或图像；WAM（世界—动作模型）：既预测动作，也显式或隐式预测动作会把未来世界变成什么样。</div></div>
+<h4>变体 A：Fast-WAM-Joint（联合去噪）</h4>
+<p>训练和推理都做联合去噪。视频和动作 token 共享 attention，动作生成全程"看到"视频去噪过程。推理需要多步联合去噪，延迟约 580ms（联合去噪，比 IDM 的 810ms 快）。</p><div class="step-beginner"><div class="sb-label">给第一次接触这个领域的读者</div><p><strong>输入是什么：</strong>随机噪声，以及当前画面、语言指令或机器人状态等条件信息。噪声只是生成过程的起点，不是机器人真的要执行的动作。</p><p><strong>这一步究竟做什么：</strong>训练和推理都做联合去噪。视频和动作 token 共享 attention，动作生成全程"看到"视频去噪过程。推理需要多步联合去噪，延迟约 580ms（联合去噪，比 IDM 的 810ms 快）。</p><p><strong>输出到哪里：</strong>一组比原始输入更紧凑的内部特征；它不是最终动作或画面。该变体直接输出动作；IDM 是另一套对照方法，不是它的下游。</p><p><strong>为什么不能省略：</strong>它把未经处理的原始问题变成后续模块可以计算的输入，是整条链路的起点。</p><div class="sb-terms"><strong>术语先翻译：</strong>token：模型处理信息的基本小单元；在这里通常是一小段图像、语言、动作或其压缩向量；diffusion（扩散生成）：从随机噪声出发，经过多次去噪得到结构化动作或图像；WAM（世界—动作模型）：既预测动作，也显式或隐式预测动作会把未来世界变成什么样。</div></div>
 </div>
 <div class="sw-step" data-hotspot="idm-infer">
 <h4>变体 B：Fast-WAM-IDM（推理最慢）</h4>
-<p>两段串行：先跑 5B 视频 DiT 完整去噪生成未来帧（多步，最慢部分），再把生成帧送入动作 DiT。串行导致延迟叠加，810ms。但这也是最接近"视频作为显式推理媒介"这一理念的变体。</p><div class="step-beginner"><div class="sb-label">给第一次接触这个领域的读者</div><p><strong>输入是什么：</strong>来自上一步“变体 A：Fast-WAM-Joint（推理最重）”的产物：一组比原始输入更紧凑的内部特征；它不是最终动作或画面。本步骤还会按论文设置读取当前条件、时间步或训练信号。</p><p><strong>这一步究竟做什么：</strong>两段串行：先跑 5B 视频 DiT 完整去噪生成未来帧（多步，最慢部分），再把生成帧送入动作 DiT。串行导致延迟叠加，810ms。但这也是最接近"视频作为显式推理媒介"这一理念的变体。</p><p><strong>输出到哪里：</strong>一个或多个候选未来、动作或轨迹，以及必要的中间状态。这个结果会交给下一步“变体 C：Fast-WAM（推理最快）”继续处理。</p><p><strong>为什么不能省略：</strong>它承担上下两步之间的接口；缺少它，前一步产生的信息无法以正确格式或正确含义传到下一步。</p><div class="sb-terms"><strong>术语先翻译：</strong>diffusion（扩散生成）：从随机噪声出发，经过多次去噪得到结构化动作或图像；DiT：用 Transformer 充当扩散/流模型的去噪或速度预测网络；WAM（世界—动作模型）：既预测动作，也显式或隐式预测动作会把未来世界变成什么样。</div></div>
+<p>两段串行：先跑 5B 视频 DiT 完整去噪生成未来帧（多步，最慢部分），再把生成帧送入动作 DiT。串行导致延迟叠加，810ms。但这也是最接近"视频作为显式推理媒介"这一理念的变体。</p><div class="step-beginner"><div class="sb-label">给第一次接触这个领域的读者</div><p><strong>输入是什么：</strong>来自上一步“变体 A：Fast-WAM-Joint（联合去噪）”的产物：一组比原始输入更紧凑的内部特征；它不是最终动作或画面。本步骤还会按论文设置读取当前条件、时间步或训练信号。</p><p><strong>这一步究竟做什么：</strong>两段串行：先跑 5B 视频 DiT 完整去噪生成未来帧（多步，最慢部分），再把生成帧送入动作 DiT。串行导致延迟叠加，810ms。但这也是最接近"视频作为显式推理媒介"这一理念的变体。</p><p><strong>输出到哪里：</strong>一个或多个候选未来、动作或轨迹，以及必要的中间状态。这个结果会交给下一步“变体 C：Fast-WAM（推理最快）”继续处理。</p><p><strong>为什么不能省略：</strong>它承担上下两步之间的接口；缺少它，前一步产生的信息无法以正确格式或正确含义传到下一步。</p><div class="sb-terms"><strong>术语先翻译：</strong>diffusion（扩散生成）：从随机噪声出发，经过多次去噪得到结构化动作或图像；DiT：用 Transformer 充当扩散/流模型的去噪或速度预测网络；WAM（世界—动作模型）：既预测动作，也显式或隐式预测动作会把未来世界变成什么样。</div></div>
 </div>
 <div class="sw-step" data-hotspot="fastwam-infer">
 <h4>变体 C：Fast-WAM（推理最快）</h4>
-<p>推理时只用第一帧干净 latent 做一次单向前向，提取世界表征 z(o,l)，再跑 10 步动作去噪。没有视频生成，没有多步视频去噪，190ms。训练时保留视频 co-training 损失，让 video DiT 学到好表征但推理时不用它生成未来。</p><div class="step-beginner"><div class="sb-label">给第一次接触这个领域的读者</div><p><strong>输入是什么：</strong>来自上一步“变体 B：Fast-WAM-IDM（推理最慢）”的产物：一个或多个候选未来、动作或轨迹，以及必要的中间状态。本步骤还会按论文设置读取当前条件、时间步或训练信号。</p><p><strong>这一步究竟做什么：</strong>推理时只用第一帧干净 latent 做一次单向前向，提取世界表征 z(o,l)，再跑 10 步动作去噪。没有视频生成，没有多步视频去噪，190ms。训练时保留视频 co-training 损失，让 video DiT 学到好表征但推理时不用它生成未来。</p><p><strong>输出到哪里：</strong>一组比原始输入更紧凑的内部特征；它不是最终动作或画面。这个结果会交给下一步“对照组：w.o. video co-train（训练缺失）”继续处理。</p><p><strong>为什么不能省略：</strong>它承担上下两步之间的接口；缺少它，前一步产生的信息无法以正确格式或正确含义传到下一步。</p><div class="sb-terms"><strong>术语先翻译：</strong>latent（隐表示）：模型内部压缩后的数字特征，人看不见，但比原始图像或动作更便于计算；diffusion（扩散生成）：从随机噪声出发，经过多次去噪得到结构化动作或图像；DiT：用 Transformer 充当扩散/流模型的去噪或速度预测网络。</div></div>
+<p>推理时只用第一帧干净 latent 做一次单向前向，提取世界表征 z(o,l)，再跑 10 步动作去噪。没有视频生成，没有多步视频去噪，190ms。训练时保留视频 co-training 损失，让 video DiT 学到好表征但推理时不用它生成未来。</p><div class="step-beginner"><div class="sb-label">给第一次接触这个领域的读者</div><p><strong>输入是什么：</strong>当前观测和语言条件；Fast-WAM 不接收 IDM 的输出，也不读取未来视频 token。</p><p><strong>这一步究竟做什么：</strong>推理时只用第一帧干净 latent 做一次单向前向，提取世界表征 z(o,l)，再跑 10 步动作去噪。没有视频生成，没有多步视频去噪，190ms。训练时保留视频 co-training 损失，让 video DiT 学到好表征但推理时不用它生成未来。</p><p><strong>输出到哪里：</strong>一组比原始输入更紧凑的内部特征；它不是最终动作或画面。该变体输出动作；w.o. video co-train 是训练消融，不是下游步骤。</p><p><strong>为什么不能省略：</strong>它承担上下两步之间的接口；缺少它，前一步产生的信息无法以正确格式或正确含义传到下一步。</p><div class="sb-terms"><strong>术语先翻译：</strong>latent（隐表示）：模型内部压缩后的数字特征，人看不见，但比原始图像或动作更便于计算；diffusion（扩散生成）：从随机噪声出发，经过多次去噪得到结构化动作或图像；DiT：用 Transformer 充当扩散/流模型的去噪或速度预测网络。</div></div>
 </div>
 <div class="sw-step" data-hotspot="fastwam-train">
 <h4>对照组：w.o. video co-train（训练缺失）</h4>
@@ -494,9 +494,9 @@
 <div class="fig-block">
 <div class="hotspot-wrap" data-hotspot-group="fig4">
 <img alt="Figure 4: Success rate vs completion time and latency" src="../assets/figures/fast-wam/fig-4.png"/>
-<div class="hotspot" data-body="左图散点：Fast-WAM 在成功率和完成时间上表现良好（越左上越好）。190ms 延迟，实机成功率约 80%+，完成时间约 160s。在没有 embodied pretraining 的变体中表现最佳，且延迟最低。" data-id="fastwam-dot" data-title="Fast-WAM (Ours) · 速度+性能最佳平衡" style="left:23.4%; top:37.8%;"></div>
+<div class="hotspot" data-body="左图散点：Fast-WAM 在成功率和完成时间上表现良好（越左上越好）。190ms 延迟，实机成功率约 75%，完成时间约 150s（原图估读，非原始计数）。相较 Joint / IDM 延迟更低，但 IDM 的任务成功率更高；预训练 π₀.₅ 是这项真机实验最强对照。" data-id="fastwam-dot" data-title="Fast-WAM (Ours) · 速度+性能最佳平衡" style="left:23.4%; top:37.8%;"></div>
 <div class="hotspot" data-body="π₀.₅ 使用了大规模 embodied pretraining，成功率最高（~95%），完成时间最短（~140s），180ms 延迟。但需要昂贵的预训练，在 Fast-WAM 家族里（无 embodied PT）无法直接对比。" data-id="pi05-dot" data-title="π₀.₅ (pretrained) · 最强但最贵" style="left:15.1%; top:20.9%;"></div>
-<div class="hotspot" data-body="Fast-WAM-IDM 在实机任务上成功率最高（～88%），但延迟 810ms，比 Fast-WAM 慢 4×+。这证明推理时的视频生成对实机任务有一定帮助，但代价巨大，而且帮助有限（Fast-WAM 190ms 也能达到接近的成功率）。" data-id="idm-dot" data-title="Fast-WAM-IDM · 成功率高但延迟高" style="left:29.6%; top:27.7%;"></div>
+<div class="hotspot" data-body="Fast-WAM-IDM 在 Fast-WAM 家族中真机成功率最高（图示约 90%；预训练 π₀.₅ 仍更高），但延迟 810ms，比 Fast-WAM 慢 4×+。这证明推理时的视频生成对实机任务有一定帮助，但代价巨大，而且帮助有限（Fast-WAM 190ms 也能达到接近的成功率）。" data-id="idm-dot" data-title="Fast-WAM-IDM · 成功率高但延迟高" style="left:29.6%; top:27.7%;"></div>
 <div class="hotspot" data-body="去掉 video co-training 后实机成功率仅约 10%（右图散点在右下角），完成时间也最长。这是所有变体中最差的结果，直接证明了 video co-training 是实机泛化的关键，不是可选项。" data-id="no-video-dot" data-title="w.o. video co-train · 崩溃" style="left:45.6%; top:81.7%;"></div>
 <div class="hotspot" data-body="右图比较推理延迟：π₀.₅=180ms、Fast-WAM=190ms、w.o. video co-train=190ms（架构相同）、Fast-WAM-Joint=580ms、Fast-WAM-IDM=810ms。Fast-WAM 是 IDM 的 1/4 延迟，同时性能相当。这是 Fast-WAM 最大的实用价值。" data-id="latency-bar" data-title="延迟柱状图（右图）" style="left:82%; top:50%;"></div>
 </div>
@@ -517,7 +517,7 @@
 </div>
 </div>
 <div class="verdict-row">
-<div class="verdict-label">Fast-WAM-Joint<span class="verdict-tag fast">190ms</span></div>
+<div class="verdict-label">Fast-WAM-Joint<span class="verdict-tag fast">580ms</span></div>
 <div class="verdict-bar-wrap">
 <div class="verdict-bar" style="width:90.6%; background:var(--blue);"></div>
 <div class="verdict-val">90.6%</div>
@@ -605,6 +605,15 @@
 </div>
 </div>
 <!-- §06 VLA 联系 -->
+<section class="series-audit" id="vpp2-comparison">
+<div class="kicker">2026-10-23 · 固定 v2 的补充核读</div><h2>与 VPP2 对照：到底删掉了哪条信息通路？</h2>
+<p>Fast-WAM 主变体的 action tokens 在<strong>训练与推理时都看不到 future-video tokens</strong>。当前 clean frame 也不能从未来组读取信息，避免绕路泄漏。推理无需实例化未来视频，但动作仍要做 10 步去噪，不能写成“整个策略一步直出动作”。</p>
+<div class="eval-table-wrap"><table class="eval-table"><caption>paper · 2603.16666v2，§3–4</caption><thead><tr><th>设置</th><th>视频和动作如何交互</th><th>同文延迟</th></tr></thead><tbody><tr><td>Joint</td><td>未来视频与动作共同去噪</td><td>580 ms</td></tr><tr><td>IDM</td><td>先生成未来视频，再条件化动作</td><td>810 ms</td></tr><tr><td>Fast-WAM</td><td>当前帧表征一次提取 + 10 步动作去噪</td><td>190 ms</td></tr><tr><td>VPP2（另一篇）</td><td>保留一步未来预测，动作读取未来 KV</td><td>约 220 ms；硬件信息不足，不与此表同机排名</td></tr></tbody></table></div>
+<div class="eval-table-wrap"><table class="eval-table"><caption>仿真协议</caption><thead><tr><th>Benchmark</th><th>训练与评测</th><th>结果与边界</th></tr></thead><tbody><tr><td>RoboTwin 2.0 Full</td><td>2,500 Clean + 25,000 Random 训练；每任务每条件 100 trials</td><td>Clean 91.88%，Random 91.78%；Random 已在训练分布内。</td></tr><tr><td>LIBERO</td><td>4 suites、40 tasks、共 2,000 评测试验</td><td>平均 97.6%；Joint 98.5、IDM 98.0，Fast-WAM 不是每项最高。</td></tr></tbody></table></div>
+<div class="eval-table-wrap"><table class="eval-table"><caption>分维度 OOD：不要把数据增强评测当零样本迁移</caption><thead><tr><th>维度</th><th>原文支持</th><th>未支持</th></tr></thead><tbody><tr><td>环境随机化</td><td>Full 训练同时包含 Clean 与 Random</td><td>不能代替 Clean-only → Random 的泛化成绩。</td></tr><tr><td>未见任务 / 本体</td><td>评测适配后的基准策略与 R1-Lite 毛巾任务</td><td>没有仅凭这些结果证明任意未见任务或全身人形零样本迁移。</td></tr></tbody></table></div>
+<div class="eval-table-wrap"><table class="eval-table"><caption>真机与部署</caption><thead><tr><th>设置</th><th>证据</th><th>限制</th></tr></thead><tbody><tr><td>Galaxea R1-Lite 叠毛巾</td><td>60 h 遥操作；Figure 4 中预训练 π₀.₅ 最强，Fast-WAM 比无 video co-train 的 10% 好得多</td><td>除正文明确数字外，其余点为原图估读；未提供完整 trial 数，不推算成功计数。</td></tr><tr><td>延迟</td><td>RTX 5090；190 ms vs IDM 810 ms，约 4.26 倍</td><td>推理延迟不是关节控制周期，也不是端到端闭环安全性证明。</td></tr></tbody></table></div>
+<p><strong>结论范围：</strong>视频辅助训练在本配方中很有价值，不等于所有 WAM 都不需要未来预测。VPP2 改变了视频预训练、数据、模型规模与蒸馏配方，不能把它和这里的消融当成只有一个变量不同。</p>
+<p class="source"><a href="vpp2.html#comparison">VPP2 信息通路对照</a> · <a href="humanoid-data-to-wam.html">返回六篇串读</a> · <a href="https://arxiv.org/abs/2603.16666v2">固定论文版本</a></p></section>
 <div class="section" id="vla-link">
 <div class="section-num">§ 06</div>
 <h2>与 VLA / Embodied AI 的联系</h2>
@@ -622,7 +631,7 @@
 </tr>
 <tr>
 <td>推理策略</td>
-<td>Fast-WAM：跳过视频生成，单次前向，190ms，适合实时控制<br/>τ₀-WM：TTC 路径用 ACVS 展开候选动作，提升精度但更慢</td>
+<td>Fast-WAM：跳过未来视频生成，当前帧一次前向加动作去噪，190ms，适合实时控制<br/>τ₀-WM：TTC 路径用 ACVS 展开候选动作，提升精度但更慢</td>
 </tr>
 <tr>
 <td>骨干</td>

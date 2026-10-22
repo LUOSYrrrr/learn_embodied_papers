@@ -275,3 +275,123 @@
     init();
   }
 })();
+
+// v1.2 · Tabs, evidence metrics, symbol linking, and print expansion.
+(function () {
+  function initTabs(root) {
+    if (root.dataset.componentReady === 'tabs') return;
+    const tabs = Array.from(root.querySelectorAll('.tab[data-tab]'));
+    const panels = Array.from(root.querySelectorAll('.tab-panel[data-panel]'));
+    if (!tabs.length || !panels.length) return;
+    root.dataset.componentReady = 'tabs';
+    const base = root.id || `tabs-${Math.random().toString(36).slice(2, 9)}`;
+    root.id = base;
+    const show = (id, focus) => {
+      tabs.forEach(tab => {
+        const active = tab.dataset.tab === id;
+        tab.classList.toggle('active', active);
+        tab.setAttribute('aria-selected', String(active));
+        tab.tabIndex = active ? 0 : -1;
+        if (active && focus) tab.focus();
+      });
+      panels.forEach(panel => {
+        const active = panel.dataset.panel === id;
+        panel.classList.toggle('active', active);
+        panel.hidden = !active;
+      });
+    };
+    tabs.forEach((tab, index) => {
+      const id = tab.dataset.tab;
+      const panel = panels.find(candidate => candidate.dataset.panel === id);
+      tab.setAttribute('role', 'tab');
+      tab.id = tab.id || `${base}-tab-${id}`;
+      if (panel) {
+        panel.setAttribute('role', 'tabpanel');
+        panel.id = panel.id || `${base}-panel-${id}`;
+        panel.setAttribute('aria-labelledby', tab.id);
+        tab.setAttribute('aria-controls', panel.id);
+      }
+      tab.addEventListener('click', () => show(id, false));
+      tab.addEventListener('keydown', event => {
+        let next = null;
+        if (event.key === 'ArrowRight' || event.key === 'ArrowDown') next = (index + 1) % tabs.length;
+        if (event.key === 'ArrowLeft' || event.key === 'ArrowUp') next = (index - 1 + tabs.length) % tabs.length;
+        if (event.key === 'Home') next = 0;
+        if (event.key === 'End') next = tabs.length - 1;
+        if (next !== null) { event.preventDefault(); show(tabs[next].dataset.tab, true); }
+      });
+    });
+    show((tabs.find(tab => tab.classList.contains('active')) || tabs[0]).dataset.tab, false);
+  }
+
+  function initMetrics() {
+    document.querySelectorAll('.eval-comparison').forEach(row => {
+      const id = Number(row.dataset.idValue);
+      const ood = Number(row.dataset.oodValue);
+      const drop = row.querySelector('[data-eval-absolute-drop]');
+      const retention = row.querySelector('[data-eval-retention]');
+      if (!Number.isFinite(id) || !Number.isFinite(ood)) return;
+      if (row.dataset.direction === 'higher') {
+        if (drop) drop.textContent = `${((id - ood) * 100).toFixed(1)} pp`;
+        if (retention) retention.textContent = id > 0 ? `${(ood / id * 100).toFixed(1)}%` : '不适用';
+      } else if (row.dataset.direction === 'lower') {
+        if (drop) drop.textContent = (ood - id).toFixed(3);
+        if (retention) retention.textContent = '不适用';
+      }
+    });
+    document.querySelectorAll('.eval-binomial').forEach(row => {
+      const successes = Number(row.dataset.successes);
+      const trials = Number(row.dataset.trials);
+      const output = row.querySelector('[data-wilson-95]');
+      if (!output || !Number.isInteger(successes) || !Number.isInteger(trials) || trials <= 0) return;
+      const z = 1.96;
+      const p = successes / trials;
+      const denominator = 1 + z * z / trials;
+      const center = (p + z * z / (2 * trials)) / denominator;
+      const half = z / denominator * Math.sqrt(p * (1 - p) / trials + z * z / (4 * trials * trials));
+      output.textContent = `[${(Math.max(0, center - half) * 100).toFixed(1)}%, ${(Math.min(1, center + half) * 100).toFixed(1)}%]`;
+    });
+  }
+
+  function initSymbols() {
+    const groups = new Map();
+    document.querySelectorAll('[data-symbol]').forEach(element => {
+      const id = element.dataset.symbol;
+      if (!id) return;
+      if (!groups.has(id)) groups.set(id, []);
+      groups.get(id).push(element);
+    });
+    let locked = null;
+    const paint = (id, className, active) => (groups.get(id) || []).forEach(el => el.classList.toggle(className, active));
+    groups.forEach((elements, id) => elements.forEach(element => {
+      if (!element.hasAttribute('tabindex')) element.tabIndex = 0;
+      element.addEventListener('pointerenter', () => paint(id, 'symbol-linked', true));
+      element.addEventListener('pointerleave', () => paint(id, 'symbol-linked', false));
+      element.addEventListener('focus', () => paint(id, 'symbol-linked', true));
+      element.addEventListener('blur', () => paint(id, 'symbol-linked', false));
+      element.addEventListener('click', () => {
+        if (locked) paint(locked, 'symbol-locked', false);
+        locked = locked === id ? null : id;
+        if (locked) paint(locked, 'symbol-locked', true);
+      });
+    }));
+  }
+
+  function init() {
+    document.documentElement.classList.add('js');
+    document.querySelectorAll('.tab-switcher').forEach(initTabs);
+    initMetrics();
+    initSymbols();
+    let closedDetails = [];
+    window.addEventListener('beforeprint', () => {
+      closedDetails = Array.from(document.querySelectorAll('details:not([open])'));
+      closedDetails.forEach(detail => detail.open = true);
+    });
+    window.addEventListener('afterprint', () => {
+      closedDetails.forEach(detail => detail.open = false);
+      closedDetails = [];
+    });
+  }
+  if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', init);
+  else init();
+})();

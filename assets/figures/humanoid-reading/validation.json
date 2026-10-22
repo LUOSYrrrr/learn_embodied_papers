@@ -1,0 +1,156 @@
+{
+  "date": "2026-10-23",
+  "pages": [
+    "index.html",
+    "papers/humanoid-data-to-wam.html",
+    "papers/gmr.html",
+    "papers/sonic.html",
+    "papers/egohumanoid-v2.html",
+    "papers/koda.html",
+    "papers/fast-wam.html",
+    "papers/vpp2.html"
+  ],
+  "staticProblems": [],
+  "browser": [
+    {
+      "slug": "humanoid-data-to-wam",
+      "brokenImages": [],
+      "duplicateIds": [],
+      "missingAnchors": [],
+      "widths": [
+        {
+          "width": 375,
+          "scrollWidth": 375
+        },
+        {
+          "width": 768,
+          "scrollWidth": 768
+        },
+        {
+          "width": 1440,
+          "scrollWidth": 1440
+        }
+      ]
+    },
+    {
+      "slug": "gmr",
+      "brokenImages": [],
+      "duplicateIds": [],
+      "missingAnchors": [],
+      "widths": [
+        {
+          "width": 375,
+          "scrollWidth": 375
+        },
+        {
+          "width": 768,
+          "scrollWidth": 768
+        },
+        {
+          "width": 1440,
+          "scrollWidth": 1440
+        }
+      ]
+    },
+    {
+      "slug": "sonic",
+      "brokenImages": [],
+      "duplicateIds": [],
+      "missingAnchors": [],
+      "widths": [
+        {
+          "width": 375,
+          "scrollWidth": 375
+        },
+        {
+          "width": 768,
+          "scrollWidth": 768
+        },
+        {
+          "width": 1440,
+          "scrollWidth": 1440
+        }
+      ]
+    },
+    {
+      "slug": "egohumanoid-v2",
+      "brokenImages": [],
+      "duplicateIds": [],
+      "missingAnchors": [],
+      "widths": [
+        {
+          "width": 375,
+          "scrollWidth": 375
+        },
+        {
+          "width": 768,
+          "scrollWidth": 768
+        },
+        {
+          "width": 1440,
+          "scrollWidth": 1440
+        }
+      ]
+    },
+    {
+      "slug": "koda",
+      "brokenImages": [],
+      "duplicateIds": [],
+      "missingAnchors": [],
+      "widths": [
+        {
+          "width": 375,
+          "scrollWidth": 375
+        },
+        {
+          "width": 768,
+          "scrollWidth": 768
+        },
+        {
+          "width": 1440,
+          "scrollWidth": 1440
+        }
+      ]
+    },
+    {
+      "slug": "fast-wam",
+      "brokenImages": [],
+      "duplicateIds": [],
+      "missingAnchors": [],
+      "widths": [
+        {
+          "width": 375,
+          "scrollWidth": 375
+        },
+        {
+          "width": 768,
+          "scrollWidth": 768
+        },
+        {
+          "width": 1440,
+          "scrollWidth": 1440
+        }
+      ]
+    },
+    {
+      "slug": "vpp2",
+      "brokenImages": [],
+      "duplicateIds": [],
+      "missingAnchors": [],
+      "widths": [
+        {
+          "width": 375,
+          "scrollWidth": 375
+        },
+        {
+          "width": 768,
+          "scrollWidth": 768
+        },
+        {
+          "width": 1440,
+          "scrollWidth": 1440
+        }
+      ]
+    }
+  ]
+}

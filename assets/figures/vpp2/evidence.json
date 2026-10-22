@@ -1,0 +1,91 @@
+{
+  "paper": {
+    "title": "Video Prediction Policy 2: Predict Better, Act Better",
+    "version": "2610.10270v2",
+    "date": "2026-10-08",
+    "pages": 21,
+    "read": "Main text, captions, footnotes, references and appendices A-C",
+    "supplement": "No separate supplement supplied"
+  },
+  "checked": "2026-10-13",
+  "sources": {
+    "paper": "../../../pdfs/world-model/vpp2.pdf",
+    "project": "https://robert-gyj.github.io/video-prediction-policy-2/",
+    "libero": "https://github.com/roboterax/video-prediction-policy-2/blob/main/docs/libero.md",
+    "robodojo": "https://github.com/roboterax/video-prediction-policy-2/blob/main/docs/robodojo.md",
+    "vpp1": "https://arxiv.org/abs/2412.14803",
+    "fastwam": "https://arxiv.org/abs/2603.16666"
+  },
+  "conflicts": [
+    "Fig1 RoboDojo 29.47 vs Table4/Table8 32.26",
+    "Main 0.9B distilled pipeline vs RoboDojo2B joint before distillation vs LIBERO approximately1B frozen video",
+    "Main T-shaped input vs LIBERO horizontal",
+    "Same ALOHA adaptation data does not establish identical entire pretraining"
+  ],
+  "missing": [
+    "Total curated video hours/clips",
+    "Real robot trial counts/success counts/seeds",
+    "Systematic failure taxonomy",
+    "Fully matched compute/data/pretraining comparison",
+    "Full real-robot deployment timing boundaries"
+  ],
+  "figures": {
+    "1": 1,
+    "2": 3,
+    "4": 5,
+    "7": 7,
+    "8": 8,
+    "9": 9,
+    "10": 19
+  },
+  "sections": [
+    {
+      "id": "overview",
+      "title": "先回答：VPP2 是什么，改进发生在哪里？"
+    },
+    {
+      "id": "vpp1",
+      "title": "VPP1 如何把“预测未来”变成动作条件？"
+    },
+    {
+      "id": "data",
+      "title": "为什么先学完整事件，而不是直接截短视频？"
+    },
+    {
+      "id": "pipeline",
+      "title": "三阶段训练：语义、时间和控制分别对齐"
+    },
+    {
+      "id": "math",
+      "title": "公式具体在优化什么？用小数字走一遍"
+    },
+    {
+      "id": "comparison",
+      "title": "与 FastWAM：外形相似，信息通路不同"
+    },
+    {
+      "id": "video-evidence",
+      "title": "视频预测更好：最直接的消融证据"
+    },
+    {
+      "id": "evaluation",
+      "title": "仿真、分维度 OOD、真机分别证明了什么？"
+    },
+    {
+      "id": "recipes",
+      "title": "论文主线、RoboDojo、LIBERO 是三种配方"
+    },
+    {
+      "id": "planner",
+      "title": "作者的心得：哪些是结果，哪些是未来判断？"
+    },
+    {
+      "id": "limits",
+      "title": "证据链与边界：能支持到哪一步？"
+    },
+    {
+      "id": "connections",
+      "title": "与 VLA / Embodied AI 的联系"
+    }
+  ]
+}
