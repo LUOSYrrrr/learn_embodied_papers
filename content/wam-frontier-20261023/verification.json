@@ -1,0 +1,14 @@
+{
+  "reviewed": "2026-10-23",
+  "browser": "gstack browse",
+  "pages": ["onewm", "agentic-wam", "natura-1", "internw0-delta", "uniwam", "flora"],
+  "originalFigures": {"pdfCrops": 59, "officialWebDiagrams": 6, "total": 65},
+  "static": {"missingLocalLinks": 0, "duplicateIds": 0, "unresolvedFigureMarkers": 0, "imageLazyAsyncAlt": "all pass", "javascriptSyntax": "pass"},
+  "responsive": {"viewports": ["1280x800", "768x1024", "390x844"], "themes": ["light", "dark"], "layouts": 36, "pageHorizontalOverflow": 0, "brokenImages": 0, "pendingImagesAfterLoad": 0},
+  "keyboard": {"nativeDetailsEnter": "all six pass", "themeSpace": "all six pass", "visibleFocus": "solid outline on focused summary"},
+  "scriptFree": {"method": "temporary copies with script elements removed; same styles and images", "allSix": "headings, body, tables, original figures and native details retained"},
+  "print": {"allSixExported": true, "pageCounts": {"onewm":16, "agentic-wam":20, "natura-1":12, "internw0-delta":19, "uniwam":15, "flora":22}, "detailsRestoredAfterPrint": "all six", "textExtraction": "all six contain body and footer", "visualSamples": ["FLORA p1", "FLORA p5", "OneWM p10"]},
+  "index": {"catalogPages": 134, "newClassifications": ["joint causal/world-action training", "agents and long-horizon dexterity", "data engines and rewards"], "mobileHorizontalOverflow": 0},
+  "sourceLimits": ["Natura-1 is an official technical blog reading, without a linked standalone paper/appendix", "UniWAM refers to 2610.02054v4, not same-name 2609.39388", "official code was not executed; implementation uncertainties are marked in the readings"],
+  "preserved": "Pre-existing user edits and unrelated untracked files were excluded from this change. Remote daily leaderboard update ff9b62b was fast-forwarded before committing."
+}

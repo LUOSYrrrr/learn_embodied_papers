@@ -1,0 +1,51 @@
+<h2 id="problem">1 · 它要填补的是技能组织，不是又加一个聊天机器人</h2>
+<div class="cn-read"><div class="cn-label">问题与前置概念</div><p>普通 WAM 可生成视觉未来与动作，却缺少“先固定包、再拉拉链”的显式组合结构；Code-as-Policy 有组合技能，但其手写感知/控制 API 的物理能力有限。AW-0 把两者接在同一个模型里，让代码成为可学习的中间条件，而不是把所有控制委托给脚本。</p></div>
+<!-- FIGURE:1 -->
+<div class="eval-table-wrap"><table class="eval-table"><caption>五问速读 · §1–2</caption><tr><th>背景</th><td>视频先验与技能复用缺少联合接口。</td></tr><tr><th>卡点</th><td>仅预测像素不能明确表达任务阶段；代码可组合却可能无法处理复杂接触。</td></tr><tr><th>关键改动</th><td>离散代码、连续视频、连续动作共同去噪；模态有向 attention；自动技能标注。</td></tr><tr><th>依赖</th><td>SDAR-1.7B、Qwen3-VL-2B ViT、Cosmos-Predict2.5-2B、Wan2.2 VAE、CaP 与机器人数据。</td></tr><tr><th>最强证据 / 代价</th><td>代码表示与 mask 的内控消融有收益；需要约 3K 小时数据、额外代码标注与专家计算，仍容易受视觉分布变化影响。</td></tr></table></div>
+<h2 id="architecture">2 · 主干：谁能看见谁，什么时候动作真的执行？</h2>
+<!-- FIGURE:2 -->
+<ol class="method-walk"><li>取当前三路图像、语言、本体 state，以及压缩的历史代码记忆。图像分别由 ViT/VAE 编码。</li><li>初始化 128 个 mask 代码 token、未来视频噪声、32 步动作噪声；真实观察保持干净。</li><li>4 轮联合生成：代码每轮固定 32 个最高置信 token，视频用 UniPC，动作用 Euler 更新。已固定代码不再改。</li><li>默认执行动作块；生成代码不作为 Python 运行，而是在迭代中条件化视频/动作表示。</li><li>拿新观察重规划。历史代码缓存压缩成 K 个可学习槽位；每个 episode 重置。文中没有完整给出 K 和训练历史替换概率 p 的数值。</li></ol>
+<p>28 层 MoT 的共同 attention 为 2048D、16 heads×128；代码/视频专家 hidden 2048，动作 1024。代码预训练 embedding、norm、FFN、词表头冻结，训练 attention 投影/调制；ViT 冻结、merger 可训。视频路径把原VAE换成冻结的 Wan2.2 VAE（48 channels），视频专家的输入输出投影重新初始化；动作专家从零开始。不要把“使用预训练专家”理解成所有主干参数都冻结。</p>
+<h2 id="math">3 · 六个公式与具体算例</h2>
+<p>统一记号：C 是代码，Z 是未来视频 latent，A 是动作；下标 0 表示干净目标，不是机器人第 0 帧。𝒞ₜ={Oₜ,L,Sₜ,Mₜ} 是当前图像、指令、状态和历史记忆。r 为代码 mask 比例；σ 是连续变量噪声水平，和环境时间 t 不同。以下数字为教学示例。</p>
+<section class="formula-reading"><h3>Eq.1–2 · 同一个条件下的三路目标</h3><div class="equation">pθ(C₀,Z₀,A₀ | 𝒞ₜ)<br>(代码 logits, v̂ᶻ, v̂ᵃ)=Fθ(C̃ᵣ,Zσᵥ,Aσₐ,σᵥ,σₐ;𝒞ₜ)</div><p>logits 是各词的未归一化分数；v̂ 是连续 flow 速度。代码选择离散词，视频/动作更新实数，因此“joint”不是把三者都量化成语言 token。例：同一观察下输出“固定左侧再拉右侧拉链”的程序、拉链变化的图像 latent 和双臂位移序列。</p></section>
+<section class="formula-reading"><h3>Eq.3 · 连续流匹配</h3><div class="equation">Xσ=(1−σ)X₀+σε；σ=γu/[1+(γ−1)u]，γ=5</div><p>X 表示视频或动作；ε 为同形状高斯噪声。视频原始 u 来自缩放 Beta(7,1)，动作来自均匀分布。u=.5 时 σ=2.5/3≈.833，更多训练点在高噪区。若 X₀=2、ε=0，输入为 .334，目标速度 ε−X₀=−2；生成沿 σ 从 1 到 0 积分。</p></section>
+<section class="formula-reading"><h3>Eq.4 · 离散 mask 语言学习</h3><div class="equation">C̃ᵣ,ᵢ = [MASK]（概率 r），否则为 C₀,ᵢ；r~U[0,1]</div><p>只对被 mask 的位置计算交叉熵，并确保至少一个位置被 mask。例：<code>pick(apple,right)</code> 遮掉 apple/right 后，由图像、指令和其他可见代码补全；不是模仿任意不可见未来事件。15% batch 另有指令/程序条件 dropout，区别于目标位置随机 mask。</p></section>
+<section class="formula-reading"><h3>Eq.5 · 为什么视频噪声采样要混合？</h3><div class="equation">q(σ)=α ppre(σ)+(1−α)U(σ)，α=.5</div><p>视频预训练偏高噪；动作与代码学习可能需要更清晰的未来特征。混入均匀采样增加中低噪声覆盖，但直接改变采样会改变目标，所以还有下一式的权重。</p></section>
+<section class="formula-reading"><h3>Eq.6 · 每种模态保持自己的目标分布</h3><div class="equation">L = E<sub>q</sub>[wᵥ Lᵥ + .5 w𝓰 Lcode + w𝓰 Laction]<br>wᵥ=ppre/q；w𝓰=U/q</div><p>实际权重截断到 4 并按 batch 均值归一化。例：某噪声区 ppre=1.6、U=1，q=1.3，则视频权重≈1.23，代码/动作≈.77；不是让所有模态同样偏好高噪。截断/有限 batch 使其成为稳定化的重要性加权，不应声称严格无偏。</p></section>
+<details class="prediction-pause"><summary>检查：C→V→A 是否意味着部署必定先写完代码、再生成视频、最后生成动作？</summary><p>不是。它约束每层 attention 的可见性；三路在同一组去噪迭代中逐渐更新。AR 是另一个独立对照，不能从箭头读出串行调用次数。</p></details>
+<h2 id="data">4 · 代码从哪里来？人机数据到底怎么用？</h2>
+<!-- FIGURE:3 -->
+<div class="eval-table-wrap"><table class="eval-table"><caption>数据谱系 · Appendix B / Table 7</caption><tr><th>来源</th><th>episodes</th><th>小时</th><th>任务 / 切片</th><th>监督</th></tr><tr><td>YAM 机器人</td><td>73,101</td><td>1,919.30</td><td>279 / 986,314</td><td>代码、未来视频、动作</td></tr><tr><td>人类第一人称</td><td>175,541</td><td>993.91</td><td>327 / 1,089,059</td><td>追踪/重定向后的手动作及代码、视频；不是仅有 RGB</td></tr><tr><td>合计</td><td>248,642</td><td>2,913.22</td><td>606 / 2,075,373</td><td>23 个 YAM＋27 个人类技能；总 50</td></tr></table></div>
+<p>统一 state/action 为 64D：左右各 9D EEF pose（3 位置＋6 旋转表示）、22D 手关节、1D 夹爪，共 2×32。机器人实际自由度并非 64。状态为绝对值；EEF 动作为相对 chunk 起点，手指/夹爪为绝对目标。不存在的维度置零且不参与归一化，有效维度按 1%/99% 分位缩放。人类单相机复制到三视图槽位，不能把它算成三路独立观测。</p>
+<p>预训练 48×H100，1 epoch，effective batch 2592（每卡 6×累积 9），AdamW 1e−4；图像 224×320，9 帧（0,4,…32），只第 0 帧观测。RoboTwin 后训练 16 GPU、batch 96、100K steps；真机每任务 100 demonstrations、20 epochs。各 baseline 使用各自公开预训练与训练配方；同目标任务示范量不等于总预训练量、训练算力都严格相等。</p>
+<h2 id="execution">5 · hybrid 的两个算法：有效程序也可能让表现变差</h2>
+<div class="cn-read"><div class="cn-label">Appendix I / Algorithms 1–2，pp.43–44</div><p>模型同时给出代码与动作；仲裁器检查代码能否接管。这里的 valid 是语法、依赖和阶段检查，不是世界模型已证明它一定能成功。</p></div>
+<ol><li><strong>阶段门：</strong>已完成阶段不重跑；不能回到更早已尝试阶段；失败次数受限。</li><li><strong>依赖门：</strong>引用变量在 episode 的持久命名空间已定义；感知 API 结果可跨片段保存。</li><li><strong>语法门：</strong>允许的语句、非空、有变化；失败的原样片段跳过。</li><li><strong>若尝试执行：</strong>丢弃本轮直接动作块，即使代码抛异常也不再执行这块旧动作；重新观察再规划。否则执行动作块。</li><li><strong>状态记账：</strong>算法以无异常返回标记阶段完成，但无异常不等于物体真的到位。需要物理结果监测的改进属于未来工作。</li></ol>
+<!-- FIGURE:35 -->
+<div class="eval-table-wrap"><table class="eval-table"><caption>代码实际驱动了多少仿真时间？Table 12</caption><tr><th>集合</th><th>Clean 代码占比</th><th>Random 代码占比</th><th>解释</th></tr><tr><td>仅成功 episodes</td><td>14.5%</td><td>35.0%</td><td>成功样本更常利用代码；不能推广到所有尝试。</td></tr><tr><td>全部 episodes</td><td>8.5%</td><td>5.6%</td><td>失败运行更长、常卡在直接动作，因此按时间汇总分母完全不同。</td></tr></table></div>
+<h2 id="evaluation">6 · 实验：三个表分开看</h2>
+<!-- FIGURE:4 -->
+<div class="eval-table-wrap"><table class="eval-table"><caption>仿真闭环 · RoboTwin 2.0 / Table 1 / Appendix J</caption><tr><th>方法</th><th>Clean SR</th><th>Random SR</th><th>平均</th></tr><tr><td>π₀.₅</td><td>54.9</td><td>27.7</td><td>41.3</td></tr><tr><td>DreamZero</td><td>33.6</td><td>17.6</td><td>25.6</td></tr><tr><td>EgoScale</td><td>26.2</td><td>2.9</td><td>14.5</td></tr><tr><td>WLA</td><td>64.8</td><td>3.6</td><td>34.2</td></tr><tr><td>AW-0</td><td>80.8</td><td>20.6</td><td>50.7</td></tr><tr><td>AW-0 hybrid</td><td>63.1</td><td>29.2</td><td>46.2</td></tr></table></div>
+<p>50 任务，每任务 50 条 clean 示范；每设置每任务 50 rollouts，共 2,500。仿真 action 为 14D。hybrid 使用 CaP 收集示范，默认使用 RoboTwin 原规划器，所以表比较的是两套配置整体，不是纯执行模式开关。感知用 Molmo、SAM3、Contact-GraspNet 和原生控制接口；评价不读特权状态，数据收集可以使用。</p>
+<div class="eval-table-wrap"><table class="eval-table"><caption>ID → OOD 证据边界</caption><tr><th>维度</th><th>测试情况</th><th>可得结论</th></tr><tr><td>背景 / 桌纹 / 光照 / 高度 / 干扰物</td><td>Random 同时变化；没有各维度独立表</td><td>默认下降 60.2 pp、保留率 25.5%；hybrid 下降 33.9 pp、保留率 46.3%。不可归因某一个因素。</td></tr><tr><td>语言跟随 / 语义推理</td><td>真机任务规则、颜色、顺序变化</td><td>有实例与任务评分，未报告独立语言 OOD 配对 SR。</td></tr><tr><td>载荷 / 摩擦 / 动力学 / 新本体零样本</td><td>未单独报告</td><td>不能由视觉 Random 自动推出物理鲁棒性。</td></tr></table></div>
+<!-- FIGURE:20 -->
+<div class="eval-table-wrap"><table class="eval-table"><caption>真机 3 seeds×16 trials/任务 · Table 2 · 单位为 rubric 分数×100</caption><tr><th>任务</th><th>AW-0</th><th>π₀.₅</th><th>DreamZero</th><th>目标</th></tr><tr><td>整理水果</td><td>91.7</td><td>70.8</td><td>53.3</td><td>类别、坏果与目标</td></tr><tr><td>收背包</td><td>64.6</td><td>49.7</td><td>36.7</td><td>双臂固定 / 拉链</td></tr><tr><td>换灯泡</td><td>75.0</td><td>63.8</td><td>67.4</td><td>先判断是否损坏</td></tr><tr><td>折叠堆毛巾</td><td>84.4</td><td>81.7</td><td>79.8</td><td>三条折叠与颜色顺序</td></tr><tr><td>夹子整理水果</td><td>54.2</td><td>7.3</td><td>22.6</td><td>工具接触</td></tr><tr><td>发牌</td><td>58.3</td><td>13.1</td><td>37.1</td><td>双手交接与抽单张</td></tr><tr><td>翻记分牌</td><td>68.8</td><td>26.3</td><td>28.4</td><td>精确翻 k 次并按按钮</td></tr><tr><td>转回魔方一面</td><td>72.1</td><td>36.1</td><td>42.5</td><td>随机一面四分之一圈复原</td></tr><tr><td>平均</td><td>71.1</td><td>43.6</td><td>46.0</td><td>不是完整成功率</td></tr></table></div>
+<p>共 384 条试验/方法，但分步得分不是 Bernoulli 成败，不能用 71.1%×384 反推成功数或 Wilson 区间。任务权重、时限、人工干预与训练种子不确定性须按原协议理解；这里没有闭环在线自我学习或 ICL 单独实验证明。</p>
+<h2 id="rubrics">7 · 附录 E：八套 rubric 到底奖励什么</h2>
+<!-- FIGURE:24 -->
+<!-- FIGURE:28 -->
+<details><summary>展开逐任务权重（每任务最高 1；pp.30–36）</summary><ul><li>水果：移除坏果 .3＋取指定果 .3＋最终正确且不掉 .4。</li><li>背包：左右开拉链各 .15＋打开 .2＋装入 .2＋左右关各 .15。</li><li>坏灯泡：测试 .1、固定 .1、旋出 .2、丢弃 .1、拿新 .1、旋入点亮 .3、松开 .1；好灯泡分支：测试点亮 .3、返回并保持 .7。</li><li>毛巾：折一条 .2、三条折平 .2、放一条 .1、三条成堆 .2、颜色顺序 .3。</li><li>夹子水果：取工具 .2、移除 .25、取目标 .25、最终正确 .2、归还工具 .1。</li><li>发牌：拿起 .1、交接 .2、推出单张 .3、抓住单张 .3、插入 .1。</li><li>记分牌：固定 .1、翻至少一张 .2、精确 k 次 .4、放开 .1、按正确按钮 .2。</li><li>魔方：拿起 .2、转完整四分之一圈 .3、复原 .3、放回 .2。</li></ul></details>
+<h2 id="ablations">8 · 核心 insight 的证据与反例</h2>
+<!-- FIGURE:5 -->
+<!-- FIGURE:6 -->
+<!-- FIGURE:7 -->
+<p>代码流用 ViT 条件比用 VAE 条件平均 71.1 vs 55.6（Table 3），支持语义视觉特征有益；joint 比 AR 为 71.1 vs 54.5（Table 4），但灯泡 AR 79.2 高于 joint 75.0。不能把平均改进说成所有任务都改进。</p>
+<!-- FIGURE:29 -->
+<!-- FIGURE:32 -->
+<p>预训练代码验证：teacher-forced token accuracy .897、自由生成 parse rate .875、Entity F1 .534、Primitive F1 .365、skill-call rate .292。打乱视觉使代码 loss 增加 1.774，说明依赖视觉，但不证明每个参数都被准确落到场景。代码语法与执行成功之间还隔着变量、单位、接触、控制器等多层条件。</p>
+<!-- FIGURE:36 -->
+<h2 id="appendix">9 · 全文 / 附录导读与最后判断</h2>
+<div class="eval-table-wrap"><table class="eval-table"><caption>附录覆盖地图：未嵌入的原图可直接跳转 PDF</caption><tr><th>范围</th><th>细读内容</th><th>本文落点</th></tr><tr><td>A pp.17–18</td><td>层数、冻结策略、时间步、4 次去噪</td><td>§2–3、延迟解释</td></tr><tr><td>B pp.18–27</td><td>统一表示、50 技能；Figures 8–19 技能例与 t-SNE</td><td>§4；t-SNE 邻近不是技能因果有效性证明</td></tr><tr><td>C–E pp.27–36</td><td>baseline 配方、硬件、全部评分</td><td>§6–7；Figures 21–28 同类逐任务展示</td></tr><tr><td>F–H pp.36–43</td><td>代码质量、未来帧对比、失败</td><td>§8；Figures 33/34 不是严格同初始状态配对视频</td></tr><tr><td>I–J pp.43–47</td><td>仲裁算法、仿真 task-level 表、代码时间占比</td><td>§5–6；Fig 37 两例不能替代成功率</td></tr><tr><td>K–L pp.46–50</td><td>两类 API、标注提示词、协调者协议、局限</td><td>§4；提示词是数据方法，不是读者应该执行的指令</td></tr></table></div>
+<p><strong>最值得借鉴：</strong>用可验证接触事件约束代码标注，把任务组织与连续控制连接起来；同时用明确 mask 设计信息流。<strong>尚未做到：</strong>在线从失败学习、自动扩充技能库、任意灵巧手执行代码、鲁棒的收益预测仲裁。当前 hybrid 的“能执行就尝试”是启发式，不是规划最优性保证。</p>
+<details class="prediction-pause"><summary>一句话自测：AW-0 与普通 Agent 调 VLA API 的区别？</summary><p>代码在 WAM 内部和视频/动作共同训练、共同迭代，能够影响连续控制表示；并非仅一个外部 LLM 把字符串送给现成 VLA。hybrid 又额外接上真实 API 执行，但这个分支必须单独评估。</p></details>

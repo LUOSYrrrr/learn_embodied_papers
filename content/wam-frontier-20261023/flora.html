@@ -1,0 +1,68 @@
+<h2 id="problem">01 · FLORA在整条WAM链路的哪里？</h2>
+<p>原始视频有很多，但训练policy还需要知道“哪段在开抽屉”“哪只手拿着什么”“刚才是失败还是只是慢”。人工逐段标注贵，通用VLM又容易漏掉短动作、错配手角色、把最后成功倒灌成中间每一步都正确。FLORA把这些问题组织成可规模化部署的数据引擎。</p>
+<div class="cn-read"><strong>术语先对齐：</strong>temporal segmentation＝动作时间分段；contextual captioning＝结合邻近视觉上下文描述当前动作；outcome reward＝整段结果；dense/process reward＝局部执行质量；rubric reward＝按用户给的任务步骤评分。输出的是<strong>语义监督和评价信号</strong>，要生成机器人控制仍需另外训练policy。</div>
+<p>它直接建立在Qwen3.5 VLM、两阶段视频标注和机器人奖励模型之上，和Refiner、LeRobot annotate、Pegasus等完整标注系统比较。作者称用于GR00T训练；本文给出标签指标和成本分析，但没有“使用FLORA标签前后，同一机器人闭环SR”的控制实验。</p>
+<!-- FIGURE:1 -->
+<div class="eval-table-wrap"><table class="eval-table"><thead><tr><th>模型</th><th>输入→输出</th><th>训练与冻结</th></tr></thead><tbody><tr><td>Segmenter：Qwen3.5-9B</td><td>视频滑窗→起止时间＋跨窗继续标志</td><td>SFT＋GRPO；rank32、α64的语言attention/MLP LoRA；视觉冻结</td></tr><tr><td>Captioner：Qwen3.5-27B</td><td>固定区间及其前后视觉→动作描述</td><td>SFT更新LM和visual merger；RL更新LM，视觉encoder/merger冻结</td></tr><tr><td>Rewarder：Qwen3.5-27B</td><td>视频＋任务＋prompt/rubric→三种评分接口</td><td>公开checkpoint只做SFT；更新LM、merger和视觉encoder，后者更低学习率</td></tr></tbody></table></div>
+
+<h2 id="pipeline">02 · 主干图：从一条episode走到结构化标签</h2>
+<!-- FIGURE:7 -->
+<ol class="method-walk"><li><strong>统一时钟：</strong>保留原始帧时间戳；多机位在同一源时刻形成mosaic，镜头角色固定。时间戳一致并不能单独证明硬件确实同步。</li><li><strong>局部分段：</strong>普通窗口16秒、64帧、4Hz；中央12秒是输出core，前后各2秒是上下文guard。长程机器人数据用32秒窗、24秒core、4秒guards。</li><li><strong>拼接与边界细化：</strong>把局部时间转到episode时间；只用core内事件，依时间重叠和继续标志拼接同一事件。有限个偏移窗口处理不确定边界，无法观察到的转折不凭空补出来。</li><li><strong>固定区间后描述：</strong>为每个target找最近的不重叠前/后事件，分别采样视觉块，生成当前区间的intended action。描述不再改变时间边界；多个动作可以并发。</li><li><strong>独立评分：</strong>rewarder看视频和全局任务，输出整个结果、每0.5秒过程质量，或rubric各步分数。用于数据过滤、分析和后续训练时，必须保留各标签的语义。</li></ol>
+<!-- FIGURE:13 -->
+<!-- FIGURE:14 -->
+<div class="formula-reading"><h3>Eq.1、2、12–14：时间定位与描述接口</h3><p class="equation">A(X)={(sᵢ,eᵢ,cᵢ)}；Iᵢ=[sᵢ,eᵢ)，0≤sᵢ&lt;eᵢ≤T<br>Fₖ=f<sub>θ</sub>(X<sub>Wₖ</sub>,qₖ)={(uₖⱼ,vₖⱼ,ℓₖⱼ,rₖⱼ)}<br>I=S({(Wₖ,Φₖ(Fₖ))})<br>jᵢ⁻∈argmax<sub>eⱼ≤sᵢ</sub>eⱼ；jᵢ⁺∈argmin<sub>sⱼ≥eᵢ</sub>sⱼ<br>cᵢ=g<sub>φ</sub>(Xᵢ⁻,Xᵢ,Xᵢ⁺,q<sub>cap</sub>)</p><dl class="symbol-list"><dt>X / T</dt><dd>整段视频及其时长。X的下标指定取哪一段视觉，不是机器人状态向量。</dd><dt>sᵢ,eᵢ,cᵢ</dt><dd>episode坐标的起点、终点、动作描述；半开区间避免相邻终点重复计算。</dd><dt>Wₖ / u,v</dt><dd>第k个窗口；u/v是该窗口内局部起止时刻。Φ把局部时刻投影到全局时间。</dd><dt>ℓ / r</dt><dd>左/右继续标志，表示动作是否越过窗口边缘；这里ℓ是flag，后文任务指令ℓ是不同语境。</dd><dt>S / θ / φ</dt><dd>确定性拼接过程；θ和φ分别是分段、描述网络参数。</dd><dt>X⁻ / X / X⁺</dt><dd>最近不重叠事件的before、target、after视觉块。并列候选优先短事件；没有邻居就省略。</dd></dl><div class="worked-example"><strong>教学算例：</strong>窗口从10秒开始，局部事件[2,5)投影成[12,15)。下一窗若继续观察同一事件，先检查重叠和flag再合并；若两只手同时做不同事，保留两段重叠事件，不能只按时间重叠一律合并。</div></div>
+<p>“意图”不保证成功：手伸向杯子但抓空，动作描述仍可以是尝试抓杯子，过程标签则是抓握失败。这个分工让训练者既能按技能组织数据，又能按执行质量筛选。</p>
+
+<h2 id="rewards">03 · 三种reward为什么可以给出不同结论？</h2>
+<!-- FIGURE:15 -->
+<div class="formula-reading"><h3>Eq.3、18–21：结果、过程和rubric接口</h3><p class="equation">R(X)=({aₜ},s)，aₜ∈{1,2,3}，s∈{1,…,5}<br>pₖ=p<sub>ψ</sub>(s=k|X,ℓ,q<sub>out</sub>)；E[s]=Σₖ₌₁⁵ k·pₖ；ŷ=(E[s]−1)/4<br>r<sub>ψ</sub>(X<sub>Wₖ</sub>,ℓ,q<sub>dense</sub>)=(wₖ,(aₖ,₁,…,aₖ,₃₂),{(uₖⱼ,vₖⱼ,cₖⱼ)})，wₖ=min<sub>g</sub>aₖ,g<br>ŷ<sub>rub</sub>∈V₁×…×Vₙ；R<sub>ρ</sub>(X)=Σⱼŷⱼ；L₁(ŷ,y)=Σⱼ|ŷⱼ−yⱼ|</p><dl class="symbol-list"><dt>ψ / ℓ / q</dt><dd>奖励网络参数、全局任务指令、不同接口prompt。dense不输入泄露成败的子任务文字。</dd><dt>aₜ</dt><dd>1失败、2次优、3正常；不是机器人action vector。0.5秒一组对应4Hz的两帧。</dd><dt>s / pₖ / ŷ</dt><dd>结果1–5分；score token的归一化概率；期望分线性映到0–1。RoboRewardBench用生成整数，轨迹排序使用期望。</dd><dt>wₖ</dt><dd>32组里的最坏质量；只约束结构化答案一致性，不将整窗每一组都改成最坏标签。</dd><dt>ρ / Vⱼ</dt><dd>用户rubric与第j步允许的离散分值。各步最高分加起来1，模型须从允许层级选择。</dd></dl><div class="worked-example"><strong>教学算例：</strong>结果分布p₄=0.2、p₅=0.8，E[s]=4.8，ŷ=0.95。一次搬杯子若先抓滑、最后放直，可结果5/5；dense保留滑落失败；rubric抓取0.1＋搬运0.15＋放直0.5＝0.75。三者问的问题不同，数值不必一致。</div></div>
+<p>Outcome最多均匀取64帧，约10Hz候选采样后限制预算，覆盖首尾；score-only最多12新token、有rationale最多160。提取生成score位置top20候选中1–5数字的概率再归一化，这个分布不等于已经校准的成功概率。Rubric按每机位独立视频输入，2–10步内部任务或1–4步外部任务；评测时还使用9样本medoid，不能与单次greedy成本混为一谈。</p>
+<details class="quiz"><summary>自测：最后成功，能否把整条轨迹所有过程标签都改成normal？</summary><div class="inline-answer">不能。局部失败、危险和低效是过程监督的对象。最终恢复仅改变结果，不应改写过去；反过来，后面发生无关失误也不应把之前正确动作降级。</div></details>
+
+<h2 id="dense">04 · 密集奖励怎样拼接？为什么它是回看式的？</h2>
+<p>附录G给出精确窗口：锚点αₖ对应64个位置αₖ+(i−9)/4秒，i=1…64，名义范围[αₖ−2,αₖ+14)。越过episode边缘重复最近帧；两帧一组，取较严重人工标签。训练按episode划分，评测episode不出现在训练/验证。</p>
+<p>推理锚点通常每10秒一个，末尾补一个对齐最后帧的窗口。每个非末窗保留前24组，丢最后8组＝4秒；末窗保留有效组。<strong>这样多数保留标签能看见至少4秒后文</strong>，便于识别刚才的滑落究竟是不是失败。</p>
+<div class="formula-reading"><h3>Eq.22：多窗预测冲突时选谁？</h3><p class="equation">aₜ=a<sub>k*,g*</sub>；(k*,g*)=lexmin<sub>(k,g)∈C</sub>(min<sub>τ∈τₖ,g</sub>|t−τ|，−min(g−1,32−g)，k，g)</p><dl class="symbol-list"><dt>C / τₖ,g</dt><dd>保留的有效窗口组集合，以及一组两帧的源时间戳。</dd><dt>lexmin</dt><dd>字典序比较：先时间距离最近；再偏向离窗口边缘更远的组；再选更早的窗口和组。</dd><dt>aₜ</dt><dd>最终源帧t的质量标签。连续同标签合成片段，非normal片段取出现最多的rationale。</dd></dl><div class="worked-example"><strong>教学算例：</strong>t=12秒在两个窗口都有预测，先找哪组采样点最近；距离相同则选上下文更完整的窗口内部组，而非平均1和3得到2。标签是离散类别。</div></div>
+<p>解析采用结构化语法，Worst与Quality不一致拒绝，解析失败替换为全normal并加flag。生产者必须保留这个flag，否则会把技术失败当成安全正常数据。回看窗口也意味着它主要适合<strong>离线标注、分析与数据筛选</strong>；若改成在线机器人安全监控，需要处理后文缺失、额外延迟和重新校准，不能原样宣称是因果实时critic。</p>
+<!-- FIGURE:9 -->
+
+<h2 id="training">05 · SFT、GRPO分别优化什么？</h2>
+<div class="formula-reading"><h3>Eq.15：三个模型共用的SFT形式</h3><p class="equation">L<sub>η</sub>(B)=−[Σ<sub>(x,y)∈B</sub>Σ<sub>t=1…|y|</sub>log p<sub>η</sub>(yₜ|x,y&lt;ₜ)] / [Σ<sub>(x,y)∈B</sub>|y|]，η∈{θ,φ,ψ}</p><p>B为batch，x为视觉与任务prompt，y为目标输出文本；|y|为输出token数。只在输出token上计算交叉熵，按整个batch输出长度归一。η依任务选择分段、描述或奖励模型参数。</p><div class="worked-example"><strong>教学算例：</strong>两条输出长度2/3、负log概率总和1.0/1.5，loss=(1+1.5)/(2+3)=0.5。不是先各自平均再对长短样本等权。</div></div>
+<div class="formula-reading"><h3>Eq.16：分段GRPO奖励</h3><p class="equation">r<sub>seg</sub>=0.45F₀.₅＋0.15F₀.₇₅＋0.25P₀.₅＋0.15B</p><p>Fτ与Pτ是tIoU阈值τ下、一对一匹配后的F1和precision；B是匹配对边界奖励，端点总误差d另给错误继续flag各加0.5秒，单对为max(0,1−d/1秒)。先最大匹配数量，再最小化截断误差。没匹配时B=0，双方空集合则奖励1；格式无效或截断奖励0。</p><div class="worked-example"><strong>教学算例：</strong>F₀.₅=.8、F₀.₇₅=.5、P₀.₅=.75、B=.9时，奖励=.36+.075+.1875+.135=.7575。权重鼓励找全动作、减少乱切、提高边界精度。</div></div>
+<div class="formula-reading"><h3>Eq.6、7、17：描述不能靠堆细节骗分</h3><p class="equation">R=Σ<sub>a∈A</sub>mₐ；M=Σ<sub>a∈A</sub>mₐzₐ；F=1.25Σ<sub>h∈E</sub>w<sub>g(h)</sub>；q=r<sub>cap</sub>=2M/(R+M+F)</p><p>A是有证据的参考要求，mₐ是质量权重，zₐ是是否覆盖；四组action/identity/coordination/detail权重.50/.25/.20/.05。E是已证实错误的语义族，同一错事实重复说只罚一次；来源不确定要求不计入R。阶段依赖要满足，不能用放下后的状态冒充伸手阶段。</p><div class="worked-example"><strong>教学算例：</strong>支持总量R=1，覆盖M=.75，无错误得1.5/1.75≈.857；若产生加权错误F=.25，降到1.5/2=.75。长而幻觉的caption可能比短而准确更差。</div></div>
+<p>两类GRPO都在同一输入的rollout组内减去奖励均值，<strong>不做标准差归一</strong>。分段LoRA有相对固定SFT策略的KL约束；描述RL更新语言模型。checkpoint在独立验证集选，分段有各受保护组最多跌2pp限制，描述按三本体均值与无逐组退化规则选，两者独立。benchmark不用于选checkpoint。</p>
+<p>Rewarder把outcome、dense、rubric样本混合打乱，公开模型只做SFT，没有任务族重加权。原始密集标注是人工动作区间＋质量＋原因，重叠取更严重类别；结果二值成功/失败映成5/1，部分完成p映成1+round(4p)。完整训练数据规模、来源比例和最优混合比未报告。</p>
+
+<h2 id="metrics">06 · 评测公式：F1、语义质量和联合分数怎样算？</h2>
+<div class="formula-reading"><h3>Eq.4、5、8：选数据和算分是两件事</h3><p class="equation">Φ(S)=Σ<sub>g∈G</sub>(1/|Tg|)Σ<sub>t∈Tg</sub>√(nₜ(S)/Nₜ)<br>F<sub>seg</sub>=2TP/(|Î|+|I*|)<br>F<sub>joint</sub>=2·max<sub>M</sub>Σ<sub>(i,j)∈M</sub>qᵢⱼ / (|Î|+|I*|)</p><dl class="symbol-list"><dt>Φ / S / g / t</dt><dd>覆盖选样目标、所选episode集合、元数据组、组中标签；Nₜ是候选池带标签t的episode数，nₜ是已选数量。平方根让重复覆盖边际收益变小。未用模型分数挑测试样例。</dd><dt>Î / I* / TP</dt><dd>预测区间、参考区间、tIoU达阈值后的最大数量一对一匹配数。</dd><dt>M / qᵢⱼ</dt><dd>时间合格边上的一对一分配与该caption的质量。联合匹配最大化质量和，空caption仍保留在分母。</dd></dl><div class="worked-example"><strong>教学算例：</strong>3段预测、2段参考、匹配2对：分段F1=4/5=.8。两对语义质量.8/.5，联合F1=2×1.3/5=.52。不能把“平均分段F1×平均caption分”当联合F1。</div></div>
+<p>DenseCaptionBench用tIoU≥.5，整数微秒边界，不吸附参考边缘；WGO用≥.75且按公开协议吸附首尾外边缘。WGO字幕接受与Dense的点质量又不同，所以两套F1不能直接按数字大小比较。</p>
+<p>Dense参考含4,877段：Human3,220、夹爪1,266、灵巧手391。机器人参考中1,364是已确定意图，293是观察操作proxy；来源不确定性保留。Astra还同时充当Dense caption judge，存在generator–judge自偏好风险；固定参考与采样视觉也限制裁判精度。</p>
+
+<h2 id="evidence">07 · 结果表：哪些地方强，哪些地方仍会失败？</h2>
+<!-- FIGURE:4 -->
+<h3>仿真 / policy证据</h3><div class="eval-table-wrap"><table class="eval-table"><thead><tr><th>项目</th><th>论文报告</th><th>能支持的结论</th></tr></thead><tbody><tr><td>LIBERO、RoboTwin等闭环仿真</td><td>未报告FLORA驱动policy的SR</td><td>标签工具评估不等于控制评估</td></tr><tr><td>使用FLORA训练GR00T</td><td>作者报告生产使用</td><td>缺少相同policy和数据量的标签前后闭环消融，不能归因SR增益</td></tr></tbody></table></div>
+<h3>ID/OOD及跨本体标注</h3><div class="eval-table-wrap"><table class="eval-table"><thead><tr><th>评测 / 样本 / 协议</th><th>FLORA</th><th>参照与边界</th></tr></thead><tbody><tr><td>WGO100：25HomER/50DROID/25Galaxea；tIoU.75；三个子集等权</td><td>分段50.3；gold描述64.7；联合34.5</td><td>Astra46.0/77.4/39.0；分段领先，联合不领先；不是100条直接池化均值</td></tr><tr><td>Dense Human100；tIoU.5</td><td>分段54.6；描述66.5；联合37.4</td><td>Astra44.2/60.3/29.7；本文范围内人类细动作有收益</td></tr><tr><td>Dense Robot200；夹爪/灵巧手各100，双组等权</td><td>66.9 / 73.7 / 51.0</td><td>Astra71.9 / 80.2 / 57.9；FLORA并非全面更优</td></tr><tr><td>Dense夹爪 / 灵巧手</td><td>联合52.6 / 49.4</td><td>输入、粒度与参考类型不同，不归因于本体单一因素</td></tr><tr><td>Robometer：567 OOD轨迹排序；τₐ</td><td>0.720</td><td>Astra0.823更高；专用模型保留原文协议，部分样本数不同</td></tr><tr><td>Robometer：成功轨迹255ID / 105OOD；VOC</td><td>0.989 / 0.996</td><td>与时间线性增长也可高分，不能当失败检测召回；Astra.989/.997</td></tr></tbody></table></div>
+<!-- FIGURE:5 -->
+<p>附录B.6换backbone后，Refiner＋Gemini3.8的WGO分段42.0、描述73.8、联合36.4，联合超过FLORA34.5。直接把FLORA模型替换为API而保留生产窗口/拼接，仅19.4/52.1/11.1（Gemini3.5），说明训练模型与流程协同重要，也说明“流程本身一定更好”没有被单独证明。</p>
+<h3>真机记录上的奖励评价（不是部署成功率）</h3><div class="eval-table-wrap"><table class="eval-table"><thead><tr><th>数据 / 指标</th><th>FLORA / 比较</th><th>协议与误差</th></tr></thead><tbody><tr><td>RoboReward，2831episode；1–5分MAE</td><td>0.400 / Astra0.554</td><td>原表乘100显示40.0/55.4；不能读成40%失败率</td></tr><tr><td>DenseReward，40held-out双臂episode；4861个1Hz步骤</td><td>MacroF1 .462；balanced acc .542；bad-actionF1 .477；failure recall .533</td><td>3942normal/619次优/300失败；约11%normal误判失败。基线最高失败召回.117，Astra为0</td></tr><tr><td>RubricBench，40episode/10任务，任务名与episode均留出；pooledL1</td><td>.065 / Astra.036</td><td>FLORA9样本medoid，基线多数1样本；采样/帧数/推理预算不同</td></tr><tr><td>前向实时监控 / 自动RL后训练闭环</td><td>本文未报告同协议成功率或安全事件改善</td><td>回看标签可以辅助此类系统，仍需另行验证</td></tr></tbody></table></div>
+<p>缺失请求采用固定分母、无operational credit；Dense机器人评测5个源缺新caption、98个judge job不可用，部分时间指标沿用未改segmenter结果。评分缺失是测量状态，不等于caption一定错；不同历史技术重试预算、native视觉处理和API输入预算也不算严格计算量匹配。</p>
+<!-- FIGURE:6 -->
+<!-- FIGURE:10 -->
+<!-- FIGURE:11 -->
+<!-- FIGURE:12 -->
+
+<h2 id="cost">08 · 每天20万小时与125×成本，逐个拆分母</h2>
+<!-- FIGURE:3 -->
+<p>作者生产报告：512张GB300每天标注20万<strong>源视频小时</strong>。多机位是否逐视角折算会影响读法，应以source-video口径理解；这不是机器人一天新产生20万小时经验。成本和吞吐图是另一套50episode条件分析，不能拿生产报告为其中每项假设背书。</p>
+<div class="formula-reading"><h3>Eq.9：每源视频小时标注成本</h3><p class="equation">C<sub>Flora</sub>=p·g·N/(3600·H·S)</p><dl class="symbol-list"><dt>p / g</dt><dd>假定每GPU小时价格10美元，GPU数8。</dd><dt>N / H / S</dt><dd>50条episode，源时长4483.54秒＝1.24543小时，假定1.23495条episode/秒。</dd></dl><div class="worked-example"><strong>代入原文参数：</strong>10×8×50/(3600×1.24543×1.23495)≈0.7224美元/源视频小时。Astra最大effort88.4922/0.7224≈122.49，文中概称125×。工程场景S=.70804–1.74862对应0.5102–1.2600美元，不是置信区间。</div></div>
+<p>服务吞吐来自先前部署研究的负载660窗口/890caption，<strong>不是发布RL checkpoint的逐请求实测率</strong>；生产GPU小时分母尚未核实。API成本按2026-10-04标准价计分段＋预测区间caption，7062次物理尝试中106次无usage未定价。训练、构建参考、gold-caption、裁判、存储与部署开销不在完整账单内。</p>
+<p>50条里20human/15夹爪/15灵巧手；质量先在每本体对分段、gold描述、联合三项等权，再三个本体等权，得57.1。API原始参考快照与FLORA当前快照未完全一致；episode bootstrap只反映样本不确定性，不覆盖裁判、生成、参考和服务变化。</p>
+<!-- FIGURE:8 -->
+<div class="formula-reading"><h3>Eq.10、11：API配额天花板与GPU副本扩展</h3><p class="equation">Qₘ=H·min(Rₘ/Aₘ，min<sub>k∈Kₘ</sub>Lₘ,k/Tₘ,k)<br>Q₈ᵣ=r·60HS/N</p><p>API的R是每分钟请求上限，A是这一组episode请求总数；L/T为各类token配额与总需求比。取最紧瓶颈乘源时长H，得到源视频小时/分钟。GPU的r是8GPU副本数，S为假定episode/秒，乘60换成每分钟。</p><div class="worked-example"><strong>代入原文：</strong>1份8GPU副本约1.8457视频小时/分钟；12份＝96GPU，线性假设得22.15。费用假设16美元/分钟，虽低于对比API最低条件花费16.08，但不是每个API点严格等预算，也未测到真实96GPU吞吐。</div></div>
+<p>因此原截图“1/25”与这版PDF不一致：本页按官方2026-10-20 PDF及附录D写<strong>约1/125的条件成本估计</strong>。实际部署应测decode、I/O、模型服务和质量抽检全链路，再计算自己的价格。</p>
+
+<h2 id="apply">09 · 对你关心的人类数据与WAM训练有什么用？</h2>
+<p><strong>解释性推断：</strong>最直接的收益是为Ego/机器人混合语料建立相似的时间语言接口，让“按小时混合”进一步变成“按技能覆盖、手角色、任务粒度、执行质量混合”。它补齐的是数据选择与监督层，无法独自补齐人机几何对齐、可执行动力学或WAM实际控制接口。</p>
+<ol><li><strong>先建可审计小集：</strong>人工检查短动作、并发双手、遮挡、失败后恢复、同物体不同意图，分别看边界召回与caption事实错误。</li><li><strong>保留质量和意图两列：</strong>失败片段对恢复训练可能有价值；不要一律删低分，也不要把suboptimal等价于“没完成任务”。</li><li><strong>把本体和来源留在样本里：</strong>相同动作词不保证相同动作向量。FLORA语言标签可以接UniWAM式物理语义，但不能自动成为SONIC token监督。</li><li><strong>做下游对照：</strong>固定policy、训练步数、数据量，对比人工标签、原始自动标签、经过抽检/过滤的FLORA标签；同时测语言跟随、ID/OOD、长程恢复和真实执行。</li></ol>
+<details class="quiz"><summary>自测：过程失败召回53.3%，能否放心自动删除所有低分数据？</summary><div class="inline-answer">还要看precision、正常片段误报率与任务分布；约11%正常步骤会被误判失败。恢复训练还需要保留部分失败。离线抽检和下游控制实验决定删除阈值，而非只看召回。</div></details>
+<p class="source">原文定位：§2结果、§4方法；附录A完整表、B分段/语义评测、C奖励协议、D成本、E正反例、F分段/描述训练、G三奖励实现、H相关工作。<a href="https://research.nvidia.com/labs/gear/flora/">官方项目</a> · <a href="https://huggingface.co/collections/nvidia/flora">开源模型</a>。</p>

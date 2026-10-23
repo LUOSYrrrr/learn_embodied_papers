@@ -1,0 +1,42 @@
+<h2 id="question">1 · 世界预测够强，为什么还要物理语言？</h2>
+<div class="cn-read"><div class="cn-label">先解释方法的切入点</div><p>仅凭画面，机器人常能猜下一步，却可能不听“放在杯子右边”。仅用动作loss微调VLM，又可能损失语义能力。UniWAM让VLM继续用熟悉的文字预测目标，同时把手/机械臂局部动作译成统一自然语言，联合训练未来视觉与连续控制。</p></div>
+<!-- FIGURE:1 -->
+<div class="eval-table-wrap"><table class="eval-table"><caption>五问与证据</caption><tr><th>背景 / 失败场景</th><td>VLA语义与WAM动态先验各有短板；物体看对不等于动词、空间关系执行对。</td></tr><tr><th>前人依赖</th><td>MoT/Motus结构；Qwen3-VL-2B；Wan2.2-TI2V-5B；LAP物理语言；action-to-action flow。</td></tr><tr><th>关键改动</th><td>按来源分配监督，保留语言头；future noise augmentation＋history flow。</td></tr><tr><th>效果</th><td>RoboTwin小幅C2C→C2R落差；真机IFR与SR同时提高；少步flow效果强。</td></tr><tr><th>代价 / 缺口</th><td>人机数据清洗与标注，大模型联合训练；详细mask和部分数据统计不一致，没给在线延迟。</td></tr></table></div>
+<h2 id="architecture">2 · 三个专家怎么交换信息？</h2>
+<!-- FIGURE:3 -->
+<p>Physical reasoner保留autoregressive language head；world generator在冻结VAE空间预测8个未来帧；action predictor生成16×14动作块。三者30层，世界hidden3072/24heads，reasoner与action接口hidden512/1024（按附录G）。具体Qwen内部维度到接口投影不要凭模型名猜。</p>
+<p>训练/部署当前观察保持干净，未来视觉与动作分别有noise level。部署视觉从Gaussian开始，动作从历史加小扰动开始，联合积分2–4步（默认4）。这与OneWM/InternW0-Δ的action-only未来移除不同。论文Eq.3给出M但没有完整逐组mask矩阵；本页不把MoT画成任意全互看，也不擅自宣称一定“先完整生成语言再行动”。</p>
+<h2 id="math">3 · 11个公式与一个能手算的A2A例子</h2>
+<p>oₜ图像、sₜ本体状态、I任务指令、y语言输出、a未来动作、Z视觉latent、h预测长度、τ去噪进度。上标0/1分别表示目标/源端，不是物理时间帧。视频和动作noise level独立采样；环境时间t与τ分开。</p>
+<section class="formula-reading"><h3>Eq.1–3：联合分布与joint attention</h3><div class="equation">pθ(y,oₜ₊₁:ₜ₊h,aₜ₊₁:ₜ₊h | oₜ,sₜ,I)<br>Qm=X̃mWQm，Km=X̃mWKm，Vm=X̃mWVm<br>O=softmax(QKᵀ/√d+M)V</div><p>θ是模型参数；y是要生成的物理语言或问答文本，o是图像观察，a是连续动作，s是机器人状态，I是语言指令，h是预测时域；t+1:t+h表示一段未来。m∈{understanding,video,action}，X̃m为该专家输入token，W为其可学习投影矩阵；Q/K/V分别是query/key/value，d是单头key维数，O是attention输出，M是可见性mask。各路独立投影，Q/K/V在token维拼接后计算，再分回专家。M不可见处等价负无穷。例三个key等分但一个被mask，权重变.5/.5/0；“joint”不覆盖mask限制。</p></section>
+<section class="formula-reading"><h3>Eq.4：物理语言监督</h3><div class="equation">Llang=−Σⱼlog pθ(yⱼ | oₜ,I,y&lt;ⱼ)</div><p>只对答案token算loss，不对用户指令算。目标可以是VQA答案，也可以是“左臂上移4厘米、闭夹爪”。这是跨本体行为语义，不是把文本直接当伺服命令。</p><div class="worked-example">Appendix D：净位移[.026,−.014,0]m可变成“前移3cm、右移1cm”；旋转按10°四舍五入，夹爪末值≥.5写open，否则close；零变化省略。量化会损失精度，低层控制仍由连续动作头负责。</div></section>
+<section class="formula-reading"><h3>Eq.5–6 / Eq.11：预训练三项损失</h3><div class="equation">Aτ=(1−τ)A⁰+τA¹，Zτ=(1−τ)Z⁰+τZ¹<br>Lact=E‖ûᵃ−(A¹−A⁰)‖²；Lv=E‖ûᵛ−(Z¹−Z⁰)‖²<br>L=waLact+wvLv+Llang；附录具体配方 Lpre=Lv+Lact+.1Llang</div><p>预训练A¹/Z¹都为噪声；只预测未来视频，不把当前观察算入视觉loss。Eq.6为通用权重写法，实际配方按附录G的1:1:.1报告，不能忽略语言权重。原文没有完整给出每来源loss mask的可执行实现。</p></section>
+<section class="formula-reading"><h3>Eq.7：故意让未来不那么可靠</h3><div class="equation">Z̃τ=saugZτ+(1−saug)ε；saug~U(.5,1)</div><p>50%样本执行，只扰动未来latent；当前观察、原目标和原timestep embedding保持不变。例Zτ=4、ε=0、s=.75，输入变3，但目标仍不变。这是额外输入增强，不是重设flow时间为.75，防止动作过度依赖几乎干净的训练未来。</p></section>
+<!-- FIGURE:4 -->
+<section class="formula-reading"><h3>Eq.8–9：从历史到新动作的flow</h3><div class="equation">A¹ₜ=Aₜ₋₁+εa，εa~N(0,.02²I)<br>Aτₜ=(1−τ)A⁰ₜ+τA¹ₜ；uᵃ=A¹ₜ−A⁰ₜ</div><p>Aₜ₋₁是已经执行的16步历史，与将生成的16步同形状。历史不是未来真值、不是把已承诺prefix固定在当前chunk；不要与RTC混为一谈。</p><div class="worked-example">标量历史.3、新目标.5、扰动.01，则源端.31，速度目标−.19；从τ=1往0积分走到.5。若只复制历史会停在.3；若目标突然反向，模型仍必须大幅改历史。</div></section>
+<section class="formula-reading"><h3>Eq.10：有限范围的log-linear拟合</h3><div class="equation">L(D)≈.03205−.00302lnD，R²≈.983</div><p>D是文中小时规模记号；Figure7横轴具体标机器人小时，混合额外加人类小时。二者口径需留意，不能自行套出所有总量。教学上每翻倍loss预测下降.00302ln2≈.00209；不断外推最终会预测负loss，说明不能当无限通用定律。R²高也不证明因果或足以替代闭环SR。</p></section>
+<h2 id="data">4 · 人机约1:1是不是推荐配方？</h2>
+<!-- FIGURE:2 -->
+<div class="eval-table-wrap"><table class="eval-table"><caption>数据谱系 · Tables1–3 / Introduction</caption><tr><th>数据</th><th>规模</th><th>用途</th><th>要注意</th></tr><tr><td>Robot</td><td>Table1 subtotal4958h</td><td>语言、视频、动作监督</td><td>正文§3.1.1另写4363h；各行舍入加和4959h。</td></tr><tr><td>Human</td><td>EgoVerse4003＋EgoDex829＋VITRA240＝5072h</td><td>正文称VLM/VGM监督，避免低精度动作loss</td><td>Fig3 caption称训练all3；未静默调和。</td></tr><tr><td>VQA</td><td>8.293M QA pairs</td><td>空间、grounding、通用推理、时序、交互、规划</td><td>样本数不是视频小时；不能把饼图百分比当sampler。</td></tr></table></div>
+<p>机器人来源AgiBot2026 891、Alpha595、Bridge80、Droid365、Fractal340、Robocoin1088、InternData1600h。人类手腕在conditioning时刻头相机系下表达，参考系在整个序列固定；每手xyz＋四元数，合14D。没有将人体SMPL转成G1或用SONIC控制的步骤。</p>
+<p>质量控制包括median＋Savitzky–Golay残差与加速度/jerk联合异常筛查；state/action互相关校时再看方向一致性；可用元数据时以FK核对joint–EEF；坐标语义不明则保留原方向表示，不强行校正；去黑/坏/模糊帧但保留关键夹爪接触。</p>
+<p>Table1总数写10013h，但subtotal4958+5072=10030h。本页不把矛盾精确总数包装成已核验数据量。约1:1是库存和本文受控混合探索，不是证明最优采样权重。32×H800预训练7天；RoboTwin后训练8×H800、200K steps、batch40、12h；LIBERO20h。</p>
+<!-- FIGURE:7 -->
+<h2 id="evaluation">5 · ID / OOD / 真机：总分掩盖了什么</h2>
+<div class="eval-table-wrap"><table class="eval-table"><caption>仿真 Table4–5、AppendixE</caption><tr><th>基准</th><th>训练 / 测试</th><th>结果</th><th>解释</th></tr><tr><td>LIBERO</td><td>四套任务；本文未重述每套trial/seeds</td><td>Spatial99.6 / Object99.6 / Goal99.2 / Long98.4；平均99.2</td><td>不是所有子项第一，Long低于LingBot98.5。</td></tr><tr><td>RoboTwin2</td><td>50任务×50 clean示范；每任务每设置100episodes</td><td>C2C75.14 / C2R68.32 / 平均71.73</td><td>训练无random；比OpenWAM89.4低的C2C，但C2R更强。</td></tr></table></div>
+<div class="eval-table-wrap"><table class="eval-table"><caption>分维度 OOD · Table6</caption><tr><th>维度</th><th>SR</th><th>边界</th></tr><tr><td>Camera</td><td>92.0</td><td>低于ACoT96.6</td></tr><tr><td>Robot初始化</td><td>89.5</td><td>不是新本体零样本</td></tr><tr><td>Language</td><td>92.2</td><td>该表最佳</td></tr><tr><td>Light</td><td>97.9</td><td>该表最佳</td></tr><tr><td>Background</td><td>97.6</td><td>该表最佳</td></tr><tr><td>Noise</td><td>94.3</td><td>低于Kairos96.8</td></tr><tr><td>Layout</td><td>84.6</td><td>低于ACoT85.0</td></tr><tr><td>Plus平均</td><td>92.6</td><td>不能以99.2作为各扰动的严格同任务配对ID分母</td></tr><tr><td>RoboTwin C2C→C2R</td><td>75.14→68.32</td><td>下降6.82pp，保留90.9%；多个扰动共同变化。</td></tr></table></div>
+<!-- FIGURE:10 -->
+<!-- FIGURE:5 -->
+<!-- FIGURE:6 -->
+<div class="eval-table-wrap"><table class="eval-table"><caption>真机40次/任务；成功计数由Figure6恢复</caption><tr><th>任务</th><th>SR / 计数</th><th>Wilson95%</th><th>IFR</th><th>判断</th></tr><tr class="eval-binomial" data-successes="32" data-trials="40"><td>Pick-Anything</td><td>80% /32</td><td data-wilson-95>65.2–89.5%</td><td>90%</td><td>目标辨认</td></tr><tr class="eval-binomial" data-successes="29" data-trials="40"><td>Diverse-Interaction</td><td>72.5% /29</td><td data-wilson-95>57.2–83.9%</td><td>80%</td><td>物体＋操作</td></tr><tr class="eval-binomial" data-successes="19" data-trials="40"><td>Place-Relative</td><td>47.5% /19</td><td data-wilson-95>32.9–62.5%</td><td>72.5%</td><td>空间关系最难</td></tr><tr class="eval-binomial" data-successes="28" data-trials="40"><td>Drawer-Storage</td><td>70% /28</td><td data-wilson-95>54.6–81.9%</td><td>87.5%</td><td>双臂与层级</td></tr><tr><td>平均</td><td>67.5%</td><td>不能替代训练种子方差</td><td>82.5%</td><td>选对还不一定做成</td></tr><tr><td>长程整理</td><td>平均5/6阶段</td><td>非二项成功率，不算Wilson</td><td>高层指令“Tidy up the desk”</td><td>π0.5为4.8，Motus3.2；无单独ICL评测。</td></tr></table></div>
+<p>六个评分阶段为放第一杯、第二杯、开抽屉、放目标、关抽屉、放marker。本文未报告每阶段方差、完成时间、人工干预/安全停止数或完整失败类别。成功数区间只描述这组测试，不是训练稳定性证明。</p>
+<h2 id="ablation">6 · 消融：语义、历史、未来增强各有证据</h2>
+<!-- FIGURE:8 -->
+<!-- FIGURE:9 -->
+<!-- FIGURE:11 -->
+<p>数据消融：无预训练46.23→Robot67.53→Robot+Human71.34→再VQA71.73；Robot+VQA67.13略低于Robot-only，不能说VQA在任意组合都提升。Reasoner解冻42.61→46.49，加物理语言51.74，再预训练71.34。各组设置不同，不能将全部增量相加。</p>
+<h2 id="appendix">7 · 附录和冲突：这次不要略过</h2>
+<details><summary>AppendixF：50任务完整数据中最值得看哪些失败？</summary><p>挂杯16/16（C2R/C2C）；交接块18/24；放柜28/40；放罐进篮35/36；二维码旋转41/46。强项如抓roller100/100、click bell99/100。平均68.32没有解决所有精细/交接任务。完整50行在PDF Table7 p.28，非只挑最好例子。</p></details>
+<div class="eval-table-wrap"><table class="eval-table"><caption>原文不一致与未核验项</caption><tr><th>位置</th><th>问题</th><th>本页处理</th></tr><tr><td>§1 vs Fig3</td><td>Human是否直接监督action</td><td>显式并列；需代码loss路由才能定。</td></tr><tr><td>§3 / Table1 / Fig3</td><td>4363、4958、4959、总10013与10030</td><td>逐源保留，拒绝给伪精确合计。</td></tr><tr><td>Abstract/Intro vs Eq8/G</td><td>“encoded latent history”与同形历史动作加噪</td><td>数学解释按Eq8，不臆造额外latent encoder。</td></tr><tr><td>Eq3</td><td>只定义mask符号，未给全矩阵</td><td>不画没有证据的方向连线。</td></tr><tr><td>推理效率</td><td>2–4步、默认4步，但没有ms/Hz</td><td>只说迭代减少，不声称达到某实时速度。</td></tr></table></div>
+<p><strong>Insight：</strong>跨本体迁移不一定要求把每条人类轨迹强行当机器人精确控制目标；共享语义监督也能把它用于表示学习。另一方面，若部署确实依赖预测未来，应训练它容忍未来不准，并用历史提供较好flow起点。这两点与“堆三专家就自然融合”不同，都有具体训练目标。</p>
+<details class="prediction-pause"><summary>自测：历史动作初始化是否等于机器人上下文学习了新任务？</summary><p>不是。它是同episode动作连续性的生成先验；没有展示在prompt放新示范后无更新学会新技能的ICL协议。长程milestone提高也不自动证明ICL。</p></details>

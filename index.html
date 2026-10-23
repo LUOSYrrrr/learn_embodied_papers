@@ -226,6 +226,7 @@
       <a href="papers/embodied-knowledge-map.html">知识总图</a>
       <a href="#all-readings">全部解读</a>
       <a href="#world-model">World Model 专题</a>
+      <a href="#frontier-reading">WAM 新作精读</a>
       <a href="#embodied-icl">Embodied ICL 专题</a>
       <a href="leaderboard/">论文榜单</a>
       <a href="https://github.com/LUOSYrrrr/learn_embodied_papers" target="_blank">GitHub</a>
@@ -247,7 +248,7 @@
 
     <div class="intro-grid">
       <div class="intro-cell">
-        <div class="intro-cell-num">128</div>
+        <div class="intro-cell-num">134</div>
         <div class="intro-cell-label">解读页面</div>
       </div>
       <div class="intro-cell">
@@ -255,7 +256,7 @@
         <div class="intro-cell-label">计划中</div>
       </div>
       <div class="intro-cell">
-        <div class="intro-cell-num">7</div>
+        <div class="intro-cell-num">8</div>
         <div class="intro-cell-label">覆盖方向</div>
       </div>
     </div>
@@ -297,6 +298,26 @@
           <a class="wm-side-card" href="papers/simfoundry.html"><span class="wm-side-label">SIDE ROUTE B</span><span class="wm-side-title">SimFoundry · Real-to-Sim</span><span class="wm-side-copy">一段真实视频生成可交互 digital twin，并扩成 object / scene / task cousins。</span></a>
           <a class="wm-side-card" href="papers/4d-gaussian-splatting.html"><span class="wm-side-label">SIDE ROUTE C</span><span class="wm-side-title">4DGS · 动态世界的渲染层</span><span class="wm-side-copy">重要但不是 world model 本体：GS 管视觉，mesh / physics 管接触，WAM 管动作后果。</span></a>
         </div>
+      </div>
+    </section>
+
+    <section class="wm-topic" id="frontier-reading" aria-labelledby="frontier-reading-title">
+      <div class="wm-topic-shell" data-watermark="WAM · DATA · AGENTS">
+        <div class="wm-topic-head">
+          <div>
+            <div class="wm-topic-kicker">2026-10-23 · 六项独立精读</div>
+            <h2 class="wm-topic-title" id="frontier-reading-title">世界动作模型、Agent 与数据引擎</h2>
+            <p class="wm-topic-desc">按方法解决的问题分类：先看世界预测如何帮助动作，再看代码与长程行为，最后回到训练数据。共收录 59 张论文原图与 6 张官方网页图；公式含符号解释与算例，仿真、OOD、真机分别核对。</p>
+          </div>
+          <a class="wm-topic-cta" href="papers/onewm.html">从 OneWM 开始 →</a>
+        </div>
+        <div class="wm-track">
+          <article class="wm-phase"><span class="wm-phase-title">联合训练与因果可见性</span><p>OneWM：混合干净/噪声动作，让世界预测与策略互相促进；策略部署不生成未来视频。</p><div class="wm-links"><a class="wm-chip" href="papers/onewm.html">OneWM · 8 图 / 6 公式</a></div></article>
+          <article class="wm-phase"><span class="wm-phase-title">未来表征与人机混训</span><p>InternW0-Δ 用未来残差训练、轻量部署；UniWAM 用物理语言连接理解、未来与动作。</p><div class="wm-links"><a class="wm-chip" href="papers/internw0-delta.html">InternW0-Δ · 12 图</a><a class="wm-chip" href="papers/uniwam.html">UniWAM · 11 图</a></div></article>
+          <article class="wm-phase"><span class="wm-phase-title">Agent 与长程灵巧操作</span><p>AW-0 联合建模代码、视频和动作；Natura-1 重点看百万小时经验、记忆和系统部署。</p><div class="wm-links"><a class="wm-chip" href="papers/agentic-wam.html">AW-0 · 14 图</a><a class="wm-chip" href="papers/natura-1.html">Natura-1 · 官方长文 / 6 图</a></div></article>
+          <article class="wm-phase"><span class="wm-phase-title">数据引擎与奖励监督</span><p>FLORA：分段、动作描述、结果/过程/rubric 评分，补齐语料整理与评价接口。</p><div class="wm-links"><a class="wm-chip" href="papers/flora.html">FLORA · 14 图 / 22 公式</a></div></article>
+        </div>
+        <p class="wm-topic-desc">阅读提示：InternW0-Δ 的 RoboDojo 结果属于仿真；Natura-1 六个长程演示有额外任务调优；FLORA 每天 20 万小时指源视频标注处理量。不同协议的分数不直接排成一张成功率榜。</p>
       </div>
     </section>
 
@@ -349,6 +370,12 @@
       <span class="sh-hint">按更新时间排序</span>
     </div>
     <div class="recent-wrap">
+      <a class="recent-card" href="#frontier-reading">
+        <div class="recent-date">2026-10-23 · 新增六项精读</div>
+        <div class="recent-title">OneWM / AW-0 / Natura-1 / InternW0-Δ / UniWAM / FLORA</div>
+        <div class="recent-sub">逐图拆解训练与部署链路，解释公式、数据混合、仿真/OOD/真机协议与公开材料的边界；已按模型、Agent、数据引擎分类。</div>
+        <div class="recent-tags"><span class="status-badge status-done">✓ 六项已整理</span><span class="card-pill">65 张原始证据图</span><span class="card-pill">2026-10</span></div>
+      </a>
       <a class="recent-card" href="papers/humanoid-data-to-wam.html">
         <div class="recent-date">2026-10-23 · 六篇串读</div>
         <div class="recent-title">人体数据 → 重定向 → 底层控制 → WAM 策略</div>
@@ -1030,13 +1057,24 @@
             <span class="dir-name">WAM · 世界-动作模型</span>
             <span class="dir-sub">世界模型生成 subgoal / 模拟未来，辅助策略学习</span>
           </span>
-          <span class="dir-stats"><span class="dir-count">9</span> 篇已读</span>
+          <span class="dir-stats"><span class="dir-count">16</span> 个入口</span>
           <span class="dir-arrow">&#9662;</span>
         </summary>
         <div class="dir-body">
           <div class="dc-group">
             <div class="dc-group-label label-core">专题入口</div>
             <a class="dc-item" href="papers/wam-roadmap.html"><span class="dc-item-main">WAM 完整学习路线<span class="dc-item-en">地基 → Latent Action → 两大架构 → 效率 / 评测</span></span><span class="status-badge status-done">✓</span></a>
+          </div>
+          <div class="dc-group">
+            <div class="dc-group-label label-core">因果联合训练与未来表征</div>
+            <a class="dc-item" href="papers/onewm.html"><span class="dc-item-main">OneWM<span class="dc-item-en">统一因果训练 · 动作条件世界预测 · 策略无需未来生成</span></span><span class="status-badge status-done">✓</span></a>
+            <a class="dc-item" href="papers/internw0-delta.html"><span class="dc-item-main">InternW0-Δ<span class="dc-item-en">未来残差 · 人机混训 · RoboDojo 仿真协议</span></span><span class="status-badge status-done">✓</span></a>
+            <a class="dc-item" href="papers/uniwam.html"><span class="dc-item-main">UniWAM<span class="dc-item-en">物理语言 · 联合视频动作 · 历史动作初始化</span></span><span class="status-badge status-done">✓</span></a>
+          </div>
+          <div class="dc-group">
+            <div class="dc-group-label label-expand">Agent、长程与灵巧操作</div>
+            <a class="dc-item" href="papers/agentic-wam.html"><span class="dc-item-main">Agentic World Action Models · AW-0<span class="dc-item-en">代码 / 视频 / 动作三流 · Hybrid Execution</span></span><span class="status-badge status-done">✓</span></a>
+            <a class="dc-item" href="papers/natura-1.html"><span class="dc-item-main">Natura-1<span class="dc-item-en">50B MoE · 百万小时人类经验 · 官方长文精读</span></span><span class="status-badge status-done">✓</span></a>
           </div>
           <div class="dc-group">
             <div class="dc-group-label label-core">① Subgoal 生成</div>
@@ -1102,6 +1140,15 @@
         </div>
       </details>
 
+      <!-- ═══════ 数据引擎 ═══════ -->
+      <details class="dir-panel">
+        <summary class="dir-summary">
+          <span class="dir-icon"></span><span class="dir-info"><span class="dir-name">数据引擎 · 标注与奖励</span><span class="dir-sub">从人类/机器人视频生成时序语言与质量监督</span></span>
+          <span class="dir-stats"><span class="dir-count">1</span> 篇精读</span><span class="dir-arrow">&#9662;</span>
+        </summary>
+        <div class="dir-body"><div class="dc-group"><div class="dc-group-label label-core">时序标注 / 奖励模型</div><a class="dc-item" href="papers/flora.html"><span class="dc-item-main">FLORA<span class="dc-item-en">NVIDIA · Segmenter / Captioner / Rewarder · SFT + GRPO</span></span><span class="status-badge status-done">✓</span></a></div></div>
+      </details>
+
       <!-- ═══════ 认知科学 ═══════ -->
       <details class="dir-panel">
         <summary class="dir-summary">
@@ -1135,11 +1182,11 @@
 <!-- PAPER-CATALOG:START -->
     <section class="paper-catalog" id="all-readings" aria-labelledby="all-readings-title">
       <div class="hero-tag">// COMPLETE READING INDEX</div>
-      <h2 id="all-readings-title">全部 128 个解读页面</h2>
+      <h2 id="all-readings-title">全部 134 个解读页面</h2>
       <p>包括论文精读、专题路线、源码与数据分析；不把页面数量等同于论文数量或精读完成度。上方分类导航保留，完整入口以这里为准。</p>
       <label for="paper-catalog-search">按论文名、关键词或文件名搜索</label>
       <input id="paper-catalog-search" type="search" placeholder="例如 SONIC、EgoHumanoid、WAM、RL" autocomplete="off" aria-controls="paper-catalog-list">
-      <p class="catalog-count" id="paper-catalog-count" role="status" aria-live="polite">显示 128 / 128 个页面</p>
+      <p class="catalog-count" id="paper-catalog-count" role="status" aria-live="polite">显示 134 / 134 个页面</p>
       <ul id="paper-catalog-list">
         <li><a href="papers/4d-gaussian-splatting.html"><span>4D Gaussian Splatting · 动态场景实时渲染</span><small>papers/4d-gaussian-splatting.html</small></a></li>
         <li><a href="papers/embodied-icl-roadmap.html"><span>具身智能上下文学习 · Embodied ICL 专题路线</span><small>papers/embodied-icl-roadmap.html</small></a></li>
@@ -1149,6 +1196,7 @@
         <li><a href="papers/real-robot-rl-roadmap.html"><span>真机强化学习 · 零基础求职路线</span><small>papers/real-robot-rl-roadmap.html</small></a></li>
         <li><a href="papers/arfm.html"><span>ARFM · VLA+RL 详细精读</span><small>papers/arfm.html</small></a></li>
         <li><a href="papers/avdc.html"><span>AVDC · Actionless Video Dense Correspondence 精读</span><small>papers/avdc.html</small></a></li>
+        <li><a href="papers/agentic-wam.html"><span>AW-0：代码、未来视频与动作一起生成，代码究竟执行了吗？ · 中文精读</span><small>papers/agentic-wam.html</small></a></li>
         <li><a href="papers/awac.html"><span>AWAC · VLA+RL 详细精读</span><small>papers/awac.html</small></a></li>
         <li><a href="papers/bagelvla.html"><span>BagelVLA · 交织式视觉-语言-动作生成的长程操作</span><small>papers/bagelvla.html</small></a></li>
         <li><a href="papers/being-m07.html"><span>Being-M0.7 · 人形机器人的隐空间世界-动作模型</span><small>papers/being-m07.html</small></a></li>
@@ -1181,6 +1229,7 @@
         <li><a href="papers/fawam.html"><span>FAWAM · Force-Aware WAM 精读</span><small>papers/fawam.html</small></a></li>
         <li><a href="papers/flare.html"><span>FLARE · Implicit World Modeling 精读</span><small>papers/flare.html</small></a></li>
         <li><a href="papers/flash-wam.html"><span>Flash-WAM · 为什么视频与动作不能共用一种蒸馏函数</span><small>papers/flash-wam.html</small></a></li>
+        <li><a href="papers/flora.html"><span>FLORA：把机器人视频变成可训练、可评分的数据 · 中文精读</span><small>papers/flora.html</small></a></li>
         <li><a href="papers/generation/flow-matching.html"><span>Flow Matching for Generative Modeling · Paper Notes</span><small>papers/generation/flow-matching.html</small></a></li>
         <li><a href="papers/flowpro.html"><span>FlowPRO · VLA+RL 详细精读</span><small>papers/flowpro.html</small></a></li>
         <li><a href="papers/gaussgym.html"><span>GaussGym · 像素级行走 Real-to-Sim 精读</span><small>papers/gaussgym.html</small></a></li>
@@ -1195,6 +1244,7 @@
         <li><a href="papers/humi.html"><span>HuMI · 为什么“跟真实状态不一致”反而更稳</span><small>papers/humi.html</small></a></li>
         <li><a href="papers/ijepa-self-supervised.html"><span>I-JEPA · Self-Supervised Learning from Images with a Joint-Embedding Predictive Architecture</span><small>papers/ijepa-self-supervised.html</small></a></li>
         <li><a href="papers/intact.html"><span>INTACT 零基础精读 · 世界模型怎样直接选动作</span><small>papers/intact.html</small></a></li>
+        <li><a href="papers/internw0-delta.html"><span>InternW0-Δ：让未来监督留下表征，而不是部署时生成未来 · 中文精读</span><small>papers/internw0-delta.html</small></a></li>
         <li><a href="papers/iql.html"><span>IQL · VLA+RL 详细精读</span><small>papers/iql.html</small></a></li>
         <li><a href="papers/koda.html"><span>KODA · 人类第一视角示范如何变成可复用的人形机器人训练数据</span><small>papers/koda.html</small></a></li>
         <li><a href="papers/lapa.html"><span>LAPA · Latent Action Pretraining 精读</span><small>papers/lapa.html</small></a></li>
@@ -1207,7 +1257,9 @@
         <li><a href="papers/motionwam.html"><span>MotionWAM · 实时人形机器人Loco-Manipulation世界-动作模型</span><small>papers/motionwam.html</small></a></li>
         <li><a href="papers/datasets-analysis.html"><span>MotionWAM 数据集分析 · Paper Notes</span><small>papers/datasets-analysis.html</small></a></li>
         <li><a href="papers/motus.html"><span>Motus · Unified Latent Action World Model 精读</span><small>papers/motus.html</small></a></li>
+        <li><a href="papers/natura-1.html"><span>Natura-1：百万小时人类经验，如何变成灵巧操作？ · 中文精读</span><small>papers/natura-1.html</small></a></li>
         <li><a href="papers/omnivta.html"><span>OmniVTA · 视触觉世界模型精读</span><small>papers/omnivta.html</small></a></li>
+        <li><a href="papers/onewm.html"><span>OneWM：学会动作后果，为什么能帮助不想象未来的策略？ · 中文精读</span><small>papers/onewm.html</small></a></li>
         <li><a href="papers/generation/open-sora.html"><span>Open-Sora · 中文精读</span><small>papers/generation/open-sora.html</small></a></li>
         <li><a href="papers/openhlm.html"><span>OpenHLM · 全身人形 Loco-Manipulation 的经验配方</span><small>papers/openhlm.html</small></a></li>
         <li><a href="papers/openvla.html"><span>OpenVLA · An Open-Source Vision-Language-Action Model</span><small>papers/openvla.html</small></a></li>
@@ -1233,6 +1285,7 @@
         <li><a href="papers/splatsim.html"><span>SplatSim · GS Sim2Real 精读</span><small>papers/splatsim.html</small></a></li>
         <li><a href="papers/stare-vla.html"><span>STARE-VLA · VLA+RL 详细精读</span><small>papers/stare-vla.html</small></a></li>
         <li><a href="papers/unipi.html"><span>UniPi · Text-Guided Video Policy 精读</span><small>papers/unipi.html</small></a></li>
+        <li><a href="papers/uniwam.html"><span>UniWAM：用物理语言连接理解、世界预测和动作 · 中文精读</span><small>papers/uniwam.html</small></a></li>
         <li><a href="papers/uva.html"><span>UVA · Unified Video Action Model 精读</span><small>papers/uva.html</small></a></li>
         <li><a href="papers/uwm.html"><span>UWM · Coupled Video-Action Diffusion 精读</span><small>papers/uwm.html</small></a></li>
         <li><a href="papers/vjepa.html"><span>V-JEPA · 视频表征空间预测</span><small>papers/vjepa.html</small></a></li>

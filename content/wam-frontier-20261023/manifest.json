@@ -1,0 +1,17 @@
+{
+  "requested": "2026-10-23",
+  "scope": "Six Chinese paper-to-html readings; important original figures, formulas with examples, classified main index, QA, then scoped commit and push.",
+  "order": ["onewm", "agentic-wam", "natura-1", "internw0-delta", "uniwam", "flora"],
+  "papers": {
+    "onewm": {"source": "https://arxiv.org/abs/2610.21095v1", "pages": 21, "read": "complete", "page": "complete", "figures": 8},
+    "agentic-wam": {"source": "https://arxiv.org/abs/2610.30136", "pages": 50, "localSource": "Zotero 6HZ2DVIL", "read": "complete", "page": "complete", "figures": 14},
+    "natura-1": {"source": "https://www.naturewill.com/blog/natura-1?lang=en", "kind": "official technical blog; no linked standalone PDF", "read": "complete including six embedded diagrams", "page": "complete", "figures": 6},
+    "internw0-delta": {"source": "https://arxiv.org/abs/2609.31394", "pages": 49, "read": "complete", "page": "complete", "figures": 12},
+    "uniwam": {"source": "https://arxiv.org/abs/2610.02054v4", "pages": 29, "read": "complete", "page": "complete", "figures": 11},
+    "flora": {"source": "https://research.nvidia.com/labs/gear/flora/assets/paper/flora.pdf?v=2026-10-19c", "pages": 37, "read": "complete", "page": "complete", "figures": 14}
+  },
+  "preserve": "Do not modify existing user changes, notably content/egohumanoid-v2/online-ik.html; do not run its generator.",
+  "qa": "complete: 36 responsive/theme layouts; static links and figures; keyboard details/theme; script-free document copies; six print exports and visual sampling",
+  "index": "complete: classified topical section, WAM groups, data-engine category, 134-page catalog",
+  "push": "requested; delivery is verified against the remote Git revision after committing"
+}
