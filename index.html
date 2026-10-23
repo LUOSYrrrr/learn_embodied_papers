@@ -131,6 +131,18 @@
       .wm-phase::after { display: none; }
     }
 
+    #frontier-reading .wm-track { grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 14px; margin-bottom: 18px; }
+    #frontier-reading .wm-phase { display: flex; flex-direction: column; min-width: 0; }
+    #frontier-reading .wm-phase::after { display: none; }
+    #frontier-reading .wm-phase-title { margin-top: 0; font-size: 19px; }
+    #frontier-reading .frontier-category { display: block; margin-bottom: 10px; color: var(--accent); font: 11px/1.6 var(--font-mono); }
+    #frontier-reading .wm-phase p { color: var(--text2); }
+    #frontier-reading .frontier-open { display: flex; align-items: center; justify-content: space-between; gap: 8px; min-height: 44px; margin-top: auto; padding: 12px; border: 1px solid var(--accent); border-radius: 9px; color: var(--accent); background: color-mix(in srgb, var(--accent) 7%, var(--bg2)); font-size: 13px; font-weight: 600; text-decoration: none; }
+    #frontier-reading .frontier-open:hover { background: color-mix(in srgb, var(--accent) 14%, var(--bg2)); }
+    #frontier-reading .frontier-open:focus-visible { outline: 3px solid var(--accent); outline-offset: 3px; }
+    @media (max-width: 900px) { #frontier-reading .wm-track { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+    @media (max-width: 640px) { #frontier-reading .wm-track { grid-template-columns: minmax(0, 1fr); } }
+
     /* ─── 方向 Accordion ─── */
     .dir-accordion {
       max-width: 1200px; margin: 0 auto 48px;
@@ -307,15 +319,16 @@
           <div>
             <div class="wm-topic-kicker">2026-10-23 · 六项独立精读</div>
             <h2 class="wm-topic-title" id="frontier-reading-title">世界动作模型、Agent 与数据引擎</h2>
-            <p class="wm-topic-desc">按方法解决的问题分类：先看世界预测如何帮助动作，再看代码与长程行为，最后回到训练数据。共收录 59 张论文原图与 6 张官方网页图；公式含符号解释与算例，仿真、OOD、真机分别核对。</p>
+            <p class="wm-topic-desc">六篇均可独立打开，点击下方各篇的“打开精读”进入。按模型方法、Agent 与长程操作、数据引擎分类；共收录 59 张论文原图与 6 张官方网页图，公式含符号解释与算例。</p>
           </div>
-          <a class="wm-topic-cta" href="papers/onewm.html">从 OneWM 开始 →</a>
         </div>
         <div class="wm-track">
-          <article class="wm-phase"><span class="wm-phase-title">联合训练与因果可见性</span><p>OneWM：混合干净/噪声动作，让世界预测与策略互相促进；策略部署不生成未来视频。</p><div class="wm-links"><a class="wm-chip" href="papers/onewm.html">OneWM · 8 图 / 6 公式</a></div></article>
-          <article class="wm-phase"><span class="wm-phase-title">未来表征与人机混训</span><p>InternW0-Δ 用未来残差训练、轻量部署；UniWAM 用物理语言连接理解、未来与动作。</p><div class="wm-links"><a class="wm-chip" href="papers/internw0-delta.html">InternW0-Δ · 12 图</a><a class="wm-chip" href="papers/uniwam.html">UniWAM · 11 图</a></div></article>
-          <article class="wm-phase"><span class="wm-phase-title">Agent 与长程灵巧操作</span><p>AW-0 联合建模代码、视频和动作；Natura-1 重点看百万小时经验、记忆和系统部署。</p><div class="wm-links"><a class="wm-chip" href="papers/agentic-wam.html">AW-0 · 14 图</a><a class="wm-chip" href="papers/natura-1.html">Natura-1 · 官方长文 / 6 图</a></div></article>
-          <article class="wm-phase"><span class="wm-phase-title">数据引擎与奖励监督</span><p>FLORA：分段、动作描述、结果/过程/rubric 评分，补齐语料整理与评价接口。</p><div class="wm-links"><a class="wm-chip" href="papers/flora.html">FLORA · 14 图 / 22 公式</a></div></article>
+          <article class="wm-phase"><h3 class="wm-phase-title">OneWM</h3><span class="frontier-category">模型方法 · 因果联合训练 · 8 图</span><p>混合干净与噪声动作，让世界预测与策略互相促进；部署时策略如何省去未来生成？</p><a class="frontier-open" href="papers/onewm.html">打开 OneWM 精读 <span aria-hidden="true">→</span></a></article>
+          <article class="wm-phase"><h3 class="wm-phase-title">InternW0-Δ</h3><span class="frontier-category">模型方法 · 未来表征与人机混训 · 12 图</span><p>未来残差与 4D 监督怎样留在表征中？拆解数据对齐、训练目标与轻量部署。</p><a class="frontier-open" href="papers/internw0-delta.html">打开 InternW0-Δ 精读 <span aria-hidden="true">→</span></a></article>
+          <article class="wm-phase"><h3 class="wm-phase-title">UniWAM</h3><span class="frontier-category">模型方法 · 物理语言与联合预测 · 11 图</span><p>用物理语言连接理解、世界预测与动作；历史动作初始化和人类数据混合有什么作用？</p><a class="frontier-open" href="papers/uniwam.html">打开 UniWAM 精读 <span aria-hidden="true">→</span></a></article>
+          <article class="wm-phase"><h3 class="wm-phase-title">AW-0</h3><span class="frontier-category">Agent · 代码、视频与动作 · 14 图</span><p>三种生成流如何一起训练？区分代码作为内部条件，以及 Hybrid 模式的实际执行。</p><a class="frontier-open" href="papers/agentic-wam.html">打开 AW-0 精读 <span aria-hidden="true">→</span></a></article>
+          <article class="wm-phase"><h3 class="wm-phase-title">Natura-1</h3><span class="frontier-category">长程灵巧操作 · 官方技术长文 · 6 图</span><p>百万小时人类经验如何进入模型？核对记忆、数据系统、实时部署与长程演示。</p><a class="frontier-open" href="papers/natura-1.html">打开 Natura-1 精读 <span aria-hidden="true">→</span></a></article>
+          <article class="wm-phase"><h3 class="wm-phase-title">FLORA</h3><span class="frontier-category">数据引擎 · 标注与奖励 · 14 图</span><p>从视频分段、动作描述到结果、过程与 rubric 评分，逐项解释数据生产流程。</p><a class="frontier-open" href="papers/flora.html">打开 FLORA 精读 <span aria-hidden="true">→</span></a></article>
         </div>
         <p class="wm-topic-desc">阅读提示：InternW0-Δ 的 RoboDojo 结果属于仿真；Natura-1 六个长程演示有额外任务调优；FLORA 每天 20 万小时指源视频标注处理量。不同协议的分数不直接排成一张成功率榜。</p>
       </div>
