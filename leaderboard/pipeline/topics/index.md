@@ -2,59 +2,59 @@
 
 Personal paper leaderboard covering robot world models (WAM), humanoid loco-manipulation, dexterous manipulation, and vision-language-action models. Built from arXiv metadata and Google Scholar citations.
 
-- Last updated: 2026-10-26 23:14 UTC
-- Total indexed papers: 5270
+- Last updated: 2026-10-27 23:03 UTC
+- Total indexed papers: 5312
 - Data sources: arXiv for discovery, citation cache for enrichment.
 
 ## Total Ranking
 
 | Rank | Title | Published | Citations | Score |
 | --- | --- | --- | --- | --- |
-| 1 | [UniAction: Unified Action Conditioning for World Models](https://arxiv.org/abs/2610.32977) | 2026-10-23 | missing | 1.000 |
-| 2 | [RobustRLlib: A Unified Library and Benchmark for Robust Reinforcement Learning Algorithms](https://arxiv.org/abs/2610.32971) | 2026-10-23 | missing | 1.000 |
-| 3 | [DexPort: A Hand-Held Skill Interface for Dexterous Hand Data Collection](https://arxiv.org/abs/2610.32969) | 2026-10-23 | missing | 1.000 |
-| 4 | [ViT-H: Generative Video-To-Humanoid Control with Motion Tracking Feedback](https://arxiv.org/abs/2610.32966) | 2026-10-23 | missing | 1.000 |
-| 5 | [If at First You Don't Succeed, Backtrack: Lightweight Recovery for Frozen VLAs](https://arxiv.org/abs/2610.32941) | 2026-10-23 | missing | 1.000 |
-| 6 | [HoloBoxing: A Simple Recipe for Humanoid Boxing with 7 Minutes of Single-GPU Training](https://arxiv.org/abs/2610.32909) | 2026-10-23 | missing | 1.000 |
-| 7 | [When Human Corrections Travel: Safety in Federated VLA Adaptation](https://arxiv.org/abs/2610.32888) | 2026-10-23 | missing | 1.000 |
-| 8 | [Adaptive World-Models for Anomaly Recognition (AWARE): A Framework for Robot Dynamics Prediction and Introspection](https://arxiv.org/abs/2610.32742) | 2026-10-23 | missing | 1.000 |
-| 9 | [Retiming Robot Demonstrations with a Learned Speed Prior](https://arxiv.org/abs/2610.32676) | 2026-10-23 | missing | 1.000 |
-| 10 | [CoCarry: Contact-Support-Structured Retargeting for Dual-Humanoid Cooperative Carrying](https://arxiv.org/abs/2610.32460) | 2026-10-23 | missing | 1.000 |
-| 11 | [When to Stop Penalizing Actions? Martingale GRPO for VLA Reinforcement Learning](https://arxiv.org/abs/2610.32431) | 2026-10-23 | missing | 1.000 |
-| 12 | [MAST-VLA: Skill-Conditioned Adaptation with Trajectory-Affordance Priors for Multi-Skill Robot Manipulation](https://arxiv.org/abs/2610.32312) | 2026-10-23 | missing | 1.000 |
-| 13 | [Delay Randomization Widens the Delay Margin of Learned Humanoid Motion Trackers](https://arxiv.org/abs/2610.32277) | 2026-10-23 | missing | 1.000 |
-| 14 | [From Tabletop to Walking Bot: Deploying a VLA Model on a Legged Manipulator Robot](https://arxiv.org/abs/2610.32271) | 2026-10-23 | missing | 1.000 |
-| 15 | [Do VLAs Know They Will Fail? Interpretable Success and Failure Patterns in Physical AI Systems](https://arxiv.org/abs/2610.32208) | 2026-10-23 | missing | 1.000 |
-| 16 | [Coupling Execution Horizon and Sampling Depth in Flow-Matching VLA Policies](https://arxiv.org/abs/2610.32102) | 2026-10-23 | missing | 1.000 |
-| 17 | [Interpreting Physics in Video Encoders using Multi-Object Interaction Videos](https://arxiv.org/abs/2610.31983) | 2026-10-22 | missing | 1.000 |
-| 18 | [Full-Weight VLA Fine-Tuning Without an fp32 Master Copy Silently Erases Most Updates](https://arxiv.org/abs/2610.31859) | 2026-10-22 | missing | 1.000 |
-| 19 | [EgoForesight: Effectively Scaling Policy Learning with Noisy Egocentric Actions](https://arxiv.org/abs/2610.31845) | 2026-10-22 | missing | 1.000 |
-| 20 | [FLORA: An Open Model Suite for Scaling Robotics Data Engines](https://arxiv.org/abs/2610.31779) | 2026-10-22 | missing | 1.000 |
+| 1 | [Learning Force-Reactive Humanoid Loco-Manipulation](https://arxiv.org/abs/2610.35862) | 2026-10-26 | missing | 1.000 |
+| 2 | [OSWAM: An Effective World Action Model with One-Step Action Generation](https://arxiv.org/abs/2610.35850) | 2026-10-26 | missing | 1.000 |
+| 3 | [Profiling a Frontier Agent with EBench: From Direct Control to Harness with Policy](https://arxiv.org/abs/2610.35832) | 2026-10-26 | missing | 1.000 |
+| 4 | [Adapt for Planning, Not just Prediction: Optimistic Test-Time World Model Adaptation](https://arxiv.org/abs/2610.35636) | 2026-10-26 | missing | 1.000 |
+| 5 | [Robot-Aligned 3D Gaussian Splatting for Precise Reaching with Wrist-Camera VLA Policies](https://arxiv.org/abs/2610.35626) | 2026-10-26 | missing | 1.000 |
+| 6 | [RoboDoctor: Training-Free Recursive Self-Improvement for Robot Policies](https://arxiv.org/abs/2610.35604) | 2026-10-26 | missing | 1.000 |
+| 7 | [DEX-PHD: A Dexterous Portable Handheld Device for Multimodal Data Collection](https://arxiv.org/abs/2610.35462) | 2026-10-26 | missing | 1.000 |
+| 8 | [The Language of Deformation: Semantic Failure Analysis as a Prerequisite for Dexterous Manipulation of Deformable Objects](https://arxiv.org/abs/2610.35103) | 2026-10-26 | missing | 1.000 |
+| 9 | [Zero-HLM: Generalizable Humanoid Loco-Manipulation without Real Robot Data](https://arxiv.org/abs/2610.35075) | 2026-10-26 | missing | 1.000 |
+| 10 | [DriveUniTok: A Unified Multimodal Tokenizer for Driving World-Action Models](https://arxiv.org/abs/2610.35044) | 2026-10-26 | missing | 1.000 |
+| 11 | [JevVLA: Jev-Inspired Energy-Based Adaptation for Vision-Language-Action Policies](https://arxiv.org/abs/2610.35010) | 2026-10-26 | missing | 1.000 |
+| 12 | [Beyond Behaviour: A Stimulus-Response Safety Evaluation of Vision-Language-Action Models](https://arxiv.org/abs/2610.34837) | 2026-10-26 | missing | 1.000 |
+| 13 | [VLA-HWBench: Where the Time Goes When VLA Models Run on Edge Hardware](https://arxiv.org/abs/2610.34717) | 2026-10-26 | missing | 1.000 |
+| 14 | [Benchmarking Obstacle-Conditioned Safety in Household Robot Navigation](https://arxiv.org/abs/2610.34674) | 2026-10-26 | missing | 1.000 |
+| 15 | [Video World Models Need Predictable Latents](https://arxiv.org/abs/2610.34663) | 2026-10-26 | missing | 1.000 |
+| 16 | [Dream to Assist: Intent-Conditioned World Models for Shared Vehicle Control](https://arxiv.org/abs/2610.34650) | 2026-10-26 | missing | 1.000 |
+| 17 | [RobotAgentBench: Towards Open-world Robot Autonomy](https://arxiv.org/abs/2610.34649) | 2026-10-26 | missing | 1.000 |
+| 18 | [What Does World Modeling Actually Improve in Robot Action Learning?](https://arxiv.org/abs/2610.34593) | 2026-10-25 | missing | 1.000 |
+| 19 | [TRIAGE: Efficient Vision-Language-Action Inference Needs Both Reuse and Pruning](https://arxiv.org/abs/2610.34519) | 2026-10-25 | missing | 1.000 |
+| 20 | [Scaling Dexterous Manipulation via Action Representation Pretraining](https://arxiv.org/abs/2610.34453) | 2026-10-25 | missing | 1.000 |
 
 ## Hot Ranking
 
 | Rank | Title | Published | Citations | Score |
 | --- | --- | --- | --- | --- |
-| 1 | [UniAction: Unified Action Conditioning for World Models](https://arxiv.org/abs/2610.32977) | 2026-10-23 | missing | 0.998 |
-| 2 | [RobustRLlib: A Unified Library and Benchmark for Robust Reinforcement Learning Algorithms](https://arxiv.org/abs/2610.32971) | 2026-10-23 | missing | 0.998 |
-| 3 | [DexPort: A Hand-Held Skill Interface for Dexterous Hand Data Collection](https://arxiv.org/abs/2610.32969) | 2026-10-23 | missing | 0.998 |
-| 4 | [ViT-H: Generative Video-To-Humanoid Control with Motion Tracking Feedback](https://arxiv.org/abs/2610.32966) | 2026-10-23 | missing | 0.998 |
-| 5 | [If at First You Don't Succeed, Backtrack: Lightweight Recovery for Frozen VLAs](https://arxiv.org/abs/2610.32941) | 2026-10-23 | missing | 0.998 |
-| 6 | [HoloBoxing: A Simple Recipe for Humanoid Boxing with 7 Minutes of Single-GPU Training](https://arxiv.org/abs/2610.32909) | 2026-10-23 | missing | 0.998 |
-| 7 | [When Human Corrections Travel: Safety in Federated VLA Adaptation](https://arxiv.org/abs/2610.32888) | 2026-10-23 | missing | 0.998 |
-| 8 | [Adaptive World-Models for Anomaly Recognition (AWARE): A Framework for Robot Dynamics Prediction and Introspection](https://arxiv.org/abs/2610.32742) | 2026-10-23 | missing | 0.998 |
-| 9 | [Retiming Robot Demonstrations with a Learned Speed Prior](https://arxiv.org/abs/2610.32676) | 2026-10-23 | missing | 0.998 |
-| 10 | [CoCarry: Contact-Support-Structured Retargeting for Dual-Humanoid Cooperative Carrying](https://arxiv.org/abs/2610.32460) | 2026-10-23 | missing | 0.998 |
-| 11 | [When to Stop Penalizing Actions? Martingale GRPO for VLA Reinforcement Learning](https://arxiv.org/abs/2610.32431) | 2026-10-23 | missing | 0.998 |
-| 12 | [MAST-VLA: Skill-Conditioned Adaptation with Trajectory-Affordance Priors for Multi-Skill Robot Manipulation](https://arxiv.org/abs/2610.32312) | 2026-10-23 | missing | 0.998 |
-| 13 | [Delay Randomization Widens the Delay Margin of Learned Humanoid Motion Trackers](https://arxiv.org/abs/2610.32277) | 2026-10-23 | missing | 0.998 |
-| 14 | [From Tabletop to Walking Bot: Deploying a VLA Model on a Legged Manipulator Robot](https://arxiv.org/abs/2610.32271) | 2026-10-23 | missing | 0.998 |
-| 15 | [Do VLAs Know They Will Fail? Interpretable Success and Failure Patterns in Physical AI Systems](https://arxiv.org/abs/2610.32208) | 2026-10-23 | missing | 0.998 |
-| 16 | [Coupling Execution Horizon and Sampling Depth in Flow-Matching VLA Policies](https://arxiv.org/abs/2610.32102) | 2026-10-23 | missing | 0.998 |
-| 17 | [Interpreting Physics in Video Encoders using Multi-Object Interaction Videos](https://arxiv.org/abs/2610.31983) | 2026-10-22 | missing | 0.997 |
-| 18 | [Full-Weight VLA Fine-Tuning Without an fp32 Master Copy Silently Erases Most Updates](https://arxiv.org/abs/2610.31859) | 2026-10-22 | missing | 0.997 |
-| 19 | [EgoForesight: Effectively Scaling Policy Learning with Noisy Egocentric Actions](https://arxiv.org/abs/2610.31845) | 2026-10-22 | missing | 0.997 |
-| 20 | [FLORA: An Open Model Suite for Scaling Robotics Data Engines](https://arxiv.org/abs/2610.31779) | 2026-10-22 | missing | 0.997 |
+| 1 | [Learning Force-Reactive Humanoid Loco-Manipulation](https://arxiv.org/abs/2610.35862) | 2026-10-26 | missing | 0.999 |
+| 2 | [OSWAM: An Effective World Action Model with One-Step Action Generation](https://arxiv.org/abs/2610.35850) | 2026-10-26 | missing | 0.999 |
+| 3 | [Profiling a Frontier Agent with EBench: From Direct Control to Harness with Policy](https://arxiv.org/abs/2610.35832) | 2026-10-26 | missing | 0.999 |
+| 4 | [Adapt for Planning, Not just Prediction: Optimistic Test-Time World Model Adaptation](https://arxiv.org/abs/2610.35636) | 2026-10-26 | missing | 0.999 |
+| 5 | [Robot-Aligned 3D Gaussian Splatting for Precise Reaching with Wrist-Camera VLA Policies](https://arxiv.org/abs/2610.35626) | 2026-10-26 | missing | 0.999 |
+| 6 | [RoboDoctor: Training-Free Recursive Self-Improvement for Robot Policies](https://arxiv.org/abs/2610.35604) | 2026-10-26 | missing | 0.999 |
+| 7 | [DEX-PHD: A Dexterous Portable Handheld Device for Multimodal Data Collection](https://arxiv.org/abs/2610.35462) | 2026-10-26 | missing | 0.999 |
+| 8 | [The Language of Deformation: Semantic Failure Analysis as a Prerequisite for Dexterous Manipulation of Deformable Objects](https://arxiv.org/abs/2610.35103) | 2026-10-26 | missing | 0.999 |
+| 9 | [Zero-HLM: Generalizable Humanoid Loco-Manipulation without Real Robot Data](https://arxiv.org/abs/2610.35075) | 2026-10-26 | missing | 0.999 |
+| 10 | [DriveUniTok: A Unified Multimodal Tokenizer for Driving World-Action Models](https://arxiv.org/abs/2610.35044) | 2026-10-26 | missing | 0.999 |
+| 11 | [JevVLA: Jev-Inspired Energy-Based Adaptation for Vision-Language-Action Policies](https://arxiv.org/abs/2610.35010) | 2026-10-26 | missing | 0.999 |
+| 12 | [Beyond Behaviour: A Stimulus-Response Safety Evaluation of Vision-Language-Action Models](https://arxiv.org/abs/2610.34837) | 2026-10-26 | missing | 0.999 |
+| 13 | [VLA-HWBench: Where the Time Goes When VLA Models Run on Edge Hardware](https://arxiv.org/abs/2610.34717) | 2026-10-26 | missing | 0.999 |
+| 14 | [Benchmarking Obstacle-Conditioned Safety in Household Robot Navigation](https://arxiv.org/abs/2610.34674) | 2026-10-26 | missing | 0.999 |
+| 15 | [Video World Models Need Predictable Latents](https://arxiv.org/abs/2610.34663) | 2026-10-26 | missing | 0.999 |
+| 16 | [Dream to Assist: Intent-Conditioned World Models for Shared Vehicle Control](https://arxiv.org/abs/2610.34650) | 2026-10-26 | missing | 0.999 |
+| 17 | [RobotAgentBench: Towards Open-world Robot Autonomy](https://arxiv.org/abs/2610.34649) | 2026-10-26 | missing | 0.999 |
+| 18 | [What Does World Modeling Actually Improve in Robot Action Learning?](https://arxiv.org/abs/2610.34593) | 2026-10-25 | missing | 0.999 |
+| 19 | [TRIAGE: Efficient Vision-Language-Action Inference Needs Both Reuse and Pruning](https://arxiv.org/abs/2610.34519) | 2026-10-25 | missing | 0.999 |
+| 20 | [Scaling Dexterous Manipulation via Action Representation Pretraining](https://arxiv.org/abs/2610.34453) | 2026-10-25 | missing | 0.999 |
 
 ## Rebuild
 
