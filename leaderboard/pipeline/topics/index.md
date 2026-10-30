@@ -2,59 +2,59 @@
 
 Personal paper leaderboard covering robot world models (WAM), humanoid loco-manipulation, dexterous manipulation, and vision-language-action models. Built from arXiv metadata and Google Scholar citations.
 
-- Last updated: 2026-10-29 23:27 UTC
-- Total indexed papers: 5338
+- Last updated: 2026-10-30 23:05 UTC
+- Total indexed papers: 5378
 - Data sources: arXiv for discovery, citation cache for enrichment.
 
 ## Total Ranking
 
 | Rank | Title | Published | Citations | Score |
 | --- | --- | --- | --- | --- |
-| 1 | [ThinkWorld: World Imagination Reinforces Chain-of-Dynamics Reasoning](https://arxiv.org/abs/2610.37666) | 2026-10-27 | missing | 1.000 |
-| 2 | [Pushing Dexterity and Safety for In-Hand Object Pose Reaching That Works Remarkably Well](https://arxiv.org/abs/2610.37652) | 2026-10-27 | missing | 1.000 |
-| 3 | [World Dreamer v5-lite: A Multi-Robot World Action Model with One Dreamer](https://arxiv.org/abs/2610.37518) | 2026-10-27 | missing | 1.000 |
-| 4 | [PDRVLA: A Vision-Language-Action Model with Physical Dynamics Representations](https://arxiv.org/abs/2610.37381) | 2026-10-27 | missing | 1.000 |
-| 5 | [VLA-Stem: A Lightweight Safety Mechanism for Vision-Language-Action Models via Reinforcement Learning](https://arxiv.org/abs/2610.37378) | 2026-10-27 | missing | 1.000 |
-| 6 | [Tokens of Motion: Primitive Motion Learning for Human-Humanoid Skill Transfer](https://arxiv.org/abs/2610.37330) | 2026-10-27 | missing | 1.000 |
-| 7 | [Vision-Language-Action or World-Action? Just Action Models](https://arxiv.org/abs/2610.37219) | 2026-10-27 | missing | 1.000 |
-| 8 | [Retrieve to Act: Motion Primitive Graph Retrieval for Robust VLA Execution](https://arxiv.org/abs/2610.37215) | 2026-10-27 | missing | 1.000 |
-| 9 | [How Much Can Best-of-N Help a World Action Model? Measuring Selectable Headroom and Realizing It in Closed Loop](https://arxiv.org/abs/2610.37196) | 2026-10-27 | missing | 1.000 |
-| 10 | [GAWM: A Compact Latent World-Action Model for Multi-Task Robot Manipulation](https://arxiv.org/abs/2610.37091) | 2026-10-27 | missing | 1.000 |
-| 11 | [When Black-Box Robot Policies Fail: Online Sensor Diagnosis and Repair with a Transparent Surrogate](https://arxiv.org/abs/2610.36852) | 2026-10-27 | missing | 1.000 |
-| 12 | [Trace-WAM: Learning to Act via 3D Motion Prediction for World Action Models](https://arxiv.org/abs/2610.36840) | 2026-10-27 | missing | 1.000 |
-| 13 | [TAPESTRY: A Single Backbone for Video Generation and Robot Control](https://arxiv.org/abs/2610.36823) | 2026-10-27 | missing | 1.000 |
-| 14 | [RynnWorld-Latent: A Cross-Embodiment World Model Conditioned on Universal Latent Actions](https://arxiv.org/abs/2610.36791) | 2026-10-27 | missing | 1.000 |
-| 15 | [A fully articulated humanoid dexterous hand with human-level joint structure enabled by linkage-based actuation](https://arxiv.org/abs/2610.36789) | 2026-10-27 | missing | 1.000 |
-| 16 | [Evaluation-Guided Demonstration Refinement for Vision-Language-Action Policies: The Winning Entry in the MetaFine Open Competition](https://arxiv.org/abs/2610.36765) | 2026-10-27 | missing | 1.000 |
-| 17 | [Making Self-Driving Laboratories Auditable:A Unified Framework for Hybrid Actions,Measurements, and Safe Execution](https://arxiv.org/abs/2610.36761) | 2026-10-27 | missing | 1.000 |
-| 18 | [SWIM: Learning What Matters from Behaviors for JEPA World Models](https://arxiv.org/abs/2610.36662) | 2026-10-27 | missing | 1.000 |
-| 19 | [Adapting Video Models for Robot Control via Motion-guided Asymmetric Prediction](https://arxiv.org/abs/2610.36624) | 2026-10-27 | missing | 1.000 |
-| 20 | [CARD: Contact-Anchored Retargeting for Dexterous Manipulation](https://arxiv.org/abs/2610.36539) | 2026-10-27 | missing | 1.000 |
+| 1 | [Gym-Anything for Robotics: Scaling physical simulations with digital agents](https://arxiv.org/abs/2610.40565) | 2026-10-29 | missing | 1.000 |
+| 2 | [BURGER: Benchmarking and Understanding Robotic Generalization via Embodied Drawing](https://arxiv.org/abs/2610.40532) | 2026-10-29 | missing | 1.000 |
+| 3 | [Improving Fine-Grained Manipulation through Demonstration Expansion and Execution Design](https://arxiv.org/abs/2610.40430) | 2026-10-29 | missing | 1.000 |
+| 4 | [Continuous-Action World Models: Learning Cross-Embodiment Spatiotemporal Dynamics Priors](https://arxiv.org/abs/2610.40401) | 2026-10-29 | missing | 1.000 |
+| 5 | [HiFOR: Hierarchical Foresight with Action-Guided World Grounding for Vision-Language-Action Model](https://arxiv.org/abs/2610.40373) | 2026-10-29 | missing | 1.000 |
+| 6 | [TouchBridge: Tactile-Conditioned Human-to-Robot Transfer for Dexterous Manipulation](https://arxiv.org/abs/2610.40349) | 2026-10-29 | missing | 1.000 |
+| 7 | [LLM-guided Planar Loco-Manipulation for Quadruped Robots](https://arxiv.org/abs/2610.40248) | 2026-10-29 | missing | 1.000 |
+| 8 | [AcrossDEX 1.0: From Human Motion Pretraining to Bimanual Dexterous Manipulation across Hand Embodiments](https://arxiv.org/abs/2610.40210) | 2026-10-29 | missing | 1.000 |
+| 9 | [Coupled Guidance for Flow Matching](https://arxiv.org/abs/2610.40109) | 2026-10-29 | missing | 1.000 |
+| 10 | [Learning Safe Flow Matching Robot Policies from Binary Feasibility Oracles](https://arxiv.org/abs/2610.40075) | 2026-10-29 | missing | 1.000 |
+| 11 | [Cheap Retrieval and Observation Credit Assignment from One Quantity: The Value of Information](https://arxiv.org/abs/2610.40030) | 2026-10-29 | missing | 1.000 |
+| 12 | [RoboSeed: Multidimensional Evaluation of Vision-Language-Action and World-Action Models: Capability, Resource Affordability, and Research Evidence](https://arxiv.org/abs/2610.40026) | 2026-10-29 | missing | 1.000 |
+| 13 | [LOGIV: Graph-Verified Execution with Causal Local Repair for Long-Horizon Robot Tasks](https://arxiv.org/abs/2610.40016) | 2026-10-29 | missing | 1.000 |
+| 14 | [How Much Should a VLA Trust Its Reasoning? Step-Level Guidance as a Measured Action-Value Function](https://arxiv.org/abs/2610.40002) | 2026-10-29 | missing | 1.000 |
+| 15 | [PASA-KV: Attacking Action-Facing Visual Routes in World Action Models](https://arxiv.org/abs/2610.39816) | 2026-10-29 | missing | 1.000 |
+| 16 | [Kinematic-Tactile Aligned Dexterous Retargeting with Contact Wrench Space Alignment](https://arxiv.org/abs/2610.39582) | 2026-10-29 | missing | 1.000 |
+| 17 | [From Reasoning to Action: Consequence-Grounded Alignment for Vision-Language-Action Models](https://arxiv.org/abs/2610.39543) | 2026-10-29 | missing | 1.000 |
+| 18 | [PRIME W0: Physical Priors from World Models for Embodied Manipulation](https://arxiv.org/abs/2610.39528) | 2026-10-29 | missing | 1.000 |
+| 19 | [Smooth Action Chunking Via Movement-Primitive Representations for Imitation Learning](https://arxiv.org/abs/2610.39451) | 2026-10-29 | missing | 1.000 |
+| 20 | [ScheduleGen: Demonstration Generation via Skill Scheduling for Multi-Arm Imitation Learning](https://arxiv.org/abs/2610.39429) | 2026-10-29 | missing | 1.000 |
 
 ## Hot Ranking
 
 | Rank | Title | Published | Citations | Score |
 | --- | --- | --- | --- | --- |
-| 1 | [ThinkWorld: World Imagination Reinforces Chain-of-Dynamics Reasoning](https://arxiv.org/abs/2610.37666) | 2026-10-27 | missing | 0.999 |
-| 2 | [Pushing Dexterity and Safety for In-Hand Object Pose Reaching That Works Remarkably Well](https://arxiv.org/abs/2610.37652) | 2026-10-27 | missing | 0.999 |
-| 3 | [World Dreamer v5-lite: A Multi-Robot World Action Model with One Dreamer](https://arxiv.org/abs/2610.37518) | 2026-10-27 | missing | 0.999 |
-| 4 | [PDRVLA: A Vision-Language-Action Model with Physical Dynamics Representations](https://arxiv.org/abs/2610.37381) | 2026-10-27 | missing | 0.999 |
-| 5 | [VLA-Stem: A Lightweight Safety Mechanism for Vision-Language-Action Models via Reinforcement Learning](https://arxiv.org/abs/2610.37378) | 2026-10-27 | missing | 0.999 |
-| 6 | [Tokens of Motion: Primitive Motion Learning for Human-Humanoid Skill Transfer](https://arxiv.org/abs/2610.37330) | 2026-10-27 | missing | 0.999 |
-| 7 | [Vision-Language-Action or World-Action? Just Action Models](https://arxiv.org/abs/2610.37219) | 2026-10-27 | missing | 0.999 |
-| 8 | [Retrieve to Act: Motion Primitive Graph Retrieval for Robust VLA Execution](https://arxiv.org/abs/2610.37215) | 2026-10-27 | missing | 0.999 |
-| 9 | [How Much Can Best-of-N Help a World Action Model? Measuring Selectable Headroom and Realizing It in Closed Loop](https://arxiv.org/abs/2610.37196) | 2026-10-27 | missing | 0.999 |
-| 10 | [GAWM: A Compact Latent World-Action Model for Multi-Task Robot Manipulation](https://arxiv.org/abs/2610.37091) | 2026-10-27 | missing | 0.999 |
-| 11 | [When Black-Box Robot Policies Fail: Online Sensor Diagnosis and Repair with a Transparent Surrogate](https://arxiv.org/abs/2610.36852) | 2026-10-27 | missing | 0.999 |
-| 12 | [Trace-WAM: Learning to Act via 3D Motion Prediction for World Action Models](https://arxiv.org/abs/2610.36840) | 2026-10-27 | missing | 0.999 |
-| 13 | [TAPESTRY: A Single Backbone for Video Generation and Robot Control](https://arxiv.org/abs/2610.36823) | 2026-10-27 | missing | 0.999 |
-| 14 | [RynnWorld-Latent: A Cross-Embodiment World Model Conditioned on Universal Latent Actions](https://arxiv.org/abs/2610.36791) | 2026-10-27 | missing | 0.999 |
-| 15 | [A fully articulated humanoid dexterous hand with human-level joint structure enabled by linkage-based actuation](https://arxiv.org/abs/2610.36789) | 2026-10-27 | missing | 0.999 |
-| 16 | [Evaluation-Guided Demonstration Refinement for Vision-Language-Action Policies: The Winning Entry in the MetaFine Open Competition](https://arxiv.org/abs/2610.36765) | 2026-10-27 | missing | 0.999 |
-| 17 | [Making Self-Driving Laboratories Auditable:A Unified Framework for Hybrid Actions,Measurements, and Safe Execution](https://arxiv.org/abs/2610.36761) | 2026-10-27 | missing | 0.999 |
-| 18 | [SWIM: Learning What Matters from Behaviors for JEPA World Models](https://arxiv.org/abs/2610.36662) | 2026-10-27 | missing | 0.999 |
-| 19 | [Adapting Video Models for Robot Control via Motion-guided Asymmetric Prediction](https://arxiv.org/abs/2610.36624) | 2026-10-27 | missing | 0.999 |
-| 20 | [CARD: Contact-Anchored Retargeting for Dexterous Manipulation](https://arxiv.org/abs/2610.36539) | 2026-10-27 | missing | 0.999 |
+| 1 | [Gym-Anything for Robotics: Scaling physical simulations with digital agents](https://arxiv.org/abs/2610.40565) | 2026-10-29 | missing | 0.999 |
+| 2 | [BURGER: Benchmarking and Understanding Robotic Generalization via Embodied Drawing](https://arxiv.org/abs/2610.40532) | 2026-10-29 | missing | 0.999 |
+| 3 | [Improving Fine-Grained Manipulation through Demonstration Expansion and Execution Design](https://arxiv.org/abs/2610.40430) | 2026-10-29 | missing | 0.999 |
+| 4 | [Continuous-Action World Models: Learning Cross-Embodiment Spatiotemporal Dynamics Priors](https://arxiv.org/abs/2610.40401) | 2026-10-29 | missing | 0.999 |
+| 5 | [HiFOR: Hierarchical Foresight with Action-Guided World Grounding for Vision-Language-Action Model](https://arxiv.org/abs/2610.40373) | 2026-10-29 | missing | 0.999 |
+| 6 | [TouchBridge: Tactile-Conditioned Human-to-Robot Transfer for Dexterous Manipulation](https://arxiv.org/abs/2610.40349) | 2026-10-29 | missing | 0.999 |
+| 7 | [LLM-guided Planar Loco-Manipulation for Quadruped Robots](https://arxiv.org/abs/2610.40248) | 2026-10-29 | missing | 0.999 |
+| 8 | [AcrossDEX 1.0: From Human Motion Pretraining to Bimanual Dexterous Manipulation across Hand Embodiments](https://arxiv.org/abs/2610.40210) | 2026-10-29 | missing | 0.999 |
+| 9 | [Coupled Guidance for Flow Matching](https://arxiv.org/abs/2610.40109) | 2026-10-29 | missing | 0.999 |
+| 10 | [Learning Safe Flow Matching Robot Policies from Binary Feasibility Oracles](https://arxiv.org/abs/2610.40075) | 2026-10-29 | missing | 0.999 |
+| 11 | [Cheap Retrieval and Observation Credit Assignment from One Quantity: The Value of Information](https://arxiv.org/abs/2610.40030) | 2026-10-29 | missing | 0.999 |
+| 12 | [RoboSeed: Multidimensional Evaluation of Vision-Language-Action and World-Action Models: Capability, Resource Affordability, and Research Evidence](https://arxiv.org/abs/2610.40026) | 2026-10-29 | missing | 0.999 |
+| 13 | [LOGIV: Graph-Verified Execution with Causal Local Repair for Long-Horizon Robot Tasks](https://arxiv.org/abs/2610.40016) | 2026-10-29 | missing | 0.999 |
+| 14 | [How Much Should a VLA Trust Its Reasoning? Step-Level Guidance as a Measured Action-Value Function](https://arxiv.org/abs/2610.40002) | 2026-10-29 | missing | 0.999 |
+| 15 | [PASA-KV: Attacking Action-Facing Visual Routes in World Action Models](https://arxiv.org/abs/2610.39816) | 2026-10-29 | missing | 0.999 |
+| 16 | [Kinematic-Tactile Aligned Dexterous Retargeting with Contact Wrench Space Alignment](https://arxiv.org/abs/2610.39582) | 2026-10-29 | missing | 0.999 |
+| 17 | [From Reasoning to Action: Consequence-Grounded Alignment for Vision-Language-Action Models](https://arxiv.org/abs/2610.39543) | 2026-10-29 | missing | 0.999 |
+| 18 | [PRIME W0: Physical Priors from World Models for Embodied Manipulation](https://arxiv.org/abs/2610.39528) | 2026-10-29 | missing | 0.999 |
+| 19 | [Smooth Action Chunking Via Movement-Primitive Representations for Imitation Learning](https://arxiv.org/abs/2610.39451) | 2026-10-29 | missing | 0.999 |
+| 20 | [ScheduleGen: Demonstration Generation via Skill Scheduling for Multi-Arm Imitation Learning](https://arxiv.org/abs/2610.39429) | 2026-10-29 | missing | 0.999 |
 
 ## Rebuild
 
