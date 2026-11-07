@@ -2,7 +2,7 @@
 
 Personal paper leaderboard covering robot world models (WAM), humanoid loco-manipulation, dexterous manipulation, and vision-language-action models. Built from arXiv metadata and Google Scholar citations.
 
-- Last updated: 2026-11-06 23:46 UTC
+- Last updated: 2026-11-07 22:52 UTC
 - Total indexed papers: 5522
 - Data sources: arXiv for discovery, citation cache for enrichment.
 
@@ -52,9 +52,9 @@ Personal paper leaderboard covering robot world models (WAM), humanoid loco-mani
 | 15 | [Concertina: Embodying Manipulation and Cognition in One Diffusion Vision-Language Model](https://arxiv.org/abs/2611.07513) | 2026-11-05 | missing | 0.999 |
 | 16 | [Kinematic Hypothesis Context: Embodiment-Conditioned Learned Video Coding for Bandwidth-Limited Robot Policy Uplinks](https://arxiv.org/abs/2611.07411) | 2026-11-05 | missing | 0.999 |
 | 17 | [Spatial-UMI-Dream: Scaling World Action Models with Metric Geometry for UMI Manipulation](https://arxiv.org/abs/2611.07229) | 2026-11-04 | missing | 0.999 |
-| 18 | [From Pixels to Actions - Towards Native Vision-Language-Action Policies](https://arxiv.org/abs/2611.06918) | 2026-11-04 | missing | 0.999 |
-| 19 | [Perceptive Humanoid Motion from Simulation](https://arxiv.org/abs/2611.06908) | 2026-11-04 | missing | 0.999 |
-| 20 | [Reinforcement Learning Enables Scaling Generalist Robot Policy Improvement](https://arxiv.org/abs/2611.06905) | 2026-11-04 | missing | 0.999 |
+| 18 | [From Pixels to Actions - Towards Native Vision-Language-Action Policies](https://arxiv.org/abs/2611.06918) | 2026-11-04 | missing | 0.998 |
+| 19 | [Perceptive Humanoid Motion from Simulation](https://arxiv.org/abs/2611.06908) | 2026-11-04 | missing | 0.998 |
+| 20 | [Reinforcement Learning Enables Scaling Generalist Robot Policy Improvement](https://arxiv.org/abs/2611.06905) | 2026-11-04 | missing | 0.998 |
 
 ## Rebuild
 
