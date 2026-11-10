@@ -2,59 +2,59 @@
 
 Personal paper leaderboard covering robot world models (WAM), humanoid loco-manipulation, dexterous manipulation, and vision-language-action models. Built from arXiv metadata and Google Scholar citations.
 
-- Last updated: 2026-11-08 22:59 UTC
-- Total indexed papers: 5522
+- Last updated: 2026-11-10 02:20 UTC
+- Total indexed papers: 5550
 - Data sources: arXiv for discovery, citation cache for enrichment.
 
 ## Total Ranking
 
 | Rank | Title | Published | Citations | Score |
 | --- | --- | --- | --- | --- |
-| 1 | [OopsieRecover: Learning Transferable VLA Corrections from Semantic Interventions](https://arxiv.org/abs/2611.08462) | 2026-11-05 | missing | 1.000 |
-| 2 | [Latent RL Priors for Data-Efficient Dexterous Manipulation](https://arxiv.org/abs/2611.08458) | 2026-11-05 | missing | 1.000 |
-| 3 | [VFlash: Fast, Accurate Visual Planning via Flash Primitive Decoding](https://arxiv.org/abs/2611.08449) | 2026-11-05 | missing | 1.000 |
-| 4 | [Failure Prediction and Classification in Vision-Language-Action Models Via Calibrated Latent Probing](https://arxiv.org/abs/2611.08425) | 2026-11-05 | missing | 1.000 |
-| 5 | [T3R: Training-Free Two-Stage Token Refinement Towards Efficient and Robust VLA Models](https://arxiv.org/abs/2611.08413) | 2026-11-05 | missing | 1.000 |
-| 6 | [SLA: Scaling Spatial-Language-Action Model via Continual Pre-training](https://arxiv.org/abs/2611.08373) | 2026-11-05 | missing | 1.000 |
-| 7 | [GPWM: Modeling the World as 3D Particle Motion](https://arxiv.org/abs/2611.08338) | 2026-11-05 | missing | 1.000 |
-| 8 | [La-JEPA: Compact Robot Policies with Latent World Modeling](https://arxiv.org/abs/2611.08156) | 2026-11-05 | missing | 1.000 |
-| 9 | [Reinforcing End-to-End Autonomous Driving Safety via Negative-Aware Planning in a Unified World-Action Model](https://arxiv.org/abs/2611.08111) | 2026-11-05 | missing | 1.000 |
-| 10 | [GuidedWAM: Training-Free Energy Guidance for World Action Models in Autonomous Driving](https://arxiv.org/abs/2611.07912) | 2026-11-05 | missing | 1.000 |
-| 11 | [TactileLab: Sim-to-Real Dexterous Robot Manipulation with Efficient Shear-Sensitive Tactile Simulation](https://arxiv.org/abs/2611.07881) | 2026-11-05 | missing | 1.000 |
-| 12 | [Learning Robotic World Models with Semantic and Visual Feedback](https://arxiv.org/abs/2611.07850) | 2026-11-05 | missing | 1.000 |
-| 13 | [AffectiveVLA: Safe and Intent-Aware VLA Control for Human-Humanoid Social Interaction](https://arxiv.org/abs/2611.07712) | 2026-11-05 | missing | 1.000 |
-| 14 | [LMGN: A Unified Policy Learning Model for Last-Mile Grasp-Navigation](https://arxiv.org/abs/2611.07515) | 2026-11-05 | missing | 1.000 |
-| 15 | [Concertina: Embodying Manipulation and Cognition in One Diffusion Vision-Language Model](https://arxiv.org/abs/2611.07513) | 2026-11-05 | missing | 1.000 |
-| 16 | [Kinematic Hypothesis Context: Embodiment-Conditioned Learned Video Coding for Bandwidth-Limited Robot Policy Uplinks](https://arxiv.org/abs/2611.07411) | 2026-11-05 | missing | 1.000 |
-| 17 | [Spatial-UMI-Dream: Scaling World Action Models with Metric Geometry for UMI Manipulation](https://arxiv.org/abs/2611.07229) | 2026-11-04 | missing | 1.000 |
-| 18 | [From Pixels to Actions - Towards Native Vision-Language-Action Policies](https://arxiv.org/abs/2611.06918) | 2026-11-04 | missing | 1.000 |
-| 19 | [Perceptive Humanoid Motion from Simulation](https://arxiv.org/abs/2611.06908) | 2026-11-04 | missing | 1.000 |
-| 20 | [Reinforcement Learning Enables Scaling Generalist Robot Policy Improvement](https://arxiv.org/abs/2611.06905) | 2026-11-04 | missing | 1.000 |
+| 1 | [Tactile Sensors Are an Effective Substitute for Wrist Cameras in Contact-Rich or Occluded Manipulation](https://arxiv.org/abs/2611.10490) | 2026-11-07 | missing | 1.000 |
+| 2 | [Spatial Representation Distillation and Knowledge Routing for Vision-Language-Action Models](https://arxiv.org/abs/2611.10443) | 2026-11-07 | missing | 1.000 |
+| 3 | [Multi-Objective Adaptation After Deployment: A Position on World Models for Remote Robot Teams](https://arxiv.org/abs/2611.10435) | 2026-11-07 | missing | 1.000 |
+| 4 | [SimDuoReal: Object-Centric Bimanual Policy for Emergent Dexterity](https://arxiv.org/abs/2611.10410) | 2026-11-07 | missing | 1.000 |
+| 5 | [Tiresias: Towards Language-Conditioned World Models](https://arxiv.org/abs/2611.10392) | 2026-11-07 | missing | 1.000 |
+| 6 | [GUARD: Anomaly-Informed Q-Steering for Generative Robot Policies in Dexterous Manipulation](https://arxiv.org/abs/2611.10343) | 2026-11-07 | missing | 1.000 |
+| 7 | [The World Model Planning Accelerator (WMPA): Hardware-Algorithm Co-Design for Embedded AI in Robotics](https://arxiv.org/abs/2611.10316) | 2026-11-06 | missing | 1.000 |
+| 8 | [On Agentic Manipulation Policies](https://arxiv.org/abs/2611.09892) | 2026-11-06 | missing | 1.000 |
+| 9 | [Grasp-TAGS: Task-Aware Grasp Selection via Critic Distillation for Prehensile Loco-Manipulation](https://arxiv.org/abs/2611.09864) | 2026-11-06 | missing | 1.000 |
+| 10 | [Autonomous Whole-body Loco-manipulation Using a Snake Robot](https://arxiv.org/abs/2611.09777) | 2026-11-06 | missing | 1.000 |
+| 11 | [SURE:Spatiotemporal Uncertainty Representation for Efficient Vision-Language-Action Learning](https://arxiv.org/abs/2611.09684) | 2026-11-06 | missing | 1.000 |
+| 12 | [ODEAction: From Predicting Chunks to Evolving Actions](https://arxiv.org/abs/2611.09672) | 2026-11-06 | missing | 1.000 |
+| 13 | [DKWBC: Decoupling Motion Tracking and Balancing for Humanoid Whole-Body Control](https://arxiv.org/abs/2611.09605) | 2026-11-06 | missing | 1.000 |
+| 14 | [HiMEM: Hippocampus-Inspired Memory Consolidation, Pruning, and Composition for Vision-Language-Action Models in 3D Scenes](https://arxiv.org/abs/2611.09355) | 2026-11-06 | missing | 1.000 |
+| 15 | [MDF++: Visuo-Tactile World Action Model with End-to-end Representation Learning](https://arxiv.org/abs/2611.09293) | 2026-11-06 | missing | 1.000 |
+| 16 | [SUGARv2: Learning Diverse Visual Humanoid Loco-Manipulation Skills from Synthesized Interaction References](https://arxiv.org/abs/2611.09266) | 2026-11-06 | missing | 1.000 |
+| 17 | [Toward the Era of Agentic Embodied Intelligence](https://arxiv.org/abs/2611.09124) | 2026-11-06 | missing | 1.000 |
+| 18 | [DobotTrack: Target-Grounded Vision-Language-Action Learning for Embodied Person Tracking](https://arxiv.org/abs/2611.09041) | 2026-11-06 | missing | 1.000 |
+| 19 | [VLA Handover: Failure-Prediction-Based Switching from On-Robot to Server VLA Models](https://arxiv.org/abs/2611.08987) | 2026-11-06 | missing | 1.000 |
+| 20 | [RevoSim: Scalable Multimodal Tactile Simulation for Dexterous Manipulation](https://arxiv.org/abs/2611.08939) | 2026-11-06 | missing | 1.000 |
 
 ## Hot Ranking
 
 | Rank | Title | Published | Citations | Score |
 | --- | --- | --- | --- | --- |
-| 1 | [OopsieRecover: Learning Transferable VLA Corrections from Semantic Interventions](https://arxiv.org/abs/2611.08462) | 2026-11-05 | missing | 0.998 |
-| 2 | [Latent RL Priors for Data-Efficient Dexterous Manipulation](https://arxiv.org/abs/2611.08458) | 2026-11-05 | missing | 0.998 |
-| 3 | [VFlash: Fast, Accurate Visual Planning via Flash Primitive Decoding](https://arxiv.org/abs/2611.08449) | 2026-11-05 | missing | 0.998 |
-| 4 | [Failure Prediction and Classification in Vision-Language-Action Models Via Calibrated Latent Probing](https://arxiv.org/abs/2611.08425) | 2026-11-05 | missing | 0.998 |
-| 5 | [T3R: Training-Free Two-Stage Token Refinement Towards Efficient and Robust VLA Models](https://arxiv.org/abs/2611.08413) | 2026-11-05 | missing | 0.998 |
-| 6 | [SLA: Scaling Spatial-Language-Action Model via Continual Pre-training](https://arxiv.org/abs/2611.08373) | 2026-11-05 | missing | 0.998 |
-| 7 | [GPWM: Modeling the World as 3D Particle Motion](https://arxiv.org/abs/2611.08338) | 2026-11-05 | missing | 0.998 |
-| 8 | [La-JEPA: Compact Robot Policies with Latent World Modeling](https://arxiv.org/abs/2611.08156) | 2026-11-05 | missing | 0.998 |
-| 9 | [Reinforcing End-to-End Autonomous Driving Safety via Negative-Aware Planning in a Unified World-Action Model](https://arxiv.org/abs/2611.08111) | 2026-11-05 | missing | 0.998 |
-| 10 | [GuidedWAM: Training-Free Energy Guidance for World Action Models in Autonomous Driving](https://arxiv.org/abs/2611.07912) | 2026-11-05 | missing | 0.998 |
-| 11 | [TactileLab: Sim-to-Real Dexterous Robot Manipulation with Efficient Shear-Sensitive Tactile Simulation](https://arxiv.org/abs/2611.07881) | 2026-11-05 | missing | 0.998 |
-| 12 | [Learning Robotic World Models with Semantic and Visual Feedback](https://arxiv.org/abs/2611.07850) | 2026-11-05 | missing | 0.998 |
-| 13 | [AffectiveVLA: Safe and Intent-Aware VLA Control for Human-Humanoid Social Interaction](https://arxiv.org/abs/2611.07712) | 2026-11-05 | missing | 0.998 |
-| 14 | [LMGN: A Unified Policy Learning Model for Last-Mile Grasp-Navigation](https://arxiv.org/abs/2611.07515) | 2026-11-05 | missing | 0.998 |
-| 15 | [Concertina: Embodying Manipulation and Cognition in One Diffusion Vision-Language Model](https://arxiv.org/abs/2611.07513) | 2026-11-05 | missing | 0.998 |
-| 16 | [Kinematic Hypothesis Context: Embodiment-Conditioned Learned Video Coding for Bandwidth-Limited Robot Policy Uplinks](https://arxiv.org/abs/2611.07411) | 2026-11-05 | missing | 0.998 |
-| 17 | [Spatial-UMI-Dream: Scaling World Action Models with Metric Geometry for UMI Manipulation](https://arxiv.org/abs/2611.07229) | 2026-11-04 | missing | 0.998 |
-| 18 | [From Pixels to Actions - Towards Native Vision-Language-Action Policies](https://arxiv.org/abs/2611.06918) | 2026-11-04 | missing | 0.997 |
-| 19 | [Perceptive Humanoid Motion from Simulation](https://arxiv.org/abs/2611.06908) | 2026-11-04 | missing | 0.997 |
-| 20 | [Reinforcement Learning Enables Scaling Generalist Robot Policy Improvement](https://arxiv.org/abs/2611.06905) | 2026-11-04 | missing | 0.997 |
+| 1 | [Tactile Sensors Are an Effective Substitute for Wrist Cameras in Contact-Rich or Occluded Manipulation](https://arxiv.org/abs/2611.10490) | 2026-11-07 | missing | 0.999 |
+| 2 | [Spatial Representation Distillation and Knowledge Routing for Vision-Language-Action Models](https://arxiv.org/abs/2611.10443) | 2026-11-07 | missing | 0.999 |
+| 3 | [Multi-Objective Adaptation After Deployment: A Position on World Models for Remote Robot Teams](https://arxiv.org/abs/2611.10435) | 2026-11-07 | missing | 0.999 |
+| 4 | [SimDuoReal: Object-Centric Bimanual Policy for Emergent Dexterity](https://arxiv.org/abs/2611.10410) | 2026-11-07 | missing | 0.999 |
+| 5 | [Tiresias: Towards Language-Conditioned World Models](https://arxiv.org/abs/2611.10392) | 2026-11-07 | missing | 0.998 |
+| 6 | [GUARD: Anomaly-Informed Q-Steering for Generative Robot Policies in Dexterous Manipulation](https://arxiv.org/abs/2611.10343) | 2026-11-07 | missing | 0.998 |
+| 7 | [The World Model Planning Accelerator (WMPA): Hardware-Algorithm Co-Design for Embedded AI in Robotics](https://arxiv.org/abs/2611.10316) | 2026-11-06 | missing | 0.998 |
+| 8 | [On Agentic Manipulation Policies](https://arxiv.org/abs/2611.09892) | 2026-11-06 | missing | 0.998 |
+| 9 | [Grasp-TAGS: Task-Aware Grasp Selection via Critic Distillation for Prehensile Loco-Manipulation](https://arxiv.org/abs/2611.09864) | 2026-11-06 | missing | 0.998 |
+| 10 | [Autonomous Whole-body Loco-manipulation Using a Snake Robot](https://arxiv.org/abs/2611.09777) | 2026-11-06 | missing | 0.998 |
+| 11 | [SURE:Spatiotemporal Uncertainty Representation for Efficient Vision-Language-Action Learning](https://arxiv.org/abs/2611.09684) | 2026-11-06 | missing | 0.998 |
+| 12 | [ODEAction: From Predicting Chunks to Evolving Actions](https://arxiv.org/abs/2611.09672) | 2026-11-06 | missing | 0.998 |
+| 13 | [DKWBC: Decoupling Motion Tracking and Balancing for Humanoid Whole-Body Control](https://arxiv.org/abs/2611.09605) | 2026-11-06 | missing | 0.998 |
+| 14 | [HiMEM: Hippocampus-Inspired Memory Consolidation, Pruning, and Composition for Vision-Language-Action Models in 3D Scenes](https://arxiv.org/abs/2611.09355) | 2026-11-06 | missing | 0.998 |
+| 15 | [MDF++: Visuo-Tactile World Action Model with End-to-end Representation Learning](https://arxiv.org/abs/2611.09293) | 2026-11-06 | missing | 0.998 |
+| 16 | [SUGARv2: Learning Diverse Visual Humanoid Loco-Manipulation Skills from Synthesized Interaction References](https://arxiv.org/abs/2611.09266) | 2026-11-06 | missing | 0.998 |
+| 17 | [Toward the Era of Agentic Embodied Intelligence](https://arxiv.org/abs/2611.09124) | 2026-11-06 | missing | 0.998 |
+| 18 | [DobotTrack: Target-Grounded Vision-Language-Action Learning for Embodied Person Tracking](https://arxiv.org/abs/2611.09041) | 2026-11-06 | missing | 0.998 |
+| 19 | [VLA Handover: Failure-Prediction-Based Switching from On-Robot to Server VLA Models](https://arxiv.org/abs/2611.08987) | 2026-11-06 | missing | 0.998 |
+| 20 | [RevoSim: Scalable Multimodal Tactile Simulation for Dexterous Manipulation](https://arxiv.org/abs/2611.08939) | 2026-11-06 | missing | 0.998 |
 
 ## Rebuild
 
