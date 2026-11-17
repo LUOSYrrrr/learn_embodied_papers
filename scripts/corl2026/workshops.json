@@ -1,0 +1,67 @@
+[
+  {
+    "name": "Scaling H2R",
+    "theme": "优先 01 · 人类数据与跨本体",
+    "url": "https://scaling-h2r-corl.github.io/",
+    "question": "人类数据增加多少、增加哪种多样性，才会变成机器人能力？",
+    "why": "适合接在 WB-WAM 后面：把数据采集、动作对齐与下游收益拆开研究。",
+    "papers": [
+      {"name": "BATCH: Behavior Alignment for Cross-Embodiment Learning from Humans", "status": "官方 Oral；待全文精读"},
+      {"name": "RoSHI: A Versatile Robot-oriented Suit for Human Data In-the-Wild", "status": "官方 Oral；待全文精读"},
+      {"name": "CARD: Contact-Anchored Retargeting for Dexterous Manipulation", "status": "官方 Poster；待全文精读"}
+    ],
+    "evidence": "2026-11-17 核验官方 Accepted Papers；此处只确认题目和展示类型。"
+  },
+  {
+    "name": "Learn@Deploy",
+    "theme": "优先 02 · 部署适应与纠错",
+    "url": "https://learn-at-deploy.github.io/",
+    "question": "机器人部署以后，应该更新策略、记忆、程序，还是测试时的动作选择？",
+    "why": "可把已有 Agentic 与 Memory 精读接到真实部署问题上，重点查在线预算、遗忘与失败恢复。",
+    "papers": [
+      {"name": "FORCA: A Force-Aware Coding Agent for Contact-Rich Robot Manipulation", "status": "官方 Spotlight；待全文精读"},
+      {"name": "VETO: Reward-Supervised World Models as Action Verifiers for Sample-Efficient RL", "status": "官方 Spotlight；待全文精读"},
+      {"name": "Gated Memory Policy: In-Context Memorization and Adaptation", "status": "官方 Spotlight；待全文精读"},
+      {"name": "I3L: Iterative Interactive Imitation Learning for Whole-Body Mobile Manipulation", "status": "官方 Spotlight；待全文精读"}
+    ],
+    "evidence": "2026-11-17 核验官方 Schedule 与 Accepted Papers；非归档 Workshop。"
+  },
+  {
+    "name": "Everything Beneath the Policy",
+    "theme": "优先 03 · 控制接口与系统变量",
+    "url": "https://beneath-the-policy.github.io/",
+    "question": "控制器、增益、动作空间、传感器和延迟，会怎样改变一个学习方法的结论？",
+    "why": "和人形部署直接相关：用来审计 Workhorse、OCLO、HULK 的接口与控制条件。",
+    "papers": [
+      {"name": "Blind Dexterity: Whole-Body Humanoid Manipulation via Pure Proprioception", "status": "官方 Oral Spotlight；待全文精读"},
+      {"name": "An Empirical Analysis of Controller Selection for Safe Execution of UMI-Style Policies", "status": "官方 Oral Spotlight；待全文精读"},
+      {"name": "Beyond Fixed Delays: Why the Time Scale of Inference Latency Matters for Robot Policies", "status": "官方 Poster；待全文精读"},
+      {"name": "Workhorse", "status": "官方 Oral Spotlight；本网站已有精读，不重复计篇数"}
+    ],
+    "evidence": "2026-11-17 核验官方 20 篇 Accepted Papers 与 OpenReview 入口；录像入口已列出，未观看。"
+  },
+  {
+    "name": "SPIN · Structured Physical Intelligence",
+    "theme": "延伸 · 结构化世界模型与物理推理",
+    "url": "https://spin-workshop.github.io/",
+    "question": "哪些物理结构需要显式保留，哪些能力可以从数据规模中学出来？",
+    "why": "适合做报告导读，再追具体论文；把世界模型的表示选择接到接触与少样本学习。",
+    "papers": [
+      {"name": "Causal-PIK / RoboARCade / ContactBench", "status": "Jeannette Bohg 的官方报告摘要提及；非本页核实的录用论文名单"},
+      {"name": "Structured World Models as Scalable Data Engines for Robotics", "status": "Yunzhu Li 的报告题目与摘要；尚未观看报告"}
+    ],
+    "evidence": "2026-11-17 核验官方讲题、摘要与挑战说明；不把摘要写成现场发言结论。"
+  },
+  {
+    "name": "G2A · From Generative Models to Robot Actions",
+    "theme": "继续已有方向 · 从生成到动作",
+    "url": "https://actiongapworkshop.github.io/",
+    "question": "没有机器人动作标签的视频与 3D 生成先验，怎样变成可执行、可闭环的控制？",
+    "why": "WB-WAM 所在主题的继续延伸：比较逆动力学、动作条件 JEPA、视频计划与跨本体落地。",
+    "papers": [
+      {"name": "Towards Bridging the Action Gap via Planning with Action-Conditioned JEPA World Models", "status": "Mike Rabbat 的官方报告题目；尚未观看报告"},
+      {"name": "Robot Control with Video and 4D World Models", "status": "Yilun Du 的官方报告题目；尚未观看报告"}
+    ],
+    "evidence": "2026-11-17 核验官方议程与非归档投稿说明；WB-WAM 的 Oral 身份仍沿用既有核验，未将报告题目当作新录用论文。"
+  }
+]

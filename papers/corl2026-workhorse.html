@@ -1,0 +1,232 @@
+<!doctype html><html lang="zh-CN"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="color-scheme" content="light dark"><title>Workhorse · CoRL 阅读室</title><script>try{document.documentElement.dataset.theme=localStorage.getItem('theme')||localStorage.getItem('corl2026-theme')||'light'}catch{}</script><style>:root{--bg:#faf9f7;--panel:#fff;--text:#1a1a1e;--muted:#64646c;--line:#dddcd8;--accent:#966333;--soft:#f3eee8;--warn:#795124;--warm:#f8efe0;--shadow:0 8px 24px #00000008;color-scheme:light}
+:root[data-theme=dark]{--bg:#0f1014;--panel:#1a1b22;--text:#f0f0f3;--muted:#b8bac4;--line:#3a3c48;--accent:#d4a06a;--soft:#29251f;--warn:#efc68d;--warm:#362c20;--shadow:none;color-scheme:dark}
+*{box-sizing:border-box}html{scroll-behavior:smooth;scroll-padding-top:85px}body{margin:0;background:var(--bg);color:var(--text);font:16px/1.85 -apple-system,BlinkMacSystemFont,"PingFang SC","Noto Sans CJK SC",sans-serif}a{color:var(--accent);text-underline-offset:4px}a:hover{text-decoration-thickness:2px}button,input,select{font:inherit}button{padding:7px 14px;border:1px solid var(--line);border-radius:7px;background:var(--panel);color:var(--text);cursor:pointer}button:hover{border-color:var(--accent);background:var(--soft)}button:disabled{opacity:.45;cursor:default}a:focus-visible,button:focus-visible,input:focus-visible,select:focus-visible,summary:focus-visible,[tabindex]:focus-visible{outline:3px solid var(--accent);outline-offset:4px}input,select{background:var(--panel);color:var(--text);border:1px solid var(--line);padding:9px 12px;border-radius:6px;max-width:100%}.skip{position:absolute;top:-100px;left:20px;padding:8px;background:var(--panel);z-index:20}.skip:focus{top:12px}.top{position:sticky;top:0;z-index:5;display:flex;justify-content:space-between;gap:20px;align-items:center;padding:15px 4vw;background:var(--bg);border-bottom:1px solid var(--line)}.brand{font-weight:750;text-decoration:none;letter-spacing:.05em}.brand span{font:12px ui-monospace,monospace;letter-spacing:.1em;margin-left:8px;color:var(--muted)}.top nav{display:flex;gap:16px;align-items:center;font-size:13px}.layout{display:grid;grid-template-columns:235px minmax(0,940px);gap:55px;max-width:1360px;margin:0 auto;padding:64px 38px 90px}.layout:not(:has(.sidebar)){display:block;max-width:1190px}main{min-width:0}.sidebar{align-self:start;position:sticky;top:105px;font-size:13px;max-height:calc(100vh - 125px);overflow:auto;padding-right:13px}.sidebar summary{font-weight:700;cursor:pointer;list-style:none}.sidebar nav{display:grid;gap:5px;margin-top:18px}.sidebar a{padding:7px 11px;border-left:2px solid var(--line);text-decoration:none;line-height:1.6;color:var(--muted)}.sidebar a:hover{border-color:var(--accent);color:var(--accent);background:var(--soft)}.side-note{border-top:1px solid var(--line);margin-top:25px;padding-top:18px;color:var(--muted);font-size:12px}.eyebrow{color:var(--accent);font-size:11px;letter-spacing:.1em;font-weight:700;text-transform:uppercase}h1{font-size:clamp(30px,3.3vw,48px);line-height:1.35;letter-spacing:-.035em;margin:16px 0 20px;font-weight:730;max-width:980px}h2{font-size:24px;line-height:1.5;letter-spacing:-.02em;margin:56px 0 20px;padding-top:12px;border-top:1px solid var(--line)}h3{font-size:19px;margin:32px 0 14px;line-height:1.6}p{margin:15px 0}.lede{font-size:19px;max-width:850px;color:var(--muted)}.muted,.tagline{color:var(--muted)}.source-links{display:flex;gap:18px;flex-wrap:wrap;font-size:13px;margin:20px 0 28px}blockquote{margin:26px 0;padding:20px 25px;background:var(--soft);border-left:4px solid var(--accent);border-radius:0 10px 10px 0}blockquote p{margin:0}.eval-overview{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px;margin:24px 0 30px}.eval-overview article{padding:18px;border:1px solid var(--line);border-radius:9px;background:var(--panel)}.eval-overview span{font-size:11px;color:var(--accent);font-weight:700;letter-spacing:.08em}.eval-overview p{font-size:14px;line-height:1.75;margin:8px 0 0}.eval-table-wrap{overflow-x:auto;margin:24px 0;border:1px solid var(--line);border-radius:9px;background:var(--panel)}table{border-collapse:collapse;width:100%;font-size:13px;line-height:1.75}th,td{padding:14px 15px;text-align:left;vertical-align:top;border-bottom:1px solid var(--line);min-width:120px}th{background:var(--soft);font-weight:650}tbody tr:last-child td{border-bottom:0}tbody tr:hover{background:var(--soft)}code{font:13px/1.8 ui-monospace,SFMono-Regular,Menlo,monospace;white-space:normal;overflow-wrap:anywhere;background:var(--soft);padding:3px 6px;border-radius:4px}figure{margin:28px 0;padding:12px;background:white;border:1px solid var(--line);border-radius:9px}figure img{width:100%;height:auto;display:block}figcaption{color:#56625a;font-size:12px;line-height:1.7;margin:10px 7px 3px}abbr{text-decoration-style:dotted;cursor:help}.inference{padding-left:16px;border-left:3px solid var(--line)}.walker,.quiz{padding:26px;border:1px solid var(--line);border-radius:12px;background:var(--panel);margin:40px 0}.walker h2,.quiz h2{border:0;padding:0;margin:0 0 10px}.walker>p{font-size:14px;color:var(--muted)}.walker ol{padding:0;margin:20px 0 0;list-style:none;display:grid;gap:10px}.walker li{border:1px solid var(--line);padding:15px;border-radius:8px;font-size:14px}.walker li.current{border-color:var(--accent);background:var(--soft)}.step-no{font:12px ui-monospace,monospace;color:var(--accent);font-weight:700;display:inline-block;margin-right:12px}.step-controls{display:flex;gap:15px;align-items:center}.step-controls output{font-size:12px;color:var(--muted)}fieldset{border:0;padding:0;margin:0 0 15px}legend{font-weight:600;margin:8px 0 12px}.quiz label{display:block;padding:10px 12px;background:var(--bg);margin:7px 0;border-radius:6px;font-size:14px}.quiz input{accent-color:var(--accent)}.feedback{font-weight:600;color:var(--accent)}details{margin:15px 0}summary{cursor:pointer;color:var(--accent);font-size:14px}details p{font-size:14px}.stats{display:grid;grid-template-columns:repeat(3,1fr);border-block:1px solid var(--line);margin:35px 0}.stats div{padding:24px;font-size:13px;color:var(--muted);border-right:1px solid var(--line)}.stats div:last-child{border:0}.stats strong{display:block;font:42px/1.2 ui-monospace,monospace;color:var(--accent);margin-bottom:12px}.scope{background:var(--soft);padding:20px 25px;border-radius:10px;font-size:14px}.scope p{margin:8px 0 12px}.cards{display:grid;grid-template-columns:1fr 1fr;gap:22px;margin:35px 0}.paper-card{position:relative;background:var(--panel);padding:28px;border:1px solid var(--line);border-radius:12px;box-shadow:var(--shadow)}.paper-card h2{border:0;margin:15px 0 12px;padding:0;font-size:27px}.paper-card h2 a{text-decoration:none}.paper-card p{font-size:15px}.paper-card .eyebrow{max-width:calc(100% - 25px);font-size:10px}.card-num{position:absolute;right:20px;top:23px;color:var(--muted);font:12px ui-monospace,monospace}.boundary{padding:12px 14px;background:var(--warm);color:var(--warn);border-radius:6px;font-size:13px!important}.paper-card small{font-size:11px;color:var(--muted)}.principles{display:grid;grid-template-columns:repeat(2,1fr);gap:16px}.principles p{padding:20px;background:var(--panel);border:1px solid var(--line);border-radius:8px;font-size:14px;margin:0}.principles strong{color:var(--accent);display:inline-block;margin-bottom:8px}.filters{display:flex;gap:15px;flex-wrap:wrap;align-items:end;margin:30px 0 20px;padding:20px;background:var(--soft);border-radius:10px}.filters label{display:grid;gap:5px;font-size:12px}.filters label:first-child{flex:1;min-width:230px}.filters output{font-size:12px;align-self:center}#catalog td:nth-child(1){min-width:60px;width:60px;font-family:ui-monospace,monospace;color:var(--muted)}#catalog td:nth-child(2){min-width:260px}#catalog td:nth-child(3),#catalog td:nth-child(4){min-width:85px;width:90px}#catalog details{margin:5px 0 0}#catalog summary{font-size:11px}#catalog details p{white-space:pre-wrap;font-size:12px}footer{max-width:1284px;margin:auto;padding:25px 38px;border-top:1px solid var(--line);font-size:12px;color:var(--muted)}[hidden]{display:none!important}
+@media(max-width:1000px){.layout{grid-template-columns:190px minmax(0,1fr);gap:28px;padding:40px 25px}.eval-overview{grid-template-columns:1fr}.eval-overview article{padding:15px}.eval-overview p{margin:4px 0}.top{padding-inline:25px}.sidebar{font-size:12px}}
+@media(max-width:720px){.top{padding:13px 18px;gap:10px;position:relative}.top nav{gap:8px;font-size:11px}.top nav>a{display:none}.top button{padding:5px 9px;font-size:11px}.brand{font-size:14px}.brand span{display:none}.layout,.layout:not(:has(.sidebar)){display:block;padding:27px 18px 60px}.sidebar{position:static;max-height:none;padding:0;margin:0 0 30px;border:1px solid var(--line);border-radius:8px;background:var(--panel)}.sidebar details{margin:0;padding:12px 15px}.sidebar summary{list-style:disclosure-closed}.sidebar nav{gap:2px}.side-note{display:none}h1{font-size:30px}h2{font-size:22px;margin-top:42px}h3{font-size:18px}body{font-size:15px}.cards,.principles{grid-template-columns:1fr}.paper-card{padding:24px}.stats div{padding:19px 12px;font-size:11px}.stats strong{font-size:32px}.lede{font-size:17px}blockquote{padding:18px}.walker,.quiz{padding:18px}.source-links{gap:14px}.scope{padding:18px}th,td{padding:12px;font-size:12px}.eval-overview{gap:9px}footer{padding:20px 18px}figure{padding:7px}figcaption{font-size:11px}}
+@media(prefers-reduced-motion:reduce){html{scroll-behavior:auto}}
+@media print{html{scroll-behavior:auto}body{background:white!important;color:#111!important;font-size:10pt}.top,.sidebar,footer,.step-controls,.quiz button,.filters,.skip{display:none!important}.layout,.layout:not(:has(.sidebar)){display:block;max-width:none;padding:0}.eval-table-wrap{overflow:visible;border-color:#ccc}table{font-size:8pt}th,td{min-width:0;padding:7px}h1{font-size:25pt}h2{font-size:16pt;break-after:avoid}h3{break-after:avoid}figure,.paper-card,.eval-overview article{break-inside:avoid}details{display:block}details>*{display:block!important}details::details-content{display:block;content-visibility:visible}img{max-height:70vh;object-fit:contain}.paper-card{box-shadow:none}.cards{display:block}.paper-card{margin:15px 0}a{color:#111}.eval-overview,.principles{display:block}.eval-overview article{margin:10px 0}blockquote,.scope{background:#eee!important}.boundary{color:#333!important;background:#eee!important}}
+
+.zoom-dialog{width:96vw;max-width:96vw;max-height:94vh;border:1px solid var(--line);border-radius:10px;padding:12px;background:var(--panel);color:var(--text)}.zoom-dialog::backdrop{background:#000b}.zoom-bar{margin:0 0 10px;display:flex;justify-content:flex-end}.zoom-scroll{overflow:auto;max-height:78vh;background:white}.zoom-scroll img{display:block;width:auto;max-width:none;height:auto}
+.eval-overview{grid-template-columns:repeat(2,minmax(0,1fr))}.cn-read{margin:18px 0 24px;padding:16px 20px;background:var(--soft);border-radius:8px}.cn-read p{margin:6px 0 0}.cn-label{font-size:11px;letter-spacing:.08em;font-weight:700;color:var(--accent)}.evidence-note{font-size:13px;color:var(--muted)}.candidate-list{padding-left:20px;font-size:14px;line-height:1.8}.candidate-list li{margin:12px 0}.candidate-list strong{font-weight:600}.candidate-list+p{border-top:1px solid var(--line);padding-top:12px}
+@media(max-width:720px){.eval-overview{grid-template-columns:1fr}.top nav>a.collection-link{display:inline}.brand{letter-spacing:0}.top{gap:8px}.top nav{gap:6px}.top button{padding:5px 7px}.cn-read{padding:14px 16px}}
+@media print{:root,:root[data-theme=dark]{--bg:#fff;--panel:#fff;--text:#111;--muted:#444;--line:#ccc;--accent:#333;--soft:#f4f4f4;--warn:#333;--warm:#eee}.cn-read{background:#f4f4f4}.zoom-dialog{display:none!important}}
+</style></head><body><a class="skip" href="#main">跳到正文</a><header class="top"><a href="../index.html" class="brand">~/paper-notes <span>CoRL 2026</span></a><nav aria-label="阅读导航与工具"><a class="collection-link" href="corl2026.html">专题</a><a href="corl2026-workshops.html">Workshop 选题</a><button id="theme" type="button" aria-label="切换深浅主题" hidden>切换主题</button><button id="print" type="button" hidden>打印 / PDF</button></nav></header><div class="layout"><aside class="sidebar"><details open><summary>Workhorse · 章节</summary><nav aria-label="章节导航"><a href="#overview">简短说明与评测</a><a href="#section-1">1. 问题：参考动作可行，执行中的身体却会落后</a><a href="#section-2">2. 思路：给控制器足够自由，也让规划器见过偏差</a><a href="#section-3">3. 方法：一个箱子怎样从人类示范变成 G1 动作？</a><a href="#section-4">4. 证据：高成功率的代价可能是更多摔倒</a><a href="#section-5">5. 反例与一周实验</a><a href="#section-6">面试口述版</a><a href="#section-7">来源与修订</a><a href="#walk">训练到执行</a><a href="#quiz">理解检查</a></nav></details><p class="side-note">原文 / 推断 / 待验证<br>PDF 全文与附录核读<br>不以演示替代成功率</p></aside><main id="main"><div class="eyebrow">Contact-Rich Workshop · Spotlight</div><h1 id="overview">Workhorse：人类五点运动，怎样驱动能受扰动的人形？</h1><p class="tagline">五点参考 · 闭环偏差</p><div class="source-links"><a href="https://contact-rich-loco-manipulation.github.io/papers/30-workhorse.pdf">原始论文 ↗</a><a href="https://contact-rich-loco-manipulation.github.io/papers/30-workhorse.pdf">PDF ↗</a><a href="corl2026.html">CoRL 五方向专题</a></div><article class="paper-body">
+<blockquote class="core-insight">
+<p><strong>简短说明</strong>：Workhorse 从躯干、双手腕和双脚五点人类示范学习视觉规划，再让 RL 控制器完成跟踪。关键是显式训练“计划与当前身体状态不一致”的情况。77% 与 64% 是仿真三箱任务的成功率；真机搬箱、接箱和拖行李属于能力展示，没有报告成组成功次数。</p>
+</blockquote><section class="eval-overview" aria-label="评测结论总览"><article class="eval-card"><span>仿真</span><p>三箱任务：无推 77/100，有推 64/100。</p></article><article class="eval-card"><span>ID / OOD</span><p>同任务受推下降 13 点；H2 需重训，不是零样本。</p></article><article class="eval-card"><span>真机</span><p>搬箱、接箱、14 kg 行李能力展示；未报告成组 SR。</p></article><article class="eval-card"><span>证据边界</span><p>77%/64% 是仿真；五点接口成功更多，也可能跌倒更多。</p></article></section>
+<p><strong>阅读范围</strong>：Contact-Rich Loco-Manipulation Workshop Spotlight；公开 PDF 9 页，含 pp.6–9 附录，已通读；未审代码。阅读日期 2026-11-17。</p>
+<p><strong>评测先看</strong>：仿真三箱任务无推力 77/100，40 N 推力 64/100；跨到 H2 需重训规划器和控制器，无推力 83/100。真机 G1 展示搬运、接箱和 14 kg 行李操作，未给 SR；不能把机器人更换说成不重训零样本迁移。</p>
+<h2 id="section-1">1. 问题：参考动作可行，执行中的身体却会落后</h2><div class="cn-read"><div class="cn-label">这一节解决什么</div><p>[原文] 接住箱子或拉重行李时，负载和碰撞会使机器人偏离原来的参考轨迹。人类示范能给任务策略，但复制全部关节太受本体约束；只提供手目标又丢掉躯干和足部协调。本文研究五点位姿的视觉规划接口，以及在偏差不断积累时仍能执行的控制器。[§I–III]</p></div>
+<p>具体任务是依次把三个箱子搬到目标区域。策略从胸前 RGB、五点历史和身体状态预测未来五点轨迹；跟踪器负责 29 个关节。仿真成功要求 120 秒内完成三个箱子且不跌倒。由此“更听从计划”和“更不容易摔倒”不一定同向，实验必须分别记录。</p>
+<h2 id="section-2">2. 思路：给控制器足够自由，也让规划器见过偏差</h2><div class="cn-read"><div class="cn-label">这一节解决什么</div><p>[原文] 五点链接经过固定刚体变换映射，不做人体轨迹缩放或整段动作重定向；控制器延续 BeyondMimic 风格，附录包含 SuperMimic 的学习动力学训练路径。[§III、App.C]</p></div>
+<p class="inference evidence-note" data-evidence="inference">[推断] 五点比关节角更接近任务空间，比单纯双手目标多了姿态和支撑信息。如果控制器只有干净轨迹训练，它可能把“落后一点”视作必须急追的错误。让控制器训练时看到逐渐漂移的指令，让规划器看到身体已偏离计划的历史，可针对这一闭环失配。替代是加强在线 MPC/重规划；可能提高约束可解释性，但带来计算和模型依赖，本文未做等预算全面比较。</p>
+<h2 id="section-3">3. 方法：一个箱子怎样从人类示范变成 G1 动作？</h2><div class="cn-read"><div class="cn-label">这一节解决什么</div><p>五点参考为身体留下自由度，却也会带来计划与执行的偏差。下面沿采集、视觉规划、控制训练与闭环执行解释增强在哪里起作用；真机可靠性还不能由接口设计直接推出。</p></div>
+<h3>数据与对齐</h3>
+<div class="eval-table-wrap" tabindex="0" role="region" aria-label="证据表，可横向滚动"><table class="eval-table">
+<thead>
+<tr>
+<th>来源</th>
+<th>规模/设备</th>
+<th>用途和代价</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>人类五点动作</td>
+<td>一人、一房间；箱子 2.2 h，行李 1.2 h，接箱 13 min</td>
+<td>五 Vive trackers + 四基站，约 5×5 m 区域，60 Hz</td>
+</tr>
+<tr>
+<td>胸前视觉</td>
+<td>DJI 相机 30 fps</td>
+<td>用拍手做流同步，报告误差约 5.5 ms</td>
+</tr>
+<tr>
+<td>人体外观替换</td>
+<td>SAM3、LaMa、MoGe2 + MuJoCo 渲染</td>
+<td>将人替换成目标机器人；也引入视觉处理成本与合成误差</td>
+</tr>
+<tr>
+<td>仿真规划器评测配方</td>
+<td>重建房间的额外数据约占 15%</td>
+<td>仿真结果并非完全不加针对性数据</td>
+</tr>
+<tr>
+<td>跟踪器训练</td>
+<td>箱子以腕部弹簧扰动近似，最大约 40 N；行李使用完整物体仿真</td>
+<td>简化力模型与真实接触存在差异</td>
+</tr>
+</tbody>
+</table></div>
+<p>[原文] §III、App.A–D。所谓直接五点映射仍包含坐标校准；IK 用于奖励/初始化、图像机器人姿态及采集可达性预览，不能把本文概括为“全流程没有 IK”。</p>
+<figure><a href="../assets/figures/corl2026/workhorse-fig-2.png" target="_blank" rel="noopener"><img loading="lazy" decoding="async" src="../assets/figures/corl2026/workhorse-fig-2.png" alt="原文 Figure 2，p.2：五点人类采集、视觉规划和底层跟踪" /></a><figcaption>原文 Figure 2，p.2：五点人类采集、视觉规划和底层跟踪 · 点击查看原尺寸</figcaption></figure>
+<h3>五点参考的空间与时间</h3>
+<p>刚体接口为 <code>world_T_link = world_T_tracker · tracker_T_alignment · inverse(link_T_alignment)</code>。每一点用位置 3 维、旋转 6 维，五点共 45D，不是 45 个关节。[Eq.1]</p>
+<p>视觉规划器 5 Hz：读四张 RGB（间隔 0.24 s）、九帧五点历史（间隔 0.12 s）、投影重力和躯干高度；从零训练的 ResNet18 + flow DiT 输出 <code>58×45</code>，对应 50 Hz 下 1.16 秒轨迹，推理 10 个 Euler steps。跟踪器 50 Hz，观察未来 0.2 秒内六个参考点及本体状态，产生 29 关节位置目标。[§III、App.C]</p>
+<p>躯干与手腕使用全局目标，足部主要相对躯干跟踪，从而留出平衡调整的余地。部署规划器在笔记本，跟踪器在机载；不需要外部动作捕捉反馈，但需要机器人本体感知。</p>
+<h3>两处增强修补同一个闭环缺口</h3>
+<p>跟踪器训练时，命令漂移累积到最多约 10 cm、10°，在 0.2–1 秒的重规划间隔重置；奖励针对漂移后的命令，因为控制器拿不到隐藏的“正确意图”。规划器训练则把输入历史扰动、目标保留干净，并对图像做一致的几何/遮挡增强。[§III-C]</p>
+<p class="inference evidence-note" data-evidence="inference">[推断·教学算例] 假设箱子使手腕落后 5 cm。控制器需要在不失衡的条件下追当前收到的目标；下一次规划器看到已经落后的身体，应重新给可达的未来，而不是继续假定身体完美执行。两者职责不同：一个在两次重规划之间稳住，另一个重写后续参考。</p>
+<p>推理给轨迹打时间戳，跳过过期点，变换到最新躯干坐标，并用 real-time chunk inpainting 处理重叠。不能把这个重叠机制与 Long-WAM 的纯异步偏移拼成同一种实现。[§III-D]</p>
+<section class="walker" aria-label="训练到执行逐步读"><h2 id="walk">训练到执行：逐步读</h2><p>按顺序检查信息怎样流动；每一步都保留在页面中。按钮或左右方向键切换，Home / End 跳到首尾。</p><div class="step-controls" tabindex="0" role="group" aria-label="步骤导航" hidden><button data-prev type="button">上一步</button><output aria-live="polite">1 / 4</output><button data-next type="button">下一步</button></div><ol><li data-step="0"><span class="step-no">01</span>用五个 tracker 采集躯干、双腕、双脚与胸前视觉。</li><li data-step="1"><span class="step-no">02</span>将人体视觉编辑成目标机器人，固定变换对齐五点。</li><li data-step="2"><span class="step-no">03</span>5 Hz 规划器输出 1.16 秒五点参考。</li><li data-step="3"><span class="step-no">04</span>50 Hz 控制器追踪；命令/历史增强处理执行失配。</li></ol></section><h2 id="section-4">4. 证据：高成功率的代价可能是更多摔倒</h2><div class="cn-read"><div class="cn-label">这一节解决什么</div><p>增强训练是否让系统更稳，要同时看成功与跌倒。下面分开仿真受推、跨本体适配和真机展示；高成功率并不保证所有失败类型都减少。</p></div>
+<h3>仿真证据表：三箱任务</h3>
+<p>所有条目每条件 100 episodes；有扰动组每 5–10 秒随机方向施加 40 N、持续 1 秒。光照、质量、摩擦固定，主要改变初始位姿与箱子布置。[App.D、Table II，p.8]</p>
+<div class="eval-table-wrap" tabindex="0" role="region" aria-label="证据表，可横向滚动"><table class="eval-table">
+<thead>
+<tr>
+<th>配置</th>
+<th>无推力：成功/跌倒</th>
+<th>有推力：成功/跌倒</th>
+<th>能解释什么</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>完整 Workhorse</td>
+<td>77/100，1/100</td>
+<td>64/100，15/100</td>
+<td>基准表现；成功和安全需分开</td>
+</tr>
+<tr>
+<td>关节命令接口</td>
+<td>54/100，1/100</td>
+<td>42/100，4/100</td>
+<td>五点任务成功更高，但受推时跌倒也更多</td>
+</tr>
+<tr>
+<td>link-local 接口</td>
+<td>5/100，77/100</td>
+<td>4/100，91/100</td>
+<td>坐标与全局任务约束重要</td>
+</tr>
+<tr>
+<td>去掉重力与高度</td>
+<td>1/100，97/100</td>
+<td>1/100，99/100</td>
+<td>两项一起移除，不能归因为只有重力</td>
+</tr>
+<tr>
+<td>去掉规划器增强</td>
+<td>20/100，79/100</td>
+<td>0/100，95/100</td>
+<td>移除多种增强，不能单独证明漂移增强因果</td>
+</tr>
+<tr>
+<td>去掉命令增强</td>
+<td>76/100，4/100</td>
+<td>52/100，23/100</td>
+<td>扰动下差异更明显</td>
+</tr>
+</tbody>
+</table></div>
+<p>完整方法无推力 77% 的 Wilson 95% 为 77.0%（67.8–84.2%）；有推力 64% 为 64.0%（54.2–72.7%）。区间为阅读者计算，不能据重叠与否代替正确的配对/多重比较检验。</p>
+<h3>ID / OOD 证据表</h3>
+<div class="eval-table-wrap" tabindex="0" role="region" aria-label="证据表，可横向滚动"><table class="eval-table">
+<thead>
+<tr>
+<th>变化维度</th>
+<th>ID/变化后表现</th>
+<th>降幅与边界</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>外力扰动</td>
+<td>无推力 77% → 推力 64%</td>
+<td>同任务下降 13 点，保留 83.1%；训练含扰动，因此称扰动鲁棒性，不称完全未见动力学</td>
+</tr>
+<tr>
+<td>G1→H2</td>
+<td>G1 77%，H2 83%，各 100 次无推力</td>
+<td>H2 重训规划器和控制器、重渲染外观；不是零样本本体 OOD；不可当成同一模型保留率</td>
+</tr>
+<tr>
+<td>光照、摩擦、负载外推</td>
+<td>仿真主评测固定这些变量</td>
+<td>未报告匹配的分层 OOD</td>
+</tr>
+<tr>
+<td>新语言/多任务组合</td>
+<td>未给完整分层评测</td>
+<td>未报告</td>
+</tr>
+</tbody>
+</table></div>
+<h3>真机证据表</h3>
+<div class="eval-table-wrap" tabindex="0" role="region" aria-label="证据表，可横向滚动"><table class="eval-table">
+<thead>
+<tr>
+<th>G1 展示</th>
+<th>观察到的能力</th>
+<th>数量与不能推出的结论</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>搬运三箱</td>
+<td>两箱用手、另一箱可踢动</td>
+<td>未给完整试验数/SR</td>
+</tr>
+<tr>
+<td>接抛来的箱子</td>
+<td>展示约 0.56 s 飞行时间的接取</td>
+<td>不是 0.56 s 端到端推理延迟；未给重复成功次数</td>
+</tr>
+<tr>
+<td>行李操作</td>
+<td>14 kg 行李、0.39 m 台阶/跳跃等</td>
+<td>演示能力与恢复片段；未给成组成功率</td>
+</tr>
+</tbody>
+</table></div>
+<p>[原文] §IV、Figures 3–4、附录。没有次数，不能计算真机 Wilson 区间；77%/64% 不可移植到这张表。</p>
+<div class="eval-table-wrap" tabindex="0" role="region" aria-label="证据表，可横向滚动"><table class="eval-table">
+<thead>
+<tr>
+<th>主张</th>
+<th>机制/证据</th>
+<th>未排除的解释</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>五点接口适合任务执行</td>
+<td>同协议优于关节命令 SR</td>
+<td>更多跌倒意味着可能存在保守性差异</td>
+</tr>
+<tr>
+<td>闭环失配增强有帮助</td>
+<td>去增强的仿真消融</td>
+<td>规划增强各组成贡献尚未分离</td>
+</tr>
+<tr>
+<td>同一人类数据能用于不同机器人</td>
+<td>H2 重训后成功演示与仿真</td>
+<td>重新训练成本、体型渲染与任务适配成本</td>
+</tr>
+</tbody>
+</table></div>
+<h2 id="section-5">5. 反例与一周实验</h2><div class="cn-read"><div class="cn-label">这一节解决什么</div><p class="inference evidence-note" data-evidence="inference">[推断] 贡献在于把人的五点任务参考与受扰动控制结合。反例是持续高载荷或极端摩擦：五点目标在几何上可达，控制器可能为了追任务目标不断增加跌倒风险。已有受推下 15/100 与关节接口 4/100 的跌倒差距，值得比平均 SR 更优先分析。</p></div>
+<p>[猜测/待验证] 固定规划器与演示数据，扫描控制器跟踪权重/力扰动幅度，绘制任务 SR 与跌倒率的共同变化；另做“只漂移增强”“只视觉增强”“全部增强”“无增强”。若成功增益完全来自更冒险的控制，则同跌倒预算下优势会消失；这是可反驳原机制强解释的测试。</p>
+<p>一周计划：前两天核对公开代码/权重、五点坐标及校准；第 3–4 天在已有仿真房间固定 seed 跑小样本对照；第 5 天人工标注跟踪与摔倒类型；后两天做配对复测和时间戳审计。有现成 G1 才做低载真机迁移；无平台则止于仿真。全套 Vive 基站、重建房间与重新训练 H2 不视为免费依赖。</p>
+<h2 id="section-6">面试口述版</h2>
+<p>Workhorse 从人的躯干、双腕和双脚五点示范中学习任务，再让机器人自己的 RL 控制器把这些目标变成关节运动。它的重点是执行时身体常常会落后于计划：控制器训练要见过偏移的命令，视觉规划器也要见过不完美执行的历史，后续参考才不会持续脱离机器人实际状态。</p>
+<p>仿真三箱任务里，无推力成功率 77%，受推是 64%；这些数字不能说成真机结果。真机展示了搬箱、接箱、拖重行李，但没有重复试验成功率。还有一个值得注意的结果：五点接口受推时比关节接口成功率更高，跌倒也更多。所以我最想做的是在相同跌倒预算下比较接口，看看收益来自更好的任务表达，还是更激进地追目标。</p>
+<h2 id="section-7">来源与修订</h2>
+<ul>
+<li><a href="https://contact-rich-loco-manipulation.github.io/papers/30-workhorse.pdf">官方 Workshop PDF</a>：§III–IV、App.A–D，尤其 Table II p.8。</li>
+<li><a href="https://contact-rich-loco-manipulation.github.io/program/index.html">官方 Workshop 议程</a>：Spotlight 身份。</li>
+<li>算例、Wilson 区间与实验设计为阅读者补充；2026-11-17 初稿。</li>
+</ul>
+</article><section class="quiz" data-answer="2"><h2 id="quiz">理解检查</h2><fieldset><legend>哪项结论得到这份 PDF 的直接支持？</legend><label><input type="radio" name="answer" value="0"> 真机三箱任务在 40 N 推力下成功率 64%。</label><label><input type="radio" name="answer" value="1"> H2 可以不用重新训练直接执行 G1 策略。</label><label><input type="radio" name="answer" value="2"> 仿真中五点接口提高任务成功率，但受推跌倒也更多。</label></fieldset><button data-check type="button" hidden>检查答案</button><p class="feedback" aria-live="polite"></p><details><summary>展开答案与依据</summary><p>仿真中五点接口提高任务成功率，但受推跌倒也更多。</p><p>App.D 的仿真数据：五点 64 次成功/15 次跌倒；关节接口 42 次成功/4 次跌倒，每组 100 次。</p></details></section></main></div><footer>原文事实与阅读者推断分开标注 · 整理日期 2026-11-17 · <a href="../index.html">返回论文网站</a> · <a href="corl2026-workshops.html">继续选题</a></footer><script>(()=>{'use strict';
+const $=s=>document.querySelector(s);const $$=s=>[...document.querySelectorAll(s)];
+if($('figure a')){const dialog=document.createElement('dialog');dialog.className='zoom-dialog';dialog.setAttribute('aria-label','论文原图');const bar=document.createElement('form');bar.method='dialog';bar.className='zoom-bar';const close=document.createElement('button');close.textContent='关闭原图（Esc）';bar.append(close);const scroll=document.createElement('div');scroll.className='zoom-scroll';const img=document.createElement('img');scroll.append(img);dialog.append(bar,scroll);document.body.append(dialog);$$('figure a').forEach(a=>a.addEventListener('click',e=>{e.preventDefault();img.src=a.href;img.alt=a.querySelector('img').alt;dialog.showModal()}))}
+const theme=$('#theme');if(theme){theme.hidden=false;let saved;try{saved=localStorage.getItem('theme')||localStorage.getItem('corl2026-theme')}catch{}if(saved==='dark')document.documentElement.dataset.theme='dark';const label=()=>{const dark=document.documentElement.dataset.theme==='dark';theme.textContent=dark?'浅色':'深色';theme.setAttribute('aria-pressed',String(dark))};label();theme.addEventListener('click',()=>{const mode=document.documentElement.dataset.theme==='dark'?'light':'dark';document.documentElement.dataset.theme=mode;try{localStorage.setItem('theme',mode);localStorage.setItem('corl2026-theme',mode)}catch{}label()})}
+const print=$('#print');if(print){print.hidden=false;print.addEventListener('click',()=>window.print())}
+let opened=[];window.addEventListener('beforeprint',()=>{opened=$$('details').map(d=>[d,d.open]);$$('details').forEach(d=>d.open=true)});window.addEventListener('afterprint',()=>opened.forEach(([d,o])=>d.open=o));
+if(matchMedia('(max-width:720px)').matches){const toc=$('.sidebar details');if(toc)toc.open=false}
+$$('.walker').forEach(w=>{const items=[...w.querySelectorAll('[data-step]')];const controls=w.querySelector('.step-controls');if(!controls)return;controls.hidden=false;let i=0;const prev=w.querySelector('[data-prev]'),next=w.querySelector('[data-next]'),out=w.querySelector('output');const render=()=>{const focused=document.activeElement;items.forEach((s,n)=>{s.classList.toggle('current',n===i);if(n===i)s.setAttribute('aria-current','step');else s.removeAttribute('aria-current')});out.value=`${i+1} / ${items.length}`;out.textContent=out.value;prev.disabled=i===0;next.disabled=i===items.length-1;if(focused?.disabled)controls.focus()};prev.onclick=()=>{i=Math.max(0,i-1);render()};next.onclick=()=>{i=Math.min(items.length-1,i+1);render()};controls.addEventListener('keydown',e=>{const keys=['ArrowLeft','ArrowRight','Home','End'];if(!keys.includes(e.key))return;e.preventDefault();i=e.key==='Home'?0:e.key==='End'?items.length-1:e.key==='ArrowLeft'?Math.max(0,i-1):Math.min(items.length-1,i+1);render()});render()});
+$$('.quiz').forEach(q=>{const btn=q.querySelector('[data-check]');btn.hidden=false;btn.addEventListener('click',()=>{const selected=q.querySelector('input:checked'),out=q.querySelector('.feedback');out.textContent=!selected?'先选一个答案。':selected.value===q.dataset.answer?'判断正确。展开下方依据核对实验条件。':'再核对一下条件：展开下方答案，看看哪些数字不能拼在一起。'})});
+const search=$('#search'),kind=$('#kind');if(search&&kind){$('.filters').hidden=false;const rows=$$('#catalog tbody tr');const filter=()=>{const words=search.value.toLowerCase().trim().split(/\s+/).filter(Boolean);let n=0;rows.forEach(r=>{const ok=words.every(w=>r.textContent.toLowerCase().includes(w))&&(!kind.value||r.dataset.kind===kind.value);r.hidden=!ok;if(ok)n++});$('#count').textContent=`${n} / ${rows.length} 篇`;$('#empty').hidden=n!==0};search.addEventListener('input',filter);kind.addEventListener('change',filter);$('#reset').onclick=()=>{search.value='';kind.value='';filter();search.focus()};filter()}
+})();
+</script></body></html>

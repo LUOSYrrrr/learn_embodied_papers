@@ -1,0 +1,203 @@
+<!doctype html><html lang="zh-CN"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="color-scheme" content="light dark"><title>PanTact · CoRL 阅读室</title><script>try{document.documentElement.dataset.theme=localStorage.getItem('theme')||localStorage.getItem('corl2026-theme')||'light'}catch{}</script><style>:root{--bg:#faf9f7;--panel:#fff;--text:#1a1a1e;--muted:#64646c;--line:#dddcd8;--accent:#966333;--soft:#f3eee8;--warn:#795124;--warm:#f8efe0;--shadow:0 8px 24px #00000008;color-scheme:light}
+:root[data-theme=dark]{--bg:#0f1014;--panel:#1a1b22;--text:#f0f0f3;--muted:#b8bac4;--line:#3a3c48;--accent:#d4a06a;--soft:#29251f;--warn:#efc68d;--warm:#362c20;--shadow:none;color-scheme:dark}
+*{box-sizing:border-box}html{scroll-behavior:smooth;scroll-padding-top:85px}body{margin:0;background:var(--bg);color:var(--text);font:16px/1.85 -apple-system,BlinkMacSystemFont,"PingFang SC","Noto Sans CJK SC",sans-serif}a{color:var(--accent);text-underline-offset:4px}a:hover{text-decoration-thickness:2px}button,input,select{font:inherit}button{padding:7px 14px;border:1px solid var(--line);border-radius:7px;background:var(--panel);color:var(--text);cursor:pointer}button:hover{border-color:var(--accent);background:var(--soft)}button:disabled{opacity:.45;cursor:default}a:focus-visible,button:focus-visible,input:focus-visible,select:focus-visible,summary:focus-visible,[tabindex]:focus-visible{outline:3px solid var(--accent);outline-offset:4px}input,select{background:var(--panel);color:var(--text);border:1px solid var(--line);padding:9px 12px;border-radius:6px;max-width:100%}.skip{position:absolute;top:-100px;left:20px;padding:8px;background:var(--panel);z-index:20}.skip:focus{top:12px}.top{position:sticky;top:0;z-index:5;display:flex;justify-content:space-between;gap:20px;align-items:center;padding:15px 4vw;background:var(--bg);border-bottom:1px solid var(--line)}.brand{font-weight:750;text-decoration:none;letter-spacing:.05em}.brand span{font:12px ui-monospace,monospace;letter-spacing:.1em;margin-left:8px;color:var(--muted)}.top nav{display:flex;gap:16px;align-items:center;font-size:13px}.layout{display:grid;grid-template-columns:235px minmax(0,940px);gap:55px;max-width:1360px;margin:0 auto;padding:64px 38px 90px}.layout:not(:has(.sidebar)){display:block;max-width:1190px}main{min-width:0}.sidebar{align-self:start;position:sticky;top:105px;font-size:13px;max-height:calc(100vh - 125px);overflow:auto;padding-right:13px}.sidebar summary{font-weight:700;cursor:pointer;list-style:none}.sidebar nav{display:grid;gap:5px;margin-top:18px}.sidebar a{padding:7px 11px;border-left:2px solid var(--line);text-decoration:none;line-height:1.6;color:var(--muted)}.sidebar a:hover{border-color:var(--accent);color:var(--accent);background:var(--soft)}.side-note{border-top:1px solid var(--line);margin-top:25px;padding-top:18px;color:var(--muted);font-size:12px}.eyebrow{color:var(--accent);font-size:11px;letter-spacing:.1em;font-weight:700;text-transform:uppercase}h1{font-size:clamp(30px,3.3vw,48px);line-height:1.35;letter-spacing:-.035em;margin:16px 0 20px;font-weight:730;max-width:980px}h2{font-size:24px;line-height:1.5;letter-spacing:-.02em;margin:56px 0 20px;padding-top:12px;border-top:1px solid var(--line)}h3{font-size:19px;margin:32px 0 14px;line-height:1.6}p{margin:15px 0}.lede{font-size:19px;max-width:850px;color:var(--muted)}.muted,.tagline{color:var(--muted)}.source-links{display:flex;gap:18px;flex-wrap:wrap;font-size:13px;margin:20px 0 28px}blockquote{margin:26px 0;padding:20px 25px;background:var(--soft);border-left:4px solid var(--accent);border-radius:0 10px 10px 0}blockquote p{margin:0}.eval-overview{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px;margin:24px 0 30px}.eval-overview article{padding:18px;border:1px solid var(--line);border-radius:9px;background:var(--panel)}.eval-overview span{font-size:11px;color:var(--accent);font-weight:700;letter-spacing:.08em}.eval-overview p{font-size:14px;line-height:1.75;margin:8px 0 0}.eval-table-wrap{overflow-x:auto;margin:24px 0;border:1px solid var(--line);border-radius:9px;background:var(--panel)}table{border-collapse:collapse;width:100%;font-size:13px;line-height:1.75}th,td{padding:14px 15px;text-align:left;vertical-align:top;border-bottom:1px solid var(--line);min-width:120px}th{background:var(--soft);font-weight:650}tbody tr:last-child td{border-bottom:0}tbody tr:hover{background:var(--soft)}code{font:13px/1.8 ui-monospace,SFMono-Regular,Menlo,monospace;white-space:normal;overflow-wrap:anywhere;background:var(--soft);padding:3px 6px;border-radius:4px}figure{margin:28px 0;padding:12px;background:white;border:1px solid var(--line);border-radius:9px}figure img{width:100%;height:auto;display:block}figcaption{color:#56625a;font-size:12px;line-height:1.7;margin:10px 7px 3px}abbr{text-decoration-style:dotted;cursor:help}.inference{padding-left:16px;border-left:3px solid var(--line)}.walker,.quiz{padding:26px;border:1px solid var(--line);border-radius:12px;background:var(--panel);margin:40px 0}.walker h2,.quiz h2{border:0;padding:0;margin:0 0 10px}.walker>p{font-size:14px;color:var(--muted)}.walker ol{padding:0;margin:20px 0 0;list-style:none;display:grid;gap:10px}.walker li{border:1px solid var(--line);padding:15px;border-radius:8px;font-size:14px}.walker li.current{border-color:var(--accent);background:var(--soft)}.step-no{font:12px ui-monospace,monospace;color:var(--accent);font-weight:700;display:inline-block;margin-right:12px}.step-controls{display:flex;gap:15px;align-items:center}.step-controls output{font-size:12px;color:var(--muted)}fieldset{border:0;padding:0;margin:0 0 15px}legend{font-weight:600;margin:8px 0 12px}.quiz label{display:block;padding:10px 12px;background:var(--bg);margin:7px 0;border-radius:6px;font-size:14px}.quiz input{accent-color:var(--accent)}.feedback{font-weight:600;color:var(--accent)}details{margin:15px 0}summary{cursor:pointer;color:var(--accent);font-size:14px}details p{font-size:14px}.stats{display:grid;grid-template-columns:repeat(3,1fr);border-block:1px solid var(--line);margin:35px 0}.stats div{padding:24px;font-size:13px;color:var(--muted);border-right:1px solid var(--line)}.stats div:last-child{border:0}.stats strong{display:block;font:42px/1.2 ui-monospace,monospace;color:var(--accent);margin-bottom:12px}.scope{background:var(--soft);padding:20px 25px;border-radius:10px;font-size:14px}.scope p{margin:8px 0 12px}.cards{display:grid;grid-template-columns:1fr 1fr;gap:22px;margin:35px 0}.paper-card{position:relative;background:var(--panel);padding:28px;border:1px solid var(--line);border-radius:12px;box-shadow:var(--shadow)}.paper-card h2{border:0;margin:15px 0 12px;padding:0;font-size:27px}.paper-card h2 a{text-decoration:none}.paper-card p{font-size:15px}.paper-card .eyebrow{max-width:calc(100% - 25px);font-size:10px}.card-num{position:absolute;right:20px;top:23px;color:var(--muted);font:12px ui-monospace,monospace}.boundary{padding:12px 14px;background:var(--warm);color:var(--warn);border-radius:6px;font-size:13px!important}.paper-card small{font-size:11px;color:var(--muted)}.principles{display:grid;grid-template-columns:repeat(2,1fr);gap:16px}.principles p{padding:20px;background:var(--panel);border:1px solid var(--line);border-radius:8px;font-size:14px;margin:0}.principles strong{color:var(--accent);display:inline-block;margin-bottom:8px}.filters{display:flex;gap:15px;flex-wrap:wrap;align-items:end;margin:30px 0 20px;padding:20px;background:var(--soft);border-radius:10px}.filters label{display:grid;gap:5px;font-size:12px}.filters label:first-child{flex:1;min-width:230px}.filters output{font-size:12px;align-self:center}#catalog td:nth-child(1){min-width:60px;width:60px;font-family:ui-monospace,monospace;color:var(--muted)}#catalog td:nth-child(2){min-width:260px}#catalog td:nth-child(3),#catalog td:nth-child(4){min-width:85px;width:90px}#catalog details{margin:5px 0 0}#catalog summary{font-size:11px}#catalog details p{white-space:pre-wrap;font-size:12px}footer{max-width:1284px;margin:auto;padding:25px 38px;border-top:1px solid var(--line);font-size:12px;color:var(--muted)}[hidden]{display:none!important}
+@media(max-width:1000px){.layout{grid-template-columns:190px minmax(0,1fr);gap:28px;padding:40px 25px}.eval-overview{grid-template-columns:1fr}.eval-overview article{padding:15px}.eval-overview p{margin:4px 0}.top{padding-inline:25px}.sidebar{font-size:12px}}
+@media(max-width:720px){.top{padding:13px 18px;gap:10px;position:relative}.top nav{gap:8px;font-size:11px}.top nav>a{display:none}.top button{padding:5px 9px;font-size:11px}.brand{font-size:14px}.brand span{display:none}.layout,.layout:not(:has(.sidebar)){display:block;padding:27px 18px 60px}.sidebar{position:static;max-height:none;padding:0;margin:0 0 30px;border:1px solid var(--line);border-radius:8px;background:var(--panel)}.sidebar details{margin:0;padding:12px 15px}.sidebar summary{list-style:disclosure-closed}.sidebar nav{gap:2px}.side-note{display:none}h1{font-size:30px}h2{font-size:22px;margin-top:42px}h3{font-size:18px}body{font-size:15px}.cards,.principles{grid-template-columns:1fr}.paper-card{padding:24px}.stats div{padding:19px 12px;font-size:11px}.stats strong{font-size:32px}.lede{font-size:17px}blockquote{padding:18px}.walker,.quiz{padding:18px}.source-links{gap:14px}.scope{padding:18px}th,td{padding:12px;font-size:12px}.eval-overview{gap:9px}footer{padding:20px 18px}figure{padding:7px}figcaption{font-size:11px}}
+@media(prefers-reduced-motion:reduce){html{scroll-behavior:auto}}
+@media print{html{scroll-behavior:auto}body{background:white!important;color:#111!important;font-size:10pt}.top,.sidebar,footer,.step-controls,.quiz button,.filters,.skip{display:none!important}.layout,.layout:not(:has(.sidebar)){display:block;max-width:none;padding:0}.eval-table-wrap{overflow:visible;border-color:#ccc}table{font-size:8pt}th,td{min-width:0;padding:7px}h1{font-size:25pt}h2{font-size:16pt;break-after:avoid}h3{break-after:avoid}figure,.paper-card,.eval-overview article{break-inside:avoid}details{display:block}details>*{display:block!important}details::details-content{display:block;content-visibility:visible}img{max-height:70vh;object-fit:contain}.paper-card{box-shadow:none}.cards{display:block}.paper-card{margin:15px 0}a{color:#111}.eval-overview,.principles{display:block}.eval-overview article{margin:10px 0}blockquote,.scope{background:#eee!important}.boundary{color:#333!important;background:#eee!important}}
+
+.zoom-dialog{width:96vw;max-width:96vw;max-height:94vh;border:1px solid var(--line);border-radius:10px;padding:12px;background:var(--panel);color:var(--text)}.zoom-dialog::backdrop{background:#000b}.zoom-bar{margin:0 0 10px;display:flex;justify-content:flex-end}.zoom-scroll{overflow:auto;max-height:78vh;background:white}.zoom-scroll img{display:block;width:auto;max-width:none;height:auto}
+.eval-overview{grid-template-columns:repeat(2,minmax(0,1fr))}.cn-read{margin:18px 0 24px;padding:16px 20px;background:var(--soft);border-radius:8px}.cn-read p{margin:6px 0 0}.cn-label{font-size:11px;letter-spacing:.08em;font-weight:700;color:var(--accent)}.evidence-note{font-size:13px;color:var(--muted)}.candidate-list{padding-left:20px;font-size:14px;line-height:1.8}.candidate-list li{margin:12px 0}.candidate-list strong{font-weight:600}.candidate-list+p{border-top:1px solid var(--line);padding-top:12px}
+@media(max-width:720px){.eval-overview{grid-template-columns:1fr}.top nav>a.collection-link{display:inline}.brand{letter-spacing:0}.top{gap:8px}.top nav{gap:6px}.top button{padding:5px 7px}.cn-read{padding:14px 16px}}
+@media print{:root,:root[data-theme=dark]{--bg:#fff;--panel:#fff;--text:#111;--muted:#444;--line:#ccc;--accent:#333;--soft:#f4f4f4;--warn:#333;--warm:#eee}.cn-read{background:#f4f4f4}.zoom-dialog{display:none!important}}
+</style></head><body><a class="skip" href="#main">跳到正文</a><header class="top"><a href="../index.html" class="brand">~/paper-notes <span>CoRL 2026</span></a><nav aria-label="阅读导航与工具"><a class="collection-link" href="corl2026.html">专题</a><a href="corl2026-workshops.html">Workshop 选题</a><button id="theme" type="button" aria-label="切换深浅主题" hidden>切换主题</button><button id="print" type="button" hidden>打印 / PDF</button></nav></header><div class="layout"><aside class="sidebar"><details open><summary>PanTact · 章节</summary><nav aria-label="章节导航"><a href="#overview">简短说明与评测</a><a href="#section-1">1. 问题：抱住箱子时，手的位置不足以描述任务</a><a href="#section-2">2. 思路：哪些信息是跨身体保留的？</a><a href="#section-3">3. 方法：采到触觉，最终却不要求机器人装同样的贴片</a><a href="#section-4">4. 证据：接触信息有效，不等于所有控制器一样好</a><a href="#section-5">5. 反例与一周实验</a><a href="#section-6">面试口述版</a><a href="#section-7">来源与修订</a><a href="#walk">训练到执行</a><a href="#quiz">理解检查</a></nav></details><p class="side-note">原文 / 推断 / 待验证<br>PDF 全文与附录核读<br>不以演示替代成功率</p></aside><main id="main"><div class="eyebrow">Contact-Rich Workshop · Spotlight</div><h1 id="overview">PanTact：让人形模仿接触目标，而不必复制人的每个关节</h1><p class="tagline">人类示范 · 接触接口</p><div class="source-links"><a href="https://contact-rich-loco-manipulation.github.io/papers/28-pantact.pdf">原始论文 ↗</a><a href="https://contact-rich-loco-manipulation.github.io/papers/28-pantact.pdf">PDF ↗</a><a href="corl2026.html">CoRL 五方向专题</a></div><article class="paper-body">
+<blockquote class="core-insight">
+<p><strong>简短说明</strong>：PanTact 用人佩戴的触觉贴片记录“什么时候、哪里发生身体接触”，让策略预测末端动作和接触目标，再由控制器选择机器人合适的身体表面实现。它展示了不追加机器人示范的接触操作迁移；扫物入柜的 90.63% 含部分得分，不能写成完整成功次数。</p>
+</blockquote><section class="eval-overview" aria-label="评测结论总览"><article class="eval-card"><span>仿真</span><p>参考回放测跟踪误差；未给完整视觉任务仿真 SR。</p></article><article class="eval-card"><span>ID / OOD</span><p>扫物有见过/未见对象，但未分层报告成功率。</p></article><article class="eval-card"><span>真机</span><p>抓抱 17/20；搬箱推箱 WBIK 9/10、稀疏控制 6/10。</p></article><article class="eval-card"><span>证据边界</span><p>90.63% 含阶段部分得分；机器人端没有新增身体触觉闭环。</p></article></section>
+<p><strong>阅读范围</strong>：Contact-Rich Loco-Manipulation Workshop Spotlight，官方公开 PDF 9 页，含 pp.7–9 附录，已通读。PDF 未给明确版本号；下载/阅读 2026-11-17。论文匿名版，作者名单以官方 Workshop 议程为准；未推断机构，未审代码。</p>
+<p><strong>评测先看</strong>：G1 抓取并怀抱，上身 IK 17/20、稀疏跟踪器 16/20；搬箱并推箱，全身 IK 9/10、稀疏跟踪器 6/10。仿真主要测参考回放跟踪，未给可直接并列的完整视觉任务成功率；未见对象测试未分层报告 ID/OOD 成功率。</p>
+<h2 id="section-1">1. 问题：抱住箱子时，手的位置不足以描述任务</h2><div class="cn-read"><div class="cn-label">这一节解决什么</div><p>[原文] 人把物体夹在前臂和躯干之间，或用膝盖推箱子，任务依赖的是身体与物体的接触。只记录两只手的末端轨迹会漏掉这些约束；完整重定向人体姿态又可能强迫机器人复制并不必要、甚至不可行的关节配置。[§I–II]</p></div>
+<p>具体例子是“一边抱着箱子，一边用身体推走地上的另一个箱子”：输入为第一视角/腕部视觉与本体状态；输出既要安排手，也要指出哪些世界位置需要接触。成功判据是稳住怀中箱子，同时让地面箱子移动超过 20 cm，而不是单纯跟得像人。</p>
+<h2 id="section-2">2. 思路：哪些信息是跨身体保留的？</h2><div class="cn-read"><div class="cn-label">这一节解决什么</div><p>[原文] 本文承接 UMI/Humanoid UMI 的无机器人示范，以及 HoMI 的三维第一视角表示；它增加身体触觉记录，并把控制目标从固定 link 轨迹扩展为接触位置。[§II–IV]</p></div>
+<p class="inference evidence-note" data-evidence="inference">[推断] “物体这里需要被支撑”比“人的某个前臂关节要转多少度”更接近任务不变量。先描述接触，再让机器人自由选择身体表面，可以减少形态差异。然而身体表面可达不代表摩擦、接触力和力矩都可行。合理替代是密集全身动作跟踪：它保留更多姿态先验，遇到精确姿态很重要的任务可能更可靠；本文自己的 WBIK 与稀疏跟踪对比也没有证明稀疏表示处处最好。</p>
+<h2 id="section-3">3. 方法：采到触觉，最终却不要求机器人装同样的贴片</h2><div class="cn-read"><div class="cn-label">这一节解决什么</div><p>接触目标能描述身体与物体的关系，仍需解释怎样采到、怎样表示、怎样由机器人实现。下面沿这条信息链拆开接口；人类采集时有触觉，不意味着机器人部署时有同样的触觉反馈。</p></div>
+<h3>数据谱系</h3>
+<div class="eval-table-wrap" tabindex="0" role="region" aria-label="证据表，可横向滚动"><table class="eval-table">
+<thead>
+<tr>
+<th>信号</th>
+<th>采集/频率</th>
+<th>进入模型的形式</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>身体接触</td>
+<td>44×44 mm FSR 模块；16 通道 PCB，1 kHz</td>
+<td>每贴片接触开关 c 与 3D 位置 p；力强度被记录，但策略用二值接触，不是校准力指令</td>
+</tr>
+<tr>
+<td>视觉</td>
+<td>头戴双目、双腕鱼眼，60 fps</td>
+<td>三维 ego 表示及腕部图像；掩去人体区域</td>
+</tr>
+<tr>
+<td>位姿/夹爪</td>
+<td>Vive 头/腕 250 Hz，夹爪 1 kHz</td>
+<td>对齐至 60 Hz，再按 20 Hz 训练；观察历史 2 步</td>
+</tr>
+<tr>
+<td>三任务人类示范</td>
+<td>抓抱 100；扫物入柜 150；搬运推箱 110 条</td>
+<td>未追加机器人示范；不等于没有传感器、控制器训练或人类标注成本</td>
+</tr>
+</tbody>
+</table></div>
+<p>[原文] §III、App.VII–IX，pp.2、7–9。自适应接触阈值基准 0.35，属于信号处理参数，不是物理牛顿值。</p>
+<figure><a href="../assets/figures/corl2026/pantact-fig-3.png" target="_blank" rel="noopener"><img loading="lazy" decoding="async" src="../assets/figures/corl2026/pantact-fig-3.png" alt="原文 Figure 3，p.3：跨本体接触接口，视觉、接触预测与任意表面控制" /></a><figcaption>原文 Figure 3，p.3：跨本体接触接口，视觉、接触预测与任意表面控制 · 点击查看原尺寸</figcaption></figure>
+<h3>从观察到预测</h3>
+<p>策略每步动作包括头部 3D look-at、左右末端位姿和夹爪宽度，以及 N 个 <code>(接触开关, 接触位置)</code>，每贴片四个量。观察和动作统一到<strong>最新左夹爪位姿</strong>定义的坐标系；部署再用 LiDAR–IMU 的 SuperOdometry 变换到世界坐标。[§III]</p>
+<p>身体遮挡通过三维半空间近似并从 ego 视觉注意力中屏蔽，减少人的身体外观与机器人身体外观差异。DINOv3 视觉编码器参与微调，动作 DiT 为 10 层、宽 768、12 heads，训练 500 epochs、batch 48。扩散训练 100 步，推理 16 次 DDIM；策略 10 Hz 产生 H=16 的动作块，再异步重采样到 50 Hz，过期命令按时间戳跳过。[§III-B、附录]</p>
+<h3>接触目标如何变成机器人动作？</h3>
+<p>令 <code>d_b(p,q)</code> 为目标点 p 到机器人第 b 个候选身体表面的距离；控制器用平滑最小值：<code>d(p,q)=−T log Σ_b exp(−d_b/T)</code>，T=0.02 m。只对预测为 active 的接触追踪；inactive 不要求机器人复制贴片在空中的轨迹。[§IV-A]</p>
+<p class="inference evidence-note" data-evidence="inference">[推断·教学算例] 目标点离前臂表面 2 cm、离腕部 10 cm，softmin 约 1.96 cm，梯度主要推动较近的前臂接近目标。它没有直接计算需要多少牛顿。论文通过把虚拟目标放到物体内部，让跟踪误差产生按压力；实际力仍取决于控制增益、物体几何与刚度。机器人端没有额外身体触觉贴片闭环。</p>
+<p>三种执行器分别是：上半身 IK；全身 IK 生成密集参考后交 SONIC；训练一个直接跟踪稀疏末端/接触目标的 RL 策略。稀疏控制器在 50 Hz 生成 29 关节目标，由 PD 执行；训练用 hindsight 接触标签，4096 环境、30k PPO iterations。训练的软接近奖励与部署时仅追踪 active 目标需区分。[§IV-B、App.VIII]</p>
+<section class="walker" aria-label="训练到执行逐步读"><h2 id="walk">训练到执行：逐步读</h2><p>按顺序检查信息怎样流动；每一步都保留在页面中。按钮或左右方向键切换，Home / End 跳到首尾。</p><div class="step-controls" tabindex="0" role="group" aria-label="步骤导航" hidden><button data-prev type="button">上一步</button><output aria-live="polite">1 / 4</output><button data-next type="button">下一步</button></div><ol><li data-step="0"><span class="step-no">01</span>人类采集：相机、追踪器和身体 FSR 接触贴片。</li><li data-step="1"><span class="step-no">02</span>统一左夹爪参考系，屏蔽人体视觉区域。</li><li data-step="2"><span class="step-no">03</span>策略预测两手、头部和 active 接触位置。</li><li data-step="3"><span class="step-no">04</span>机器人选择合适身体表面，经 IK/SONIC 或稀疏 RL 执行。</li></ol></section><h2 id="section-4">4. 证据：接触信息有效，不等于所有控制器一样好</h2><div class="cn-read"><div class="cn-label">这一节解决什么</div><p>方法区分了接触意图与具体控制器，实验也必须分别核对。下面分仿真回放、对象变化和真机任务讨论；部分得分不能替代完整成功率。</p></div>
+<h3>仿真证据表</h3>
+<div class="eval-table-wrap" tabindex="0" role="region" aria-label="证据表，可横向滚动"><table class="eval-table">
+<thead>
+<tr>
+<th>实验</th>
+<th>数量/指标</th>
+<th>可支持范围</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>参考回放控制评估</td>
+<td>10 条上身、20 条全身轨迹；距离误差采用 median-of-medians</td>
+<td>控制接口的跟踪质量，不是闭环视觉任务 SR</td>
+</tr>
+<tr>
+<td>稀疏控制器训练</td>
+<td>仿真 PPO 与参考/接触奖励</td>
+<td>论文公开版本有未解析的图号引用，无法补出未展示的数值曲线；不编造仿真任务成功率</td>
+</tr>
+</tbody>
+</table></div>
+<h3>ID / OOD 证据表</h3>
+<div class="eval-table-wrap" tabindex="0" role="region" aria-label="证据表，可横向滚动"><table class="eval-table">
+<thead>
+<tr>
+<th>维度</th>
+<th>设置</th>
+<th>报告结果/边界</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>对象与数量</td>
+<td>扫物入柜：见过/未见对象 × 单/双对象，4 条件各 4 次</td>
+<td>总计 16 次，但未分层列四组成功率；ID→OOD 下降不可算</td>
+</tr>
+<tr>
+<td>空间配置</td>
+<td>搬箱推箱，地面箱左右各 5 次</td>
+<td>合并 10 次；不是完整新场景测试</td>
+</tr>
+<tr>
+<td>跨本体</td>
+<td>人类采集→G1 执行，无额外机器人示范</td>
+<td>仅一个目标机器人；不能说已验证跨多个机器人零样本</td>
+</tr>
+<tr>
+<td>指令、长时序、摩擦/负载</td>
+<td>未做完整分层评测</td>
+<td>未报告</td>
+</tr>
+</tbody>
+</table></div>
+<h3>真机证据表</h3>
+<div class="eval-table-wrap" tabindex="0" role="region" aria-label="证据表，可横向滚动"><table class="eval-table">
+<thead>
+<tr>
+<th>G1 任务</th>
+<th>本文方法</th>
+<th>对照</th>
+<th>指标解释</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>抓取并怀抱，20 次</td>
+<td>上身 IK 17/20，85.0%（64.0–94.8%）；稀疏 16/20，80.0%（58.4–91.9%）</td>
+<td>Humanoid UMI 0/20</td>
+<td>二项完整任务成功</td>
+</tr>
+<tr>
+<td>扫物、关柜并收纳，16 次</td>
+<td>扫物 100%，关柜 90.63%，最终 90.63%</td>
+<td>Humanoid UMI++ 最终 0%</td>
+<td>扫物按物体比例，关柜含 50% 部分得分，最终取乘积；不能转成成功次数或 Wilson</td>
+</tr>
+<tr>
+<td>抱箱并推箱 &gt;20 cm，10 次</td>
+<td>WBIK 9/10，90.0%（59.6–98.2%）；稀疏 6/10，60.0%（31.3–83.2%）</td>
+<td>Humanoid UMI++ 4/10</td>
+<td>小样本；控制器选择显著影响结果</td>
+</tr>
+</tbody>
+</table></div>
+<p>[原文] Figures 4–6，p.4；App.VII，p.7。Wilson 区间为阅读者计算。扫物收纳图虽然以 success rate 标注，附录评分包含部分得分，本页按<strong>平均任务分数</strong>解释。</p>
+<figure><a href="../assets/figures/corl2026/pantact-fig-5.png" target="_blank" rel="noopener"><img loading="lazy" decoding="async" src="../assets/figures/corl2026/pantact-fig-5.png" alt="原文 Figure 5，p.4：扫物入柜的阶段结果，需结合附录部分得分定义" /></a><figcaption>原文 Figure 5，p.4：扫物入柜的阶段结果，需结合附录部分得分定义 · 点击查看原尺寸</figcaption></figure>
+<div class="eval-table-wrap" tabindex="0" role="region" aria-label="证据表，可横向滚动"><table class="eval-table">
+<thead>
+<tr>
+<th>主张</th>
+<th>支持证据</th>
+<th>边界</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>接触接口能迁移人类示范</td>
+<td>三类 G1 任务、无追加机器人示范</td>
+<td>依赖专门采集装置、视觉掩码、里程计及控制器</td>
+</tr>
+<tr>
+<td>无需复制全身姿态</td>
+<td>稀疏接触控制可完成任务</td>
+<td>搬运任务 6/10 低于 WBIK 9/10，不是统一优势</td>
+</tr>
+<tr>
+<td>可以实现身体接触</td>
+<td>前臂/膝等操作展示</td>
+<td>没有直接力闭环，未证明摩擦/刚度突变鲁棒性</td>
+</tr>
+</tbody>
+</table></div>
+<p>失败包括漏掉小物体、怀中箱子滑落、关柜不完全；控制器可能优先平衡而放弃手部目标。稀疏目标带来自由度，也放大接触预测和执行质量的重要性。[§V、附录]</p>
+<h2 id="section-5">5. 反例与一周实验</h2><div class="cn-read"><div class="cn-label">这一节解决什么</div><p class="inference evidence-note" data-evidence="inference">[推断] 最强贡献是把接触意图变成可学习、可执行的中间接口。反例是外观不变但表面变滑：接触点仍预测正确，虚拟目标产生的压力却不足，箱子会滑落。仅用接触位置不能区分“轻碰”“支撑”和“用力推”。</p></div>
+<p>[猜测/待验证] 固定视觉策略和控制器，对比接触目标开启/关闭，再在同一物体上改变摩擦或负载，记录 SR、滑移、实际接触力和错误接触率。若接触接口只在训练摩擦下有效，则反驳“接触位置足以承担主要物理泛化”的强版本；新增力反馈若恢复表现，可定位缺口在执行闭环。</p>
+<p>一周计划：先核对公开模型与装置实现，选择单前臂支撑的小任务；第 1–2 天校验阈值和时间同步，第 3–4 天离线重放接触目标，第 5 天固定控制器做消融，第 6–7 天在已有 G1/安全设施条件下做匹配试验。若没有采集装置或平台，则只做仿真接触目标接口；不承诺一周从零复制整套硬件。FSR/Vive/相机、定位、控制权重的可获得性本次未审计。</p>
+<h2 id="section-6">面试口述版</h2>
+<p>PanTact 研究的是人形怎么从人的示范学会用身体接触物体。只模仿两只手会漏掉抱箱子时的前臂支撑，复制整个人体又可能约束过多。所以它让人佩戴触觉贴片，记录何时、何处需要接触；策略预测末端轨迹和接触目标，机器人控制器再找合适的身体表面实现。</p>
+<p>它在 G1 上不用追加机器人示范就完成了抓抱、扫物入柜、搬箱推箱。但不能把它说成触觉闭环力控：触觉主要用在采集端，机器人靠预测位置与控制误差产生接触力。而且不同控制器的表现差别很大，搬箱推箱全身 IK 是 9/10，稀疏控制是 6/10。下一步我会在相同接触几何下改摩擦和负载，验证位置接口什么时候需要增加力反馈。</p>
+<h2 id="section-7">来源与修订</h2>
+<ul>
+<li><a href="https://contact-rich-loco-manipulation.github.io/papers/28-pantact.pdf">官方 Workshop 论文 PDF</a>，§III–V、Figures 3–6、Appendices VII–IX。</li>
+<li><a href="https://contact-rich-loco-manipulation.github.io/program/index.html">官方 Workshop 议程</a>：Spotlight 身份与作者信息。</li>
+<li>算例、Wilson 区间、反例和计划为阅读者补充；2026-11-17 初稿。</li>
+</ul>
+</article><section class="quiz" data-answer="1"><h2 id="quiz">理解检查</h2><fieldset><legend>扫物入柜的 90.63% 应如何解释？</legend><label><input type="radio" name="answer" value="0"> 约 14.5 次完整成功，可以四舍五入为 15 次。</label><label><input type="radio" name="answer" value="1"> 16 次实验的部分得分平均，不可换算二项成功数。</label><label><input type="radio" name="answer" value="2"> 机器人用力传感反馈达到 90.63% 精度。</label></fieldset><button data-check type="button" hidden>检查答案</button><p class="feedback" aria-live="polite"></p><details><summary>展开答案与依据</summary><p>16 次实验的部分得分平均，不可换算二项成功数。</p><p>附录给扫物比例、关柜部分得分及最终乘积；没有完整成功计数，不能计算二项 Wilson 区间。</p></details></section></main></div><footer>原文事实与阅读者推断分开标注 · 整理日期 2026-11-17 · <a href="../index.html">返回论文网站</a> · <a href="corl2026-workshops.html">继续选题</a></footer><script>(()=>{'use strict';
+const $=s=>document.querySelector(s);const $$=s=>[...document.querySelectorAll(s)];
+if($('figure a')){const dialog=document.createElement('dialog');dialog.className='zoom-dialog';dialog.setAttribute('aria-label','论文原图');const bar=document.createElement('form');bar.method='dialog';bar.className='zoom-bar';const close=document.createElement('button');close.textContent='关闭原图（Esc）';bar.append(close);const scroll=document.createElement('div');scroll.className='zoom-scroll';const img=document.createElement('img');scroll.append(img);dialog.append(bar,scroll);document.body.append(dialog);$$('figure a').forEach(a=>a.addEventListener('click',e=>{e.preventDefault();img.src=a.href;img.alt=a.querySelector('img').alt;dialog.showModal()}))}
+const theme=$('#theme');if(theme){theme.hidden=false;let saved;try{saved=localStorage.getItem('theme')||localStorage.getItem('corl2026-theme')}catch{}if(saved==='dark')document.documentElement.dataset.theme='dark';const label=()=>{const dark=document.documentElement.dataset.theme==='dark';theme.textContent=dark?'浅色':'深色';theme.setAttribute('aria-pressed',String(dark))};label();theme.addEventListener('click',()=>{const mode=document.documentElement.dataset.theme==='dark'?'light':'dark';document.documentElement.dataset.theme=mode;try{localStorage.setItem('theme',mode);localStorage.setItem('corl2026-theme',mode)}catch{}label()})}
+const print=$('#print');if(print){print.hidden=false;print.addEventListener('click',()=>window.print())}
+let opened=[];window.addEventListener('beforeprint',()=>{opened=$$('details').map(d=>[d,d.open]);$$('details').forEach(d=>d.open=true)});window.addEventListener('afterprint',()=>opened.forEach(([d,o])=>d.open=o));
+if(matchMedia('(max-width:720px)').matches){const toc=$('.sidebar details');if(toc)toc.open=false}
+$$('.walker').forEach(w=>{const items=[...w.querySelectorAll('[data-step]')];const controls=w.querySelector('.step-controls');if(!controls)return;controls.hidden=false;let i=0;const prev=w.querySelector('[data-prev]'),next=w.querySelector('[data-next]'),out=w.querySelector('output');const render=()=>{const focused=document.activeElement;items.forEach((s,n)=>{s.classList.toggle('current',n===i);if(n===i)s.setAttribute('aria-current','step');else s.removeAttribute('aria-current')});out.value=`${i+1} / ${items.length}`;out.textContent=out.value;prev.disabled=i===0;next.disabled=i===items.length-1;if(focused?.disabled)controls.focus()};prev.onclick=()=>{i=Math.max(0,i-1);render()};next.onclick=()=>{i=Math.min(items.length-1,i+1);render()};controls.addEventListener('keydown',e=>{const keys=['ArrowLeft','ArrowRight','Home','End'];if(!keys.includes(e.key))return;e.preventDefault();i=e.key==='Home'?0:e.key==='End'?items.length-1:e.key==='ArrowLeft'?Math.max(0,i-1):Math.min(items.length-1,i+1);render()});render()});
+$$('.quiz').forEach(q=>{const btn=q.querySelector('[data-check]');btn.hidden=false;btn.addEventListener('click',()=>{const selected=q.querySelector('input:checked'),out=q.querySelector('.feedback');out.textContent=!selected?'先选一个答案。':selected.value===q.dataset.answer?'判断正确。展开下方依据核对实验条件。':'再核对一下条件：展开下方答案，看看哪些数字不能拼在一起。'})});
+const search=$('#search'),kind=$('#kind');if(search&&kind){$('.filters').hidden=false;const rows=$$('#catalog tbody tr');const filter=()=>{const words=search.value.toLowerCase().trim().split(/\s+/).filter(Boolean);let n=0;rows.forEach(r=>{const ok=words.every(w=>r.textContent.toLowerCase().includes(w))&&(!kind.value||r.dataset.kind===kind.value);r.hidden=!ok;if(ok)n++});$('#count').textContent=`${n} / ${rows.length} 篇`;$('#empty').hidden=n!==0};search.addEventListener('input',filter);kind.addEventListener('change',filter);$('#reset').onclick=()=>{search.value='';kind.value='';filter();search.focus()};filter()}
+})();
+</script></body></html>

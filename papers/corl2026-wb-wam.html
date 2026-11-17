@@ -1,0 +1,216 @@
+<!doctype html><html lang="zh-CN"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="color-scheme" content="light dark"><title>WB-WAM · CoRL 阅读室</title><script>try{document.documentElement.dataset.theme=localStorage.getItem('theme')||localStorage.getItem('corl2026-theme')||'light'}catch{}</script><style>:root{--bg:#faf9f7;--panel:#fff;--text:#1a1a1e;--muted:#64646c;--line:#dddcd8;--accent:#966333;--soft:#f3eee8;--warn:#795124;--warm:#f8efe0;--shadow:0 8px 24px #00000008;color-scheme:light}
+:root[data-theme=dark]{--bg:#0f1014;--panel:#1a1b22;--text:#f0f0f3;--muted:#b8bac4;--line:#3a3c48;--accent:#d4a06a;--soft:#29251f;--warn:#efc68d;--warm:#362c20;--shadow:none;color-scheme:dark}
+*{box-sizing:border-box}html{scroll-behavior:smooth;scroll-padding-top:85px}body{margin:0;background:var(--bg);color:var(--text);font:16px/1.85 -apple-system,BlinkMacSystemFont,"PingFang SC","Noto Sans CJK SC",sans-serif}a{color:var(--accent);text-underline-offset:4px}a:hover{text-decoration-thickness:2px}button,input,select{font:inherit}button{padding:7px 14px;border:1px solid var(--line);border-radius:7px;background:var(--panel);color:var(--text);cursor:pointer}button:hover{border-color:var(--accent);background:var(--soft)}button:disabled{opacity:.45;cursor:default}a:focus-visible,button:focus-visible,input:focus-visible,select:focus-visible,summary:focus-visible,[tabindex]:focus-visible{outline:3px solid var(--accent);outline-offset:4px}input,select{background:var(--panel);color:var(--text);border:1px solid var(--line);padding:9px 12px;border-radius:6px;max-width:100%}.skip{position:absolute;top:-100px;left:20px;padding:8px;background:var(--panel);z-index:20}.skip:focus{top:12px}.top{position:sticky;top:0;z-index:5;display:flex;justify-content:space-between;gap:20px;align-items:center;padding:15px 4vw;background:var(--bg);border-bottom:1px solid var(--line)}.brand{font-weight:750;text-decoration:none;letter-spacing:.05em}.brand span{font:12px ui-monospace,monospace;letter-spacing:.1em;margin-left:8px;color:var(--muted)}.top nav{display:flex;gap:16px;align-items:center;font-size:13px}.layout{display:grid;grid-template-columns:235px minmax(0,940px);gap:55px;max-width:1360px;margin:0 auto;padding:64px 38px 90px}.layout:not(:has(.sidebar)){display:block;max-width:1190px}main{min-width:0}.sidebar{align-self:start;position:sticky;top:105px;font-size:13px;max-height:calc(100vh - 125px);overflow:auto;padding-right:13px}.sidebar summary{font-weight:700;cursor:pointer;list-style:none}.sidebar nav{display:grid;gap:5px;margin-top:18px}.sidebar a{padding:7px 11px;border-left:2px solid var(--line);text-decoration:none;line-height:1.6;color:var(--muted)}.sidebar a:hover{border-color:var(--accent);color:var(--accent);background:var(--soft)}.side-note{border-top:1px solid var(--line);margin-top:25px;padding-top:18px;color:var(--muted);font-size:12px}.eyebrow{color:var(--accent);font-size:11px;letter-spacing:.1em;font-weight:700;text-transform:uppercase}h1{font-size:clamp(30px,3.3vw,48px);line-height:1.35;letter-spacing:-.035em;margin:16px 0 20px;font-weight:730;max-width:980px}h2{font-size:24px;line-height:1.5;letter-spacing:-.02em;margin:56px 0 20px;padding-top:12px;border-top:1px solid var(--line)}h3{font-size:19px;margin:32px 0 14px;line-height:1.6}p{margin:15px 0}.lede{font-size:19px;max-width:850px;color:var(--muted)}.muted,.tagline{color:var(--muted)}.source-links{display:flex;gap:18px;flex-wrap:wrap;font-size:13px;margin:20px 0 28px}blockquote{margin:26px 0;padding:20px 25px;background:var(--soft);border-left:4px solid var(--accent);border-radius:0 10px 10px 0}blockquote p{margin:0}.eval-overview{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px;margin:24px 0 30px}.eval-overview article{padding:18px;border:1px solid var(--line);border-radius:9px;background:var(--panel)}.eval-overview span{font-size:11px;color:var(--accent);font-weight:700;letter-spacing:.08em}.eval-overview p{font-size:14px;line-height:1.75;margin:8px 0 0}.eval-table-wrap{overflow-x:auto;margin:24px 0;border:1px solid var(--line);border-radius:9px;background:var(--panel)}table{border-collapse:collapse;width:100%;font-size:13px;line-height:1.75}th,td{padding:14px 15px;text-align:left;vertical-align:top;border-bottom:1px solid var(--line);min-width:120px}th{background:var(--soft);font-weight:650}tbody tr:last-child td{border-bottom:0}tbody tr:hover{background:var(--soft)}code{font:13px/1.8 ui-monospace,SFMono-Regular,Menlo,monospace;white-space:normal;overflow-wrap:anywhere;background:var(--soft);padding:3px 6px;border-radius:4px}figure{margin:28px 0;padding:12px;background:white;border:1px solid var(--line);border-radius:9px}figure img{width:100%;height:auto;display:block}figcaption{color:#56625a;font-size:12px;line-height:1.7;margin:10px 7px 3px}abbr{text-decoration-style:dotted;cursor:help}.inference{padding-left:16px;border-left:3px solid var(--line)}.walker,.quiz{padding:26px;border:1px solid var(--line);border-radius:12px;background:var(--panel);margin:40px 0}.walker h2,.quiz h2{border:0;padding:0;margin:0 0 10px}.walker>p{font-size:14px;color:var(--muted)}.walker ol{padding:0;margin:20px 0 0;list-style:none;display:grid;gap:10px}.walker li{border:1px solid var(--line);padding:15px;border-radius:8px;font-size:14px}.walker li.current{border-color:var(--accent);background:var(--soft)}.step-no{font:12px ui-monospace,monospace;color:var(--accent);font-weight:700;display:inline-block;margin-right:12px}.step-controls{display:flex;gap:15px;align-items:center}.step-controls output{font-size:12px;color:var(--muted)}fieldset{border:0;padding:0;margin:0 0 15px}legend{font-weight:600;margin:8px 0 12px}.quiz label{display:block;padding:10px 12px;background:var(--bg);margin:7px 0;border-radius:6px;font-size:14px}.quiz input{accent-color:var(--accent)}.feedback{font-weight:600;color:var(--accent)}details{margin:15px 0}summary{cursor:pointer;color:var(--accent);font-size:14px}details p{font-size:14px}.stats{display:grid;grid-template-columns:repeat(3,1fr);border-block:1px solid var(--line);margin:35px 0}.stats div{padding:24px;font-size:13px;color:var(--muted);border-right:1px solid var(--line)}.stats div:last-child{border:0}.stats strong{display:block;font:42px/1.2 ui-monospace,monospace;color:var(--accent);margin-bottom:12px}.scope{background:var(--soft);padding:20px 25px;border-radius:10px;font-size:14px}.scope p{margin:8px 0 12px}.cards{display:grid;grid-template-columns:1fr 1fr;gap:22px;margin:35px 0}.paper-card{position:relative;background:var(--panel);padding:28px;border:1px solid var(--line);border-radius:12px;box-shadow:var(--shadow)}.paper-card h2{border:0;margin:15px 0 12px;padding:0;font-size:27px}.paper-card h2 a{text-decoration:none}.paper-card p{font-size:15px}.paper-card .eyebrow{max-width:calc(100% - 25px);font-size:10px}.card-num{position:absolute;right:20px;top:23px;color:var(--muted);font:12px ui-monospace,monospace}.boundary{padding:12px 14px;background:var(--warm);color:var(--warn);border-radius:6px;font-size:13px!important}.paper-card small{font-size:11px;color:var(--muted)}.principles{display:grid;grid-template-columns:repeat(2,1fr);gap:16px}.principles p{padding:20px;background:var(--panel);border:1px solid var(--line);border-radius:8px;font-size:14px;margin:0}.principles strong{color:var(--accent);display:inline-block;margin-bottom:8px}.filters{display:flex;gap:15px;flex-wrap:wrap;align-items:end;margin:30px 0 20px;padding:20px;background:var(--soft);border-radius:10px}.filters label{display:grid;gap:5px;font-size:12px}.filters label:first-child{flex:1;min-width:230px}.filters output{font-size:12px;align-self:center}#catalog td:nth-child(1){min-width:60px;width:60px;font-family:ui-monospace,monospace;color:var(--muted)}#catalog td:nth-child(2){min-width:260px}#catalog td:nth-child(3),#catalog td:nth-child(4){min-width:85px;width:90px}#catalog details{margin:5px 0 0}#catalog summary{font-size:11px}#catalog details p{white-space:pre-wrap;font-size:12px}footer{max-width:1284px;margin:auto;padding:25px 38px;border-top:1px solid var(--line);font-size:12px;color:var(--muted)}[hidden]{display:none!important}
+@media(max-width:1000px){.layout{grid-template-columns:190px minmax(0,1fr);gap:28px;padding:40px 25px}.eval-overview{grid-template-columns:1fr}.eval-overview article{padding:15px}.eval-overview p{margin:4px 0}.top{padding-inline:25px}.sidebar{font-size:12px}}
+@media(max-width:720px){.top{padding:13px 18px;gap:10px;position:relative}.top nav{gap:8px;font-size:11px}.top nav>a{display:none}.top button{padding:5px 9px;font-size:11px}.brand{font-size:14px}.brand span{display:none}.layout,.layout:not(:has(.sidebar)){display:block;padding:27px 18px 60px}.sidebar{position:static;max-height:none;padding:0;margin:0 0 30px;border:1px solid var(--line);border-radius:8px;background:var(--panel)}.sidebar details{margin:0;padding:12px 15px}.sidebar summary{list-style:disclosure-closed}.sidebar nav{gap:2px}.side-note{display:none}h1{font-size:30px}h2{font-size:22px;margin-top:42px}h3{font-size:18px}body{font-size:15px}.cards,.principles{grid-template-columns:1fr}.paper-card{padding:24px}.stats div{padding:19px 12px;font-size:11px}.stats strong{font-size:32px}.lede{font-size:17px}blockquote{padding:18px}.walker,.quiz{padding:18px}.source-links{gap:14px}.scope{padding:18px}th,td{padding:12px;font-size:12px}.eval-overview{gap:9px}footer{padding:20px 18px}figure{padding:7px}figcaption{font-size:11px}}
+@media(prefers-reduced-motion:reduce){html{scroll-behavior:auto}}
+@media print{html{scroll-behavior:auto}body{background:white!important;color:#111!important;font-size:10pt}.top,.sidebar,footer,.step-controls,.quiz button,.filters,.skip{display:none!important}.layout,.layout:not(:has(.sidebar)){display:block;max-width:none;padding:0}.eval-table-wrap{overflow:visible;border-color:#ccc}table{font-size:8pt}th,td{min-width:0;padding:7px}h1{font-size:25pt}h2{font-size:16pt;break-after:avoid}h3{break-after:avoid}figure,.paper-card,.eval-overview article{break-inside:avoid}details{display:block}details>*{display:block!important}details::details-content{display:block;content-visibility:visible}img{max-height:70vh;object-fit:contain}.paper-card{box-shadow:none}.cards{display:block}.paper-card{margin:15px 0}a{color:#111}.eval-overview,.principles{display:block}.eval-overview article{margin:10px 0}blockquote,.scope{background:#eee!important}.boundary{color:#333!important;background:#eee!important}}
+
+.zoom-dialog{width:96vw;max-width:96vw;max-height:94vh;border:1px solid var(--line);border-radius:10px;padding:12px;background:var(--panel);color:var(--text)}.zoom-dialog::backdrop{background:#000b}.zoom-bar{margin:0 0 10px;display:flex;justify-content:flex-end}.zoom-scroll{overflow:auto;max-height:78vh;background:white}.zoom-scroll img{display:block;width:auto;max-width:none;height:auto}
+.eval-overview{grid-template-columns:repeat(2,minmax(0,1fr))}.cn-read{margin:18px 0 24px;padding:16px 20px;background:var(--soft);border-radius:8px}.cn-read p{margin:6px 0 0}.cn-label{font-size:11px;letter-spacing:.08em;font-weight:700;color:var(--accent)}.evidence-note{font-size:13px;color:var(--muted)}.candidate-list{padding-left:20px;font-size:14px;line-height:1.8}.candidate-list li{margin:12px 0}.candidate-list strong{font-weight:600}.candidate-list+p{border-top:1px solid var(--line);padding-top:12px}
+@media(max-width:720px){.eval-overview{grid-template-columns:1fr}.top nav>a.collection-link{display:inline}.brand{letter-spacing:0}.top{gap:8px}.top nav{gap:6px}.top button{padding:5px 7px}.cn-read{padding:14px 16px}}
+@media print{:root,:root[data-theme=dark]{--bg:#fff;--panel:#fff;--text:#111;--muted:#444;--line:#ccc;--accent:#333;--soft:#f4f4f4;--warn:#333;--warm:#eee}.cn-read{background:#f4f4f4}.zoom-dialog{display:none!important}}
+</style></head><body><a class="skip" href="#main">跳到正文</a><header class="top"><a href="../index.html" class="brand">~/paper-notes <span>CoRL 2026</span></a><nav aria-label="阅读导航与工具"><a class="collection-link" href="corl2026.html">专题</a><a href="corl2026-workshops.html">Workshop 选题</a><button id="theme" type="button" aria-label="切换深浅主题" hidden>切换主题</button><button id="print" type="button" hidden>打印 / PDF</button></nav></header><div class="layout"><aside class="sidebar"><details open><summary>WB-WAM · 章节</summary><nav aria-label="章节导航"><a href="#overview">简短说明与评测</a><a href="#section-1">1. 问题：身体和手的标签不齐，如何仍然学配合？</a><a href="#section-2">2. 思路：为什么把动作语义放在预训练里？</a><a href="#section-3">3. 方法：从人擦桌子，到机器人执行</a><a href="#section-4">4. 证据：三组实验必须分开看</a><a href="#section-5">5. 反例与一周能做的实验</a><a href="#section-6">面试口述版</a><a href="#section-7">来源与修订</a><a href="#walk">训练到执行</a><a href="#quiz">理解检查</a></nav></details><p class="side-note">原文 / 推断 / 待验证<br>PDF 全文与附录核读<br>不以演示替代成功率</p></aside><main id="main"><div class="eyebrow">TAG Workshop（沿用既有核验）</div><h1 id="overview">WB-WAM：异构身体与手部数据，怎样进入一个人形策略？</h1><p class="tagline">异构数据 · 物理动作</p><div class="source-links"><a href="https://arxiv.org/abs/2609.34199v3">原始论文 ↗</a><a href="https://arxiv.org/pdf/2609.34199v3">PDF ↗</a><a href="corl2026.html">CoRL 五方向专题</a></div><article class="paper-body">
+<blockquote class="core-insight">
+<p><strong>简短说明</strong>：WB-WAM 把有身体、只有手或没有视频的数据，放进同一个有物理含义的全身动作空间。最值得看的是任务对齐的人类中训：四任务中，30 条机器人示范加 PICO 数据达到 73.75%，直接用 100 条机器人示范为 65%；额外人类数据与训练预算必须一起算。五任务 84% 的另一组主实验没有使用 PICO。</p>
+</blockquote><section class="eval-overview" aria-label="评测结论总览"><article class="eval-card"><span>仿真</span><p>HumanoidArena 七任务均值 81.9%。</p></article><article class="eval-card"><span>ID / OOD</span><p>未见对象/场景缺少分层次数，不能算严格 OOD 下降。</p></article><article class="eval-card"><span>真机</span><p>五任务各 20 次，均值 84%；擦桌弱于 OpenWAM。</p></article><article class="eval-card"><span>证据边界</span><p>73.75% 含额外人类数据；84% 主实验未用 PICO。</p></article></section>
+<p><strong>阅读范围</strong>：arXiv:2609.34199v3，2026-10-02，9 页，正文与参考文献已通读；此 PDF 无附录。原文而非代码核验。CoRL 归属沿用源页此前核验的 TAG Workshop Oral；本次 OpenReview 遇到验证码，未独立复核，不能标成主会 Oral。阅读日期：2026-11-17。</p>
+<p><strong>评测先看</strong>：仿真 HumanoidArena 七任务均值 81.9%；真机五任务均值 84%，每项 20 次；严格分层的未见对象、场景、指令 OOD 成功率未报告。核心证据支持异构预训练和目标任务对齐的人类迁移，尚不支持任意任务、任意本体零样本泛化。</p>
+<h2 id="section-1">1. 问题：身体和手的标签不齐，如何仍然学配合？</h2><div class="cn-read"><div class="cn-label">这一节解决什么</div><p>[原文] 擦桌子时，人形要同时调整站位、躯干和手指。已有大量数据却各缺一块：第一视角操作视频可能只有手部标注；人体动作库有身体，却没有对应视频。如果要求每条样本都同时有身体、双手和视频，预训练可用数据会大幅减少。论文要解决的是<strong>在不完整监督下，学习可传给人形控制器的身体—手部协调动作</strong>。[§I–III，pp.1–4]</p></div>
+<p>输入是第一视角 RGB、语言和机器人本体状态；核心输出是全身物理动作参考，而不是最终电机力矩。成功要求机器人在平衡和可执行约束下完成任务。仅降低关节回归误差不能保证擦到目标区域；重定向成功也不能证明接触动力学可行。</p>
+<h2 id="section-2">2. 思路：为什么把动作语义放在预训练里？</h2><div class="cn-read"><div class="cn-label">这一节解决什么</div><p>[原文] 视频骨干来自 Wan2.2，训练采用视频/动作双专家；人形部署使用 SONIC 跟踪器，FK 监督借鉴身体几何约束思路。[§II–III、V-A]</p></div>
+<p class="inference evidence-note" data-evidence="inference">[推断] 如果共享空间直接对应“哪些身体关节、哪只手”，每个来源的缺失标签就有明确位置。随后用任务相近的人类示范建立视觉与动作对应，再用机器人数据修正剩余域差。这条设计链由标签缺失、跨形态差异和几何误差三个约束推导而来，不代表作者真实的构思过程。</p>
+<p>一个合理替代是直接预测控制器 latent；它可能更容易执行，却会让不同数据源的局部标注难以对齐，也绑定控制器。论文选择物理参考，再在部署端编码进 SONIC。两种方案的等数据、等算力比较仍需专门实验。</p>
+<h2 id="section-3">3. 方法：从人擦桌子，到机器人执行</h2><div class="cn-read"><div class="cn-label">这一节解决什么</div><p>有了共享动作语义，下一步要追踪标签怎样进入训练：先看异构监督，再看人类数据对齐，最后看机器人后训练与执行。这样才能区分数据表示的贡献与额外数据的贡献；跨任务泛化仍要由后面的实验确认。</p></div>
+<h3>数据谱系与训练阶段</h3>
+<div class="eval-table-wrap" tabindex="0" role="region" aria-label="证据表，可横向滚动"><table class="eval-table">
+<thead>
+<tr>
+<th>阶段</th>
+<th>数据和规模</th>
+<th>对齐与训练</th>
+<th>必须保留的边界</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>I 异构预训练</td>
+<td>九源共 1,880.2 小时；Xperience、EgoDex、HIW-500、Unitree、Humanoid Everyday、GR00T-Teleop、PSI-Real、MotionMillion、BONES-SEED</td>
+<td>video-body-hand / video-hand / text-body 按 3:1:1 采样；1 epoch，batch 16</td>
+<td>采样比例不是数据小时比例</td>
+</tr>
+<tr>
+<td>II 人类中训</td>
+<td>PICO 22 小时，13,396 episodes，73 任务；20 Hz</td>
+<td>五点身体追踪；GMR + 约束 IK；MINT 恢复手部；10 epochs</td>
+<td>四项迁移评测的每个任务约 150 条人类示范已包含其中</td>
+</tr>
+<tr>
+<td>III 真机适配</td>
+<td>总库 1,011 episodes、242,668 帧、3.37 小时、八任务组</td>
+<td>每任务独立策略，50 epochs，加 FK 几何损失</td>
+<td>每项比较只使用该协议指定示范数，不是全部库；不是一个统一八任务策略</td>
+</tr>
+</tbody>
+</table></div>
+<p>[原文] 来源：§III–IV、V-A/E，pp.3–7。VAE 与 UMT5 冻结，视频/动作专家和本体编码器训练；动作专家缩窄并迁移结构权重，输入输出投影随机初始化。</p>
+<figure><a href="../assets/figures/corl2026/wb-wam-fig-2.png" target="_blank" rel="noopener"><img loading="lazy" decoding="async" src="../assets/figures/corl2026/wb-wam-fig-2.png" alt="原文 Figure 2，p.3：三阶段数据、双专家与身体/手部执行接口" /></a><figcaption>原文 Figure 2，p.3：三阶段数据、双专家与身体/手部执行接口 · 点击查看原尺寸</figcaption></figure>
+<h3>动作里的 72 维到底是什么？</h3>
+<p>每步 <code>a = [q_body(29), root(3), q_left(20), q_right(20)]</code>。root 三项是 <strong>roll、pitch、yaw angular velocity</strong>，不是 xyz 平移。物理动作空间是 72D；实现输出头预留到 96D，不能混称。身体/根部参考随后进入冻结 SONIC encoder 的 64D latent，手部直接发送关节指令。[§III-B、V-A]</p>
+<p>擦桌子例子中，PICO 追踪到的是人的身体动作；GMR 与约束 IK 先把它转换成 G1 的运动学参考，手部恢复成 Wuji 参考。模型学的是这个共同 schema 中的动作。真机后训练时，FK 在 pelvis frame 比较所选身体 links 的位置和朝向，让关节误差对应到空间几何。</p>
+<h3>一个掩码公式，两个不同的实现含义</h3>
+<p><abbr title="学习噪声到数据的连续速度场；噪声时间不同于机器人执行时间。">Flow matching</abbr> 用 <code>yτ = (1−τ)y₀ + τε</code>，目标速度 <code>u = ε−y₀</code>；τ 是噪声时间，视频和动作独立采样。动作目标为 <code>u_a = M ⊙ (ε−A₀)</code>，M 标记有效维度。[§III-C]</p>
+<p>[原文] 动作 MSE 在<strong>整个轨迹张量</strong>上平均，缺失项的目标速度置零；不能自动解释为“只在有效项上算平均”。[推断·教学算例] 若 A₀=0.4、ε=1.2、τ=0.5，则输入为 0.8、有效速度标签为 0.8。缺失时 M=0，目标变为 0；网络若预测 0.3，这一项仍贡献 0.09/N 的 MSE。完全忽略缺失项则没有这项梯度。两者对缺失率不同的数据源可能产生不同偏置，需要代码和消融验证。</p>
+<h3>推理时，生成模型与控制环如何交接？</h3>
+<p>[原文] 每次预测 32 步、20 次去噪，执行前 20 步，动作回放 20 Hz。身体/根部以十帧、0.1 秒间隔组成窗口，经 SONIC encoder；跟踪策略 50 Hz，低层发送 500 Hz；手部走直接指令。部署采用仅当前帧的 FastWAM 路径，不要求每次生成未来视频。[§V-A、Fig.5]</p>
+<p><strong>因此 500 Hz 不是 WAM 推理速度。</strong> Fig.5 的模型频率约 0.7 Hz 与动作回放节奏也不能直接拼成已证明的传感器到电机延迟保证，论文未给完整实时延迟分布。</p>
+<section class="walker" aria-label="训练到执行逐步读"><h2 id="walk">训练到执行：逐步读</h2><p>按顺序检查信息怎样流动；每一步都保留在页面中。按钮或左右方向键切换，Home / End 跳到首尾。</p><div class="step-controls" tabindex="0" role="group" aria-label="步骤导航" hidden><button data-prev type="button">上一步</button><output aria-live="polite">1 / 4</output><button data-next type="button">下一步</button></div><ol><li data-step="0"><span class="step-no">01</span>异构预训练：按身体/手/视频的可用标签组织监督。</li><li data-step="1"><span class="step-no">02</span>PICO 中训：GMR、约束 IK、手部重建对齐到机器人。</li><li data-step="2"><span class="step-no">03</span>真机后训：各任务独立策略，加 FK 几何损失。</li><li data-step="3"><span class="step-no">04</span>部署：身体经 SONIC，手部直接执行；不强制生成未来视频。</li></ol></section><h2 id="section-4">4. 证据：三组实验必须分开看</h2><div class="cn-read"><div class="cn-label">这一节解决什么</div><p>前面的流程能处理多类数据，但是否有效要回到各自的实验配置。下面把主实验、人类数据中训和动作表示消融分开；84% 与 73.75% 不能拼成同一配置的结果。</p></div>
+<h3>仿真证据表</h3>
+<div class="eval-table-wrap" tabindex="0" role="region" aria-label="证据表，可横向滚动"><table class="eval-table">
+<thead>
+<tr>
+<th>协议</th>
+<th>任务结果</th>
+<th>比较与预算边界</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>HumanoidArena，in-GMT；示范/执行均为 SONIC</td>
+<td>Football 70.0；DoubleDesk 65.0；P&amp;PBox 86.7；OpenDoor 98.3；SitSofa 95.0；Boxing 81.7；VisNavi 76.7%；平均 81.9%</td>
+<td>Table I，p.6；每项最强 baseline 分别 45.0/43.3/75.0/85.0/78.3/76.7/38.3%，不是同一个方法；原表保留误差项，试验数、种子及误差定义不足以统一重算置信区间</td>
+</tr>
+</tbody>
+</table></div>
+<h3>ID / OOD 证据表</h3>
+<div class="eval-table-wrap" tabindex="0" role="region" aria-label="证据表，可横向滚动"><table class="eval-table">
+<thead>
+<tr>
+<th>泛化维度</th>
+<th>已有证据</th>
+<th>绝对表现与下降</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>任务对齐人类→机器人</td>
+<td>四目标任务出现在 PICO 中训中</td>
+<td>73.75%；不能称未见任务 OOD</td>
+</tr>
+<tr>
+<td>对象类别</td>
+<td>单策略 300 条示范，橙/柠檬/苹果分别 15/20、17/20、16/20</td>
+<td>三种训练内类别，不能据此推出未见类别泛化</td>
+</tr>
+<tr>
+<td>外观变化</td>
+<td>新购物车外观的定性演示 Fig.7</td>
+<td>未分层报告次数，ID→OOD 下降不可算</td>
+</tr>
+<tr>
+<td>新场景、语言组合、跨本体、长期记忆</td>
+<td>未报告匹配的独立测试</td>
+<td>未报告</td>
+</tr>
+</tbody>
+</table></div>
+<h3>真机证据表：Table II，p.6</h3>
+<p>G1 + Wuji + D455；各方法约 100 条机器人示范/任务、相同执行接口。WB-WAM 从 Stage I 初始化，<strong>这组没有 Stage II PICO</strong>。每项 20 次；下列区间为阅读者根据计数计算的 Wilson 95%，不是原文报告值，也不是方法差异显著性检验。</p>
+<div class="eval-table-wrap" tabindex="0" role="region" aria-label="证据表，可横向滚动"><table class="eval-table">
+<thead>
+<tr>
+<th>任务</th>
+<th>WB-WAM 成功/次数</th>
+<th>SR · Wilson 95%</th>
+<th>OpenWAM 同协议</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>擦桌</td>
+<td>15/20</td>
+<td>75.0%（53.1–88.8%）</td>
+<td>18/20</td>
+</tr>
+<tr>
+<td>拉帘</td>
+<td>13/20</td>
+<td>65.0%（43.3–81.9%）</td>
+<td>8/20</td>
+</tr>
+<tr>
+<td>铺床</td>
+<td>18/20</td>
+<td>90.0%（69.9–97.2%）</td>
+<td>17/20</td>
+</tr>
+<tr>
+<td>枕头</td>
+<td>20/20</td>
+<td>100.0%（83.9–100.0%）</td>
+<td>20/20</td>
+</tr>
+<tr>
+<td>叠衣</td>
+<td>18/20</td>
+<td>90.0%（69.9–97.2%）</td>
+<td>17/20</td>
+</tr>
+</tbody>
+</table></div>
+<p>五任务等权平均：WB-WAM 84%，OpenWAM 80%；不能说每项都更强。ACT/π0.5/GR00T N1.6/Fast-WAM/DiT4DiT 的均值分别 20/52/42/6/31%。不同任务的合计不当作同一成功概率的 100 次重复试验。</p>
+<p><strong>PICO 迁移另看 Table III，p.7</strong>：四任务每项 20 次，30 条机器人直接训练为 48.75%；100 条为 65%；PICO + 30 条为 73.75%。固定 30 条机器人时提高 25 个百分点；相对 100 条提高 8.75 点，同时机器人示范减少 70%。代价是额外 22 小时人类数据、中训计算及目标任务覆盖，无法推出等总预算优势。</p>
+<div class="eval-table-wrap" tabindex="0" role="region" aria-label="证据表，可横向滚动"><table class="eval-table">
+<thead>
+<tr>
+<th>主张</th>
+<th>机制</th>
+<th>对应证据</th>
+<th>仍未排除</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>人类数据帮助少样本迁移</td>
+<td>任务对齐中训</td>
+<td>Table III，同机器人数量对照</td>
+<td>任务覆盖、额外更新步数与人类模态各自贡献</td>
+</tr>
+<tr>
+<td>全身预训练有用</td>
+<td>物理共享动作与几何约束</td>
+<td>Table I–II 与文中消融</td>
+<td>各来源、骨干规模、执行器的完全解耦归因</td>
+</tr>
+<tr>
+<td>身体/手协同可执行</td>
+<td>分路接口 + SONIC</td>
+<td>五项真机任务</td>
+<td>新接触、摩擦、负载、长时序组合</td>
+</tr>
+</tbody>
+</table></div>
+<h2 id="section-5">5. 反例与一周能做的实验</h2><div class="cn-read"><div class="cn-label">这一节解决什么</div><p class="inference evidence-note" data-evidence="inference">[推断] 最强贡献是把身体—手部监督与缺失标签纳入预训练，并给出真实机器人上的迁移证据。脆弱点是运动学对齐可能在接触阶段失效：同一擦拭轨迹换成高摩擦桌布，参考姿态仍相似，实际受力和平衡却可能完全不同。</p></div>
+<p>[猜测/待验证] 最值得做的是<strong>固定 30 条机器人示范和更新步数，比较同任务 PICO、任务不重合 PICO、打乱时序 PICO、无 PICO</strong>。指标同时记录任务 SR、接触滑移、跟踪误差和失败类型。如果收益只出现在同任务组，就反驳“普遍人类动作先验足以解释全部增益”；如果打乱时序也相近，则需排查额外训练或静态视觉覆盖的作用。</p>
+<p>一周计划：第 1 天核对公开代码/权重及数据访问条件；第 2 天检查时间戳、坐标、缺失率和掩码梯度；第 3–4 天在现成 checkpoint 上跑小规模对照；第 5 天用相同 tracker 仿真回放；第 6–7 天若有 G1/Wuji 与安全场地，再做匹配真机试验。资源不足则只交付数据/离线接口审计，不声称复现真机 SR。公开权重、GPU 显存与训练脚本是否齐全本次未核验；从头复现 1,880 小时预训练不在一周计划内。</p>
+<h2 id="section-6">面试口述版</h2>
+<p>WB-WAM 处理的是人形数据不齐的问题：有的视频能看见手，但没有全身标签；有的动作库有身体，却没有视频。它先用 72 维物理动作空间，把身体、根部和两只手放到共同坐标中，用各来源能提供的监督做视频—动作预训练，再用任务相近的人类数据中训，最后用机器人数据和 FK 几何约束适配。部署时身体通过 SONIC 跟踪，手部直接执行。</p>
+<p>最有价值的结果是同样 30 条机器人示范，人类中训将四任务均值从 48.75% 提到 73.75%，还超过直接用 100 条机器人数据的 65%。但它额外用了包含这些任务的人类示范，不能说总数据更少或目标任务零样本。另一个五任务 84% 的主结果没有用 PICO。下一步我会固定预算，分开测任务对齐、人类模态和控制器对误差的容忍度。</p>
+<h2 id="section-7">来源与修订</h2>
+<ul>
+<li><a href="https://arxiv.org/abs/2609.34199v3">WB-WAM v3 原文</a>：§III–V、Tables I–IV、Figures 2–7。</li>
+<li><a href="https://openreview.net/forum?id=smsDWzIc0Q">TAG OpenReview 条目</a>：本次访问遇验证码，会议归属参考源 Notion 的既有核验，不扩大为主会录用。</li>
+<li>本页公式算例、Wilson 区间、反例和实验计划均为阅读者补充；未检视官方代码。2026-11-17 初稿。</li>
+</ul>
+</article><section class="quiz" data-answer="0"><h2 id="quiz">理解检查</h2><fieldset><legend>“机器人示范少 70%”可以推出什么？</legend><label><input type="radio" name="answer" value="0"> 机器人示范数变少，同时额外用了任务对齐的人类数据。</label><label><input type="radio" name="answer" value="1"> 总数据和总计算量都减少了 70%。</label><label><input type="radio" name="answer" value="2"> 目标任务没有在任何训练阶段出现。</label></fieldset><button data-check type="button" hidden>检查答案</button><p class="feedback" aria-live="polite"></p><details><summary>展开答案与依据</summary><p>机器人示范数变少，同时额外用了任务对齐的人类数据。</p><p>Table III 比较的是机器人示范量；PICO 有额外 22 小时数据与中训，且覆盖目标任务。</p></details></section></main></div><footer>原文事实与阅读者推断分开标注 · 整理日期 2026-11-17 · <a href="../index.html">返回论文网站</a> · <a href="corl2026-workshops.html">继续选题</a></footer><script>(()=>{'use strict';
+const $=s=>document.querySelector(s);const $$=s=>[...document.querySelectorAll(s)];
+if($('figure a')){const dialog=document.createElement('dialog');dialog.className='zoom-dialog';dialog.setAttribute('aria-label','论文原图');const bar=document.createElement('form');bar.method='dialog';bar.className='zoom-bar';const close=document.createElement('button');close.textContent='关闭原图（Esc）';bar.append(close);const scroll=document.createElement('div');scroll.className='zoom-scroll';const img=document.createElement('img');scroll.append(img);dialog.append(bar,scroll);document.body.append(dialog);$$('figure a').forEach(a=>a.addEventListener('click',e=>{e.preventDefault();img.src=a.href;img.alt=a.querySelector('img').alt;dialog.showModal()}))}
+const theme=$('#theme');if(theme){theme.hidden=false;let saved;try{saved=localStorage.getItem('theme')||localStorage.getItem('corl2026-theme')}catch{}if(saved==='dark')document.documentElement.dataset.theme='dark';const label=()=>{const dark=document.documentElement.dataset.theme==='dark';theme.textContent=dark?'浅色':'深色';theme.setAttribute('aria-pressed',String(dark))};label();theme.addEventListener('click',()=>{const mode=document.documentElement.dataset.theme==='dark'?'light':'dark';document.documentElement.dataset.theme=mode;try{localStorage.setItem('theme',mode);localStorage.setItem('corl2026-theme',mode)}catch{}label()})}
+const print=$('#print');if(print){print.hidden=false;print.addEventListener('click',()=>window.print())}
+let opened=[];window.addEventListener('beforeprint',()=>{opened=$$('details').map(d=>[d,d.open]);$$('details').forEach(d=>d.open=true)});window.addEventListener('afterprint',()=>opened.forEach(([d,o])=>d.open=o));
+if(matchMedia('(max-width:720px)').matches){const toc=$('.sidebar details');if(toc)toc.open=false}
+$$('.walker').forEach(w=>{const items=[...w.querySelectorAll('[data-step]')];const controls=w.querySelector('.step-controls');if(!controls)return;controls.hidden=false;let i=0;const prev=w.querySelector('[data-prev]'),next=w.querySelector('[data-next]'),out=w.querySelector('output');const render=()=>{const focused=document.activeElement;items.forEach((s,n)=>{s.classList.toggle('current',n===i);if(n===i)s.setAttribute('aria-current','step');else s.removeAttribute('aria-current')});out.value=`${i+1} / ${items.length}`;out.textContent=out.value;prev.disabled=i===0;next.disabled=i===items.length-1;if(focused?.disabled)controls.focus()};prev.onclick=()=>{i=Math.max(0,i-1);render()};next.onclick=()=>{i=Math.min(items.length-1,i+1);render()};controls.addEventListener('keydown',e=>{const keys=['ArrowLeft','ArrowRight','Home','End'];if(!keys.includes(e.key))return;e.preventDefault();i=e.key==='Home'?0:e.key==='End'?items.length-1:e.key==='ArrowLeft'?Math.max(0,i-1):Math.min(items.length-1,i+1);render()});render()});
+$$('.quiz').forEach(q=>{const btn=q.querySelector('[data-check]');btn.hidden=false;btn.addEventListener('click',()=>{const selected=q.querySelector('input:checked'),out=q.querySelector('.feedback');out.textContent=!selected?'先选一个答案。':selected.value===q.dataset.answer?'判断正确。展开下方依据核对实验条件。':'再核对一下条件：展开下方答案，看看哪些数字不能拼在一起。'})});
+const search=$('#search'),kind=$('#kind');if(search&&kind){$('.filters').hidden=false;const rows=$$('#catalog tbody tr');const filter=()=>{const words=search.value.toLowerCase().trim().split(/\s+/).filter(Boolean);let n=0;rows.forEach(r=>{const ok=words.every(w=>r.textContent.toLowerCase().includes(w))&&(!kind.value||r.dataset.kind===kind.value);r.hidden=!ok;if(ok)n++});$('#count').textContent=`${n} / ${rows.length} 篇`;$('#empty').hidden=n!==0};search.addEventListener('input',filter);kind.addEventListener('change',filter);$('#reset').onclick=()=>{search.value='';kind.value='';filter();search.focus()};filter()}
+})();
+</script></body></html>

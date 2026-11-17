@@ -5,6 +5,16 @@
 
 **[→ 在线访问](https://www.siyuanluoembodied.xin/)**
 
+## CoRL 2026 · 五方向精读
+
+[进入阅读室](papers/corl2026.html) · [继续选 Workshop](papers/corl2026-workshops.html) · [主会标题目录](papers/corl2026-catalog.html)
+
+十篇正文与附录精读：WB-WAM、Long-WAM、PanTact、Workhorse、OCLO、HULK、ECoMEM、MemJEPA、SimpleARM、EmbodiedSWE；另串读已有 AW-0。每篇先给简短说明，再展开五块证据链、原图、仿真 / OOD / 真机评测与边界。Workshop 和主题关联阅读身份单独标注，主会 687 项仅为目录。
+
+下一批选题包括 H2R、Learn@Deploy、Beneath the Policy、SPIN 与 G2A。候选明确标为待精读，报告摘要与录用论文分开。
+
+源码：`notes/corl2026/reading/` 与 `scripts/corl2026/`。构建需要 Python、PyMuPDF、markdown-it-py；已有裁图可直接复用，无需公开原始 PDF。运行 `python3 scripts/corl2026/build.py`，再运行 `node scripts/build-paper-catalog.mjs` 更新首页目录。
+
 ---
 
 ## 已收录（34 篇）· 按方向分类

@@ -1,0 +1,169 @@
+<!doctype html><html lang="zh-CN"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="color-scheme" content="light dark"><title>ECoMEM · CoRL 阅读室</title><script>try{document.documentElement.dataset.theme=localStorage.getItem('theme')||localStorage.getItem('corl2026-theme')||'light'}catch{}</script><style>:root{--bg:#faf9f7;--panel:#fff;--text:#1a1a1e;--muted:#64646c;--line:#dddcd8;--accent:#966333;--soft:#f3eee8;--warn:#795124;--warm:#f8efe0;--shadow:0 8px 24px #00000008;color-scheme:light}
+:root[data-theme=dark]{--bg:#0f1014;--panel:#1a1b22;--text:#f0f0f3;--muted:#b8bac4;--line:#3a3c48;--accent:#d4a06a;--soft:#29251f;--warn:#efc68d;--warm:#362c20;--shadow:none;color-scheme:dark}
+*{box-sizing:border-box}html{scroll-behavior:smooth;scroll-padding-top:85px}body{margin:0;background:var(--bg);color:var(--text);font:16px/1.85 -apple-system,BlinkMacSystemFont,"PingFang SC","Noto Sans CJK SC",sans-serif}a{color:var(--accent);text-underline-offset:4px}a:hover{text-decoration-thickness:2px}button,input,select{font:inherit}button{padding:7px 14px;border:1px solid var(--line);border-radius:7px;background:var(--panel);color:var(--text);cursor:pointer}button:hover{border-color:var(--accent);background:var(--soft)}button:disabled{opacity:.45;cursor:default}a:focus-visible,button:focus-visible,input:focus-visible,select:focus-visible,summary:focus-visible,[tabindex]:focus-visible{outline:3px solid var(--accent);outline-offset:4px}input,select{background:var(--panel);color:var(--text);border:1px solid var(--line);padding:9px 12px;border-radius:6px;max-width:100%}.skip{position:absolute;top:-100px;left:20px;padding:8px;background:var(--panel);z-index:20}.skip:focus{top:12px}.top{position:sticky;top:0;z-index:5;display:flex;justify-content:space-between;gap:20px;align-items:center;padding:15px 4vw;background:var(--bg);border-bottom:1px solid var(--line)}.brand{font-weight:750;text-decoration:none;letter-spacing:.05em}.brand span{font:12px ui-monospace,monospace;letter-spacing:.1em;margin-left:8px;color:var(--muted)}.top nav{display:flex;gap:16px;align-items:center;font-size:13px}.layout{display:grid;grid-template-columns:235px minmax(0,940px);gap:55px;max-width:1360px;margin:0 auto;padding:64px 38px 90px}.layout:not(:has(.sidebar)){display:block;max-width:1190px}main{min-width:0}.sidebar{align-self:start;position:sticky;top:105px;font-size:13px;max-height:calc(100vh - 125px);overflow:auto;padding-right:13px}.sidebar summary{font-weight:700;cursor:pointer;list-style:none}.sidebar nav{display:grid;gap:5px;margin-top:18px}.sidebar a{padding:7px 11px;border-left:2px solid var(--line);text-decoration:none;line-height:1.6;color:var(--muted)}.sidebar a:hover{border-color:var(--accent);color:var(--accent);background:var(--soft)}.side-note{border-top:1px solid var(--line);margin-top:25px;padding-top:18px;color:var(--muted);font-size:12px}.eyebrow{color:var(--accent);font-size:11px;letter-spacing:.1em;font-weight:700;text-transform:uppercase}h1{font-size:clamp(30px,3.3vw,48px);line-height:1.35;letter-spacing:-.035em;margin:16px 0 20px;font-weight:730;max-width:980px}h2{font-size:24px;line-height:1.5;letter-spacing:-.02em;margin:56px 0 20px;padding-top:12px;border-top:1px solid var(--line)}h3{font-size:19px;margin:32px 0 14px;line-height:1.6}p{margin:15px 0}.lede{font-size:19px;max-width:850px;color:var(--muted)}.muted,.tagline{color:var(--muted)}.source-links{display:flex;gap:18px;flex-wrap:wrap;font-size:13px;margin:20px 0 28px}blockquote{margin:26px 0;padding:20px 25px;background:var(--soft);border-left:4px solid var(--accent);border-radius:0 10px 10px 0}blockquote p{margin:0}.eval-overview{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px;margin:24px 0 30px}.eval-overview article{padding:18px;border:1px solid var(--line);border-radius:9px;background:var(--panel)}.eval-overview span{font-size:11px;color:var(--accent);font-weight:700;letter-spacing:.08em}.eval-overview p{font-size:14px;line-height:1.75;margin:8px 0 0}.eval-table-wrap{overflow-x:auto;margin:24px 0;border:1px solid var(--line);border-radius:9px;background:var(--panel)}table{border-collapse:collapse;width:100%;font-size:13px;line-height:1.75}th,td{padding:14px 15px;text-align:left;vertical-align:top;border-bottom:1px solid var(--line);min-width:120px}th{background:var(--soft);font-weight:650}tbody tr:last-child td{border-bottom:0}tbody tr:hover{background:var(--soft)}code{font:13px/1.8 ui-monospace,SFMono-Regular,Menlo,monospace;white-space:normal;overflow-wrap:anywhere;background:var(--soft);padding:3px 6px;border-radius:4px}figure{margin:28px 0;padding:12px;background:white;border:1px solid var(--line);border-radius:9px}figure img{width:100%;height:auto;display:block}figcaption{color:#56625a;font-size:12px;line-height:1.7;margin:10px 7px 3px}abbr{text-decoration-style:dotted;cursor:help}.inference{padding-left:16px;border-left:3px solid var(--line)}.walker,.quiz{padding:26px;border:1px solid var(--line);border-radius:12px;background:var(--panel);margin:40px 0}.walker h2,.quiz h2{border:0;padding:0;margin:0 0 10px}.walker>p{font-size:14px;color:var(--muted)}.walker ol{padding:0;margin:20px 0 0;list-style:none;display:grid;gap:10px}.walker li{border:1px solid var(--line);padding:15px;border-radius:8px;font-size:14px}.walker li.current{border-color:var(--accent);background:var(--soft)}.step-no{font:12px ui-monospace,monospace;color:var(--accent);font-weight:700;display:inline-block;margin-right:12px}.step-controls{display:flex;gap:15px;align-items:center}.step-controls output{font-size:12px;color:var(--muted)}fieldset{border:0;padding:0;margin:0 0 15px}legend{font-weight:600;margin:8px 0 12px}.quiz label{display:block;padding:10px 12px;background:var(--bg);margin:7px 0;border-radius:6px;font-size:14px}.quiz input{accent-color:var(--accent)}.feedback{font-weight:600;color:var(--accent)}details{margin:15px 0}summary{cursor:pointer;color:var(--accent);font-size:14px}details p{font-size:14px}.stats{display:grid;grid-template-columns:repeat(3,1fr);border-block:1px solid var(--line);margin:35px 0}.stats div{padding:24px;font-size:13px;color:var(--muted);border-right:1px solid var(--line)}.stats div:last-child{border:0}.stats strong{display:block;font:42px/1.2 ui-monospace,monospace;color:var(--accent);margin-bottom:12px}.scope{background:var(--soft);padding:20px 25px;border-radius:10px;font-size:14px}.scope p{margin:8px 0 12px}.cards{display:grid;grid-template-columns:1fr 1fr;gap:22px;margin:35px 0}.paper-card{position:relative;background:var(--panel);padding:28px;border:1px solid var(--line);border-radius:12px;box-shadow:var(--shadow)}.paper-card h2{border:0;margin:15px 0 12px;padding:0;font-size:27px}.paper-card h2 a{text-decoration:none}.paper-card p{font-size:15px}.paper-card .eyebrow{max-width:calc(100% - 25px);font-size:10px}.card-num{position:absolute;right:20px;top:23px;color:var(--muted);font:12px ui-monospace,monospace}.boundary{padding:12px 14px;background:var(--warm);color:var(--warn);border-radius:6px;font-size:13px!important}.paper-card small{font-size:11px;color:var(--muted)}.principles{display:grid;grid-template-columns:repeat(2,1fr);gap:16px}.principles p{padding:20px;background:var(--panel);border:1px solid var(--line);border-radius:8px;font-size:14px;margin:0}.principles strong{color:var(--accent);display:inline-block;margin-bottom:8px}.filters{display:flex;gap:15px;flex-wrap:wrap;align-items:end;margin:30px 0 20px;padding:20px;background:var(--soft);border-radius:10px}.filters label{display:grid;gap:5px;font-size:12px}.filters label:first-child{flex:1;min-width:230px}.filters output{font-size:12px;align-self:center}#catalog td:nth-child(1){min-width:60px;width:60px;font-family:ui-monospace,monospace;color:var(--muted)}#catalog td:nth-child(2){min-width:260px}#catalog td:nth-child(3),#catalog td:nth-child(4){min-width:85px;width:90px}#catalog details{margin:5px 0 0}#catalog summary{font-size:11px}#catalog details p{white-space:pre-wrap;font-size:12px}footer{max-width:1284px;margin:auto;padding:25px 38px;border-top:1px solid var(--line);font-size:12px;color:var(--muted)}[hidden]{display:none!important}
+@media(max-width:1000px){.layout{grid-template-columns:190px minmax(0,1fr);gap:28px;padding:40px 25px}.eval-overview{grid-template-columns:1fr}.eval-overview article{padding:15px}.eval-overview p{margin:4px 0}.top{padding-inline:25px}.sidebar{font-size:12px}}
+@media(max-width:720px){.top{padding:13px 18px;gap:10px;position:relative}.top nav{gap:8px;font-size:11px}.top nav>a{display:none}.top button{padding:5px 9px;font-size:11px}.brand{font-size:14px}.brand span{display:none}.layout,.layout:not(:has(.sidebar)){display:block;padding:27px 18px 60px}.sidebar{position:static;max-height:none;padding:0;margin:0 0 30px;border:1px solid var(--line);border-radius:8px;background:var(--panel)}.sidebar details{margin:0;padding:12px 15px}.sidebar summary{list-style:disclosure-closed}.sidebar nav{gap:2px}.side-note{display:none}h1{font-size:30px}h2{font-size:22px;margin-top:42px}h3{font-size:18px}body{font-size:15px}.cards,.principles{grid-template-columns:1fr}.paper-card{padding:24px}.stats div{padding:19px 12px;font-size:11px}.stats strong{font-size:32px}.lede{font-size:17px}blockquote{padding:18px}.walker,.quiz{padding:18px}.source-links{gap:14px}.scope{padding:18px}th,td{padding:12px;font-size:12px}.eval-overview{gap:9px}footer{padding:20px 18px}figure{padding:7px}figcaption{font-size:11px}}
+@media(prefers-reduced-motion:reduce){html{scroll-behavior:auto}}
+@media print{html{scroll-behavior:auto}body{background:white!important;color:#111!important;font-size:10pt}.top,.sidebar,footer,.step-controls,.quiz button,.filters,.skip{display:none!important}.layout,.layout:not(:has(.sidebar)){display:block;max-width:none;padding:0}.eval-table-wrap{overflow:visible;border-color:#ccc}table{font-size:8pt}th,td{min-width:0;padding:7px}h1{font-size:25pt}h2{font-size:16pt;break-after:avoid}h3{break-after:avoid}figure,.paper-card,.eval-overview article{break-inside:avoid}details{display:block}details>*{display:block!important}details::details-content{display:block;content-visibility:visible}img{max-height:70vh;object-fit:contain}.paper-card{box-shadow:none}.cards{display:block}.paper-card{margin:15px 0}a{color:#111}.eval-overview,.principles{display:block}.eval-overview article{margin:10px 0}blockquote,.scope{background:#eee!important}.boundary{color:#333!important;background:#eee!important}}
+
+.zoom-dialog{width:96vw;max-width:96vw;max-height:94vh;border:1px solid var(--line);border-radius:10px;padding:12px;background:var(--panel);color:var(--text)}.zoom-dialog::backdrop{background:#000b}.zoom-bar{margin:0 0 10px;display:flex;justify-content:flex-end}.zoom-scroll{overflow:auto;max-height:78vh;background:white}.zoom-scroll img{display:block;width:auto;max-width:none;height:auto}
+.eval-overview{grid-template-columns:repeat(2,minmax(0,1fr))}.cn-read{margin:18px 0 24px;padding:16px 20px;background:var(--soft);border-radius:8px}.cn-read p{margin:6px 0 0}.cn-label{font-size:11px;letter-spacing:.08em;font-weight:700;color:var(--accent)}.evidence-note{font-size:13px;color:var(--muted)}.candidate-list{padding-left:20px;font-size:14px;line-height:1.8}.candidate-list li{margin:12px 0}.candidate-list strong{font-weight:600}.candidate-list+p{border-top:1px solid var(--line);padding-top:12px}
+@media(max-width:720px){.eval-overview{grid-template-columns:1fr}.top nav>a.collection-link{display:inline}.brand{letter-spacing:0}.top{gap:8px}.top nav{gap:6px}.top button{padding:5px 7px}.cn-read{padding:14px 16px}}
+@media print{:root,:root[data-theme=dark]{--bg:#fff;--panel:#fff;--text:#111;--muted:#444;--line:#ccc;--accent:#333;--soft:#f4f4f4;--warn:#333;--warm:#eee}.cn-read{background:#f4f4f4}.zoom-dialog{display:none!important}}
+</style></head><body><a class="skip" href="#main">跳到正文</a><header class="top"><a href="../index.html" class="brand">~/paper-notes <span>CoRL 2026</span></a><nav aria-label="阅读导航与工具"><a class="collection-link" href="corl2026.html">专题</a><a href="corl2026-workshops.html">Workshop 选题</a><button id="theme" type="button" aria-label="切换深浅主题" hidden>切换主题</button><button id="print" type="button" hidden>打印 / PDF</button></nav></header><div class="layout"><aside class="sidebar"><details open><summary>ECoMEM · 章节</summary><nav aria-label="章节导航"><a href="#overview">简短说明与评测</a><a href="#section-1">① 问题：一张图里没有“已经做过几次”</a><a href="#section-2">② 思路重建：先确定要记什么，再决定怎么编码</a><a href="#section-3">③ 方法：从一次“舀取并倒出”走到动作</a><a href="#section-4">④ 实验：概念有效，证据有不同强度</a><a href="#section-5">⑤ 攻击与延伸：可靠记忆不能只“写得出来”</a><a href="#section-6">面试口述版</a><a href="#section-7">证据索引与未覆盖项</a><a href="#walk">训练到执行</a><a href="#quiz">理解检查</a></nav></details><p class="side-note">原文 / 推断 / 待验证<br>PDF 全文与附录核读<br>不以演示替代成功率</p></aside><main id="main"><div class="eyebrow">Memory Workshop · Spotlight</div><h1 id="overview">ECoMEM：把“刚才发生了什么”写成可执行的概念记忆</h1><p class="tagline">Memory · 显式概念 · VLA</p><div class="source-links"><a href="https://corl2026-memory.github.io/papers/033.pdf">原始论文 ↗</a><a href="https://corl2026-memory.github.io/papers/033.pdf">PDF ↗</a><a href="corl2026.html">CoRL 五方向专题</a></div><article class="paper-body">
+<blockquote class="core-insight">
+<p><strong>简短说明。</strong> ECoMEM 用固定 Writer 把观察与动作变成实体、关系、事件和顺序记录，再训练 Reader 将记录作为 token 接入 π₀.₅。RoboMME 16 任务均值 82.42%；两个真机任务合计 68/79 成功。这里的迁移是复用概念库并重新微调任务策略，ScoopPour 还新增了识别器；不是免训练迁移，也不是跨会话记忆。</p>
+</blockquote><section class="eval-overview" aria-label="评测结论总览"><article class="eval-card"><span>仿真</span><p>RoboMME 82.42%；旧基线并非全数同预算重跑。</p></article><article class="eval-card"><span>ID / OOD</span><p>包含有限计数目标变化；没有完整对象/场景 OOD 分层。</p></article><article class="eval-card"><span>真机</span><p>两个任务合并 68/79，不等试次数；非零样本策略迁移。</p></article><article class="eval-card"><span>证据边界</span><p>真机 68/79；概念复用仍包含识别器工程与策略微调。</p></article></section>
+<p>核读：官方 Memory Workshop 的 21 页 PDF，正文、参考文献与附录 A–K。论文由 Yize Liu、Ke Wang、Mac Schwager、Yiqing Xu、Jiajun Wu 署名，Stanford University；Workshop <strong>Spotlight</strong> 身份见<a href="https://corl2026-memory.github.io/papers.html">官方列表</a>。原文：<a href="https://corl2026-memory.github.io/papers/033.pdf">PDF</a>。本文是证据核读，未运行源码或复现实验。</p>
+<h2 id="section-1">① 问题：一张图里没有“已经做过几次”</h2><div class="cn-read"><div class="cn-label">这一节解决什么</div><p>机器人把物体放回原位后，当前图像可能和开始时几乎相同；但“重复三次”的下一步取决于已完成的次数。物体被盖住、容器交换位置、视频展示过操作顺序时，也出现同样的观察歧义。多保存几帧提供了证据，却不保证策略从中提取正确的计数、身份与事件次序。</p></div>
+<p>ECoMEM 研究的问题是：<strong>能否用一个跨任务共享的概念库，构造足以区分这些历史的显式状态，再让动作策略学会使用它？</strong> 贡献不只是存储格式，而是把概念的识别、持续更新和策略读取分开。Writer 固定，Reader 与策略训练；概念库可复用，但每个 episode 的记录从头建立。<a href="https://corl2026-memory.github.io/papers/033.pdf#page=1">§1–2，PDF pp.1–3</a></p>
+<h2 id="section-2">② 思路重建：先确定要记什么，再决定怎么编码</h2><div class="cn-read"><div class="cn-label">这一节解决什么</div><p class="inference evidence-note" data-evidence="inference">[推断，不是作者真实思考记录] 若失败来自“拿错被遮住的物体”，首先需要保持实体与容器的关系；若失败来自多舀一次，就需要确认完整的舀取—倒出事件，而不是数夹爪动作。二者需要的状态不同，但都可以由可组合的概念表达。因此先建立共享词汇，再按指令选择需要的概念，比给每个任务保存整段历史更直接。</p></div>
+<p>下一步的困难是写入质量：检测器偶尔误认，动作命令也可能没有执行成功。于是概念不应在一次检测后立即变成确定事实，要累计证据、区分未知与否定、合并重复事件。最后才是读取问题：显式记录不能自动变成动作，仍需要 Reader 学会把它们送入策略。</p>
+<p>这留下一个可检验的替代解释：收益究竟来自记忆，还是更强的额外感知与人工事件工程？论文用概念族移除、语言 grounding、概念选择和直接 VLM 抽取对照分解了一部分，但没有完全消除系统工程预算差异。</p>
+<h2 id="section-3">③ 方法：从一次“舀取并倒出”走到动作</h2><div class="cn-read"><div class="cn-label">这一节解决什么</div><figure><a href="../assets/figures/corl2026/ecomem-fig-1.png" target="_blank" rel="noopener"><img loading="lazy" decoding="async" src="../assets/figures/corl2026/ecomem-fig-1.png" alt="原文 Figure 1，PDF p.2：Writer 构造记录，Reader 将记录编码成策略 token。虚线区分神经与符号模块。" /></a><figcaption>原文 Figure 1，PDF p.2：Writer 构造记录，Reader 将记录编码成策略 token。虚线区分神经与符号模块。 · 点击查看原尺寸</figcaption></figure></div>
+<p><strong>四类概念是四种问题。</strong> Entity/Spatial Grounding 回答“是什么、在哪里”；State/Relation 回答“谁在谁里面、手里是否持有”；Event/Progress 回答“发生过什么、进度到哪里”；Temporal/Procedure 回答“先后顺序是什么”。概念库里的类型与 episode 中某个具体对象的记录不是同一层。</p>
+<p>设指令为 ℓ，历史为 hₜ，记录为 mₜ，记忆 token 为 uₜ，当前观察为 oₜ：</p>
+<p><code>mₜ = W(ℓ,hₜ)；uₜ = Rφ(mₜ)；aₜ ~ πθ(a | ℓ,oₜ,uₜ)</code>。</p>
+<p>W 不随策略训练更新；Rφ 与策略学习如何用记录选择动作。动作预测是 20 步，执行前 16 步，再用新观察更新；Writer 只看截至当前时刻的信息，没有偷看未来。<a href="https://corl2026-memory.github.io/papers/033.pdf#page=2">Eq.1、Appendix C</a></p>
+<p><strong>Writer 的证据链。</strong> 冻结的 OWLv2、SAM2 和机器人状态提供候选实体与事件证据；指令决定启用哪些概念。记录保留身份、关系、状态和证据来源；遮挡不会自动删除关系，也不会把“看不见”改写成“不存在”。完成事件须去重，后续证据可更新已有记录；新的完整周期才产生新的事件实例。</p>
+<p>Appendix H 用带衰减的证据累计表达稳定性：</p>
+<p><code>Lₜ = clip[−B,B](2^(−Δt/h) Lₜ₋₁ + δₜ Σⱼ wⱼ sⱼₜ)</code>。</p>
+<p>L 是证据量，h 是半衰期，s 是各路正负支持，δ 对单次时间增量封顶；确认与保留使用不同门限，减少反复跳变。<strong>教学算例</strong>：取未触及裁剪边界的 L=2、Δt=h、这次加权增量=0.6，则新值为 1.6。历史证据会衰减，但一次弱观测不会立即覆盖全部历史。这些数是演示，不是论文超参数。</p>
+<p><strong>Reader 实际收到什么。</strong> 每条记录有 11 个离散字段：kind、predicate、subject、object、truth、status、confidence、age、flags、row、column。各字段映射为 256 维向量、相加后归一化，经两层四头 Transformer，投影到 2048 维策略 token。空间位置量化为 32×32 网格，未知用 0；年龄分桶，置信度离散化。没有一个独立的“总次数”列：完成的事件实例与操作 ID 共同表达进度。实体 ID 在训练中做一致的随机置换，避免策略背诵编号。<a href="https://corl2026-memory.github.io/papers/033.pdf#page=14">Appendix H–I，pp.14–18</a></p>
+<p><strong>训练与真机配方分开看。</strong> 主仿真实验冻结 Writer 和视觉编码器，训练语言主干、动作专家及 Reader；16 任务联合训练，4 张 H200 约 24 小时，使用同一个 EMA 检查点。评测的三个 seed 是策略采样 seed，并非三次独立训练。真机附录另称全参数微调：两个任务各保留 59 条机器人示范，分别训练有/无记忆策略。不能将这两种训练设置混写为“全部冻结”。</p>
+<figure><a href="../assets/figures/corl2026/ecomem-fig-3.png" target="_blank" rel="noopener"><img loading="lazy" decoding="async" src="../assets/figures/corl2026/ecomem-fig-3.png" alt="原文 Figure 3，PDF p.4：CupSwitch 复用概念，ScoopPour 增加 SCOOP，并组合成已完成周期。" /></a><figcaption>原文 Figure 3，PDF p.4：CupSwitch 复用概念，ScoopPour 增加 SCOOP，并组合成已完成周期。 · 点击查看原尺寸</figcaption></figure>
+<p>真机是 YAM 的右臂，6 关节加夹爪，顶视与腕视相机。ScoopPour 新概念结合工具/盘子检测、负载外观与“装载→在盘上变空”的连续证据；空勺不计数。识别器开发含 agent 辅助检查与用户反馈，使用少量示范进行开发和额外核验。Writer 在 ScoopPour 为 5 Hz、CupSwitch 为 10 Hz；这不是完整控制链的端到端推理速度。<a href="https://corl2026-memory.github.io/papers/033.pdf#page=20">Appendix K，pp.20–21</a></p>
+<section class="walker" aria-label="训练到执行逐步读"><h2 id="walk">训练到执行：逐步读</h2><p>按顺序检查信息怎样流动；每一步都保留在页面中。按钮或左右方向键切换，Home / End 跳到首尾。</p><div class="step-controls" tabindex="0" role="group" aria-label="步骤导航" hidden><button data-prev type="button">上一步</button><output aria-live="polite">1 / 4</output><button data-next type="button">下一步</button></div><ol><li data-step="0"><span class="step-no">01</span>指令选择共享库里的概念与实体。</li><li data-step="1"><span class="step-no">02</span>冻结感知和事件规则累计证据、更新记录。</li><li data-step="2"><span class="step-no">03</span>Reader 将 11 字段记录编码成策略 token。</li><li data-step="3"><span class="step-no">04</span>策略预测 20 步、执行 16 步，再用新观察更新。</li></ol></section><h2 id="section-4">④ 实验：概念有效，证据有不同强度</h2><div class="cn-read"><div class="cn-label">这一节解决什么</div><p><strong>仿真表。</strong> 16 任务，每任务每 seed 50 episodes，3 个采样 seed。主表旧基线来自 RoboMME 初版论文，而非全部重新运行的同预算实验。</p></div>
+<div class="eval-table-wrap" tabindex="0" role="region" aria-label="证据表，可横向滚动"><table class="eval-table">
+<thead>
+<tr>
+<th>比较</th>
+<th>结果</th>
+<th>能支持什么</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>ECoMEM / FrameSamp-Modul</td>
+<td>82.42 / 44.51%，+37.91 点</td>
+<td>在这个协议的系统级优势；不能当成等算力纯记忆增益</td>
+</tr>
+<tr>
+<td>ECoMEM / MemER</td>
+<td>82.42 / 42.38%</td>
+<td>共享概念方案的效果，不是所有检索方法的上限</td>
+</tr>
+<tr>
+<td>去空间 / 去进度 / 去顺序</td>
+<td>VideoUnmask 84→18；PickXtimes 62→14；PatternLock 60→12</td>
+<td>分别训练的较低预算消融，不能将 84 与主表 100 直接相减</td>
+</tr>
+<tr>
+<td>启用所有 recognizer</td>
+<td>VideoUnmask 84→42；VideoRepick 64→8</td>
+<td>无关记录与额外识别并非无害</td>
+</tr>
+<tr>
+<td>去语言 grounding</td>
+<td>闭环 43/50→12/50；36/50→1/50</td>
+<td>泛化角色提示不能替代具体实体 grounding；策略本身仍看到完整指令</td>
+</tr>
+</tbody>
+</table></div>
+<p>概念选择还降低初始化时间：两任务中位数由 40.47→2.23 秒、52.66→4.38 秒；测量含第一次模型载入/暖机，不含 VLA 载入和动作推理。<strong>这不是每个动作快十几倍。</strong> <a href="https://corl2026-memory.github.io/papers/033.pdf#page=3">Tables 1–4、Appendices B、I–J</a></p>
+<p>直接抽取对照中，Qwen3-VL-8B 在当前状态问题较强，顺序与 before/after 较弱；但它使用特定数据拆分、LoRA 和 64 帧输入，不能扩张成“VLM 无法做记忆”。标签主要由仿真回放自动生成并审查，不是所有样本独立人工真值。</p>
+<p><strong>ID/OOD 表：按变化轴记录。</strong></p>
+<div class="eval-table-wrap" tabindex="0" role="region" aria-label="证据表，可横向滚动"><table class="eval-table">
+<thead>
+<tr>
+<th>变化轴</th>
+<th>观察</th>
+<th>证据边界</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>任务 / 概念复用</td>
+<td>同一库覆盖 16 任务；新真机任务复用或加一概念</td>
+<td>真机策略重新训练，不是零样本新任务</td>
+</tr>
+<tr>
+<td>请求次数</td>
+<td>ScoopPour 训练为 2/3 次，测试包含 1 次</td>
+<td>是有限计数目标变化，不是对象/环境 OOD</td>
+</tr>
+<tr>
+<td>遮挡 / 身份交换</td>
+<td>专门的 RoboMME 任务测试</td>
+<td>训练任务族内的记忆需求，不自动等于未见分布</td>
+</tr>
+<tr>
+<td>新对象、光照、载荷、动力学</td>
+<td>未提供统一的分层 ID→OOD 次数表</td>
+<td>不推导跨环境、跨身体通用成功率</td>
+</tr>
+</tbody>
+</table></div>
+<p><strong>真机表。</strong> 成功必须完成恰好要求的次数；达到次数后停不下来、超时仍失败。以下 Wilson 95% 区间由给出的次数计算；各条件次数不相等。</p>
+<div class="eval-table-wrap" tabindex="0" role="region" aria-label="证据表，可横向滚动"><table class="eval-table">
+<thead>
+<tr>
+<th>任务 / 次数</th>
+<th>ECoMEM</th>
+<th>无记忆 π₀.₅</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>ScoopPour ×1</td>
+<td>16/20 · 80.0%（58.4–91.9%）</td>
+<td>4/12 · 33.3%（13.8–60.9%）</td>
+</tr>
+<tr>
+<td>ScoopPour ×2</td>
+<td>19/23 · 82.6%（62.9–93.0%）</td>
+<td>0/12 · 0.0%（0.0–24.2%）</td>
+</tr>
+<tr>
+<td>ScoopPour ×3</td>
+<td>11/12 · 91.7%（64.6–98.5%）</td>
+<td>0/11 · 0.0%（0.0–25.9%）</td>
+</tr>
+<tr>
+<td>CupSwitch ×2</td>
+<td>11/12 · 91.7%（64.6–98.5%）</td>
+<td>0/12 · 0.0%（0.0–24.2%）</td>
+</tr>
+<tr>
+<td>CupSwitch ×3</td>
+<td>11/12 · 91.7%（64.6–98.5%）</td>
+<td>1/11 · 9.1%（1.6–37.7%）</td>
+</tr>
+<tr>
+<td>合并 trial</td>
+<td>68/79 · 86.1%（76.8–92.0%）</td>
+<td>5/58 · 8.6%（3.7–18.6%）</td>
+</tr>
+</tbody>
+</table></div>
+<p>合并试次的 86.08% 与五条件等权平均的 87.52% 不同；基线分别为 8.62% 与 8.48%。合并区间仅描述这组异质试次，不能视为所有任务的总体可靠性。<a href="https://corl2026-memory.github.io/papers/033.pdf#page=21">Table 9，p.21</a></p>
+<h2 id="section-5">⑤ 攻击与延伸：可靠记忆不能只“写得出来”</h2><div class="cn-read"><div class="cn-label">这一节解决什么</div><p><strong>最脆弱假设。</strong> Writer 能持续给出正确的实体绑定与完成事件。若遮挡时物体被别人移动，持久关系可能过时；若勺子只倒出一半、相机误判变空，计数就会把失败固化为事实。主表的高分没有证明长时、多主体环境中的可撤销记忆。</p></div>
+<p>[待验证] 最小对照先固定同一策略、同一感知模型与计算预算，比较原始历史、结构化记录、打乱记录、oracle 记录；注入单个漏事件或错绑定，测错误如何传到动作，并报告检测/恢复延迟。分别统计感知写错、读取错、控制执行错，不能用“记录内部已验证”替代外部真值。</p>
+<p class="inference evidence-note" data-evidence="inference">[推断：对 WB-WAM 的用途] 可先把支撑状态、接触对象、双手分工、已完成搬运次数做成少量显式概念。Writer 输出应带时效与置信度，动作端仍使用实时几何；接触是否建立要靠物理证据，不能只看指令已发出。人形增加接触与平衡变量后，需重新验证写入规则，桌面成功不构成全身控制保证。</p>
+<p><strong>一周最小实验建议。</strong> 选一个两次重复放置任务与一个遮挡交换任务；收集带事件标签的小规模回放，在同一冻结低层策略上先测试 Writer 错误和记忆读取的边际收益。预算不足以重训原文模型时，将结果称为“概念记忆接口验证”，不称为 ECoMEM 复现。</p>
+<h2 id="section-6">面试口述版</h2>
+<p>ECoMEM 的要点是把历史变成可更新的任务状态，而不是多给策略几张图片。Writer 用感知和机器人状态确认实体、关系、完成事件与顺序，Reader 再把这些记录变成策略 token。这样重复三次不是让模型猜历史里出现了几次动作，而是读取经确认的事件。它在 RoboMME 与两个真机任务上有明显收益，但 Writer 有工程和感知依赖，真机策略也重新微调过。我更想借鉴它的分工：语言提出需要记什么，物理证据决定发生了什么，策略学习如何用记忆；同时要测试错误记录怎样被撤销，否则记忆会稳定地记错。</p>
+<h2 id="section-7">证据索引与未覆盖项</h2>
+<p>方法 §2、Fig.1；主结果 Table 1；概念/Writer 消融 Tables 2–4；Reader 与训练 Appendix C/H/I；VLM 对照 Appendix J；真机配方及逐条件次数 Appendix K/Table 9。全部 21 页已核读。未报告的分层 OOD、真实闭环总延迟与长期跨会话维护均保留为未知。原图版权归论文作者。</p>
+</article><section class="quiz" data-answer="1"><h2 id="quiz">理解检查</h2><fieldset><legend>真机 86.08% 支持哪种结论？</legend><label><input type="radio" name="answer" value="0"> 同一策略不训练就能完成任何新任务。</label><label><input type="radio" name="answer" value="1"> 两个任务复用概念库，经任务微调后合并成功 68/79。</label><label><input type="radio" name="answer" value="2"> 每次控制都比无记忆快 18 倍。</label></fieldset><button data-check type="button" hidden>检查答案</button><p class="feedback" aria-live="polite"></p><details><summary>展开答案与依据</summary><p>两个任务复用概念库，经任务微调后合并成功 68/79。</p><p>Table 9 的分母为 79；策略使用真机示范重新微调，初始化计时不等于每步控制耗时。</p></details></section></main></div><footer>原文事实与阅读者推断分开标注 · 整理日期 2026-11-17 · <a href="../index.html">返回论文网站</a> · <a href="corl2026-workshops.html">继续选题</a></footer><script>(()=>{'use strict';
+const $=s=>document.querySelector(s);const $$=s=>[...document.querySelectorAll(s)];
+if($('figure a')){const dialog=document.createElement('dialog');dialog.className='zoom-dialog';dialog.setAttribute('aria-label','论文原图');const bar=document.createElement('form');bar.method='dialog';bar.className='zoom-bar';const close=document.createElement('button');close.textContent='关闭原图（Esc）';bar.append(close);const scroll=document.createElement('div');scroll.className='zoom-scroll';const img=document.createElement('img');scroll.append(img);dialog.append(bar,scroll);document.body.append(dialog);$$('figure a').forEach(a=>a.addEventListener('click',e=>{e.preventDefault();img.src=a.href;img.alt=a.querySelector('img').alt;dialog.showModal()}))}
+const theme=$('#theme');if(theme){theme.hidden=false;let saved;try{saved=localStorage.getItem('theme')||localStorage.getItem('corl2026-theme')}catch{}if(saved==='dark')document.documentElement.dataset.theme='dark';const label=()=>{const dark=document.documentElement.dataset.theme==='dark';theme.textContent=dark?'浅色':'深色';theme.setAttribute('aria-pressed',String(dark))};label();theme.addEventListener('click',()=>{const mode=document.documentElement.dataset.theme==='dark'?'light':'dark';document.documentElement.dataset.theme=mode;try{localStorage.setItem('theme',mode);localStorage.setItem('corl2026-theme',mode)}catch{}label()})}
+const print=$('#print');if(print){print.hidden=false;print.addEventListener('click',()=>window.print())}
+let opened=[];window.addEventListener('beforeprint',()=>{opened=$$('details').map(d=>[d,d.open]);$$('details').forEach(d=>d.open=true)});window.addEventListener('afterprint',()=>opened.forEach(([d,o])=>d.open=o));
+if(matchMedia('(max-width:720px)').matches){const toc=$('.sidebar details');if(toc)toc.open=false}
+$$('.walker').forEach(w=>{const items=[...w.querySelectorAll('[data-step]')];const controls=w.querySelector('.step-controls');if(!controls)return;controls.hidden=false;let i=0;const prev=w.querySelector('[data-prev]'),next=w.querySelector('[data-next]'),out=w.querySelector('output');const render=()=>{const focused=document.activeElement;items.forEach((s,n)=>{s.classList.toggle('current',n===i);if(n===i)s.setAttribute('aria-current','step');else s.removeAttribute('aria-current')});out.value=`${i+1} / ${items.length}`;out.textContent=out.value;prev.disabled=i===0;next.disabled=i===items.length-1;if(focused?.disabled)controls.focus()};prev.onclick=()=>{i=Math.max(0,i-1);render()};next.onclick=()=>{i=Math.min(items.length-1,i+1);render()};controls.addEventListener('keydown',e=>{const keys=['ArrowLeft','ArrowRight','Home','End'];if(!keys.includes(e.key))return;e.preventDefault();i=e.key==='Home'?0:e.key==='End'?items.length-1:e.key==='ArrowLeft'?Math.max(0,i-1):Math.min(items.length-1,i+1);render()});render()});
+$$('.quiz').forEach(q=>{const btn=q.querySelector('[data-check]');btn.hidden=false;btn.addEventListener('click',()=>{const selected=q.querySelector('input:checked'),out=q.querySelector('.feedback');out.textContent=!selected?'先选一个答案。':selected.value===q.dataset.answer?'判断正确。展开下方依据核对实验条件。':'再核对一下条件：展开下方答案，看看哪些数字不能拼在一起。'})});
+const search=$('#search'),kind=$('#kind');if(search&&kind){$('.filters').hidden=false;const rows=$$('#catalog tbody tr');const filter=()=>{const words=search.value.toLowerCase().trim().split(/\s+/).filter(Boolean);let n=0;rows.forEach(r=>{const ok=words.every(w=>r.textContent.toLowerCase().includes(w))&&(!kind.value||r.dataset.kind===kind.value);r.hidden=!ok;if(ok)n++});$('#count').textContent=`${n} / ${rows.length} 篇`;$('#empty').hidden=n!==0};search.addEventListener('input',filter);kind.addEventListener('change',filter);$('#reset').onclick=()=>{search.value='';kind.value='';filter();search.focus()};filter()}
+})();
+</script></body></html>

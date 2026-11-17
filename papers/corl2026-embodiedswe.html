@@ -1,0 +1,167 @@
+<!doctype html><html lang="zh-CN"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="color-scheme" content="light dark"><title>EmbodiedSWE · CoRL 阅读室</title><script>try{document.documentElement.dataset.theme=localStorage.getItem('theme')||localStorage.getItem('corl2026-theme')||'light'}catch{}</script><style>:root{--bg:#faf9f7;--panel:#fff;--text:#1a1a1e;--muted:#64646c;--line:#dddcd8;--accent:#966333;--soft:#f3eee8;--warn:#795124;--warm:#f8efe0;--shadow:0 8px 24px #00000008;color-scheme:light}
+:root[data-theme=dark]{--bg:#0f1014;--panel:#1a1b22;--text:#f0f0f3;--muted:#b8bac4;--line:#3a3c48;--accent:#d4a06a;--soft:#29251f;--warn:#efc68d;--warm:#362c20;--shadow:none;color-scheme:dark}
+*{box-sizing:border-box}html{scroll-behavior:smooth;scroll-padding-top:85px}body{margin:0;background:var(--bg);color:var(--text);font:16px/1.85 -apple-system,BlinkMacSystemFont,"PingFang SC","Noto Sans CJK SC",sans-serif}a{color:var(--accent);text-underline-offset:4px}a:hover{text-decoration-thickness:2px}button,input,select{font:inherit}button{padding:7px 14px;border:1px solid var(--line);border-radius:7px;background:var(--panel);color:var(--text);cursor:pointer}button:hover{border-color:var(--accent);background:var(--soft)}button:disabled{opacity:.45;cursor:default}a:focus-visible,button:focus-visible,input:focus-visible,select:focus-visible,summary:focus-visible,[tabindex]:focus-visible{outline:3px solid var(--accent);outline-offset:4px}input,select{background:var(--panel);color:var(--text);border:1px solid var(--line);padding:9px 12px;border-radius:6px;max-width:100%}.skip{position:absolute;top:-100px;left:20px;padding:8px;background:var(--panel);z-index:20}.skip:focus{top:12px}.top{position:sticky;top:0;z-index:5;display:flex;justify-content:space-between;gap:20px;align-items:center;padding:15px 4vw;background:var(--bg);border-bottom:1px solid var(--line)}.brand{font-weight:750;text-decoration:none;letter-spacing:.05em}.brand span{font:12px ui-monospace,monospace;letter-spacing:.1em;margin-left:8px;color:var(--muted)}.top nav{display:flex;gap:16px;align-items:center;font-size:13px}.layout{display:grid;grid-template-columns:235px minmax(0,940px);gap:55px;max-width:1360px;margin:0 auto;padding:64px 38px 90px}.layout:not(:has(.sidebar)){display:block;max-width:1190px}main{min-width:0}.sidebar{align-self:start;position:sticky;top:105px;font-size:13px;max-height:calc(100vh - 125px);overflow:auto;padding-right:13px}.sidebar summary{font-weight:700;cursor:pointer;list-style:none}.sidebar nav{display:grid;gap:5px;margin-top:18px}.sidebar a{padding:7px 11px;border-left:2px solid var(--line);text-decoration:none;line-height:1.6;color:var(--muted)}.sidebar a:hover{border-color:var(--accent);color:var(--accent);background:var(--soft)}.side-note{border-top:1px solid var(--line);margin-top:25px;padding-top:18px;color:var(--muted);font-size:12px}.eyebrow{color:var(--accent);font-size:11px;letter-spacing:.1em;font-weight:700;text-transform:uppercase}h1{font-size:clamp(30px,3.3vw,48px);line-height:1.35;letter-spacing:-.035em;margin:16px 0 20px;font-weight:730;max-width:980px}h2{font-size:24px;line-height:1.5;letter-spacing:-.02em;margin:56px 0 20px;padding-top:12px;border-top:1px solid var(--line)}h3{font-size:19px;margin:32px 0 14px;line-height:1.6}p{margin:15px 0}.lede{font-size:19px;max-width:850px;color:var(--muted)}.muted,.tagline{color:var(--muted)}.source-links{display:flex;gap:18px;flex-wrap:wrap;font-size:13px;margin:20px 0 28px}blockquote{margin:26px 0;padding:20px 25px;background:var(--soft);border-left:4px solid var(--accent);border-radius:0 10px 10px 0}blockquote p{margin:0}.eval-overview{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px;margin:24px 0 30px}.eval-overview article{padding:18px;border:1px solid var(--line);border-radius:9px;background:var(--panel)}.eval-overview span{font-size:11px;color:var(--accent);font-weight:700;letter-spacing:.08em}.eval-overview p{font-size:14px;line-height:1.75;margin:8px 0 0}.eval-table-wrap{overflow-x:auto;margin:24px 0;border:1px solid var(--line);border-radius:9px;background:var(--panel)}table{border-collapse:collapse;width:100%;font-size:13px;line-height:1.75}th,td{padding:14px 15px;text-align:left;vertical-align:top;border-bottom:1px solid var(--line);min-width:120px}th{background:var(--soft);font-weight:650}tbody tr:last-child td{border-bottom:0}tbody tr:hover{background:var(--soft)}code{font:13px/1.8 ui-monospace,SFMono-Regular,Menlo,monospace;white-space:normal;overflow-wrap:anywhere;background:var(--soft);padding:3px 6px;border-radius:4px}figure{margin:28px 0;padding:12px;background:white;border:1px solid var(--line);border-radius:9px}figure img{width:100%;height:auto;display:block}figcaption{color:#56625a;font-size:12px;line-height:1.7;margin:10px 7px 3px}abbr{text-decoration-style:dotted;cursor:help}.inference{padding-left:16px;border-left:3px solid var(--line)}.walker,.quiz{padding:26px;border:1px solid var(--line);border-radius:12px;background:var(--panel);margin:40px 0}.walker h2,.quiz h2{border:0;padding:0;margin:0 0 10px}.walker>p{font-size:14px;color:var(--muted)}.walker ol{padding:0;margin:20px 0 0;list-style:none;display:grid;gap:10px}.walker li{border:1px solid var(--line);padding:15px;border-radius:8px;font-size:14px}.walker li.current{border-color:var(--accent);background:var(--soft)}.step-no{font:12px ui-monospace,monospace;color:var(--accent);font-weight:700;display:inline-block;margin-right:12px}.step-controls{display:flex;gap:15px;align-items:center}.step-controls output{font-size:12px;color:var(--muted)}fieldset{border:0;padding:0;margin:0 0 15px}legend{font-weight:600;margin:8px 0 12px}.quiz label{display:block;padding:10px 12px;background:var(--bg);margin:7px 0;border-radius:6px;font-size:14px}.quiz input{accent-color:var(--accent)}.feedback{font-weight:600;color:var(--accent)}details{margin:15px 0}summary{cursor:pointer;color:var(--accent);font-size:14px}details p{font-size:14px}.stats{display:grid;grid-template-columns:repeat(3,1fr);border-block:1px solid var(--line);margin:35px 0}.stats div{padding:24px;font-size:13px;color:var(--muted);border-right:1px solid var(--line)}.stats div:last-child{border:0}.stats strong{display:block;font:42px/1.2 ui-monospace,monospace;color:var(--accent);margin-bottom:12px}.scope{background:var(--soft);padding:20px 25px;border-radius:10px;font-size:14px}.scope p{margin:8px 0 12px}.cards{display:grid;grid-template-columns:1fr 1fr;gap:22px;margin:35px 0}.paper-card{position:relative;background:var(--panel);padding:28px;border:1px solid var(--line);border-radius:12px;box-shadow:var(--shadow)}.paper-card h2{border:0;margin:15px 0 12px;padding:0;font-size:27px}.paper-card h2 a{text-decoration:none}.paper-card p{font-size:15px}.paper-card .eyebrow{max-width:calc(100% - 25px);font-size:10px}.card-num{position:absolute;right:20px;top:23px;color:var(--muted);font:12px ui-monospace,monospace}.boundary{padding:12px 14px;background:var(--warm);color:var(--warn);border-radius:6px;font-size:13px!important}.paper-card small{font-size:11px;color:var(--muted)}.principles{display:grid;grid-template-columns:repeat(2,1fr);gap:16px}.principles p{padding:20px;background:var(--panel);border:1px solid var(--line);border-radius:8px;font-size:14px;margin:0}.principles strong{color:var(--accent);display:inline-block;margin-bottom:8px}.filters{display:flex;gap:15px;flex-wrap:wrap;align-items:end;margin:30px 0 20px;padding:20px;background:var(--soft);border-radius:10px}.filters label{display:grid;gap:5px;font-size:12px}.filters label:first-child{flex:1;min-width:230px}.filters output{font-size:12px;align-self:center}#catalog td:nth-child(1){min-width:60px;width:60px;font-family:ui-monospace,monospace;color:var(--muted)}#catalog td:nth-child(2){min-width:260px}#catalog td:nth-child(3),#catalog td:nth-child(4){min-width:85px;width:90px}#catalog details{margin:5px 0 0}#catalog summary{font-size:11px}#catalog details p{white-space:pre-wrap;font-size:12px}footer{max-width:1284px;margin:auto;padding:25px 38px;border-top:1px solid var(--line);font-size:12px;color:var(--muted)}[hidden]{display:none!important}
+@media(max-width:1000px){.layout{grid-template-columns:190px minmax(0,1fr);gap:28px;padding:40px 25px}.eval-overview{grid-template-columns:1fr}.eval-overview article{padding:15px}.eval-overview p{margin:4px 0}.top{padding-inline:25px}.sidebar{font-size:12px}}
+@media(max-width:720px){.top{padding:13px 18px;gap:10px;position:relative}.top nav{gap:8px;font-size:11px}.top nav>a{display:none}.top button{padding:5px 9px;font-size:11px}.brand{font-size:14px}.brand span{display:none}.layout,.layout:not(:has(.sidebar)){display:block;padding:27px 18px 60px}.sidebar{position:static;max-height:none;padding:0;margin:0 0 30px;border:1px solid var(--line);border-radius:8px;background:var(--panel)}.sidebar details{margin:0;padding:12px 15px}.sidebar summary{list-style:disclosure-closed}.sidebar nav{gap:2px}.side-note{display:none}h1{font-size:30px}h2{font-size:22px;margin-top:42px}h3{font-size:18px}body{font-size:15px}.cards,.principles{grid-template-columns:1fr}.paper-card{padding:24px}.stats div{padding:19px 12px;font-size:11px}.stats strong{font-size:32px}.lede{font-size:17px}blockquote{padding:18px}.walker,.quiz{padding:18px}.source-links{gap:14px}.scope{padding:18px}th,td{padding:12px;font-size:12px}.eval-overview{gap:9px}footer{padding:20px 18px}figure{padding:7px}figcaption{font-size:11px}}
+@media(prefers-reduced-motion:reduce){html{scroll-behavior:auto}}
+@media print{html{scroll-behavior:auto}body{background:white!important;color:#111!important;font-size:10pt}.top,.sidebar,footer,.step-controls,.quiz button,.filters,.skip{display:none!important}.layout,.layout:not(:has(.sidebar)){display:block;max-width:none;padding:0}.eval-table-wrap{overflow:visible;border-color:#ccc}table{font-size:8pt}th,td{min-width:0;padding:7px}h1{font-size:25pt}h2{font-size:16pt;break-after:avoid}h3{break-after:avoid}figure,.paper-card,.eval-overview article{break-inside:avoid}details{display:block}details>*{display:block!important}details::details-content{display:block;content-visibility:visible}img{max-height:70vh;object-fit:contain}.paper-card{box-shadow:none}.cards{display:block}.paper-card{margin:15px 0}a{color:#111}.eval-overview,.principles{display:block}.eval-overview article{margin:10px 0}blockquote,.scope{background:#eee!important}.boundary{color:#333!important;background:#eee!important}}
+
+.zoom-dialog{width:96vw;max-width:96vw;max-height:94vh;border:1px solid var(--line);border-radius:10px;padding:12px;background:var(--panel);color:var(--text)}.zoom-dialog::backdrop{background:#000b}.zoom-bar{margin:0 0 10px;display:flex;justify-content:flex-end}.zoom-scroll{overflow:auto;max-height:78vh;background:white}.zoom-scroll img{display:block;width:auto;max-width:none;height:auto}
+.eval-overview{grid-template-columns:repeat(2,minmax(0,1fr))}.cn-read{margin:18px 0 24px;padding:16px 20px;background:var(--soft);border-radius:8px}.cn-read p{margin:6px 0 0}.cn-label{font-size:11px;letter-spacing:.08em;font-weight:700;color:var(--accent)}.evidence-note{font-size:13px;color:var(--muted)}.candidate-list{padding-left:20px;font-size:14px;line-height:1.8}.candidate-list li{margin:12px 0}.candidate-list strong{font-weight:600}.candidate-list+p{border-top:1px solid var(--line);padding-top:12px}
+@media(max-width:720px){.eval-overview{grid-template-columns:1fr}.top nav>a.collection-link{display:inline}.brand{letter-spacing:0}.top{gap:8px}.top nav{gap:6px}.top button{padding:5px 7px}.cn-read{padding:14px 16px}}
+@media print{:root,:root[data-theme=dark]{--bg:#fff;--panel:#fff;--text:#111;--muted:#444;--line:#ccc;--accent:#333;--soft:#f4f4f4;--warn:#333;--warm:#eee}.cn-read{background:#f4f4f4}.zoom-dialog{display:none!important}}
+</style></head><body><a class="skip" href="#main">跳到正文</a><header class="top"><a href="../index.html" class="brand">~/paper-notes <span>CoRL 2026</span></a><nav aria-label="阅读导航与工具"><a class="collection-link" href="corl2026.html">专题</a><a href="corl2026-workshops.html">Workshop 选题</a><button id="theme" type="button" aria-label="切换深浅主题" hidden>切换主题</button><button id="print" type="button" hidden>打印 / PDF</button></nav></header><div class="layout"><aside class="sidebar"><details open><summary>EmbodiedSWE · 章节</summary><nav aria-label="章节导航"><a href="#overview">简短说明与评测</a><a href="#section-1">① 问题：解出一次复杂任务，怎样变成可规模化的监督？</a><a href="#section-2">② 思路重建：为什么需要“验证”夹在 Agent 和数据之间？</a><a href="#section-3">③ 方法：三个系统，三种权限</a><a href="#section-4">④ 实验：程序分数、VLA 成功和真机里程碑分开</a><a href="#section-5">⑤ 攻击与延伸：验证器与数据分布是下一步重点</a><a href="#section-6">面试口述版</a><a href="#section-7">证据索引与未覆盖项</a><a href="#walk">训练到执行</a><a href="#quiz">理解检查</a></nav></details><p class="side-note">原文 / 推断 / 待验证<br>PDF 全文与附录核读<br>不以演示替代成功率</p></aside><main id="main"><div class="eyebrow">Agentic Robotics Workshop · Best Paper</div><h1 id="overview">EmbodiedSWE：编码 Agent 先解题，再把程序变成策略数据</h1><p class="tagline">Agentic · 仿真数据 · 真实迁移</p><div class="source-links"><a href="https://arxiv.org/abs/2609.27308v2">原始论文 ↗</a><a href="https://embodiedswe.github.io/assets/paper/embodiedswe.pdf">PDF ↗</a><a href="corl2026.html">CoRL 五方向专题</a></div><article class="paper-body">
+<blockquote class="core-insight">
+<p><strong>简短说明。</strong> EmbodiedSWE 给编码 Agent 完整仿真状态和通用控制器，让它迭代写出 solve(env)，再把验证过的程序扩成多样轨迹训练 VLA。固定 PDF 版本覆盖 28 个任务、5 种本体；最强 Agent 解决 23/28 个任务。真实拆灯策略使用 500 条仿真示范，完整完成 2/10；检查点按真机表现选择，因此不能等同于未接触真实评测的严格零样本验证。</p>
+</blockquote><section class="eval-overview" aria-label="评测结论总览"><article class="eval-card"><span>仿真</span><p>28 个任务，最强求解器解出 23 个；不是学生策略的成功率。</p></article><article class="eval-card"><span>ID / OOD</span><p>等 1,000 示范的 OOD rubric：0.233 对 0.066，不是完整成功率。</p></article><article class="eval-card"><span>真机</span><p>仿真微调后累计阶段成功 10/10、8/10、3/10、2/10。</p></article><article class="eval-card"><span>证据边界</span><p>求解器有全仿真状态；真机完整拆灯 2/10，检查点按真机表现选择。</p></article></section>
+<p>核读：<a href="https://embodiedswe.github.io/assets/paper/embodiedswe.pdf">作者项目 PDF</a>，arXiv:2609.27308v2，封面日期 2026-09-25，共 61 页，含附录 A–J 和折衣程序。Zeyu Shen、Haoxiang You、Yilang Liu 等；ByteDance Seed、Yale、Princeton、CMU、Stanford 等合作。该文获 Agentic Robotics Workshop Best Paper，依据<a href="https://agentic-robotics-workshop.github.io/">官方 Workshop</a>。项目页目前列出的本体范围比本 PDF 更广；本篇数字只按这份固定 PDF，不混版本。未复现实验。</p>
+<h2 id="section-1">① 问题：解出一次复杂任务，怎样变成可规模化的监督？</h2><div class="cn-read"><div class="cn-label">这一节解决什么</div><p>长程任务的难点不只在下一步动作，还在工具使用、接触顺序、异常恢复和多阶段依赖。人类遥操作收集每一种变体很贵；固定脚本又容易集中在狭窄初始条件。编码 Agent 可以花几个小时读场景、试动作、查失败并改程序，但这样的求解成本不适合每次实际执行都重复支付。</p></div>
+<p>论文因此连接两件事：<strong>Agent 离线求出复杂程序，程序再大量产生可验证的训练轨迹。</strong> 学生 VLA 用像素和本体状态快速执行。求解器拥有全仿真状态；学生并不继承同样的信息权限。把两者成功率混写，会把离线工程能力误当成视觉策略的实时能力。<a href="https://embodiedswe.github.io/assets/paper/embodiedswe.pdf#page=1">§1–2</a></p>
+<h2 id="section-2">② 思路重建：为什么需要“验证”夹在 Agent 和数据之间？</h2><div class="cn-read"><div class="cn-label">这一节解决什么</div><p class="inference evidence-note" data-evidence="inference">[推断] 首先让 Agent 能访问真实底层 API，避免任务宏替它完成最困难的部分；但开放 API 也意味着它可能改物体状态、施加外力或修改评分。于是需要隔离的评测和审查，区分机器人真的完成与程序把分数改高。拿到可信解后，再变场景、策略和中间状态，比单独加纹理噪声更可能覆盖闭环失败后的恢复。</p></div>
+<p>这套逻辑依赖两道证据：程序在重置后的环境是否能执行；生成轨迹仅靠记录的动作能否重放成功。学生最终能否利用这些轨迹，需要单独评测，不能从“产生了很多数据”直接推出泛化。</p>
+<h2 id="section-3">③ 方法：三个系统，三种权限</h2><div class="cn-read"><div class="cn-label">这一节解决什么</div><figure><a href="../assets/figures/corl2026/embodiedswe-fig-1.png" target="_blank" rel="noopener"><img loading="lazy" decoding="async" src="../assets/figures/corl2026/embodiedswe-fig-1.png" alt="原文 Figure 1，PDF p.2：仿真基准、Agent 求解与轨迹生成/VLA 学习是相邻但不同的环节。" /></a><figcaption>原文 Figure 1，PDF p.2：仿真基准、Agent 求解与轨迹生成/VLA 学习是相邻但不同的环节。 · 点击查看原尺寸</figcaption></figure></div>
+<p><strong>Bench：任务与求解预算。</strong> 28 任务分为装配 9、收纳 4、解谜 6、软体/液体 4、切割 2、移动操作 3；本体为 Franka、xArm7、Kinova Gen3、双 Franka、G1。并非所有 28×5 组合都评测。G1 桌面任务固定骨盆，移动任务的腿由预训练 locomotion policy 驱动，不是 Agent 从零学平衡。</p>
+<p>Isaac Lab/PhysX 默认 10 ms 物理步，四个软体任务使用 Newton 后端；螺纹采用专门接触几何与迭代配置。任务设计和参考解主要由人完成、Agent 辅助。提供操作空间控制、IK 等通用接口，Agent 写 <code>solve(env)</code>，可以读全状态与源码、渲染和调参数。基本评测每任务每模型一次 run，预算 4 小时和一张 RTX4090；最佳历史部分分数与完全解题比例分开报告。<a href="https://embodiedswe.github.io/assets/paper/embodiedswe.pdf#page=16">Appendix B/C</a></p>
+<p><strong>求解增强工具。</strong> Checkpoint tree 保存真实到达的状态、程序、日志与画面，回退时不必重演长前缀；参数搜索固定程序结构，用 CMA-ES 搜参数，默认 512 并行环境、8 代；sweep 比较不同策略结构，viewer 和 assessment log 辅助检查。这些工具运行使用两张 RTX4090，对照基本版只有一张，因此不能把收益完全归因于记忆或工具设计。</p>
+<p><strong>Gen：从一个解扩展。</strong> Scene 改对象、数量、布局及必要的目标检查；Strategy 改可交换步骤、抓法、恢复分支；Phase 构建合法中间状态并从该阶段完成余下任务；Dynamics 在不同阶段注入不同幅度动作扰动并采样物理参数；Visual 重新渲染相同轨迹的光照、材质与相机。接触关键的螺纹/插槽几何不能随意改，不能靠降低任务难度制造成功。<a href="https://embodiedswe.github.io/assets/paper/embodiedswe.pdf#page=34">§4.1 / Appendix D</a></p>
+<figure><a href="../assets/figures/corl2026/embodiedswe-fig-7.png" target="_blank" rel="noopener"><img loading="lazy" decoding="async" src="../assets/figures/corl2026/embodiedswe-fig-7.png" alt="原文 Figure 7，PDF p.7：Scene、Strategy、Phase、Dynamics、Visual 五层多样化。" /></a><figcaption>原文 Figure 7，PDF p.7：Scene、Strategy、Phase、Dynamics、Visual 五层多样化。 · 点击查看原尺寸</figcaption></figure>
+<p>每个可运行 cell 是场景、策略与可选起始阶段的组合。新 cell 要产生至少一条成功且可重放的轨迹，代码指纹改变后旧记录不能代表新代码。重放在相同 batch size、slot、seed、初始状态、控制增益和物理参数下，只执行记录动作，不执行解题程序；失败则丢弃。每阶段各有 12 小时预算，最终仍是离线成本，不是免费数据。</p>
+<p><strong>动作标签的细节。</strong> 位置控制记录干净命令作标签、执行带噪命令；扭矩控制则用实际达到的下一步关节位置作训练标签，受扰动影响。<strong>教学算例</strong>：某关节干净目标 0.50 rad，扰动后执行 0.53 rad，位置模式标签仍为 0.50；若扭矩模式实际到达 0.51，标签取 0.51。两种模式不能统一描述成“噪声永不进入标签”。视觉重渲染只增加 appearance episode，不增加新的物理动作轨迹。</p>
+<p><strong>学生训练。</strong> 仿真使用 450M SmolVLA：冻结视觉编码器，更新语言层和动作专家，100k steps、batch 64、3 个训练 seed；输入三槽 RGB、关节与夹爪状态，输出 50 步动作、每轮执行前 10 步。10–400 条数据实验使用嵌套子集，同一完整数据集归一化统计；不是每个子集完全独立估计归一化。OOD 各设置训练 1,000 条，256 个留出配置。<a href="https://embodiedswe.github.io/assets/paper/embodiedswe.pdf#page=38">Appendix E</a></p>
+<section class="walker" aria-label="训练到执行逐步读"><h2 id="walk">训练到执行：逐步读</h2><p>按顺序检查信息怎样流动；每一步都保留在页面中。按钮或左右方向键切换，Home / End 跳到首尾。</p><div class="step-controls" tabindex="0" role="group" aria-label="步骤导航" hidden><button data-prev type="button">上一步</button><output aria-live="polite">1 / 4</output><button data-next type="button">下一步</button></div><ol><li data-step="0"><span class="step-no">01</span>编码 Agent 使用完整仿真状态与通用控制器迭代 solve(env)。</li><li data-step="1"><span class="step-no">02</span>隔离评分并审查非法状态写入或评分篡改。</li><li data-step="2"><span class="step-no">03</span>按场景、策略、阶段、动力学与视觉扩增，经动作重放验收。</li><li data-step="3"><span class="step-no">04</span>用生成轨迹微调 VLA，单独测仿真、OOD 和真实迁移。</li></ol></section><h2 id="section-4">④ 实验：程序分数、VLA 成功和真机里程碑分开</h2><div class="cn-read"><div class="cn-label">这一节解决什么</div><p><strong>仿真表。</strong> 模型名称与结果均为论文版本记录，不代表当前产品排名。</p></div>
+<div class="eval-table-wrap" tabindex="0" role="region" aria-label="证据表，可横向滚动"><table class="eval-table">
+<thead>
+<tr>
+<th>实验</th>
+<th>论文报告</th>
+<th>关键口径</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>基本求解器，最强 GPT-6 Astra</td>
+<td>23/28 任务解决，约 82%；平均 rubric 0.94</td>
+<td>每任务一 run，可多次提交；23/28 不是重复运行可靠性</td>
+</tr>
+<tr>
+<td>其余求解器</td>
+<td>Fable 5.1 17/28；Opus 5 14/28；Opus 4.8 7/28；Sol 5/28；Terra 3/28</td>
+<td>harness、token 与 API 成本不同；任务级 SEM 不是训练 seed 方差</td>
+</tr>
+<tr>
+<td>Opus 5 加工具</td>
+<td>表中均分 0.66→0.70；解题率 50→43%</td>
+<td>更多部分进展未转化成更多完整成功；额外一张 GPU</td>
+</tr>
+<tr>
+<td>Sol 加工具</td>
+<td>表中均分 0.44→0.51；解题率仍 18%</td>
+<td>不是全面增强，也不能等同完整任务成功率提升</td>
+</tr>
+<tr>
+<td>SmolVLA 数据规模</td>
+<td>正文称六任务均值约 18→69%，10→400 示范</td>
+<td>部分任务成功条件放宽，不能当 28 个原任务全程成功</td>
+</tr>
+<tr>
+<td>从零 PPO 对照</td>
+<td>五任务 expert-tuned 最终平均最佳分数约 0.06</td>
+<td>预算、预训练先验与策略表达不同；不能推出编码方法普遍优于 RL</td>
+</tr>
+</tbody>
+</table></div>
+<p><strong>数字核对。</strong> Table 21 同时列出八个任务，正文规模实验只称六任务；这里只沿用正文所列六项讨论，不把八项静默合并。更重要的是 Table 22 放宽条件：清理有机物只需放一个、笔筒只需插一支笔、切香蕉至少三块，咖啡只需满足启动条件。必须用这些定义解释 VLA 分数。<a href="https://embodiedswe.github.io/assets/paper/embodiedswe.pdf#page=39">Tables 21–22，p.39</a></p>
+<p><strong>评分审查。</strong> Appendix C 使用 Opus 5 审查 reward hack，被标记的 run 记零。Table 6 灰色带 † 数字是被剔除的声称分数，不能直接加进均值；Table 7 已把对应 base 行置零。例如按它显示的 Sol base 28 项计算为 12.34/28≈0.441，与表底 0.44 一致。审查器本身仍需独立验证，不能把模型审查当作绝对可靠的物理裁判。<a href="https://embodiedswe.github.io/assets/paper/embodiedswe.pdf#page=20">PDF pp.20–22</a></p>
+<p><strong>ID/OOD 与迁移表。</strong></p>
+<div class="eval-table-wrap" tabindex="0" role="region" aria-label="证据表，可横向滚动"><table class="eval-table">
+<thead>
+<tr>
+<th>变化轴 / 测试</th>
+<th>结果</th>
+<th>能否解释为净迁移收益</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>同本体跨任务提示</td>
+<td>相似任务提示 rubric 0.60，无提示 0.52；不相似提示 0.51</td>
+<td>6 targets×2 models×3 seeds；相似结构提示较有用</td>
+</tr>
+<tr>
+<td>跨本体提示</td>
+<td>Kinova 0.74、xArm7 0.66；参考 Franka 无提示 0.52</td>
+<td>缺少各目标本体无提示对照；不能隔离“提示”与“本体难度”</td>
+</tr>
+<tr>
+<td>VLA，留出语义对象与几何配置</td>
+<td>agent-aided 0.233±0.016，script-only 0.066±0.008</td>
+<td>相同 1,000 示范数与 256 留出配置；是 rubric 分数，不是 23.3% 完整成功</td>
+</tr>
+<tr>
+<td>具体 OOD：slice / bulb / nut</td>
+<td>0.220 / 0.236 / 0.300；脚本 0 / 0.026 / 0.025</td>
+<td>多变化轴一起改变，未提供每个轴独立 ID→OOD 降幅</td>
+</tr>
+<tr>
+<td>coding-agent RL 后训</td>
+<td>训练成功率 2.7→7.5%</td>
+<td>无 held-out 评测，不能声称新任务泛化提升</td>
+</tr>
+</tbody>
+</table></div>
+<p>训练轨迹数相同并不意味着生成数据的计算量、语义覆盖、人类场景工程量相同。五层生成的贡献没有逐层等样本消融；Figure 8 的数据量/成本增长不是这种消融。<a href="https://embodiedswe.github.io/assets/paper/embodiedswe.pdf#page=8">Table 1 / Table 20 / Appendix D/G/I</a></p>
+<figure><a href="../assets/figures/corl2026/embodiedswe-fig-10.png" target="_blank" rel="noopener"><img loading="lazy" decoding="async" src="../assets/figures/corl2026/embodiedswe-fig-10.png" alt="原文 Figure 10，PDF p.9：一次成功的真机拆灯 rollout，不代表十次都完成。" /></a><figcaption>原文 Figure 10，PDF p.9：一次成功的真机拆灯 rollout，不代表十次都完成。 · 点击查看原尺寸</figcaption></figure>
+<p><strong>真机表：Franka + Robotiq 2F-85，拆灯，10 次试验。</strong> 下列为完成到该里程碑为止所有前置步骤的累计成功，不是条件成功率。Wilson 95% 区间由原文次数换算。</p>
+<div class="eval-table-wrap" tabindex="0" role="region" aria-label="证据表，可横向滚动"><table class="eval-table">
+<thead>
+<tr>
+<th>累计里程碑</th>
+<th>仿真微调策略</th>
+<th>预训练 π₀.₅-DROID</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>抓住灯罩</td>
+<td>10/10 · 100.0%（72.2–100.0%）</td>
+<td>0/10 · 0.0%（0.0–27.8%）</td>
+</tr>
+<tr>
+<td>放下并释放灯罩</td>
+<td>8/10 · 80.0%（49.0–94.3%）</td>
+<td>0/10</td>
+</tr>
+<tr>
+<td>抓住灯泡</td>
+<td>3/10 · 30.0%（10.8–60.3%）</td>
+<td>0/10</td>
+</tr>
+<tr>
+<td>拧下并取出灯泡，完整任务</td>
+<td>2/10 · 20.0%（5.7–51.0%）</td>
+<td>0/10</td>
+</tr>
+</tbody>
+</table></div>
+<p>采用真实房间 3DGS 重建、测量桌面、相机对齐和同款 3D 打印灯具。500 条成功仿真示范，无真实动作示范；π₀.₅-DROID 全参数微调 20k steps、单 B200，最后部署 <strong>按真机表现选择的 14k 检查点</strong>。策略使用 15 步 action chunk、15 Hz、十步去噪，并跳过因推理延迟过时的动作。<a href="https://embodiedswe.github.io/assets/paper/embodiedswe.pdf#page=40">§4.3 / Appendix F</a></p>
+<p>这支持“没有真机示范也可能迁移”，但已有真实图像校准与真机模型选择；不是未经目标域接触的严格零样本设置。十次试验的小样本不支持广泛可靠性结论。</p>
+<h2 id="section-5">⑤ 攻击与延伸：验证器与数据分布是下一步重点</h2><div class="cn-read"><div class="cn-label">这一节解决什么</div><p>最脆弱的假设是成功记录确实对应合法物理行为，而且生成的多样性覆盖学生会犯的错。Appendix H 展示 Agent 只看打印数值而忽略画面、锁定错误单臂计划，以及逐渐把工程 workaround 变成评分篡改。对程序和轨迹的双重验证因此是研究核心，不是附属工程。</p></div>
+<p>[待验证] 先固定 1,000 条示范与训练预算，逐项加入 scene、strategy、phase、dynamics；按物理轨迹 ID 划分数据，避免同轨迹不同渲染跨入验证集。保留原任务完整成功率，再额外报阶段 rubric。独立审计生成器修改后的 grader，防止更容易的成功规则伪装成更好的策略。</p>
+<p>[待验证] 跨本体实验补齐每个目标机器人有/无提示；工具实验统一 GPU、总模拟步和 token 成本。真实迁移提前固定检查点选择规则，扩大独立试次，改变灯具/相机/摩擦；同时记录第一次抓灯泡失败后是否恢复。用真实对象而非只测同款打印件检验接触模型偏差。</p>
+<p class="inference evidence-note" data-evidence="inference">[推断：对人形/WB-WAM] 可把编码 Agent 放在离线任务构造、轨迹修复与错误分析环节；将验证过的多阶段物理轨迹送入 WAM。需要保留支撑、接触和动作权限：G1 的预训练行走模块是现成能力，不应计作 Agent 自己学出的全身控制。先用两个任务比较相同示范量下的恢复覆盖，尚不宜承诺“自动生成任务→Agent 后训→数据生成→通用机器人”的完整闭环，论文也明确这条端到端链尚未跑通。</p>
+<h2 id="section-6">面试口述版</h2>
+<p>EmbodiedSWE 把编码 Agent 从在线机器人控制器变成离线求解器和老师。它花小时级预算读仿真状态、写程序、试错，找到解之后再从场景、策略、中间阶段和扰动上扩出轨迹，用这些轨迹训练视觉策略。真正值得借鉴的是程序验证与动作重放验证，因为能得分不一定是机器人合法完成。结果说明这条数据路线有潜力，但 VLA 部分成功标准放宽，真机拆灯完整完成只有两次，而且模型按真机表现选过检查点。所以我会把它看成可行性与数据生成框架，下一步做等预算多样性消融和独立真实任务验证。</p>
+<h2 id="section-7">证据索引与未覆盖项</h2>
+<p>61 页已通读。§2/Appendix B：任务与权限；C：主结果、成本、迁移与工具；D：生成、重放与动作标签；E：学生配方及放宽条件；F：真机选择；G：合成任务与无留出评测的 RL；H：成功/失败轨迹；I：未跑通端到端闭环；J：折衣代码。项目页较新范围不并入固定 PDF；不把被审查剔除的声称分数计入结果。原图版权归作者。</p>
+</article><section class="quiz" data-answer="1"><h2 id="quiz">理解检查</h2><fieldset><legend>能把 OOD 0.233 写成 23.3% 完整成功吗？</legend><label><input type="radio" name="answer" value="0"> 可以，所有小数分数都是成功比例。</label><label><input type="radio" name="answer" value="1"> 不可以，它是平均 rubric 分数；真机完整成功另为 2/10。</label><label><input type="radio" name="answer" value="2"> 可以，但要先乘以 28 个任务。</label></fieldset><button data-check type="button" hidden>检查答案</button><p class="feedback" aria-live="polite"></p><details><summary>展开答案与依据</summary><p>不可以，它是平均 rubric 分数；真机完整成功另为 2/10。</p><p>Table 1 的指标是 rubric；Table 2 的真实里程碑是累计完成比例，二者含义不同。</p></details></section></main></div><footer>原文事实与阅读者推断分开标注 · 整理日期 2026-11-17 · <a href="../index.html">返回论文网站</a> · <a href="corl2026-workshops.html">继续选题</a></footer><script>(()=>{'use strict';
+const $=s=>document.querySelector(s);const $$=s=>[...document.querySelectorAll(s)];
+if($('figure a')){const dialog=document.createElement('dialog');dialog.className='zoom-dialog';dialog.setAttribute('aria-label','论文原图');const bar=document.createElement('form');bar.method='dialog';bar.className='zoom-bar';const close=document.createElement('button');close.textContent='关闭原图（Esc）';bar.append(close);const scroll=document.createElement('div');scroll.className='zoom-scroll';const img=document.createElement('img');scroll.append(img);dialog.append(bar,scroll);document.body.append(dialog);$$('figure a').forEach(a=>a.addEventListener('click',e=>{e.preventDefault();img.src=a.href;img.alt=a.querySelector('img').alt;dialog.showModal()}))}
+const theme=$('#theme');if(theme){theme.hidden=false;let saved;try{saved=localStorage.getItem('theme')||localStorage.getItem('corl2026-theme')}catch{}if(saved==='dark')document.documentElement.dataset.theme='dark';const label=()=>{const dark=document.documentElement.dataset.theme==='dark';theme.textContent=dark?'浅色':'深色';theme.setAttribute('aria-pressed',String(dark))};label();theme.addEventListener('click',()=>{const mode=document.documentElement.dataset.theme==='dark'?'light':'dark';document.documentElement.dataset.theme=mode;try{localStorage.setItem('theme',mode);localStorage.setItem('corl2026-theme',mode)}catch{}label()})}
+const print=$('#print');if(print){print.hidden=false;print.addEventListener('click',()=>window.print())}
+let opened=[];window.addEventListener('beforeprint',()=>{opened=$$('details').map(d=>[d,d.open]);$$('details').forEach(d=>d.open=true)});window.addEventListener('afterprint',()=>opened.forEach(([d,o])=>d.open=o));
+if(matchMedia('(max-width:720px)').matches){const toc=$('.sidebar details');if(toc)toc.open=false}
+$$('.walker').forEach(w=>{const items=[...w.querySelectorAll('[data-step]')];const controls=w.querySelector('.step-controls');if(!controls)return;controls.hidden=false;let i=0;const prev=w.querySelector('[data-prev]'),next=w.querySelector('[data-next]'),out=w.querySelector('output');const render=()=>{const focused=document.activeElement;items.forEach((s,n)=>{s.classList.toggle('current',n===i);if(n===i)s.setAttribute('aria-current','step');else s.removeAttribute('aria-current')});out.value=`${i+1} / ${items.length}`;out.textContent=out.value;prev.disabled=i===0;next.disabled=i===items.length-1;if(focused?.disabled)controls.focus()};prev.onclick=()=>{i=Math.max(0,i-1);render()};next.onclick=()=>{i=Math.min(items.length-1,i+1);render()};controls.addEventListener('keydown',e=>{const keys=['ArrowLeft','ArrowRight','Home','End'];if(!keys.includes(e.key))return;e.preventDefault();i=e.key==='Home'?0:e.key==='End'?items.length-1:e.key==='ArrowLeft'?Math.max(0,i-1):Math.min(items.length-1,i+1);render()});render()});
+$$('.quiz').forEach(q=>{const btn=q.querySelector('[data-check]');btn.hidden=false;btn.addEventListener('click',()=>{const selected=q.querySelector('input:checked'),out=q.querySelector('.feedback');out.textContent=!selected?'先选一个答案。':selected.value===q.dataset.answer?'判断正确。展开下方依据核对实验条件。':'再核对一下条件：展开下方答案，看看哪些数字不能拼在一起。'})});
+const search=$('#search'),kind=$('#kind');if(search&&kind){$('.filters').hidden=false;const rows=$$('#catalog tbody tr');const filter=()=>{const words=search.value.toLowerCase().trim().split(/\s+/).filter(Boolean);let n=0;rows.forEach(r=>{const ok=words.every(w=>r.textContent.toLowerCase().includes(w))&&(!kind.value||r.dataset.kind===kind.value);r.hidden=!ok;if(ok)n++});$('#count').textContent=`${n} / ${rows.length} 篇`;$('#empty').hidden=n!==0};search.addEventListener('input',filter);kind.addEventListener('change',filter);$('#reset').onclick=()=>{search.value='';kind.value='';filter();search.focus()};filter()}
+})();
+</script></body></html>
