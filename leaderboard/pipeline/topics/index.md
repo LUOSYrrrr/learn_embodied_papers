@@ -2,59 +2,59 @@
 
 Personal paper leaderboard covering robot world models (WAM), humanoid loco-manipulation, dexterous manipulation, and vision-language-action models. Built from arXiv metadata and Google Scholar citations.
 
-- Last updated: 2026-11-15 23:26 UTC
-- Total indexed papers: 5640
+- Last updated: 2026-11-17 02:34 UTC
+- Total indexed papers: 5659
 - Data sources: arXiv for discovery, citation cache for enrichment.
 
 ## Total Ranking
 
 | Rank | Title | Published | Citations | Score |
 | --- | --- | --- | --- | --- |
-| 1 | [FORGE: Force-Aware Multi-Granularity Control for Efficient Humanoid Loco-Manipulation](https://arxiv.org/abs/2611.17142) | 2026-11-12 | missing | 1.000 |
-| 2 | [SALA: Semantically Aligned Latent Actions Enable Dual-Axis Scaling of Embodied Foundation Models](https://arxiv.org/abs/2611.17110) | 2026-11-12 | missing | 1.000 |
-| 3 | [STVLA: Spatial-aware and Temporal-memory forVision-Language-Action Models](https://arxiv.org/abs/2611.16589) | 2026-11-12 | missing | 1.000 |
-| 4 | [HALO: Human-Aligned Data Collection for WhoLe-body MObile Manipulation](https://arxiv.org/abs/2611.16439) | 2026-11-12 | missing | 1.000 |
-| 5 | [PhysCapBench: A Cross-Domain Benchmark for Physically Grounded Video Captioning](https://arxiv.org/abs/2611.16424) | 2026-11-12 | missing | 1.000 |
-| 6 | [VOKE: Visual Object Kinematics Estimator for Dexterous In-Hand Manipulation](https://arxiv.org/abs/2611.16423) | 2026-11-12 | missing | 1.000 |
-| 7 | [BlinkMimic: Training a Humanoid Motion Tracker in Minutes on a Single GPU](https://arxiv.org/abs/2611.16422) | 2026-11-12 | missing | 1.000 |
-| 8 | [I See What You Want: Decoding Hierarchical Operator Intent from Visual Teleoperation History](https://arxiv.org/abs/2611.16419) | 2026-11-12 | missing | 1.000 |
-| 9 | [ManiLadder: Benchmarking Robot Manipulation Through a Categorized and Multi-Difficulty Level Task Ladder](https://arxiv.org/abs/2611.16374) | 2026-11-12 | missing | 1.000 |
-| 10 | [What Can a VLA Learn from the Agent That Calls It? Task-Level Experience Distillation for Embodied Navigation](https://arxiv.org/abs/2611.16246) | 2026-11-12 | missing | 1.000 |
-| 11 | [PERA: Plug-in Experts for Robotic Actions in Continual Whole-Body Control](https://arxiv.org/abs/2611.16188) | 2026-11-12 | missing | 1.000 |
-| 12 | [MOSAIC: Modular Obstacle and Spatial-Aware Framework for Manipulation In Cluttered Scenes](https://arxiv.org/abs/2611.15937) | 2026-11-11 | missing | 1.000 |
-| 13 | [What World Model Does Active Object Search Need? A Study under Imperfect Detection](https://arxiv.org/abs/2611.15689) | 2026-11-11 | missing | 1.000 |
-| 14 | [What Makes a VLA Reactive? A Study of Execution Strategies for Dynamic Manipulation](https://arxiv.org/abs/2611.15491) | 2026-11-11 | missing | 1.000 |
-| 15 | [ActionCodec2: A Streaming Action Tokenizer](https://arxiv.org/abs/2611.15490) | 2026-11-11 | missing | 1.000 |
-| 16 | [Low-Cost Mobile Bimanual Manipulation for Long-Horizon Toilet Cleaning](https://arxiv.org/abs/2611.15381) | 2026-11-11 | missing | 1.000 |
-| 17 | [Bind-WAM: Binding-Uncertainty-Guided Selective Future Imagination in World Action Models](https://arxiv.org/abs/2611.15368) | 2026-11-11 | missing | 1.000 |
-| 18 | [CARE-Drive: Coupled Alternating Refinement for Ego-trajectories](https://arxiv.org/abs/2611.15360) | 2026-11-11 | missing | 1.000 |
-| 19 | [BiPOP: Partial-Order Planning for Long-Horizon Bimanual Robotic Manipulation](https://arxiv.org/abs/2611.15317) | 2026-11-11 | missing | 1.000 |
-| 20 | [AFTER: A World Model with Adaptive Fast--Slow Timescales for Error-Driven Retention](https://arxiv.org/abs/2611.15215) | 2026-11-11 | missing | 1.000 |
+| 1 | [Self-Calibrating Vision-Agent-Action: Deploying Pick-and-Place to New Robot Cells without Demonstrations or Fine-Tuning](https://arxiv.org/abs/2611.19198) | 2026-11-14 | missing | 1.000 |
+| 2 | [Ego2Sim2Humanoid: Agentic Real-to-Sim for Learning Loco-Manipulation VLAs without Robot Demonstrations](https://arxiv.org/abs/2611.19196) | 2026-11-14 | missing | 1.000 |
+| 3 | [WA-JEPA: Goal-Aware Predictive Feedback Action Refinement for a World-Action Model](https://arxiv.org/abs/2611.19183) | 2026-11-14 | missing | 1.000 |
+| 4 | [ImpedanceMimic: Learned Impedance as Action Space for Force-Accurate Motion Imitation](https://arxiv.org/abs/2611.19153) | 2026-11-14 | missing | 1.000 |
+| 5 | [SuperGlance: Driving at a Glance with a Vision-Language Model](https://arxiv.org/abs/2611.19138) | 2026-11-14 | missing | 1.000 |
+| 6 | [Wireless Edge-Assisted Adaptive Latent Reasoning for Vision-Language-Action Models in Physical AI](https://arxiv.org/abs/2611.19131) | 2026-11-14 | missing | 1.000 |
+| 7 | [RoboCoEvo: Expanding Robot Capabilities through Agent-Policy Co-Evolution](https://arxiv.org/abs/2611.19081) | 2026-11-14 | missing | 1.000 |
+| 8 | [TMA: Sim-to-Real Forceful Humanoid Manipulation via Tactile-Driven Motor Adaptation](https://arxiv.org/abs/2611.18976) | 2026-11-13 | missing | 1.000 |
+| 9 | [Bring Back Language to Actions: Restoring VLM capabilities in VLA Models via Parameter Merging](https://arxiv.org/abs/2611.18891) | 2026-11-13 | missing | 1.000 |
+| 10 | [Training Reasoning Models in Simulation to Natively Use Real Robots](https://arxiv.org/abs/2611.18562) | 2026-11-13 | missing | 1.000 |
+| 11 | [Gamer: A Generalist Vision-Language-Action Foundation Model for Long-Horizon Real-Time Game Agent](https://arxiv.org/abs/2611.18397) | 2026-11-13 | missing | 1.000 |
+| 12 | [Vision-Language-Action Models: A Life-Cycle Survey of Design, Training and Deployment](https://arxiv.org/abs/2611.18372) | 2026-11-13 | missing | 1.000 |
+| 13 | [ESI: An Embodied Self-Improvement Flywheel for LLM-VLA Agents](https://arxiv.org/abs/2611.18176) | 2026-11-13 | missing | 1.000 |
+| 14 | [Beyond Prediction Gain: LASR as a Metric for Action-Grounded Latents in World Models](https://arxiv.org/abs/2611.17775) | 2026-11-13 | missing | 1.000 |
+| 15 | [VACO: Vertex-Aligned Decoding for Dense Hand Contact Estimation from a Single Image](https://arxiv.org/abs/2611.17755) | 2026-11-13 | missing | 1.000 |
+| 16 | [Joint World Action Models through Differentiable Trajectory Optimization](https://arxiv.org/abs/2611.17626) | 2026-11-13 | missing | 1.000 |
+| 17 | [TouchTwin: Scaling Human Touch Data via Real-to-Sim-to-Real](https://arxiv.org/abs/2611.17619) | 2026-11-13 | missing | 1.000 |
+| 18 | [Agentic-Teacher: An Agentic Data Engine for Failure-Driven VLA Post-Training](https://arxiv.org/abs/2611.17394) | 2026-11-12 | missing | 1.000 |
+| 19 | [FORGE: Force-Aware Multi-Granularity Control for Efficient Humanoid Loco-Manipulation](https://arxiv.org/abs/2611.17142) | 2026-11-12 | missing | 1.000 |
+| 20 | [SALA: Semantically Aligned Latent Actions Enable Dual-Axis Scaling of Embodied Foundation Models](https://arxiv.org/abs/2611.17110) | 2026-11-12 | missing | 1.000 |
 
 ## Hot Ranking
 
 | Rank | Title | Published | Citations | Score |
 | --- | --- | --- | --- | --- |
-| 1 | [FORGE: Force-Aware Multi-Granularity Control for Efficient Humanoid Loco-Manipulation](https://arxiv.org/abs/2611.17142) | 2026-11-12 | missing | 0.998 |
-| 2 | [SALA: Semantically Aligned Latent Actions Enable Dual-Axis Scaling of Embodied Foundation Models](https://arxiv.org/abs/2611.17110) | 2026-11-12 | missing | 0.998 |
-| 3 | [STVLA: Spatial-aware and Temporal-memory forVision-Language-Action Models](https://arxiv.org/abs/2611.16589) | 2026-11-12 | missing | 0.998 |
-| 4 | [HALO: Human-Aligned Data Collection for WhoLe-body MObile Manipulation](https://arxiv.org/abs/2611.16439) | 2026-11-12 | missing | 0.998 |
-| 5 | [PhysCapBench: A Cross-Domain Benchmark for Physically Grounded Video Captioning](https://arxiv.org/abs/2611.16424) | 2026-11-12 | missing | 0.998 |
-| 6 | [VOKE: Visual Object Kinematics Estimator for Dexterous In-Hand Manipulation](https://arxiv.org/abs/2611.16423) | 2026-11-12 | missing | 0.998 |
-| 7 | [BlinkMimic: Training a Humanoid Motion Tracker in Minutes on a Single GPU](https://arxiv.org/abs/2611.16422) | 2026-11-12 | missing | 0.998 |
-| 8 | [I See What You Want: Decoding Hierarchical Operator Intent from Visual Teleoperation History](https://arxiv.org/abs/2611.16419) | 2026-11-12 | missing | 0.998 |
-| 9 | [ManiLadder: Benchmarking Robot Manipulation Through a Categorized and Multi-Difficulty Level Task Ladder](https://arxiv.org/abs/2611.16374) | 2026-11-12 | missing | 0.998 |
-| 10 | [What Can a VLA Learn from the Agent That Calls It? Task-Level Experience Distillation for Embodied Navigation](https://arxiv.org/abs/2611.16246) | 2026-11-12 | missing | 0.998 |
-| 11 | [PERA: Plug-in Experts for Robotic Actions in Continual Whole-Body Control](https://arxiv.org/abs/2611.16188) | 2026-11-12 | missing | 0.998 |
-| 12 | [MOSAIC: Modular Obstacle and Spatial-Aware Framework for Manipulation In Cluttered Scenes](https://arxiv.org/abs/2611.15937) | 2026-11-11 | missing | 0.997 |
-| 13 | [What World Model Does Active Object Search Need? A Study under Imperfect Detection](https://arxiv.org/abs/2611.15689) | 2026-11-11 | missing | 0.997 |
-| 14 | [What Makes a VLA Reactive? A Study of Execution Strategies for Dynamic Manipulation](https://arxiv.org/abs/2611.15491) | 2026-11-11 | missing | 0.997 |
-| 15 | [ActionCodec2: A Streaming Action Tokenizer](https://arxiv.org/abs/2611.15490) | 2026-11-11 | missing | 0.997 |
-| 16 | [Low-Cost Mobile Bimanual Manipulation for Long-Horizon Toilet Cleaning](https://arxiv.org/abs/2611.15381) | 2026-11-11 | missing | 0.997 |
-| 17 | [Bind-WAM: Binding-Uncertainty-Guided Selective Future Imagination in World Action Models](https://arxiv.org/abs/2611.15368) | 2026-11-11 | missing | 0.997 |
-| 18 | [CARE-Drive: Coupled Alternating Refinement for Ego-trajectories](https://arxiv.org/abs/2611.15360) | 2026-11-11 | missing | 0.997 |
-| 19 | [BiPOP: Partial-Order Planning for Long-Horizon Bimanual Robotic Manipulation](https://arxiv.org/abs/2611.15317) | 2026-11-11 | missing | 0.997 |
-| 20 | [AFTER: A World Model with Adaptive Fast--Slow Timescales for Error-Driven Retention](https://arxiv.org/abs/2611.15215) | 2026-11-11 | missing | 0.997 |
+| 1 | [Self-Calibrating Vision-Agent-Action: Deploying Pick-and-Place to New Robot Cells without Demonstrations or Fine-Tuning](https://arxiv.org/abs/2611.19198) | 2026-11-14 | missing | 0.999 |
+| 2 | [Ego2Sim2Humanoid: Agentic Real-to-Sim for Learning Loco-Manipulation VLAs without Robot Demonstrations](https://arxiv.org/abs/2611.19196) | 2026-11-14 | missing | 0.999 |
+| 3 | [WA-JEPA: Goal-Aware Predictive Feedback Action Refinement for a World-Action Model](https://arxiv.org/abs/2611.19183) | 2026-11-14 | missing | 0.999 |
+| 4 | [ImpedanceMimic: Learned Impedance as Action Space for Force-Accurate Motion Imitation](https://arxiv.org/abs/2611.19153) | 2026-11-14 | missing | 0.999 |
+| 5 | [SuperGlance: Driving at a Glance with a Vision-Language Model](https://arxiv.org/abs/2611.19138) | 2026-11-14 | missing | 0.999 |
+| 6 | [Wireless Edge-Assisted Adaptive Latent Reasoning for Vision-Language-Action Models in Physical AI](https://arxiv.org/abs/2611.19131) | 2026-11-14 | missing | 0.999 |
+| 7 | [RoboCoEvo: Expanding Robot Capabilities through Agent-Policy Co-Evolution](https://arxiv.org/abs/2611.19081) | 2026-11-14 | missing | 0.998 |
+| 8 | [TMA: Sim-to-Real Forceful Humanoid Manipulation via Tactile-Driven Motor Adaptation](https://arxiv.org/abs/2611.18976) | 2026-11-13 | missing | 0.998 |
+| 9 | [Bring Back Language to Actions: Restoring VLM capabilities in VLA Models via Parameter Merging](https://arxiv.org/abs/2611.18891) | 2026-11-13 | missing | 0.998 |
+| 10 | [Training Reasoning Models in Simulation to Natively Use Real Robots](https://arxiv.org/abs/2611.18562) | 2026-11-13 | missing | 0.998 |
+| 11 | [Gamer: A Generalist Vision-Language-Action Foundation Model for Long-Horizon Real-Time Game Agent](https://arxiv.org/abs/2611.18397) | 2026-11-13 | missing | 0.998 |
+| 12 | [Vision-Language-Action Models: A Life-Cycle Survey of Design, Training and Deployment](https://arxiv.org/abs/2611.18372) | 2026-11-13 | missing | 0.998 |
+| 13 | [ESI: An Embodied Self-Improvement Flywheel for LLM-VLA Agents](https://arxiv.org/abs/2611.18176) | 2026-11-13 | missing | 0.998 |
+| 14 | [Beyond Prediction Gain: LASR as a Metric for Action-Grounded Latents in World Models](https://arxiv.org/abs/2611.17775) | 2026-11-13 | missing | 0.998 |
+| 15 | [VACO: Vertex-Aligned Decoding for Dense Hand Contact Estimation from a Single Image](https://arxiv.org/abs/2611.17755) | 2026-11-13 | missing | 0.998 |
+| 16 | [Joint World Action Models through Differentiable Trajectory Optimization](https://arxiv.org/abs/2611.17626) | 2026-11-13 | missing | 0.997 |
+| 17 | [TouchTwin: Scaling Human Touch Data via Real-to-Sim-to-Real](https://arxiv.org/abs/2611.17619) | 2026-11-13 | missing | 0.997 |
+| 18 | [Agentic-Teacher: An Agentic Data Engine for Failure-Driven VLA Post-Training](https://arxiv.org/abs/2611.17394) | 2026-11-12 | missing | 0.997 |
+| 19 | [FORGE: Force-Aware Multi-Granularity Control for Efficient Humanoid Loco-Manipulation](https://arxiv.org/abs/2611.17142) | 2026-11-12 | missing | 0.997 |
+| 20 | [SALA: Semantically Aligned Latent Actions Enable Dual-Axis Scaling of Embodied Foundation Models](https://arxiv.org/abs/2611.17110) | 2026-11-12 | missing | 0.997 |
 
 ## Rebuild
 
