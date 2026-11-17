@@ -1,0 +1,62 @@
+[
+  {
+    "title": "BATCH · CoRL 阅读室",
+    "width": 390,
+    "scroll": 390,
+    "toc": false,
+    "guides": 5,
+    "tables": 6,
+    "images": true,
+    "steps": 4
+  },
+  {
+    "title": "RoSHI · CoRL 阅读室",
+    "width": 390,
+    "scroll": 390,
+    "toc": false,
+    "guides": 5,
+    "tables": 5,
+    "images": true,
+    "steps": 4
+  },
+  {
+    "title": "CARD · CoRL 阅读室",
+    "width": 390,
+    "scroll": 390,
+    "toc": false,
+    "guides": 5,
+    "tables": 6,
+    "images": true,
+    "steps": 4
+  },
+  {
+    "title": "FORCA · CoRL 阅读室",
+    "width": 390,
+    "scroll": 390,
+    "toc": false,
+    "guides": 5,
+    "tables": 5,
+    "images": true,
+    "steps": 4
+  },
+  {
+    "title": "Gated Memory Policy · CoRL 阅读室",
+    "width": 390,
+    "scroll": 390,
+    "toc": false,
+    "guides": 5,
+    "tables": 5,
+    "images": true,
+    "steps": 4
+  },
+  {
+    "title": "Blind Dexterity · CoRL 阅读室",
+    "width": 390,
+    "scroll": 390,
+    "toc": false,
+    "guides": 5,
+    "tables": 5,
+    "images": true,
+    "steps": 4
+  }
+]

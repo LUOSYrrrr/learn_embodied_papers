@@ -1,0 +1,239 @@
+<!doctype html><html lang="zh-CN"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="color-scheme" content="light dark"><title>BATCH · CoRL 阅读室</title><script>try{document.documentElement.dataset.theme=localStorage.getItem('theme')||localStorage.getItem('corl2026-theme')||'light'}catch{}</script><style>:root{--bg:#faf9f7;--panel:#fff;--text:#1a1a1e;--muted:#64646c;--line:#dddcd8;--accent:#966333;--soft:#f3eee8;--warn:#795124;--warm:#f8efe0;--shadow:0 8px 24px #00000008;color-scheme:light}
+:root[data-theme=dark]{--bg:#0f1014;--panel:#1a1b22;--text:#f0f0f3;--muted:#b8bac4;--line:#3a3c48;--accent:#d4a06a;--soft:#29251f;--warn:#efc68d;--warm:#362c20;--shadow:none;color-scheme:dark}
+*{box-sizing:border-box}html{scroll-behavior:smooth;scroll-padding-top:85px}body{margin:0;background:var(--bg);color:var(--text);font:16px/1.85 -apple-system,BlinkMacSystemFont,"PingFang SC","Noto Sans CJK SC",sans-serif}a{color:var(--accent);text-underline-offset:4px}a:hover{text-decoration-thickness:2px}button,input,select{font:inherit}button{padding:7px 14px;border:1px solid var(--line);border-radius:7px;background:var(--panel);color:var(--text);cursor:pointer}button:hover{border-color:var(--accent);background:var(--soft)}button:disabled{opacity:.45;cursor:default}a:focus-visible,button:focus-visible,input:focus-visible,select:focus-visible,summary:focus-visible,[tabindex]:focus-visible{outline:3px solid var(--accent);outline-offset:4px}input,select{background:var(--panel);color:var(--text);border:1px solid var(--line);padding:9px 12px;border-radius:6px;max-width:100%}.skip{position:absolute;top:-100px;left:20px;padding:8px;background:var(--panel);z-index:20}.skip:focus{top:12px}.top{position:sticky;top:0;z-index:5;display:flex;justify-content:space-between;gap:20px;align-items:center;padding:15px 4vw;background:var(--bg);border-bottom:1px solid var(--line)}.brand{font-weight:750;text-decoration:none;letter-spacing:.05em}.brand span{font:12px ui-monospace,monospace;letter-spacing:.1em;margin-left:8px;color:var(--muted)}.top nav{display:flex;gap:16px;align-items:center;font-size:13px}.layout{display:grid;grid-template-columns:235px minmax(0,940px);gap:55px;max-width:1360px;margin:0 auto;padding:64px 38px 90px}.layout:not(:has(.sidebar)){display:block;max-width:1190px}main{min-width:0}.sidebar{align-self:start;position:sticky;top:105px;font-size:13px;max-height:calc(100vh - 125px);overflow:auto;padding-right:13px}.sidebar summary{font-weight:700;cursor:pointer;list-style:none}.sidebar nav{display:grid;gap:5px;margin-top:18px}.sidebar a{padding:7px 11px;border-left:2px solid var(--line);text-decoration:none;line-height:1.6;color:var(--muted)}.sidebar a:hover{border-color:var(--accent);color:var(--accent);background:var(--soft)}.side-note{border-top:1px solid var(--line);margin-top:25px;padding-top:18px;color:var(--muted);font-size:12px}.eyebrow{color:var(--accent);font-size:11px;letter-spacing:.1em;font-weight:700;text-transform:uppercase}h1{font-size:clamp(30px,3.3vw,48px);line-height:1.35;letter-spacing:-.035em;margin:16px 0 20px;font-weight:730;max-width:980px}h2{font-size:24px;line-height:1.5;letter-spacing:-.02em;margin:56px 0 20px;padding-top:12px;border-top:1px solid var(--line)}h3{font-size:19px;margin:32px 0 14px;line-height:1.6}p{margin:15px 0}.lede{font-size:19px;max-width:850px;color:var(--muted)}.muted,.tagline{color:var(--muted)}.source-links{display:flex;gap:18px;flex-wrap:wrap;font-size:13px;margin:20px 0 28px}blockquote{margin:26px 0;padding:20px 25px;background:var(--soft);border-left:4px solid var(--accent);border-radius:0 10px 10px 0}blockquote p{margin:0}.eval-overview{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px;margin:24px 0 30px}.eval-overview article{padding:18px;border:1px solid var(--line);border-radius:9px;background:var(--panel)}.eval-overview span{font-size:11px;color:var(--accent);font-weight:700;letter-spacing:.08em}.eval-overview p{font-size:14px;line-height:1.75;margin:8px 0 0}.eval-table-wrap{overflow-x:auto;margin:24px 0;border:1px solid var(--line);border-radius:9px;background:var(--panel)}table{border-collapse:collapse;width:100%;font-size:13px;line-height:1.75}th,td{padding:14px 15px;text-align:left;vertical-align:top;border-bottom:1px solid var(--line);min-width:120px}th{background:var(--soft);font-weight:650}tbody tr:last-child td{border-bottom:0}tbody tr:hover{background:var(--soft)}code{font:13px/1.8 ui-monospace,SFMono-Regular,Menlo,monospace;white-space:normal;overflow-wrap:anywhere;background:var(--soft);padding:3px 6px;border-radius:4px}figure{margin:28px 0;padding:12px;background:white;border:1px solid var(--line);border-radius:9px}figure img{width:100%;height:auto;display:block}figcaption{color:#56625a;font-size:12px;line-height:1.7;margin:10px 7px 3px}abbr{text-decoration-style:dotted;cursor:help}.inference{padding-left:16px;border-left:3px solid var(--line)}.walker,.quiz{padding:26px;border:1px solid var(--line);border-radius:12px;background:var(--panel);margin:40px 0}.walker h2,.quiz h2{border:0;padding:0;margin:0 0 10px}.walker>p{font-size:14px;color:var(--muted)}.walker ol{padding:0;margin:20px 0 0;list-style:none;display:grid;gap:10px}.walker li{border:1px solid var(--line);padding:15px;border-radius:8px;font-size:14px}.walker li.current{border-color:var(--accent);background:var(--soft)}.step-no{font:12px ui-monospace,monospace;color:var(--accent);font-weight:700;display:inline-block;margin-right:12px}.step-controls{display:flex;gap:15px;align-items:center}.step-controls output{font-size:12px;color:var(--muted)}fieldset{border:0;padding:0;margin:0 0 15px}legend{font-weight:600;margin:8px 0 12px}.quiz label{display:block;padding:10px 12px;background:var(--bg);margin:7px 0;border-radius:6px;font-size:14px}.quiz input{accent-color:var(--accent)}.feedback{font-weight:600;color:var(--accent)}details{margin:15px 0}summary{cursor:pointer;color:var(--accent);font-size:14px}details p{font-size:14px}.stats{display:grid;grid-template-columns:repeat(3,1fr);border-block:1px solid var(--line);margin:35px 0}.stats div{padding:24px;font-size:13px;color:var(--muted);border-right:1px solid var(--line)}.stats div:last-child{border:0}.stats strong{display:block;font:42px/1.2 ui-monospace,monospace;color:var(--accent);margin-bottom:12px}.scope{background:var(--soft);padding:20px 25px;border-radius:10px;font-size:14px}.scope p{margin:8px 0 12px}.cards{display:grid;grid-template-columns:1fr 1fr;gap:22px;margin:35px 0}.paper-card{position:relative;background:var(--panel);padding:28px;border:1px solid var(--line);border-radius:12px;box-shadow:var(--shadow)}.paper-card h2{border:0;margin:15px 0 12px;padding:0;font-size:27px}.paper-card h2 a{text-decoration:none}.paper-card p{font-size:15px}.paper-card .eyebrow{max-width:calc(100% - 25px);font-size:10px}.card-num{position:absolute;right:20px;top:23px;color:var(--muted);font:12px ui-monospace,monospace}.boundary{padding:12px 14px;background:var(--warm);color:var(--warn);border-radius:6px;font-size:13px!important}.paper-card small{font-size:11px;color:var(--muted)}.principles{display:grid;grid-template-columns:repeat(2,1fr);gap:16px}.principles p{padding:20px;background:var(--panel);border:1px solid var(--line);border-radius:8px;font-size:14px;margin:0}.principles strong{color:var(--accent);display:inline-block;margin-bottom:8px}.filters{display:flex;gap:15px;flex-wrap:wrap;align-items:end;margin:30px 0 20px;padding:20px;background:var(--soft);border-radius:10px}.filters label{display:grid;gap:5px;font-size:12px}.filters label:first-child{flex:1;min-width:230px}.filters output{font-size:12px;align-self:center}#catalog td:nth-child(1){min-width:60px;width:60px;font-family:ui-monospace,monospace;color:var(--muted)}#catalog td:nth-child(2){min-width:260px}#catalog td:nth-child(3),#catalog td:nth-child(4){min-width:85px;width:90px}#catalog details{margin:5px 0 0}#catalog summary{font-size:11px}#catalog details p{white-space:pre-wrap;font-size:12px}footer{max-width:1284px;margin:auto;padding:25px 38px;border-top:1px solid var(--line);font-size:12px;color:var(--muted)}[hidden]{display:none!important}
+@media(max-width:1000px){.layout{grid-template-columns:190px minmax(0,1fr);gap:28px;padding:40px 25px}.eval-overview{grid-template-columns:1fr}.eval-overview article{padding:15px}.eval-overview p{margin:4px 0}.top{padding-inline:25px}.sidebar{font-size:12px}}
+@media(max-width:720px){.top{padding:13px 18px;gap:10px;position:relative}.top nav{gap:8px;font-size:11px}.top nav>a{display:none}.top button{padding:5px 9px;font-size:11px}.brand{font-size:14px}.brand span{display:none}.layout,.layout:not(:has(.sidebar)){display:block;padding:27px 18px 60px}.sidebar{position:static;max-height:none;padding:0;margin:0 0 30px;border:1px solid var(--line);border-radius:8px;background:var(--panel)}.sidebar details{margin:0;padding:12px 15px}.sidebar summary{list-style:disclosure-closed}.sidebar nav{gap:2px}.side-note{display:none}h1{font-size:30px}h2{font-size:22px;margin-top:42px}h3{font-size:18px}body{font-size:15px}.cards,.principles{grid-template-columns:1fr}.paper-card{padding:24px}.stats div{padding:19px 12px;font-size:11px}.stats strong{font-size:32px}.lede{font-size:17px}blockquote{padding:18px}.walker,.quiz{padding:18px}.source-links{gap:14px}.scope{padding:18px}th,td{padding:12px;font-size:12px}.eval-overview{gap:9px}footer{padding:20px 18px}figure{padding:7px}figcaption{font-size:11px}}
+@media(prefers-reduced-motion:reduce){html{scroll-behavior:auto}}
+@media print{html{scroll-behavior:auto}body{background:white!important;color:#111!important;font-size:10pt}.top,.sidebar,footer,.step-controls,.quiz button,.filters,.skip{display:none!important}.layout,.layout:not(:has(.sidebar)){display:block;max-width:none;padding:0}.eval-table-wrap{overflow:visible;border-color:#ccc}table{font-size:8pt}th,td{min-width:0;padding:7px}h1{font-size:25pt}h2{font-size:16pt;break-after:avoid}h3{break-after:avoid}figure,.paper-card,.eval-overview article{break-inside:avoid}details{display:block}details>*{display:block!important}details::details-content{display:block;content-visibility:visible}img{max-height:70vh;object-fit:contain}.paper-card{box-shadow:none}.cards{display:block}.paper-card{margin:15px 0}a{color:#111}.eval-overview,.principles{display:block}.eval-overview article{margin:10px 0}blockquote,.scope{background:#eee!important}.boundary{color:#333!important;background:#eee!important}}
+
+.zoom-dialog{width:96vw;max-width:96vw;max-height:94vh;border:1px solid var(--line);border-radius:10px;padding:12px;background:var(--panel);color:var(--text)}.zoom-dialog::backdrop{background:#000b}.zoom-bar{margin:0 0 10px;display:flex;justify-content:flex-end}.zoom-scroll{overflow:auto;max-height:78vh;background:white}.zoom-scroll img{display:block;width:auto;max-width:none;height:auto}
+.eval-overview{grid-template-columns:repeat(2,minmax(0,1fr))}.cn-read{margin:18px 0 24px;padding:16px 20px;background:var(--soft);border-radius:8px}.cn-read p{margin:6px 0 0}.cn-label{font-size:11px;letter-spacing:.08em;font-weight:700;color:var(--accent)}.evidence-note{font-size:13px;color:var(--muted)}.candidate-list{padding-left:20px;font-size:14px;line-height:1.8}.candidate-list li{margin:12px 0}.candidate-list strong{font-weight:600}.candidate-list+p{border-top:1px solid var(--line);padding-top:12px}
+@media(max-width:720px){.eval-overview{grid-template-columns:1fr}.top nav>a.collection-link{display:inline}.brand{letter-spacing:0}.top{gap:8px}.top nav{gap:6px}.top button{padding:5px 7px}.cn-read{padding:14px 16px}}
+@media print{:root,:root[data-theme=dark]{--bg:#fff;--panel:#fff;--text:#111;--muted:#444;--line:#ccc;--accent:#333;--soft:#f4f4f4;--warn:#333;--warm:#eee}.cn-read{background:#f4f4f4}.zoom-dialog{display:none!important}}
+</style></head><body><a class="skip" href="#main">跳到正文</a><header class="top"><a href="../index.html" class="brand">~/paper-notes <span>CoRL 2026</span></a><nav aria-label="阅读导航与工具"><a class="collection-link" href="corl2026.html">专题</a><a href="corl2026-workshops.html">Workshop 选题</a><button id="theme" type="button" aria-label="切换深浅主题" hidden>切换主题</button><button id="print" type="button" hidden>打印 / PDF</button></nav></header><div class="layout"><aside class="sidebar"><details open><summary>BATCH · 章节</summary><nav aria-label="章节导航"><a href="#overview">简短说明与评测</a><a href="#section-1">1. 问题：同一任务不等于相同时间进度</a><a href="#section-2">2. 数据与坐标：人类 OOD 不等于全系统未见</a><a href="#section-3">3. 机制：对齐、两类损失与机器人单流部署</a><a href="#section-4">4. 证据：对齐质量与任务表现是两组实验</a><a href="#section-5">5. 可迁移的想法与边界</a><a href="#section-6">原文与阅读范围</a><a href="#walk">训练到执行</a><a href="#quiz">理解检查</a></nav></details><p class="side-note">原文 / 推断 / 待验证<br>PDF 全文与附录核读<br>不以演示替代成功率</p></aside><main id="main"><div class="eyebrow">H2R Workshop · Oral</div><h1 id="overview">BATCH：先对齐行为阶段，再让人类数据帮助机器人</h1><p class="tagline">行为对齐 · 人类数据 · 视频动作模型</p><div class="source-links"><a href="https://arxiv.org/abs/2611.10148v1">原始论文 ↗</a><a href="https://arxiv.org/pdf/2611.10148v1">PDF ↗</a><a href="corl2026.html">CoRL 五方向专题</a></div><article class="paper-body">
+<blockquote class="core-insight">
+<p>简短说明：BATCH 先学人和机器人执行同一任务时的时间对应，再用对齐片段进行视频—动作联合训练和人到机器人的视频风格迁移。两项真机任务显示对齐有用；其中 0.63 是归一化过程得分，83.3% 才是另一任务的完整成功率。测试场景在机器人数据中未见，但已出现在人类训练数据中。</p>
+</blockquote><section class="eval-overview" aria-label="评测结论总览"><article class="eval-card"><span>仿真</span><p>本文没有对应仿真策略成功率主实验。</p></article><article class="eval-card"><span>ID / OOD</span><p>机器人未见条件已出现在人类训练数据；不是所有来源均未见。</p></article><article class="eval-card"><span>真机</span><p>容器任务 20 次过程评分；杯碟任务完整成功 25/30。</p></article><article class="eval-card"><span>证据边界</span><p>0.63 是过程得分；83.3% 是另一任务的 25/30。场景在人类训练数据中已见。</p></article></section>
+<h2 id="section-1">1. 问题：同一任务不等于相同时间进度</h2><div class="cn-read"><div class="cn-label">这一节解决什么</div><p>人比机器人快、动作顺序和停顿不同，还可能夹杂无关片段。把两类数据直接混合，模型可能只学会区分本体，未学会哪些行为阶段可以互相帮助。（§1、3.1）</p></div>
+<p>行为对齐不是把手位置简单映射成夹爪位置，而是找到“正接近物体”“已抓住”“正在放下”等同等进度的帧。对齐编码器用视频上下文学习，再用动态时间规整（DTW）产生显式对应；这些对应随后约束训练样本与跨域视频目标。</p>
+<p>这篇连接人类数据和世界动作模型，但研究设定是<strong>单任务训练</strong>、两个操作任务；去掉文本条件，不是一个听任意指令的通用 VLA。</p>
+<h2 id="section-2">2. 数据与坐标：人类 OOD 不等于全系统未见</h2><div class="cn-read"><div class="cn-label">这一节解决什么</div><p>机器人预训练建立可执行动作，人类数据补充对象和场景，配对阶段仍需要机器人示范。理解每个阶段看过什么，才能解释其泛化结论。（App.A、B，pp.14–16）</p></div>
+<div class="eval-table-wrap" tabindex="0" role="region" aria-label="证据表，可横向滚动"><table class="eval-table">
+<thead>
+<tr>
+<th>阶段</th>
+<th>来源与表示</th>
+<th>规模 / 权限</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>对齐特征</td>
+<td>冻结 ImageNet ResNet-50；因果邻帧窗口、两层 3D 卷积、MLP 输出 128D</td>
+<td>GTCC 自监督学时间对应；人工 phase 标签只用于评测</td>
+</tr>
+<tr>
+<td>机器人采集</td>
+<td>双 ARX5，人形肩部支架、Aria 头视角、Logitech 腕视角</td>
+<td>Object in Container 90 demos；Cup on Saucer 270 demos</td>
+</tr>
+<tr>
+<td>人类采集</td>
+<td>Aria Gen 1 RGB，MPS 手位姿</td>
+<td>各场景分别 5 / 8 demos；不是总共只用 5 / 8 条</td>
+</tr>
+<tr>
+<td>状态/动作</td>
+<td>机器人每臂位置3+四元数4+夹爪1；人类每手7维</td>
+<td>人类夹爪维补零，<strong>从人类动作 loss 排除</strong></td>
+</tr>
+<tr>
+<td>视频动作骨干</td>
+<td>Wan2.1-I2V-14B 的前8个 Transformer blocks、VAE、CLIP ViT-H/14</td>
+<td>不是完整 14B 所有层，也不是从随机初始化训练</td>
+</tr>
+</tbody>
+</table></div>
+<p>位姿先用标定外参转换到头相机系，再相对该臂窗口首帧表示 <code>T̃_t=T₀⁻¹T_t</code>；夹爪仍为绝对宽度，各本体分别用 1/99 分位归一化。相同布局不代表手和夹爪物理可一一互换。</p>
+<p>30 fps 录像每6帧取一幅，共9幅、约1.6 s；动作10 Hz、16步。机器人有头/腕图，人类只有头图，缺失腕区域补零。部署 OOD 对象/背景已通过人类 demonstrations 进入微调；更准确说法是<strong>跨本体转移到机器人数据未覆盖的条件</strong>，不是所有训练来源均未见。</p>
+<h2 id="section-3">3. 机制：对齐、两类损失与机器人单流部署</h2><div class="cn-read"><div class="cn-label">这一节解决什么</div><p>先构建时间对应，再分清哪一种训练允许跨流看信息。否则容易误以为联合训练总在直接融合人机 token，或风格迁移同时制造了机器人动作标签。（Fig.2，§3.1–3.2）</p></div>
+<figure><a href="../assets/figures/corl2026/batch-fig-2.png" target="_blank" rel="noopener"><img loading="lazy" decoding="async" src="../assets/figures/corl2026/batch-fig-2.png" alt="原文 Fig.2：上半部 GTCC 与 DTW 找行为对应；下半部视频动作双流与不同注意力连接。PDF p.3。" /></a><figcaption>原文 Fig.2：上半部 GTCC 与 DTW 找行为对应；下半部视频动作双流与不同注意力连接。PDF p.3。 · 点击查看原尺寸</figcaption></figure>
+<p><strong>GTCC</strong>：机器人帧 u 对人类各帧 v 的软匹配权重与 <code>exp(−‖u−v‖²/τ)</code> 成比例。因为重复任务可能有多个合理匹配，单个平均向量会落到不存在的阶段；GTCC 用时间轴上的高斯混合保留多个候选，再让每个候选循环匹配回原来的机器人时刻。额外 relevance 权重处理无对应片段。</p>
+<p><strong>DTW</strong>：以特征距离为代价，找覆盖整个机器人窗口的人类子序列，允许多对一时间扭曲。每个窗口保存候选及路径；Object in Container 取 top-5、Cup on Saucer top-1，训练时均匀采一个，按路径索引人类图像、状态和动作。</p>
+<p><strong>教学微例</strong>：机器人四帧的进度是“接近、接近、抓起、放下”，人类三帧是“接近、抓起、放下”。刚性按索引会把第二个“接近”配到“抓起”；DTW 可用对应 <code>(1→1,2→1,3→2,4→3)</code>。这个例子解释速度差，不意味着 DTW 能任意交换动作顺序。</p>
+<p>机器人预训练 20000 steps，随后微调 1000 steps，以各 0.5 概率交替两种目标：</p>
+<ul>
+<li><strong>Joint co-training</strong>：人机各预测自己的视频和动作；共享权重，但 self-attention、CLIP cross-attention 和位置索引相互隔离，人类只经共享参数影响机器人路径。</li>
+<li><strong>Style transfer</strong>：给完整干净人类视频，预测对应机器人未来视频。遮掉机器人 conditioning latent，并把两边 action/state register 置零，避免绕过人类信息；机器人仍保留初始头/腕 CLIP 的粗场景条件。<strong>此目标只监督机器人视频，不监督动作。</strong></li>
+</ul>
+<p><abbr title="学习噪声到数据的连续速度场；噪声时间不同于机器人执行时间。">Flow matching</abbr> 使用 <code>xσ=(1−σ)x₀+σε</code>，目标速度 <code>ε−x₀</code>。例如教学标量 <code>x₀=2, ε=−1, σ=0.4</code> 得到 <code>xσ=0.8</code>、目标 <code>−3</code>；这个噪声轴并非真实任务时间。</p>
+<p>部署仅机器人流，每次生成16动作，10 Hz 同步执行前8步后重规划。UniPC 标称16 solver steps，其中8步真正调用 Transformer，其余复用速度；动作降到 σ=0，视频只到 σ=0.25。5090 上单臂 0.35 s、双臂 0.42 s。8动作的执行窗口为0.8 s，不能把10 Hz动作发送频率当作10 Hz完整闭环重规划。</p>
+<section class="walker" aria-label="训练到执行逐步读"><h2 id="walk">训练到执行：逐步读</h2><p>按顺序检查信息怎样流动；每一步都保留在页面中。按钮或左右方向键切换，Home / End 跳到首尾。</p><div class="step-controls" tabindex="0" role="group" aria-label="步骤导航" hidden><button data-prev type="button">上一步</button><output aria-live="polite">1 / 4</output><button data-next type="button">下一步</button></div><ol><li data-step="0"><span class="step-no">01</span>从人机视频学 GTCC 时间表示，再用 DTW 保存对应路径。</li><li data-step="1"><span class="step-no">02</span>机器人视频动作模型预训练 20000 步。</li><li data-step="2"><span class="step-no">03</span>对齐数据微调 1000 步，交替联合预测与只监督视频的风格迁移。</li><li data-step="3"><span class="step-no">04</span>部署只保留机器人流，16 步动作执行前 8 步后同步重规划。</li></ol></section><h2 id="section-4">4. 证据：对齐质量与任务表现是两组实验</h2><div class="cn-read"><div class="cn-label">这一节解决什么</div><p>先检查对应帧是否同阶段，再检查机器人是否真的做得更好。对齐 overlap、任务过程得分与完整成功率不可互换。（Table1、Fig.4/7，§4、App.D）</p></div>
+<h3>仿真证据协议</h3>
+<div class="eval-table-wrap" tabindex="0" role="region" aria-label="证据表，可横向滚动"><table class="eval-table">
+<thead>
+<tr>
+<th>字段</th>
+<th>核验结果</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Benchmark / 任务 / split / 次数</td>
+<td>本文未报告仿真策略评测；不补仿真成功率。</td>
+</tr>
+<tr>
+<td>证据</td>
+<td>§4，PDF pp.6–9；实验由离线对齐与两项真实操作组成。</td>
+</tr>
+</tbody>
+</table></div>
+<h3>ID / OOD 的维度</h3>
+<div class="eval-table-wrap" tabindex="0" role="region" aria-label="证据表，可横向滚动"><table class="eval-table">
+<thead>
+<tr>
+<th>变化</th>
+<th>训练暴露与测试</th>
+<th>ID / OOD 与可比性</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>对象、背景、干扰物</td>
+<td>Object 四个机器人未见配置；人类微调数据覆盖这些条件</td>
+<td>策略 ID 原始分未逐场景给出；OOD 为0.76/0.47/0.49/0.78归一分；不计算SR下降。Fig.7，p.18</td>
+</tr>
+<tr>
+<td>杯组与桌布</td>
+<td>Cup 三组分别未见杯组、白/灰桌布混合杯组；每组10次</td>
+<td>OOD 9/10、8/10、8/10；匹配ID计数未报告。App.D</td>
+</tr>
+<tr>
+<td>语言、全新技能</td>
+<td>单任务且移除文本条件</td>
+<td>未报告，不称语言泛化。§3.2</td>
+</tr>
+</tbody>
+</table></div>
+<h3>真机协议与失败边界</h3>
+<div class="eval-table-wrap" tabindex="0" role="region" aria-label="证据表，可横向滚动"><table class="eval-table">
+<thead>
+<tr>
+<th>字段</th>
+<th>核验结果</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>机器人 / 观测 / 动作</td>
+<td>ARX5单/双臂；头+腕RGB、本体状态；相对末端位姿与夹爪；16步预测执行8步，10 Hz同步执行。App.A/B</td>
+</tr>
+<tr>
+<td>次数 / 判定</td>
+<td>Object 4×5次，每次60 s累计技能分；Cup 3×10次完整成功，详细结果见下表。App.D</td>
+</tr>
+<tr>
+<td>延迟 / 完成时间 / 干预</td>
+<td>推理0.35/0.42 s；Cup完成时间、逐次人工介入和安全停止数未报告。App.B.2.4</td>
+</tr>
+<tr>
+<td>失败 / 适配</td>
+<td>有机器人预训练与人类配对微调；测试失败未按滑落、碰撞等分类计数。Fig.4</td>
+</tr>
+</tbody>
+</table></div>
+<div class="eval-table-wrap" tabindex="0" role="region" aria-label="证据表，可横向滚动"><table class="eval-table">
+<thead>
+<tr>
+<th>对齐方法</th>
+<th>Object OOD overlap / progress error</th>
+<th>Cup OOD overlap / progress error</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>GTCC + DTW</td>
+<td>57.8% / .098</td>
+<td>71.7% / .075</td>
+</tr>
+<tr>
+<td>去掉 DTW</td>
+<td>24.7% / .231</td>
+<td>70.8% / .085</td>
+</tr>
+<tr>
+<td>DINOv3 + DTW</td>
+<td>42.3% / .156</td>
+<td>22.1% / .433</td>
+</tr>
+<tr>
+<td>GTCC + 绝对动作 + DTW</td>
+<td>54.6% / .106</td>
+<td>76.5% / .073</td>
+</tr>
+</tbody>
+</table></div>
+<p>DTW 对重复循环的 Object 影响大；Cup 上加入绝对位姿反而最好，因此“只用视觉总最好”不成立。每场景10条机器人示范、每 episode 400个窗口与全部候选配对，窗口高度相关，不能把所有帧当独立二项试验给窄置信区间。</p>
+<figure><a href="../assets/figures/corl2026/batch-fig-4.png" target="_blank" rel="noopener"><img loading="lazy" decoding="async" src="../assets/figures/corl2026/batch-fig-4.png" alt="原文 Fig.4：Object 使用归一化过程分数，Cup 使用成功率，两纵轴含义不同。PDF p.9。" /></a><figcaption>原文 Fig.4：Object 使用归一化过程分数，Cup 使用成功率，两纵轴含义不同。PDF p.9。 · 点击查看原尺寸</figcaption></figure>
+<div class="eval-table-wrap" tabindex="0" role="region" aria-label="证据表，可横向滚动"><table class="eval-table">
+<thead>
+<tr>
+<th>方法</th>
+<th>Object：20次、各60 s，归一化过程分数</th>
+<th>Cup：30次完整成功</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>BATCH</td>
+<td>0.63</td>
+<td>25/30，83.3%（66.4–92.7%）</td>
+</tr>
+<tr>
+<td>用 OT 替换 style transfer</td>
+<td>0.50</td>
+<td>19/30，63.3%（45.5–78.1%）</td>
+</tr>
+<tr>
+<td>去行为对齐</td>
+<td>0.42</td>
+<td>15/30，50.0%（33.2–66.8%）</td>
+</tr>
+<tr>
+<td>EgoVerse 式 co-training</td>
+<td>0.40</td>
+<td>19/30，63.3%（45.5–78.1%）</td>
+</tr>
+<tr>
+<td>机器人预训练单独部署</td>
+<td>0.28</td>
+<td>10/30，33.3%（19.2–51.2%）</td>
+</tr>
+</tbody>
+</table></div>
+<p>Cup 计数由 Fig.4 百分比与30次协议换算；附录三场景分别9/10、8/10、8/10，吻合25/30。区间是阅读者计算的95% Wilson，未包含不同场景和训练随机性的额外不确定性。OOD 具体区分：T1未见杯组；T2白桌布混合见/未见杯组；T3灰桌布中见/未见各5次。Object四场景各5次，完成一个技能得1分，以域内平均分（文中例55分）归一；<strong>0.63不能写成63%任务成功，也不能推算成功次数</strong>。</p>
+<p>摘要“平均提升45%/138%”混合两个不同指标的相对增幅，不能理解为共同成功率增加45/138个百分点。更清楚的是分别汇报 0.40→0.63、19/30→25/30。</p>
+<p><strong>仿真</strong>：这份工作没有对应仿真策略成功率主实验。<strong>ID/OOD下降</strong>：有对齐ID/OOD数据，但机器人策略只以归一化域内参照或OOD测试呈现，不能补造逐场景策略ID→OOD下降表。</p>
+<h2 id="section-5">5. 可迁移的想法与边界</h2><div class="cn-read"><div class="cn-label">这一节解决什么</div><p>BATCH 最值得借用的是让时间对应显式参与训练，而不仅把人类样本数量加大。它仍依赖人机共享行为顺序、额外人类示范和目标任务机器人数据。（§4.2 limitation）</p></div>
+<p>对齐错了，style-transfer 就接收到错监督；策略顺序根本不同，DTW 的单调路径也难解决。两任务、小规模真机测试不足以说明对任意人类视频或人形接触技能均有效。模型实验还同时包含额外微调、数据和不同目标，不宜将所有收益归因于单个模块。</p>
+<p class="inference evidence-note" data-evidence="inference">[推断] 下一步可固定人类数据量和优化步数，按人工抽检的对应误差分桶，比较下游收益何时转为负；加入故意错配与跨阶段交换，测模型是否真正依赖行为对应。对 WB-WAM，可先在人类/机器人共有的接触阶段尝试对齐，但仍需独立检查全身动力学与接触力，不应仅凭视觉阶段一致假定动作可迁移。</p>
+<h3>一周实验草案与口述版</h3>
+<p class="inference evidence-note" data-evidence="inference">[推断] 一周内可做的最小验证：先固定人机数据与训练预算，抽检20组DTW对应；再做正确/随机/错阶段三组配对的小规模训练；最后在同一杯碟场景按相同重置协议重复测试，记录完整成功与误配率关系。这是复现实验建议，尚未执行。</p>
+<p><strong>一分钟口述</strong>：BATCH用时间对应约束人机数据共享。GTCC找行为特征，DTW对齐快慢，视频风格迁移促进跨域知识转移。真机杯碟25/30，但测试条件已被人类数据覆盖。</p>
+<h2 id="section-6">原文与阅读范围</h2>
+<ul>
+<li><a href="https://arxiv.org/abs/2611.10148v1">BATCH，arXiv 2611.10148v1</a>，2026-11-06；<a href="https://arxiv.org/pdf/2611.10148v1">固定 PDF</a>。已核读20页，包括附录A–D、图8/9对齐示例、图表及声明。</li>
+<li><a href="https://batch-embodiment.github.io/">作者项目</a>；<a href="https://scaling-h2r-corl.github.io/">H2R</a> 列为 Oral。所有数值绑定上述版本；公式微例、区间与后续研究建议为阅读者补充。</li>
+</ul>
+</article><section class="quiz" data-answer="1"><h2 id="quiz">理解检查</h2><fieldset><legend>Style-transfer 目标直接监督什么？</legend><label><input type="radio" name="answer" value="0"> 把人类动作转换成真实机器人力矩标签。</label><label><input type="radio" name="answer" value="1"> 对应的机器人未来视频；动作与状态 register 被屏蔽。</label><label><input type="radio" name="answer" value="2"> 同时监督人机双流所有动作。</label></fieldset><button data-check type="button" hidden>检查答案</button><p class="feedback" aria-live="polite"></p><details><summary>展开答案与依据</summary><p>对应的机器人未来视频；动作与状态 register 被屏蔽。</p><p>§3.2.1：style-transfer 只监督机器人视频；动作学习来自另一个联合训练目标。</p></details></section></main></div><footer>原文事实与阅读者推断分开标注 · 整理日期 2026-11-17 · <a href="../index.html">返回论文网站</a> · <a href="corl2026-workshops.html">继续选题</a></footer><script>(()=>{'use strict';
+const $=s=>document.querySelector(s);const $$=s=>[...document.querySelectorAll(s)];
+if($('figure a')){const dialog=document.createElement('dialog');dialog.className='zoom-dialog';dialog.setAttribute('aria-label','论文原图');const bar=document.createElement('form');bar.method='dialog';bar.className='zoom-bar';const close=document.createElement('button');close.textContent='关闭原图（Esc）';bar.append(close);const scroll=document.createElement('div');scroll.className='zoom-scroll';const img=document.createElement('img');scroll.append(img);dialog.append(bar,scroll);document.body.append(dialog);$$('figure a').forEach(a=>a.addEventListener('click',e=>{e.preventDefault();img.src=a.href;img.alt=a.querySelector('img').alt;dialog.showModal()}))}
+const theme=$('#theme');if(theme){theme.hidden=false;let saved;try{saved=localStorage.getItem('theme')||localStorage.getItem('corl2026-theme')}catch{}if(saved==='dark')document.documentElement.dataset.theme='dark';const label=()=>{const dark=document.documentElement.dataset.theme==='dark';theme.textContent=dark?'浅色':'深色';theme.setAttribute('aria-pressed',String(dark))};label();theme.addEventListener('click',()=>{const mode=document.documentElement.dataset.theme==='dark'?'light':'dark';document.documentElement.dataset.theme=mode;try{localStorage.setItem('theme',mode);localStorage.setItem('corl2026-theme',mode)}catch{}label()})}
+const print=$('#print');if(print){print.hidden=false;print.addEventListener('click',()=>window.print())}
+let opened=[];window.addEventListener('beforeprint',()=>{opened=$$('details').map(d=>[d,d.open]);$$('details').forEach(d=>d.open=true)});window.addEventListener('afterprint',()=>opened.forEach(([d,o])=>d.open=o));
+if(matchMedia('(max-width:720px)').matches){const toc=$('.sidebar details');if(toc)toc.open=false}
+$$('.walker').forEach(w=>{const items=[...w.querySelectorAll('[data-step]')];const controls=w.querySelector('.step-controls');if(!controls)return;controls.hidden=false;let i=0;const prev=w.querySelector('[data-prev]'),next=w.querySelector('[data-next]'),out=w.querySelector('output');const render=()=>{const focused=document.activeElement;items.forEach((s,n)=>{s.classList.toggle('current',n===i);if(n===i)s.setAttribute('aria-current','step');else s.removeAttribute('aria-current')});out.value=`${i+1} / ${items.length}`;out.textContent=out.value;prev.disabled=i===0;next.disabled=i===items.length-1;if(focused?.disabled)controls.focus()};prev.onclick=()=>{i=Math.max(0,i-1);render()};next.onclick=()=>{i=Math.min(items.length-1,i+1);render()};controls.addEventListener('keydown',e=>{const keys=['ArrowLeft','ArrowRight','Home','End'];if(!keys.includes(e.key))return;e.preventDefault();i=e.key==='Home'?0:e.key==='End'?items.length-1:e.key==='ArrowLeft'?Math.max(0,i-1):Math.min(items.length-1,i+1);render()});render()});
+$$('.quiz').forEach(q=>{const btn=q.querySelector('[data-check]');btn.hidden=false;btn.addEventListener('click',()=>{const selected=q.querySelector('input:checked'),out=q.querySelector('.feedback');out.textContent=!selected?'先选一个答案。':selected.value===q.dataset.answer?'判断正确。展开下方依据核对实验条件。':'再核对一下条件：展开下方答案，看看哪些数字不能拼在一起。'})});
+const search=$('#search'),kind=$('#kind');if(search&&kind){$('.filters').hidden=false;const rows=$$('#catalog tbody tr');const filter=()=>{const words=search.value.toLowerCase().trim().split(/\s+/).filter(Boolean);let n=0;rows.forEach(r=>{const ok=words.every(w=>r.textContent.toLowerCase().includes(w))&&(!kind.value||r.dataset.kind===kind.value);r.hidden=!ok;if(ok)n++});$('#count').textContent=`${n} / ${rows.length} 篇`;$('#empty').hidden=n!==0};search.addEventListener('input',filter);kind.addEventListener('change',filter);$('#reset').onclick=()=>{search.value='';kind.value='';filter();search.focus()};filter()}
+})();
+</script></body></html>

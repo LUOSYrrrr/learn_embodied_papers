@@ -64,6 +64,7 @@ DATA = [
 ]
 
 DATA.extend(json.loads((ROOT/'scripts/corl2026/focus-papers.json').read_text()))
+DATA.extend(json.loads((ROOT/'scripts/corl2026/workshop-papers.json').read_text()))
 publication_path = ROOT/'notes/corl2026/notion-publication.json'
 if publication_path.exists():
     for d in DATA:
@@ -85,7 +86,16 @@ CROPS = [
  ('simple-agentic-memory',25,(108,257,504,458),'6',350),
  ('embodiedswe',2,(106,49,506,261),'1',300),
  ('embodiedswe',7,(108,73,504,352),'7',300),
- ('embodiedswe',9,(108,61,503,187),'10',500)
+ ('embodiedswe',9,(108,61,503,187),'10',500),
+ ('roshi',4,(49,48,564,299),'2',300),
+ ('forca',2,(48,47,566,205),'1',400),
+ ('blind-dexterity',6,(49,48,566,287),'5',300),
+ ('gated-memory',4,(107,47,505,168),'3',500),
+ ('gated-memory',7,(108,194,504,293),'11',600),
+ ('batch',3,(109,364,504,582),'2',400),
+ ('batch',9,(109,67,504,254),'4',400),
+ ('card',4,(58,71,554,278),'2',400),
+ ('card',5,(318,294,553,389),'5',650)
 ]
 
 def wilson(k,n):
@@ -183,9 +193,9 @@ def build_collection(portable=False):
         href=d.get('notion',COLLECTION) if portable else f'corl2026-{d["slug"]}.html'
         cards+=f'<article class="paper-card"><span class="card-num">{i+1:02}</span><div class="eyebrow">{d["venue"]}</div><h2><a href="{href}">{d["name"]} ↗</a></h2><p>{d["brief"]}</p><p class="boundary">{d["warning"]}</p><small>{d["tag"]} · 全文核读完成</small></article>'
     catalog='https://www.corl.org/program/accepted-papers' if portable else 'corl2026-catalog.html'
-    content=f'''<div class="eyebrow">NOTES ON EMBODIED INTELLIGENCE / 2026.11</div><h1>CoRL 阅读室<br><span class="muted">世界模型、Agentic、Memory<br>人形与接触控制</span></h1><p class="lede">每篇先用一小段讲明白，再沿着问题、思路、方法、实验、后续实验展开。按<a href="{TEMPLATE}">五块证据链模板</a>保留原图和评测边界。</p><div class="stats"><div><strong>10</strong>本专题全文核读与 HTML</div><div><strong>687</strong>主会论文仅建目录</div><div><strong>01</strong>既有 AW-0 精读接入</div></div><aside class="scope"><strong>这批覆盖哪里？</strong><p>覆盖用户指定的五个重点方向：原有六篇之外，补充 ECoMEM、MemJEPA、SimpleARM 与 EmbodiedSWE 四篇。Memory 三篇来自官方 Workshop；EmbodiedSWE 为 Agentic Workshop Best Paper。四篇接触论文为 Workshop Spotlight；WB-WAM 的 TAG Workshop 身份沿用既有核验，本次未复核；Long-WAM 为主题关联阅读，录用归属待核实。主会目录的 687 篇尚未逐篇精读。</p><a href="{catalog}">打开主会 687 篇可检索目录 →</a></aside><section><h2>一条可以串起来的阅读路线</h2><p>先用 WB-WAM 理解异构监督，再用 Long-WAM 理解时间。接下来，PanTact 选择“接触什么”，Workhorse 处理“跟不上计划”，OCLO 在线调整姿态，HULK 学会负载下的物理支撑。接口相邻，实验协议并不相同。新补的三篇记忆论文对照显式记录、隐状态与结构化读取；EmbodiedSWE 则把编码 Agent 变成离线数据老师。</p></section><section class="scope"><h2>Agentic 与 WAM 的交叉：AW-0</h2><p>沿用既有完整精读，本次只核验 Agentic Workshop Best Paper 归属。默认代码作为生成条件；hybrid 才执行技能，真机 71.1 为阶段分数。</p><p><a href="https://www.siyuanluoembodied.xin/papers/agentic-wam.html">已有 HTML 精读 →</a> · <a href="https://app.notion.com/p/419bb2b96e9d81249316ce9097d31d58">已有 Notion 正文 →</a></p></section><div class="cards">{cards}</div><section><h2>读结果时，检查这四件事</h2><div class="principles"><p><strong>数据账本</strong><br>人类示范、机器人示范、预训练与更新步数一起看。</p><p><strong>训练 / 部署</strong><br>未来视频、力输入、MPC 或教师，哪些在部署时仍然存在？</p><p><strong>同一协议</strong><br>仿真、真机、最大负载、固定负载成功率不能拼接。</p><p><strong>证据强度</strong><br>完整成功、部分得分、定性演示分开；小样本显示区间。</p></div></section><p class="source-links"><a href="{COLLECTION}">打开 Notion 专题 ↗</a><a href="https://contact-rich-loco-manipulation.github.io/program/index.html">Workshop 官方议程 ↗</a></p>'''
+    content=f'''<div class="eyebrow">NOTES ON EMBODIED INTELLIGENCE / 2026.11</div><h1>CoRL 阅读室<br><span class="muted">世界模型、Agentic、Memory<br>人形与接触控制</span></h1><p class="lede">每篇先用一小段讲明白，再沿着问题、思路、方法、实验、后续实验展开。按<a href="{TEMPLATE}">五块证据链模板</a>保留原图和评测边界。</p><div class="stats"><div><strong>{len(DATA)}</strong>本专题全文核读与 HTML</div><div><strong>687</strong>主会论文仅建目录</div><div><strong>01</strong>既有 AW-0 精读接入</div></div><aside class="scope"><strong>这批覆盖哪里？</strong><p>覆盖用户指定的五个重点方向：已有十篇之外，本轮完成 H2R 的 BATCH、RoSHI、CARD，Learn@Deploy 的 FORCA、Gated Memory Policy，以及 Beneath the Policy 的 Blind Dexterity。Memory 三篇来自官方 Workshop；EmbodiedSWE 为 Agentic Workshop Best Paper。四篇接触论文为 Workshop Spotlight；WB-WAM 的 TAG Workshop 身份沿用既有核验，本次未复核；Long-WAM 为主题关联阅读，录用归属待核实。主会目录的 687 篇尚未逐篇精读。</p><a href="{catalog}">打开主会 687 篇可检索目录 →</a></aside><section><h2>一条可以串起来的阅读路线</h2><p>先用 WB-WAM 理解异构监督，再用 Long-WAM 理解时间。接下来，PanTact 选择“接触什么”，Workhorse 处理“跟不上计划”，OCLO 在线调整姿态，HULK 学会负载下的物理支撑。接口相邻，实验协议并不相同。新补的三篇记忆论文对照显式记录、隐状态与结构化读取；EmbodiedSWE 则把编码 Agent 变成离线数据老师。</p></section><section class="scope"><h2>Agentic 与 WAM 的交叉：AW-0</h2><p>沿用既有完整精读，本次只核验 Agentic Workshop Best Paper 归属。默认代码作为生成条件；hybrid 才执行技能，真机 71.1 为阶段分数。</p><p><a href="https://www.siyuanluoembodied.xin/papers/agentic-wam.html">已有 HTML 精读 →</a> · <a href="https://app.notion.com/p/419bb2b96e9d81249316ce9097d31d58">已有 Notion 正文 →</a></p></section><div class="cards">{cards}</div><section><h2>读结果时，检查这四件事</h2><div class="principles"><p><strong>数据账本</strong><br>人类示范、机器人示范、预训练与更新步数一起看。</p><p><strong>训练 / 部署</strong><br>未来视频、力输入、MPC 或教师，哪些在部署时仍然存在？</p><p><strong>同一协议</strong><br>仿真、真机、最大负载、固定负载成功率不能拼接。</p><p><strong>证据强度</strong><br>完整成功、部分得分、定性演示分开；小样本显示区间。</p></div></section><p class="source-links"><a href="{COLLECTION}">打开 Notion 专题 ↗</a><a href="https://contact-rich-loco-manipulation.github.io/program/index.html">Workshop 官方议程 ↗</a></p>'''
     content=content.replace(f'按<a href="{TEMPLATE}">五块证据链模板</a>','按五块证据链')
-    content=content.replace('<div class="cards">', '<aside class="scope"><strong>还有哪些 Workshop 值得写？</strong><p>H2R、Learn@Deploy、Beneath the Policy，以及结构化物理智能与生成到动作。官方已核验的候选论文单独列为待精读。</p><a href="corl2026-workshops.html">查看下一批 Workshop 与候选论文 →</a></aside><div class="cards">',1)
+    content=content.replace('<div class="cards">', '<aside class="scope"><strong>还有哪些 Workshop 值得写？</strong><p>H2R、Learn@Deploy、Beneath the Policy，以及结构化物理智能与生成到动作。本轮九篇中六篇已完成全文精读，VETO、UMI 控制器选择与 Beyond Fixed Delays 三篇待获取全文。</p><a href="corl2026-workshops.html">查看 Workshop 论文与阅读状态 →</a></aside><div class="cards">',1)
     if not portable:
         content=content.replace('https://www.siyuanluoembodied.xin/papers/agentic-wam.html','agentic-wam.html')
         content=content.replace(f'<a href="{COLLECTION}">打开 Notion 专题 ↗</a>', '<a href="../index.html#all-readings">返回全站论文目录</a>')
@@ -195,9 +205,9 @@ def build_workshops():
     items=json.loads((ROOT/'scripts/corl2026/workshops.json').read_text())
     cards=[]
     for i,d in enumerate(items,1):
-        papers=''.join(f'<li><strong>{html.escape(p["name"])}</strong> · {html.escape(p["status"])}</li>' for p in d['papers'])
+        papers=''.join('<li><strong>'+ (f'<a href="{html.escape(p["url"])}">{html.escape(p["name"])}</a>' if p.get('url') else html.escape(p['name'])) + '</strong> · '+html.escape(p['status'])+'</li>' for p in d['papers'])
         cards.append(f'<article class="paper-card"><span class="card-num">0{i}</span><div class="eyebrow">{html.escape(d["theme"])}</div><h2>{html.escape(d["name"])}</h2><p>{html.escape(d["question"])}</p><p class="boundary">{html.escape(d["why"])}</p><ul class="candidate-list">{papers}</ul><p class="evidence-note" data-evidence="paper">{html.escape(d["evidence"])}</p><a href="{d["url"]}">官方议程与论文入口 ↗</a></article>')
-    content='<div class="eyebrow">CoRL 2026 / 下一批选题</div><h1>从哪里继续读？<br><span class="muted">五场 Workshop，三条优先路线</span></h1><p class="lede">优先顺序是本网站的阅读建议：先补人类数据的转换，再看部署中的适应，最后审计策略下面的控制接口。</p><aside class="scope"><strong>当前阅读状态</strong><p>以下核验到官方主题、录用列表或报告摘要。候选论文尚未在本专题完成全文精读，不提供未经核读的性能结论。SPIN 是报告与挑战入口；G2A 已有 WB-WAM，新的候选仍需核对。</p><a href="corl2026.html">返回十篇已完成精读与既有 AW-0 →</a></aside><div class="cards">'+''.join(cards)+'</div><section><h2>建议从这三组开始</h2><ol><li><strong>BATCH / RoSHI：</strong>读完 WB-WAM 后，进一步核对跨本体对齐与采集链路。先问监督信号如何得到，再问增加数据是否有效。</li><li><strong>FORCA / VETO / Gated Memory Policy：</strong>接在 AW-0、EmbodiedSWE 与 Memory 三篇之后；分别检查物理反馈、动作验证与部署适应。</li><li><strong>Blind Dexterity / UMI 控制器选择 / 推理延迟：</strong>接在 Workhorse、OCLO、HULK 之后；检验收益究竟来自策略，还是控制器、观测与时间尺度。</li></ol><p class="evidence-note" data-evidence="inference">这里提出的是阅读问题与排序，不是论文结论或跨论文排名。相同论文出现在多个 Workshop 时只计一次；Workhorse 的第二个 Workshop 入口不增加精读篇数。</p></section>'
+    content='<div class="eyebrow">CoRL 2026 / Workshop 阅读进度</div><h1>从哪里继续读？<br><span class="muted">五场 Workshop，三条优先路线</span></h1><p class="lede">优先顺序是本网站的阅读建议：先补人类数据的转换，再看部署中的适应，最后审计策略下面的控制接口。</p><aside class="scope"><strong>当前阅读状态</strong><p>本轮指定九篇已完成六篇：BATCH、RoSHI、CARD、FORCA、Gated Memory Policy、Blind Dexterity。VETO 尚未找到公开全文；UMI 控制器选择与 Beyond Fixed Delays 的 OpenReview PDF 下载返回 403，作者/公开索引未找到替代全文。三篇仅保留题目、展示类型与来源，不提供方法或性能结论。SPIN 与 G2A 的其他入口仍为报告/选题导航。</p><a href="corl2026.html">返回十六篇已完成精读与既有 AW-0 →</a></aside><div class="cards">'+''.join(cards)+'</div><section><h2>建议从这三组开始</h2><ol><li><strong>BATCH / RoSHI / CARD：</strong>读完 WB-WAM 后，进一步核对跨本体对齐与采集链路。先问监督信号如何得到，再问增加数据是否有效。</li><li><strong>FORCA / VETO / Gated Memory Policy：</strong>接在 AW-0、EmbodiedSWE 与 Memory 三篇之后；分别检查物理反馈、动作验证与部署适应。</li><li><strong>Blind Dexterity / UMI 控制器选择 / 推理延迟：</strong>接在 Workhorse、OCLO、HULK 之后；检验收益究竟来自策略，还是控制器、观测与时间尺度。</li></ol><p class="evidence-note" data-evidence="inference">这里提出的是阅读问题与排序，不是论文结论或跨论文排名。相同论文出现在多个 Workshop 时只计一次；Workhorse 的第二个 Workshop 入口不增加精读篇数。</p></section>'
     return shell('CoRL 2026 · Workshop 选题与候选论文',content)
 
 def build_catalog(portable=False):
@@ -208,7 +218,7 @@ def build_catalog(portable=False):
         kind=e['kind']
         rows+=f'<tr data-kind="{kind.lower()}"><td>{i+1:03}</td><td><a href="{html.escape(e["url"])}">{html.escape(e["title"])}</a><details><summary>官方会议信息</summary><p>{html.escape(ctx)}</p></details></td><td>{kind}</td><td>仅目录</td></tr>'
     filters='<div class="filters" hidden><label>搜索标题 / 会议信息<input id="search" type="search" placeholder="如 world model、humanoid、memory" autocomplete="off"></label><label>展示类型<select id="kind"><option value="">全部</option><option value="oral">Oral</option><option value="spotlight">Spotlight</option><option value="poster">Poster</option></select></label><button id="reset" type="button">清空筛选</button><output id="count" aria-live="polite">687 / 687 篇</output></div>'
-    content=f'<div class="eyebrow">OFFICIAL MAIN-CONFERENCE INDEX</div><h1>CoRL 2026 · 687 篇主会目录</h1><p class="lede">这是官方标题与会议展示信息的索引，尚未逐篇通读，不含由标题猜测的方法结论。</p><p>来源：<a href="https://www.corl.org/program/accepted-papers">CoRL 官方 Accepted Papers</a>，2026-11-17 获取；按 OpenReview 链接去重。源页另列 21 个 Oral、72 个 Spotlight，它们也属于海报列表，不重复计篇数。</p><p class="scope">十篇新整理与既有 AW-0 精读入口见<a href="{COLLECTION if portable else "corl2026.html"}">阅读室</a>；它们的 Workshop / 关联阅读身份与本页主会目录分开记录。</p>{filters}<p id="empty" hidden>没有匹配结果，请换一个关键词或清空筛选。</p><div class="eval-table-wrap"><table id="catalog"><thead><tr><th>序号</th><th>论文 · 原始链接</th><th>展示类型</th><th>阅读状态</th></tr></thead><tbody>{rows}</tbody></table></div><noscript><p>JavaScript 未开启，下面仍可阅读全部 687 项，也可用浏览器页面查找。</p></noscript>'
+    content=f'<div class="eyebrow">OFFICIAL MAIN-CONFERENCE INDEX</div><h1>CoRL 2026 · 687 篇主会目录</h1><p class="lede">这是官方标题与会议展示信息的索引，尚未逐篇通读，不含由标题猜测的方法结论。</p><p>来源：<a href="https://www.corl.org/program/accepted-papers">CoRL 官方 Accepted Papers</a>，2026-11-17 获取；按 OpenReview 链接去重。源页另列 21 个 Oral、72 个 Spotlight，它们也属于海报列表，不重复计篇数。</p><p class="scope">十六篇精读与既有 AW-0 精读入口见<a href="{COLLECTION if portable else "corl2026.html"}">阅读室</a>；它们的 Workshop / 关联阅读身份与本页主会目录分开记录。</p>{filters}<p id="empty" hidden>没有匹配结果，请换一个关键词或清空筛选。</p><div class="eval-table-wrap"><table id="catalog"><thead><tr><th>序号</th><th>论文 · 原始链接</th><th>展示类型</th><th>阅读状态</th></tr></thead><tbody>{rows}</tbody></table></div><noscript><p>JavaScript 未开启，下面仍可阅读全部 687 项，也可用浏览器页面查找。</p></noscript>'
     return shell('CoRL 2026 · 687 篇主会目录',content,portable=portable)
 
 def main():
@@ -229,6 +239,6 @@ def main():
     (ROOT/'papers/corl2026-workshops.html').write_text(build_workshops())
     (ROOT/'notes/corl2026/exports/main-conference-catalog.html').write_text(build_catalog(True))
     (ROOT/'notes/corl2026/metadata.json').write_text(json.dumps(DATA,ensure_ascii=False,indent=2))
-    print('Built 10 paper pages, collection, catalog, workshop guide and portable exports.')
+    print(f'Built {len(DATA)} paper pages, collection, catalog, workshop guide and portable exports.')
 
 if __name__=='__main__': main()

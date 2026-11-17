@@ -1,0 +1,79 @@
+{
+  "date": "2026-11-17",
+  "requested": 9,
+  "completed": 6,
+  "full_pdf_pages_read": 85,
+  "papers": [
+    {
+      "slug": "batch",
+      "pages": 20,
+      "pdf_url": "https://arxiv.org/pdf/2611.10148v1",
+      "sha256": "5809cd49e8f0dc3cb3e4daf666f598091dd0a9d4de3672a797a30de24b014101",
+      "read_scope": "all PDF pages, body, appended supplement if present, captions, tables, references",
+      "reading": "notes/corl2026/reading/batch.md",
+      "site": "https://www.siyuanluoembodied.xin/papers/corl2026-batch.html"
+    },
+    {
+      "slug": "roshi",
+      "pages": 8,
+      "pdf_url": "https://arxiv.org/pdf/2604.07331v1",
+      "sha256": "79d0fb62439d0127cf6ce00426a83d8ed29f26559dffefacae936b98753e8137",
+      "read_scope": "all PDF pages, body, appended supplement if present, captions, tables, references",
+      "reading": "notes/corl2026/reading/roshi.md",
+      "site": "https://www.siyuanluoembodied.xin/papers/corl2026-roshi.html"
+    },
+    {
+      "slug": "card",
+      "pages": 20,
+      "pdf_url": "https://arxiv.org/pdf/2610.36539v1",
+      "sha256": "6125df1ff509d192eca62b9ad2ab15f9ad970030974de620af1a6a40ee3d0f55",
+      "read_scope": "all PDF pages, body, appended supplement if present, captions, tables, references",
+      "reading": "notes/corl2026/reading/card.md",
+      "site": "https://www.siyuanluoembodied.xin/papers/corl2026-card.html"
+    },
+    {
+      "slug": "forca",
+      "pages": 8,
+      "pdf_url": "https://arxiv.org/pdf/2610.31841v1",
+      "sha256": "f1e68f0e54d2e64d266f6b9b2aaacfaed0c6fc03db891eda21e647a5da8391e1",
+      "read_scope": "all PDF pages, body, appended supplement if present, captions, tables, references",
+      "reading": "notes/corl2026/reading/forca.md",
+      "site": "https://www.siyuanluoembodied.xin/papers/corl2026-forca.html"
+    },
+    {
+      "slug": "gated-memory",
+      "pages": 20,
+      "pdf_url": "https://gated-memory-policy.github.io/paper/Gated_Memory_Policy_2026-08-05.pdf",
+      "sha256": "7d66f4402e7dd9317ed5b3d560bb0e7482cffd0036b180e7a54747053dde8b69",
+      "read_scope": "all PDF pages, body, appended supplement if present, captions, tables, references",
+      "reading": "notes/corl2026/reading/gated-memory.md",
+      "site": "https://www.siyuanluoembodied.xin/papers/corl2026-gated-memory.html"
+    },
+    {
+      "slug": "blind-dexterity",
+      "pages": 9,
+      "pdf_url": "https://arxiv.org/pdf/2608.29487v1",
+      "sha256": "d5e81f2676bf452bce756832f6a066671346596633c5e8c898362fd62986c612",
+      "read_scope": "all PDF pages, body, appended supplement if present, captions, tables, references",
+      "reading": "notes/corl2026/reading/blind-dexterity.md",
+      "site": "https://www.siyuanluoembodied.xin/papers/corl2026-blind-dexterity.html"
+    }
+  ],
+  "pending": [
+    {
+      "name": "VETO",
+      "reason": "No accessible public full text found via workshop, arXiv title index and author/lab pages",
+      "source": "https://learn-at-deploy.github.io/"
+    },
+    {
+      "name": "UMI controller selection",
+      "reason": "OpenReview PDF HTTP 403; no alternate public full text found",
+      "source": "https://openreview.net/forum?id=1WbNYYTPTM"
+    },
+    {
+      "name": "Beyond Fixed Delays",
+      "reason": "OpenReview PDF HTTP 403; no alternate public full text found; VLALagBench has different authors and is not substituted",
+      "source": "https://openreview.net/forum?id=1H7r3pWx5g"
+    }
+  ]
+}

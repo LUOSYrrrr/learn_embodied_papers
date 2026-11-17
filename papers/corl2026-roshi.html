@@ -1,0 +1,212 @@
+<!doctype html><html lang="zh-CN"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="color-scheme" content="light dark"><title>RoSHI · CoRL 阅读室</title><script>try{document.documentElement.dataset.theme=localStorage.getItem('theme')||localStorage.getItem('corl2026-theme')||'light'}catch{}</script><style>:root{--bg:#faf9f7;--panel:#fff;--text:#1a1a1e;--muted:#64646c;--line:#dddcd8;--accent:#966333;--soft:#f3eee8;--warn:#795124;--warm:#f8efe0;--shadow:0 8px 24px #00000008;color-scheme:light}
+:root[data-theme=dark]{--bg:#0f1014;--panel:#1a1b22;--text:#f0f0f3;--muted:#b8bac4;--line:#3a3c48;--accent:#d4a06a;--soft:#29251f;--warn:#efc68d;--warm:#362c20;--shadow:none;color-scheme:dark}
+*{box-sizing:border-box}html{scroll-behavior:smooth;scroll-padding-top:85px}body{margin:0;background:var(--bg);color:var(--text);font:16px/1.85 -apple-system,BlinkMacSystemFont,"PingFang SC","Noto Sans CJK SC",sans-serif}a{color:var(--accent);text-underline-offset:4px}a:hover{text-decoration-thickness:2px}button,input,select{font:inherit}button{padding:7px 14px;border:1px solid var(--line);border-radius:7px;background:var(--panel);color:var(--text);cursor:pointer}button:hover{border-color:var(--accent);background:var(--soft)}button:disabled{opacity:.45;cursor:default}a:focus-visible,button:focus-visible,input:focus-visible,select:focus-visible,summary:focus-visible,[tabindex]:focus-visible{outline:3px solid var(--accent);outline-offset:4px}input,select{background:var(--panel);color:var(--text);border:1px solid var(--line);padding:9px 12px;border-radius:6px;max-width:100%}.skip{position:absolute;top:-100px;left:20px;padding:8px;background:var(--panel);z-index:20}.skip:focus{top:12px}.top{position:sticky;top:0;z-index:5;display:flex;justify-content:space-between;gap:20px;align-items:center;padding:15px 4vw;background:var(--bg);border-bottom:1px solid var(--line)}.brand{font-weight:750;text-decoration:none;letter-spacing:.05em}.brand span{font:12px ui-monospace,monospace;letter-spacing:.1em;margin-left:8px;color:var(--muted)}.top nav{display:flex;gap:16px;align-items:center;font-size:13px}.layout{display:grid;grid-template-columns:235px minmax(0,940px);gap:55px;max-width:1360px;margin:0 auto;padding:64px 38px 90px}.layout:not(:has(.sidebar)){display:block;max-width:1190px}main{min-width:0}.sidebar{align-self:start;position:sticky;top:105px;font-size:13px;max-height:calc(100vh - 125px);overflow:auto;padding-right:13px}.sidebar summary{font-weight:700;cursor:pointer;list-style:none}.sidebar nav{display:grid;gap:5px;margin-top:18px}.sidebar a{padding:7px 11px;border-left:2px solid var(--line);text-decoration:none;line-height:1.6;color:var(--muted)}.sidebar a:hover{border-color:var(--accent);color:var(--accent);background:var(--soft)}.side-note{border-top:1px solid var(--line);margin-top:25px;padding-top:18px;color:var(--muted);font-size:12px}.eyebrow{color:var(--accent);font-size:11px;letter-spacing:.1em;font-weight:700;text-transform:uppercase}h1{font-size:clamp(30px,3.3vw,48px);line-height:1.35;letter-spacing:-.035em;margin:16px 0 20px;font-weight:730;max-width:980px}h2{font-size:24px;line-height:1.5;letter-spacing:-.02em;margin:56px 0 20px;padding-top:12px;border-top:1px solid var(--line)}h3{font-size:19px;margin:32px 0 14px;line-height:1.6}p{margin:15px 0}.lede{font-size:19px;max-width:850px;color:var(--muted)}.muted,.tagline{color:var(--muted)}.source-links{display:flex;gap:18px;flex-wrap:wrap;font-size:13px;margin:20px 0 28px}blockquote{margin:26px 0;padding:20px 25px;background:var(--soft);border-left:4px solid var(--accent);border-radius:0 10px 10px 0}blockquote p{margin:0}.eval-overview{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px;margin:24px 0 30px}.eval-overview article{padding:18px;border:1px solid var(--line);border-radius:9px;background:var(--panel)}.eval-overview span{font-size:11px;color:var(--accent);font-weight:700;letter-spacing:.08em}.eval-overview p{font-size:14px;line-height:1.75;margin:8px 0 0}.eval-table-wrap{overflow-x:auto;margin:24px 0;border:1px solid var(--line);border-radius:9px;background:var(--panel)}table{border-collapse:collapse;width:100%;font-size:13px;line-height:1.75}th,td{padding:14px 15px;text-align:left;vertical-align:top;border-bottom:1px solid var(--line);min-width:120px}th{background:var(--soft);font-weight:650}tbody tr:last-child td{border-bottom:0}tbody tr:hover{background:var(--soft)}code{font:13px/1.8 ui-monospace,SFMono-Regular,Menlo,monospace;white-space:normal;overflow-wrap:anywhere;background:var(--soft);padding:3px 6px;border-radius:4px}figure{margin:28px 0;padding:12px;background:white;border:1px solid var(--line);border-radius:9px}figure img{width:100%;height:auto;display:block}figcaption{color:#56625a;font-size:12px;line-height:1.7;margin:10px 7px 3px}abbr{text-decoration-style:dotted;cursor:help}.inference{padding-left:16px;border-left:3px solid var(--line)}.walker,.quiz{padding:26px;border:1px solid var(--line);border-radius:12px;background:var(--panel);margin:40px 0}.walker h2,.quiz h2{border:0;padding:0;margin:0 0 10px}.walker>p{font-size:14px;color:var(--muted)}.walker ol{padding:0;margin:20px 0 0;list-style:none;display:grid;gap:10px}.walker li{border:1px solid var(--line);padding:15px;border-radius:8px;font-size:14px}.walker li.current{border-color:var(--accent);background:var(--soft)}.step-no{font:12px ui-monospace,monospace;color:var(--accent);font-weight:700;display:inline-block;margin-right:12px}.step-controls{display:flex;gap:15px;align-items:center}.step-controls output{font-size:12px;color:var(--muted)}fieldset{border:0;padding:0;margin:0 0 15px}legend{font-weight:600;margin:8px 0 12px}.quiz label{display:block;padding:10px 12px;background:var(--bg);margin:7px 0;border-radius:6px;font-size:14px}.quiz input{accent-color:var(--accent)}.feedback{font-weight:600;color:var(--accent)}details{margin:15px 0}summary{cursor:pointer;color:var(--accent);font-size:14px}details p{font-size:14px}.stats{display:grid;grid-template-columns:repeat(3,1fr);border-block:1px solid var(--line);margin:35px 0}.stats div{padding:24px;font-size:13px;color:var(--muted);border-right:1px solid var(--line)}.stats div:last-child{border:0}.stats strong{display:block;font:42px/1.2 ui-monospace,monospace;color:var(--accent);margin-bottom:12px}.scope{background:var(--soft);padding:20px 25px;border-radius:10px;font-size:14px}.scope p{margin:8px 0 12px}.cards{display:grid;grid-template-columns:1fr 1fr;gap:22px;margin:35px 0}.paper-card{position:relative;background:var(--panel);padding:28px;border:1px solid var(--line);border-radius:12px;box-shadow:var(--shadow)}.paper-card h2{border:0;margin:15px 0 12px;padding:0;font-size:27px}.paper-card h2 a{text-decoration:none}.paper-card p{font-size:15px}.paper-card .eyebrow{max-width:calc(100% - 25px);font-size:10px}.card-num{position:absolute;right:20px;top:23px;color:var(--muted);font:12px ui-monospace,monospace}.boundary{padding:12px 14px;background:var(--warm);color:var(--warn);border-radius:6px;font-size:13px!important}.paper-card small{font-size:11px;color:var(--muted)}.principles{display:grid;grid-template-columns:repeat(2,1fr);gap:16px}.principles p{padding:20px;background:var(--panel);border:1px solid var(--line);border-radius:8px;font-size:14px;margin:0}.principles strong{color:var(--accent);display:inline-block;margin-bottom:8px}.filters{display:flex;gap:15px;flex-wrap:wrap;align-items:end;margin:30px 0 20px;padding:20px;background:var(--soft);border-radius:10px}.filters label{display:grid;gap:5px;font-size:12px}.filters label:first-child{flex:1;min-width:230px}.filters output{font-size:12px;align-self:center}#catalog td:nth-child(1){min-width:60px;width:60px;font-family:ui-monospace,monospace;color:var(--muted)}#catalog td:nth-child(2){min-width:260px}#catalog td:nth-child(3),#catalog td:nth-child(4){min-width:85px;width:90px}#catalog details{margin:5px 0 0}#catalog summary{font-size:11px}#catalog details p{white-space:pre-wrap;font-size:12px}footer{max-width:1284px;margin:auto;padding:25px 38px;border-top:1px solid var(--line);font-size:12px;color:var(--muted)}[hidden]{display:none!important}
+@media(max-width:1000px){.layout{grid-template-columns:190px minmax(0,1fr);gap:28px;padding:40px 25px}.eval-overview{grid-template-columns:1fr}.eval-overview article{padding:15px}.eval-overview p{margin:4px 0}.top{padding-inline:25px}.sidebar{font-size:12px}}
+@media(max-width:720px){.top{padding:13px 18px;gap:10px;position:relative}.top nav{gap:8px;font-size:11px}.top nav>a{display:none}.top button{padding:5px 9px;font-size:11px}.brand{font-size:14px}.brand span{display:none}.layout,.layout:not(:has(.sidebar)){display:block;padding:27px 18px 60px}.sidebar{position:static;max-height:none;padding:0;margin:0 0 30px;border:1px solid var(--line);border-radius:8px;background:var(--panel)}.sidebar details{margin:0;padding:12px 15px}.sidebar summary{list-style:disclosure-closed}.sidebar nav{gap:2px}.side-note{display:none}h1{font-size:30px}h2{font-size:22px;margin-top:42px}h3{font-size:18px}body{font-size:15px}.cards,.principles{grid-template-columns:1fr}.paper-card{padding:24px}.stats div{padding:19px 12px;font-size:11px}.stats strong{font-size:32px}.lede{font-size:17px}blockquote{padding:18px}.walker,.quiz{padding:18px}.source-links{gap:14px}.scope{padding:18px}th,td{padding:12px;font-size:12px}.eval-overview{gap:9px}footer{padding:20px 18px}figure{padding:7px}figcaption{font-size:11px}}
+@media(prefers-reduced-motion:reduce){html{scroll-behavior:auto}}
+@media print{html{scroll-behavior:auto}body{background:white!important;color:#111!important;font-size:10pt}.top,.sidebar,footer,.step-controls,.quiz button,.filters,.skip{display:none!important}.layout,.layout:not(:has(.sidebar)){display:block;max-width:none;padding:0}.eval-table-wrap{overflow:visible;border-color:#ccc}table{font-size:8pt}th,td{min-width:0;padding:7px}h1{font-size:25pt}h2{font-size:16pt;break-after:avoid}h3{break-after:avoid}figure,.paper-card,.eval-overview article{break-inside:avoid}details{display:block}details>*{display:block!important}details::details-content{display:block;content-visibility:visible}img{max-height:70vh;object-fit:contain}.paper-card{box-shadow:none}.cards{display:block}.paper-card{margin:15px 0}a{color:#111}.eval-overview,.principles{display:block}.eval-overview article{margin:10px 0}blockquote,.scope{background:#eee!important}.boundary{color:#333!important;background:#eee!important}}
+
+.zoom-dialog{width:96vw;max-width:96vw;max-height:94vh;border:1px solid var(--line);border-radius:10px;padding:12px;background:var(--panel);color:var(--text)}.zoom-dialog::backdrop{background:#000b}.zoom-bar{margin:0 0 10px;display:flex;justify-content:flex-end}.zoom-scroll{overflow:auto;max-height:78vh;background:white}.zoom-scroll img{display:block;width:auto;max-width:none;height:auto}
+.eval-overview{grid-template-columns:repeat(2,minmax(0,1fr))}.cn-read{margin:18px 0 24px;padding:16px 20px;background:var(--soft);border-radius:8px}.cn-read p{margin:6px 0 0}.cn-label{font-size:11px;letter-spacing:.08em;font-weight:700;color:var(--accent)}.evidence-note{font-size:13px;color:var(--muted)}.candidate-list{padding-left:20px;font-size:14px;line-height:1.8}.candidate-list li{margin:12px 0}.candidate-list strong{font-weight:600}.candidate-list+p{border-top:1px solid var(--line);padding-top:12px}
+@media(max-width:720px){.eval-overview{grid-template-columns:1fr}.top nav>a.collection-link{display:inline}.brand{letter-spacing:0}.top{gap:8px}.top nav{gap:6px}.top button{padding:5px 7px}.cn-read{padding:14px 16px}}
+@media print{:root,:root[data-theme=dark]{--bg:#fff;--panel:#fff;--text:#111;--muted:#444;--line:#ccc;--accent:#333;--soft:#f4f4f4;--warn:#333;--warm:#eee}.cn-read{background:#f4f4f4}.zoom-dialog{display:none!important}}
+</style></head><body><a class="skip" href="#main">跳到正文</a><header class="top"><a href="../index.html" class="brand">~/paper-notes <span>CoRL 2026</span></a><nav aria-label="阅读导航与工具"><a class="collection-link" href="corl2026.html">专题</a><a href="corl2026-workshops.html">Workshop 选题</a><button id="theme" type="button" aria-label="切换深浅主题" hidden>切换主题</button><button id="print" type="button" hidden>打印 / PDF</button></nav></header><div class="layout"><aside class="sidebar"><details open><summary>RoSHI · 章节</summary><nav aria-label="章节导航"><a href="#overview">简短说明与评测</a><a href="#section-1">1. 问题与关键判断</a><a href="#section-2">2. 数据从哪里来，监督到了哪里</a><a href="#section-3">3. 机制：把方向对齐，再用轨迹约束人体</a><a href="#section-4">4. 证据：位置误差改善，角度误差有例外</a><a href="#section-5">5. 研究价值、局限与可做实验</a><a href="#section-6">原文与阅读范围</a><a href="#walk">训练到执行</a><a href="#quiz">理解检查</a></nav></details><p class="side-note">原文 / 推断 / 待验证<br>PDF 全文与附录核读<br>不以演示替代成功率</p></aside><main id="main"><div class="eyebrow">H2R Workshop · Oral</div><h1 id="overview">RoSHI：先把人类动作采准，再谈跨本体学习</h1><p class="tagline">动作采集 · 传感融合 · 人形迁移</p><div class="source-links"><a href="https://arxiv.org/abs/2604.07331v1">原始论文 ↗</a><a href="https://arxiv.org/pdf/2604.07331v1">PDF ↗</a><a href="corl2026.html">CoRL 五方向专题</a></div><article class="paper-body">
+<blockquote class="core-insight">
+<p>简短说明：RoSHI 把九个低价 IMU 与 Aria 眼镜结合，用惯性方向约束人体姿态、用 SLAM 稳定全局轨迹。它解决人类数据的采集接口，提供可重定向到 G1 的动作；本文没有证明大规模人类数据已经提升下游通用策略。</p>
+</blockquote><section class="eval-overview" aria-label="评测结论总览"><article class="eval-card"><span>仿真</span><p>用仿真 RL 训练轨迹追踪，但未给完整下游成功率对照。</p></article><article class="eval-card"><span>ID / OOD</span><p>11 段动作、两名采集者；不能解释为大规模跨人群泛化。</p></article><article class="eval-card"><span>真机</span><p>G1 跑跳与操作展示可迁移性；未报告固定次数成功率。</p></article><article class="eval-card"><span>证据边界</span><p>约 350 美元仅为 IMU 与接收器；快速运动角度误差并非最好。</p></article></section>
+<h2 id="section-1">1. 问题与关键判断</h2><div class="cn-read"><div class="cn-label">这一节解决什么</div><p>人类动作迁移需要三份同步信息：身体怎么动、整个人在世界中去了哪里、当时看到什么。单独优化一帧的人体网格误差，不能保证一段轨迹适合机器人模仿。RoSHI 的选择是让传感器各自负责更可靠的部分。（PDF pp.1–3）</p></div>
+<p>外部相机依赖可见性与标定；IMU 在遮挡和快速运动时仍能感知旋转，却不能稳定提供全局平移；第一视角 SLAM 提供米制轨迹，但看不到身体的多数关节。RoSHI 用稀疏 IMU 补足姿态约束，再让 EgoAllo 的人体先验补出未测自由度。这里的 diffusion 是<strong>人体运动重建器</strong>，不是直接输出机器人动作的策略。</p>
+<h2 id="section-2">2. 数据从哪里来，监督到了哪里</h2><div class="cn-read"><div class="cn-label">这一节解决什么</div><p>需要分开采集硬件、人体先验和机器人训练三个阶段；“低成本采集”不等于免预训练，也不等于免标定。（§III–IV）</p></div>
+<div class="eval-table-wrap" tabindex="0" role="region" aria-label="证据表，可横向滚动"><table class="eval-table">
+<thead>
+<tr>
+<th>环节</th>
+<th>输入、来源与用途</th>
+<th>边界</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>原始采集</td>
+<td>九个 BNO085 IMU，双臂、双腿各两个，骨盆一个；100 Hz 方向数据；Aria 约 30 Hz RGB 与 SLAM</td>
+<td>论文约 350 美元是九 IMU 加接收器，不包含 Aria、手机与工作站</td>
+</tr>
+<tr>
+<td>初始标定</td>
+<td>手机拍 20–40 秒自然动作；外壳 4 cm AprilTag 给传感器方向，SAM 3D Body 给骨骼方向</td>
+<td>不用固定 T-pose，但仍用外部手机完成标定</td>
+</tr>
+<tr>
+<td>人体重建</td>
+<td>EgoAllo 在 AMASS 与合成头戴轨迹上训练；推理时增加骨骼方向 guidance</td>
+<td>未直接测到的关节仍依赖先验</td>
+</tr>
+<tr>
+<td>定量数据</td>
+<td>两名采集者、11 段动作；三组分别强调原地、全局位移、快速运动</td>
+<td>不是大规模人群或场景泛化研究</td>
+</tr>
+<tr>
+<td>评测真值</td>
+<td>OptiTrack 51 关节，三阶段 Adam 拟合 SMPL-X；排除初始标定段</td>
+<td>真值来自独立动捕系统，不能称评测也无需外部设备</td>
+</tr>
+<tr>
+<td>下游控制</td>
+<td>PyRoki/GMR 重定向，BeyondMimic 环境按 DeepMimic 式奖励训练追踪策略</td>
+<td>真机演示额外用了仿真 RL</td>
+</tr>
+</tbody>
+</table></div>
+<p>传感流按 UTC 最近邻匹配。作者把同一局域网中通常小于 100 ms 的时钟偏差视为可忽略（p.3）。[推断] 对高速动作，100 ms 仍可能对应可观位移；后续复现应报告偏差分布及时间偏移消融，不能把该表述当作严格同步精度保证。</p>
+<h2 id="section-3">3. 机制：把方向对齐，再用轨迹约束人体</h2><div class="cn-read"><div class="cn-label">这一节解决什么</div><p>理解方法先要区分两个未知量：每个 IMU 的局部世界朝向，以及 IMU 绑在骨骼上的固定偏角。只有都校正后，多个方向读数才能共同约束一个人体。（Eq.1–7，pp.4–5）</p></div>
+<figure><a href="../assets/figures/corl2026/roshi-fig-2.png" target="_blank" rel="noopener"><img loading="lazy" decoding="async" src="../assets/figures/corl2026/roshi-fig-2.png" alt="原文 Fig.2：从 IMU/Aria 输入，经标定、扩散 guidance 到全局人体姿态。PDF p.4。" /></a><figcaption>原文 Fig.2：从 IMU/Aria 输入，经标定、扩散 guidance 到全局人体姿态。PDF p.4。 · 点击查看原尺寸</figcaption></figure>
+<p>图中蓝色 SLAM 分支给扩散条件，并在末端做全局对齐；红色 IMU 分支经过标定后给 guidance。绿色回路发生在人体姿态去噪中；它不代表机器人实时策略在做接触反馈。</p>
+<p>骨骼方向链可写为 <code>R_world,bone = R_world,imuWorld · R_imuWorld,sensor · R_bone,sensorᵀ</code>。第一项统一各 IMU 的世界系，第二项是实时测量，最后一项消去安装偏角。标定对多个有效帧在 SO(3) 上取 Karcher mean，即最小化旋转测地距离平方和，避免直接平均欧拉角。</p>
+<p><strong>教学微例（只绕同一轴转动，不是论文实验）</strong>：世界系校正为 +10°，传感器读数 40°，绑带安装偏角 15°，骨骼方向为 <code>10 + 40 − 15 = 35°</code>。忽略安装偏角会把姿态系统性高估 15°。在三维中必须按矩阵顺序相乘，不能直接相加三个欧拉角。</p>
+<p>扩散重建使用三类约束：可观测肘/髋/膝方向；骨盆与肩之间的相对方向；跨帧的骨盆—关节相对旋转一致性。SLAM 提供头部轨迹，姿态相关的头—骨盆变换比固定偏移更适合弯腰、蹲下。重建得到 SMPL 与全局轨迹，再经重定向和仿真追踪训练到 G1，信息链中没有把 RGB 直接变成一个通用操作策略。</p>
+<section class="walker" aria-label="训练到执行逐步读"><h2 id="walk">训练到执行：逐步读</h2><p>按顺序检查信息怎样流动；每一步都保留在页面中。按钮或左右方向键切换，Home / End 跳到首尾。</p><div class="step-controls" tabindex="0" role="group" aria-label="步骤导航" hidden><button data-prev type="button">上一步</button><output aria-live="polite">1 / 4</output><button data-next type="button">下一步</button></div><ol><li data-step="0"><span class="step-no">01</span>手机与 AprilTag 标定传感器安装偏角和各 IMU 世界系。</li><li data-step="1"><span class="step-no">02</span>同步九个 IMU、Aria 视频与 SLAM 轨迹。</li><li data-step="2"><span class="step-no">03</span>EgoAllo 受骨骼方向引导，输出全局人体姿态。</li><li data-step="3"><span class="step-no">04</span>重定向后经 BeyondMimic 仿真 RL，部署 G1 追踪策略。</li></ol></section><h2 id="section-4">4. 证据：位置误差改善，角度误差有例外</h2><div class="cn-read"><div class="cn-label">这一节解决什么</div><p>先比较同为可穿戴的系统，再把额外使用外部标定相机的 SAM3D 作为参照；还要同时看误差和覆盖率，避免只在能检测到的帧上宣布全面胜出。（Table II–III，pp.5–6）</p></div>
+<h3>仿真证据协议</h3>
+<div class="eval-table-wrap" tabindex="0" role="region" aria-label="证据表，可横向滚动"><table class="eval-table">
+<thead>
+<tr>
+<th>字段</th>
+<th>核验结果</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>用途 / benchmark</td>
+<td>BeyondMimic环境、DeepMimic式追踪奖励训练各动作；不是仿真任务成功率排行榜。§IV-C，p.7</td>
+</tr>
+<tr>
+<td>观测 / 动作 / 次数 / 控制</td>
+<td>策略以全局示范轨迹为条件；具体控制频率、训练种子与成组成功率未报告。</td>
+</tr>
+</tbody>
+</table></div>
+<h3>ID / OOD 的维度</h3>
+<div class="eval-table-wrap" tabindex="0" role="region" aria-label="证据表，可横向滚动"><table class="eval-table">
+<thead>
+<tr>
+<th>变化</th>
+<th>原文覆盖</th>
+<th>ID / OOD / 下降</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>运动速度、全局位移、遮挡</td>
+<td>两人11片段分三组，见Table II/III</td>
+<td>不构成明确隔离的ID/OOD任务split；不计算SR下降。</td>
+</tr>
+<tr>
+<td>人群、户外光照、绑带滑移</td>
+<td>有便携采集动机与展示</td>
+<td>没有分层泛化次数、连续长期漂移曲线；未报告。</td>
+</tr>
+<tr>
+<td>机器人本体</td>
+<td>重定向并在G1展示</td>
+<td>未报告同协议多本体控制比较。</td>
+</tr>
+</tbody>
+</table></div>
+<h3>真机协议与失败边界</h3>
+<div class="eval-table-wrap" tabindex="0" role="region" aria-label="证据表，可横向滚动"><table class="eval-table">
+<thead>
+<tr>
+<th>字段</th>
+<th>核验结果</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>平台与输入</td>
+<td>Unitree G1；重建人体与全局轨迹经PyRoki/GMR及仿真RL转换。§IV-C</td>
+</tr>
+<tr>
+<td>任务 / 次数 / 成功 / 时间</td>
+<td>跑跳、鞠躬、挥手、持包裹、挥拍展示；固定次数、SR与时间未报告。</td>
+</tr>
+<tr>
+<td>干预 / 停止 / 失败</td>
+<td>人工介入与安全停止次数未报告；重建可能出现肩—骨盆扭曲。§V</td>
+</tr>
+<tr>
+<td>最强结论</td>
+<td>这批动作可重定向并迁移到G1；不能给可靠性区间。</td>
+</tr>
+</tbody>
+</table></div>
+<div class="eval-table-wrap" tabindex="0" role="region" aria-label="证据表，可横向滚动"><table class="eval-table">
+<thead>
+<tr>
+<th>方法</th>
+<th>原地 MPJPE / JAE</th>
+<th>位移 MPJPE / JAE</th>
+<th>快速运动 MPJPE / JAE</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>IMU-only（仍借 Aria 提供全局轨迹）</td>
+<td>16.7 cm / 12.6°</td>
+<td>18.8 / 12.2°</td>
+<td>16.1 / 8.9°</td>
+</tr>
+<tr>
+<td>IMU + EgoAllo root</td>
+<td>12.7 / 12.5°</td>
+<td>11.9 / 12.2°</td>
+<td>12.5 / <strong>8.7°</strong></td>
+</tr>
+<tr>
+<td>EgoAllo</td>
+<td>10.6 / 15.6°</td>
+<td>10.0 / 14.1°</td>
+<td>11.7 / 17.5°</td>
+</tr>
+<tr>
+<td>RoSHI</td>
+<td><strong>9.6 / 12.0°</strong></td>
+<td><strong>9.9 / 11.0°</strong></td>
+<td><strong>10.3 / 15.6°</strong></td>
+</tr>
+<tr>
+<td>SAM3D（外部相机，检测有效帧）</td>
+<td>10.3 / <strong>10.5°</strong></td>
+<td>10.5 / 10.7°</td>
+<td>21.6 / 11.2°</td>
+</tr>
+</tbody>
+</table></div>
+<p>MPJPE 在 OptiTrack 世界系计算，混合了全局位置与姿态因素；JAE 比较父子骨骼方向，独立于全局根位姿。因此快速组的 10.3 cm 不能掩盖其 15.6° 角度误差：RoSHI 在这一项弱于 IMU + EgoAllo root。正文“best JAE on Datasets 1 and 2”应限定可穿戴基线；若包含 SAM3D，该说法与表格不一致。</p>
+<p>SAM3D 在 pickup-walkaround 片段仅覆盖 50% 帧；表中误差只计算有效检测，缺失帧并未计入误差。不能把它和完整可穿戴流只按平均误差排序。</p>
+<p><strong>仿真与真机</strong>：论文展示经 RL 追踪的跑、跳、鞠躬、挥手、搬包裹与挥拍（Fig.1、4，p.7）。未给各动作试验次数、成功率、跌倒率或多随机种子对照，不能计算成功率置信区间。</p>
+<p><strong>ID/OOD</strong>：三类运动属于不同传感难点，而不是明确隔离的训练/测试分布。两名采集者也不足以证明跨人群、长时间绑带滑动或广泛户外光照条件的稳定性。</p>
+<h2 id="section-5">5. 研究价值、局限与可做实验</h2><div class="cn-read"><div class="cn-label">这一节解决什么</div><p>最值得迁移的是“先统一坐标与时间，再评估下游可用性”的采集思路；最需要补证的是重建质量是否稳定转化为策略收益。（§IV-C、V，p.7）</p></div>
+<p>作者承认不可观关节会退化，冲突的方向约束可能让肩—骨盆链发生扭曲。硬件便宜不代表完整系统便宜；演示可重定向也不代表接触力或物体状态已被采集。机器人比人跑得快是作者提出的现象解释，没有独立控制变量验证。</p>
+<p class="inference evidence-note" data-evidence="inference">[推断] 若接到 WB-WAM/人形数据管线，应固定相同重定向器、RL 预算和动作片段，仅替换采集方法，报告轨迹误差、训练失败比例及真机完整成功次数；再人为加入时钟偏差与绑带滑动。这样才能判断更低 MPJPE 是否真的带来更稳控制，而非被后端追踪器补偿。</p>
+<p>建议继续阅读 CARD（把“动作”变成接触目标）、BATCH（对齐跨本体行为阶段）；它们分别解决采集之后的物理约束与训练分布问题。</p>
+<h3>一周实验草案与口述版</h3>
+<p class="inference evidence-note" data-evidence="inference">[推断] 一周内可做的最小验证：先复核坐标链与时间戳，选择三类短动作；固定重定向器比较EgoAllo与RoSHI，再扫描时间偏移；最后对同一G1追踪策略记录重建误差、跌倒与完整执行次数。这是复现实验建议，尚未执行。</p>
+<p><strong>一分钟口述</strong>：RoSHI把低价惯性方向与头戴SLAM结合，改善数据采集的一致性。它输出人体动作再训练机器人追踪器，真机仅证明这些动作能迁移，尚无通用策略收益证据。</p>
+<h2 id="section-6">原文与阅读范围</h2>
+<ul>
+<li><a href="https://arxiv.org/abs/2604.07331v1">RoSHI，arXiv 2604.07331v1</a>，2026-04-08；<a href="https://arxiv.org/pdf/2604.07331v1">固定版本 PDF</a>，已核读全部 8 页、图注、表格与参考文献；该文件无另列附录。</li>
+<li><a href="https://roshi-mocap.github.io/">作者项目页</a>；<a href="https://scaling-h2r-corl.github.io/">H2R Workshop</a> 列为 Oral。</li>
+<li>数值均来自上述固定 PDF；教学微例与后续实验建议是阅读者补充。</li>
+</ul>
+</article><section class="quiz" data-answer="2"><h2 id="quiz">理解检查</h2><fieldset><legend>RoSHI 的 350 美元与真机证据应怎样理解？</legend><label><input type="radio" name="answer" value="0"> 包含眼镜与手机，且已证明通用操作成功率。</label><label><input type="radio" name="answer" value="1"> 是全套商业采购价格。</label><label><input type="radio" name="answer" value="2"> 约为九个 IMU 加接收器；真机主要是动作展示。</label></fieldset><button data-check type="button" hidden>检查答案</button><p class="feedback" aria-live="polite"></p><details><summary>展开答案与依据</summary><p>约为九个 IMU 加接收器；真机主要是动作展示。</p><p>PDF p.2 只把该金额归于 IMU 与接收器；p.7 未提供任务成功次数。</p></details></section></main></div><footer>原文事实与阅读者推断分开标注 · 整理日期 2026-11-17 · <a href="../index.html">返回论文网站</a> · <a href="corl2026-workshops.html">继续选题</a></footer><script>(()=>{'use strict';
+const $=s=>document.querySelector(s);const $$=s=>[...document.querySelectorAll(s)];
+if($('figure a')){const dialog=document.createElement('dialog');dialog.className='zoom-dialog';dialog.setAttribute('aria-label','论文原图');const bar=document.createElement('form');bar.method='dialog';bar.className='zoom-bar';const close=document.createElement('button');close.textContent='关闭原图（Esc）';bar.append(close);const scroll=document.createElement('div');scroll.className='zoom-scroll';const img=document.createElement('img');scroll.append(img);dialog.append(bar,scroll);document.body.append(dialog);$$('figure a').forEach(a=>a.addEventListener('click',e=>{e.preventDefault();img.src=a.href;img.alt=a.querySelector('img').alt;dialog.showModal()}))}
+const theme=$('#theme');if(theme){theme.hidden=false;let saved;try{saved=localStorage.getItem('theme')||localStorage.getItem('corl2026-theme')}catch{}if(saved==='dark')document.documentElement.dataset.theme='dark';const label=()=>{const dark=document.documentElement.dataset.theme==='dark';theme.textContent=dark?'浅色':'深色';theme.setAttribute('aria-pressed',String(dark))};label();theme.addEventListener('click',()=>{const mode=document.documentElement.dataset.theme==='dark'?'light':'dark';document.documentElement.dataset.theme=mode;try{localStorage.setItem('theme',mode);localStorage.setItem('corl2026-theme',mode)}catch{}label()})}
+const print=$('#print');if(print){print.hidden=false;print.addEventListener('click',()=>window.print())}
+let opened=[];window.addEventListener('beforeprint',()=>{opened=$$('details').map(d=>[d,d.open]);$$('details').forEach(d=>d.open=true)});window.addEventListener('afterprint',()=>opened.forEach(([d,o])=>d.open=o));
+if(matchMedia('(max-width:720px)').matches){const toc=$('.sidebar details');if(toc)toc.open=false}
+$$('.walker').forEach(w=>{const items=[...w.querySelectorAll('[data-step]')];const controls=w.querySelector('.step-controls');if(!controls)return;controls.hidden=false;let i=0;const prev=w.querySelector('[data-prev]'),next=w.querySelector('[data-next]'),out=w.querySelector('output');const render=()=>{const focused=document.activeElement;items.forEach((s,n)=>{s.classList.toggle('current',n===i);if(n===i)s.setAttribute('aria-current','step');else s.removeAttribute('aria-current')});out.value=`${i+1} / ${items.length}`;out.textContent=out.value;prev.disabled=i===0;next.disabled=i===items.length-1;if(focused?.disabled)controls.focus()};prev.onclick=()=>{i=Math.max(0,i-1);render()};next.onclick=()=>{i=Math.min(items.length-1,i+1);render()};controls.addEventListener('keydown',e=>{const keys=['ArrowLeft','ArrowRight','Home','End'];if(!keys.includes(e.key))return;e.preventDefault();i=e.key==='Home'?0:e.key==='End'?items.length-1:e.key==='ArrowLeft'?Math.max(0,i-1):Math.min(items.length-1,i+1);render()});render()});
+$$('.quiz').forEach(q=>{const btn=q.querySelector('[data-check]');btn.hidden=false;btn.addEventListener('click',()=>{const selected=q.querySelector('input:checked'),out=q.querySelector('.feedback');out.textContent=!selected?'先选一个答案。':selected.value===q.dataset.answer?'判断正确。展开下方依据核对实验条件。':'再核对一下条件：展开下方答案，看看哪些数字不能拼在一起。'})});
+const search=$('#search'),kind=$('#kind');if(search&&kind){$('.filters').hidden=false;const rows=$$('#catalog tbody tr');const filter=()=>{const words=search.value.toLowerCase().trim().split(/\s+/).filter(Boolean);let n=0;rows.forEach(r=>{const ok=words.every(w=>r.textContent.toLowerCase().includes(w))&&(!kind.value||r.dataset.kind===kind.value);r.hidden=!ok;if(ok)n++});$('#count').textContent=`${n} / ${rows.length} 篇`;$('#empty').hidden=n!==0};search.addEventListener('input',filter);kind.addEventListener('change',filter);$('#reset').onclick=()=>{search.value='';kind.value='';filter();search.focus()};filter()}
+})();
+</script></body></html>
