@@ -20,7 +20,8 @@
 <p>输入是视频历史、本体状态和语言，输出是未来动作块。成功不仅是离线预测合理，还要在真实推理延迟下持续完成动态、长程任务。长上下文本身不等于会利用历史，生成长视频也不等于机器人需要解码完整 RGB 电影。</p>
 <h2 id="section-2">2. 思路：长上下文首先需要合适的预训练先验</h2><div class="cn-read"><div class="cn-label">这一节解决什么</div><p>[原文] LongLive2.0 提供自回归视频初始化；作者继续做机器人视频预训练，再接动作专家。FastWAM 路径强调直接动作；本文保留部分未来 latent 作为条件。[§2–3]</p></div>
 <p class="inference evidence-note" data-evidence="inference">[推断] 如果视频骨干擅长的只是短片双向去噪，直接增加历史帧未必得到稳定时间推理。因果视频训练让“过去→未来”成为预训练任务，再让动作读取这个表示，逻辑上更匹配闭环控制。替代方案是外接显式状态记忆或只用动作历史；这可能更省延迟，但需要证明压缩没有丢掉任务阶段。本文并未排除这些方案。</p>
-<h2 id="section-3">3. 方法：历史、未来 latent、动作，分别做什么？</h2><div class="cn-read"><div class="cn-label">这一节解决什么</div><figure><a href="../assets/figures/corl2026/long-wam-fig-1.png" target="_blank" rel="noopener"><img loading="lazy" decoding="async" src="../assets/figures/corl2026/long-wam-fig-1.png" alt="原文 Figure 1，p.1：机器人自回归视频预训练、长上下文与动作策略" /></a><figcaption>原文 Figure 1，p.1：机器人自回归视频预训练、长上下文与动作策略 · 点击查看原尺寸</figcaption></figure></div>
+<h2 id="section-3">3. 方法：历史、未来 latent、动作，分别做什么？</h2><div class="cn-read"><div class="cn-label">这一节解决什么</div><p>历史有用仍不等于策略能直接使用它。下面区分视频预训练、动作专家读取缓存、未来 latent 部分去噪与异步执行；未来特征与真实未来图像不是同一种输入。</p></div>
+<figure><a href="../assets/figures/corl2026/long-wam-fig-1.png" target="_blank" rel="noopener"><img loading="lazy" decoding="async" src="../assets/figures/corl2026/long-wam-fig-1.png" alt="原文 Figure 1，p.1：机器人自回归视频预训练、长上下文与动作策略" /></a><figcaption>原文 Figure 1，p.1：机器人自回归视频预训练、长上下文与动作策略 · 点击查看原尺寸</figcaption></figure>
 <h3>数据谱系与预算</h3>
 <div class="eval-table-wrap" tabindex="0" role="region" aria-label="证据表，可横向滚动"><table class="eval-table">
 <thead>

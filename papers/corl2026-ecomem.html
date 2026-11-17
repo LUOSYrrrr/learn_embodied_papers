@@ -20,7 +20,8 @@
 <h2 id="section-2">② 思路重建：先确定要记什么，再决定怎么编码</h2><div class="cn-read"><div class="cn-label">这一节解决什么</div><p class="inference evidence-note" data-evidence="inference">[推断，不是作者真实思考记录] 若失败来自“拿错被遮住的物体”，首先需要保持实体与容器的关系；若失败来自多舀一次，就需要确认完整的舀取—倒出事件，而不是数夹爪动作。二者需要的状态不同，但都可以由可组合的概念表达。因此先建立共享词汇，再按指令选择需要的概念，比给每个任务保存整段历史更直接。</p></div>
 <p>下一步的困难是写入质量：检测器偶尔误认，动作命令也可能没有执行成功。于是概念不应在一次检测后立即变成确定事实，要累计证据、区分未知与否定、合并重复事件。最后才是读取问题：显式记录不能自动变成动作，仍需要 Reader 学会把它们送入策略。</p>
 <p>这留下一个可检验的替代解释：收益究竟来自记忆，还是更强的额外感知与人工事件工程？论文用概念族移除、语言 grounding、概念选择和直接 VLM 抽取对照分解了一部分，但没有完全消除系统工程预算差异。</p>
-<h2 id="section-3">③ 方法：从一次“舀取并倒出”走到动作</h2><div class="cn-read"><div class="cn-label">这一节解决什么</div><figure><a href="../assets/figures/corl2026/ecomem-fig-1.png" target="_blank" rel="noopener"><img loading="lazy" decoding="async" src="../assets/figures/corl2026/ecomem-fig-1.png" alt="原文 Figure 1，PDF p.2：Writer 构造记录，Reader 将记录编码成策略 token。虚线区分神经与符号模块。" /></a><figcaption>原文 Figure 1，PDF p.2：Writer 构造记录，Reader 将记录编码成策略 token。虚线区分神经与符号模块。 · 点击查看原尺寸</figcaption></figure></div>
+<h2 id="section-3">③ 方法：从一次“舀取并倒出”走到动作</h2><div class="cn-read"><div class="cn-label">这一节解决什么</div><p>共享概念词汇还不能直接驱动动作。下面看 Writer 怎样把一次完整事件写入记录，Reader 怎样编码，策略又何时重新观察；固定 Writer 不等于整套系统免训练。</p></div>
+<figure><a href="../assets/figures/corl2026/ecomem-fig-1.png" target="_blank" rel="noopener"><img loading="lazy" decoding="async" src="../assets/figures/corl2026/ecomem-fig-1.png" alt="原文 Figure 1，PDF p.2：Writer 构造记录，Reader 将记录编码成策略 token。虚线区分神经与符号模块。" /></a><figcaption>原文 Figure 1，PDF p.2：Writer 构造记录，Reader 将记录编码成策略 token。虚线区分神经与符号模块。 · 点击查看原尺寸</figcaption></figure>
 <p><strong>四类概念是四种问题。</strong> Entity/Spatial Grounding 回答“是什么、在哪里”；State/Relation 回答“谁在谁里面、手里是否持有”；Event/Progress 回答“发生过什么、进度到哪里”；Temporal/Procedure 回答“先后顺序是什么”。概念库里的类型与 episode 中某个具体对象的记录不是同一层。</p>
 <p>设指令为 ℓ，历史为 hₜ，记录为 mₜ，记忆 token 为 uₜ，当前观察为 oₜ：</p>
 <p><code>mₜ = W(ℓ,hₜ)；uₜ = Rφ(mₜ)；aₜ ~ πθ(a | ℓ,oₜ,uₜ)</code>。</p>
