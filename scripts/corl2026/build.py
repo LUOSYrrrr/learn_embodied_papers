@@ -188,18 +188,28 @@ def render_paper(d, portable=False):
     return shell(d['name'],content,side,portable)
 
 def build_collection(portable=False):
-    cards=''
-    for i,d in enumerate(DATA):
-        href=d.get('notion',COLLECTION) if portable else f'corl2026-{d["slug"]}.html'
-        cards+=f'<article class="paper-card"><span class="card-num">{i+1:02}</span><div class="eyebrow">{d["venue"]}</div><h2><a href="{href}">{d["name"]} ↗</a></h2><p>{d["brief"]}</p><p class="boundary">{d["warning"]}</p><small>{d["tag"]} · 全文核读完成</small></article>'
-    catalog='https://www.corl.org/program/accepted-papers' if portable else 'corl2026-catalog.html'
-    content=f'''<div class="eyebrow">NOTES ON EMBODIED INTELLIGENCE / 2026.11</div><h1>CoRL 阅读室<br><span class="muted">世界模型、Agentic、Memory<br>人形与接触控制</span></h1><p class="lede">每篇先用一小段讲明白，再沿着问题、思路、方法、实验、后续实验展开。按<a href="{TEMPLATE}">五块证据链模板</a>保留原图和评测边界。</p><div class="stats"><div><strong>{len(DATA)}</strong>本专题全文核读与 HTML</div><div><strong>687</strong>主会论文仅建目录</div><div><strong>01</strong>既有 AW-0 精读接入</div></div><aside class="scope"><strong>这批覆盖哪里？</strong><p>覆盖用户指定的五个重点方向：已有十篇之外，本轮完成 H2R 的 BATCH、RoSHI、CARD，Learn@Deploy 的 FORCA、Gated Memory Policy，以及 Beneath the Policy 的 Blind Dexterity。Memory 三篇来自官方 Workshop；EmbodiedSWE 为 Agentic Workshop Best Paper。四篇接触论文为 Workshop Spotlight；WB-WAM 的 TAG Workshop 身份沿用既有核验，本次未复核；Long-WAM 为主题关联阅读，录用归属待核实。主会目录的 687 篇尚未逐篇精读。</p><a href="{catalog}">打开主会 687 篇可检索目录 →</a></aside><section><h2>一条可以串起来的阅读路线</h2><p>先用 WB-WAM 理解异构监督，再用 Long-WAM 理解时间。接下来，PanTact 选择“接触什么”，Workhorse 处理“跟不上计划”，OCLO 在线调整姿态，HULK 学会负载下的物理支撑。接口相邻，实验协议并不相同。新补的三篇记忆论文对照显式记录、隐状态与结构化读取；EmbodiedSWE 则把编码 Agent 变成离线数据老师。</p></section><section class="scope"><h2>Agentic 与 WAM 的交叉：AW-0</h2><p>沿用既有完整精读，本次只核验 Agentic Workshop Best Paper 归属。默认代码作为生成条件；hybrid 才执行技能，真机 71.1 为阶段分数。</p><p><a href="https://www.siyuanluoembodied.xin/papers/agentic-wam.html">已有 HTML 精读 →</a> · <a href="https://app.notion.com/p/419bb2b96e9d81249316ce9097d31d58">已有 Notion 正文 →</a></p></section><div class="cards">{cards}</div><section><h2>读结果时，检查这四件事</h2><div class="principles"><p><strong>数据账本</strong><br>人类示范、机器人示范、预训练与更新步数一起看。</p><p><strong>训练 / 部署</strong><br>未来视频、力输入、MPC 或教师，哪些在部署时仍然存在？</p><p><strong>同一协议</strong><br>仿真、真机、最大负载、固定负载成功率不能拼接。</p><p><strong>证据强度</strong><br>完整成功、部分得分、定性演示分开；小样本显示区间。</p></div></section><p class="source-links"><a href="{COLLECTION}">打开 Notion 专题 ↗</a><a href="https://contact-rich-loco-manipulation.github.io/program/index.html">Workshop 官方议程 ↗</a></p>'''
-    content=content.replace(f'按<a href="{TEMPLATE}">五块证据链模板</a>','按五块证据链')
-    content=content.replace('<div class="cards">', '<aside class="scope"><strong>还有哪些 Workshop 值得写？</strong><p>H2R、Learn@Deploy、Beneath the Policy，以及结构化物理智能与生成到动作。本轮九篇中六篇已完成全文精读，VETO、UMI 控制器选择与 Beyond Fixed Delays 三篇待获取全文。</p><a href="corl2026-workshops.html">查看 Workshop 论文与阅读状态 →</a></aside><div class="cards">',1)
-    if not portable:
-        content=content.replace('https://www.siyuanluoembodied.xin/papers/agentic-wam.html','agentic-wam.html')
-        content=content.replace(f'<a href="{COLLECTION}">打开 Notion 专题 ↗</a>', '<a href="../index.html#all-readings">返回全站论文目录</a>')
-    return shell('CoRL 2026 · 五个方向精读与主会目录',content,portable=portable)
+    groups = [
+        ('world-models', '世界模型与动作生成', '从视频与异构数据学习可执行动作，关注未来预测和时间上下文。', ['wb-wam', 'long-wam']),
+        ('agents', 'Agentic 与部署适应', '用代码、工具与执行反馈组织机器人学习和控制。', ['embodiedswe', 'forca', 'aw-0']),
+        ('memory', '记忆与长程任务', '比较显式记录、隐状态和按需读取，以及记忆怎样改变动作。', ['ecomem', 'memjepa', 'simple-agentic-memory', 'gated-memory']),
+        ('human-data', '人类数据与跨本体迁移', '从行为对齐、动作采集到接触重定向，理解人类数据怎样帮助机器人。', ['batch', 'roshi', 'card']),
+        ('control', '人形与接触控制', '关注全身接触、执行偏差、顺应性、负载和本体感知。', ['pantact', 'workhorse', 'dataset-free-compliant', 'hulk', 'blind-dexterity']),
+    ]
+    entries = {d['slug']: d for d in DATA}
+    entries['aw-0'] = dict(name='AW-0', brief='把代码作为世界动作模型的生成条件；hybrid 配置进一步执行技能。', venue='Agentic Workshop · Best Paper', warning='真机 71.1 是阶段分数；默认配置与 hybrid 的执行方式不同。')
+    nav = ''.join(f'<a href="#{key}">{title}<span>{len(slugs)}</span></a>' for key,title,desc,slugs in groups)
+    sections = ''
+    for key,title,desc,slugs in groups:
+        rows = ''
+        for slug in slugs:
+            d = entries[slug]
+            href = 'agentic-wam.html' if slug == 'aw-0' else f'corl2026-{slug}.html'
+            if portable: href = SITE + '/papers/' + href
+            rows += f'<tr><th scope="row"><a href="{href}">{html.escape(d["name"])}</a><small>{html.escape(d["venue"])}</small></th><td>{html.escape(d["brief"])}</td><td>{html.escape(d["warning"])}</td><td><a href="{href}" aria-label="阅读 {html.escape(d["name"])} 精读">精读 →</a></td></tr>'
+        sections += f'<section id="{key}" class="reading-group"><h2>{title}<span class="group-count">{len(slugs)} 篇</span></h2><p class="muted">{desc}</p><div class="eval-table-wrap" role="region" tabindex="0" aria-label="{title}论文表，可横向滚动"><table class="reading-table"><thead><tr><th>论文 / 归属</th><th>简介</th><th>阅读提示</th><th>入口</th></tr></thead><tbody>{rows}</tbody></table></div><a class="back-top" href="#directions">返回分类 ↑</a></section>'
+    catalog = 'https://www.corl.org/program/accepted-papers' if portable else 'corl2026-catalog.html'
+    content = f'''<style>.direction-nav{{display:flex;flex-wrap:wrap;gap:10px;margin:28px 0 38px}}.direction-nav a{{padding:10px 15px;border:1px solid var(--line);border-radius:8px;text-decoration:none;background:var(--panel);font-size:14px}}.direction-nav span{{margin-left:12px;color:var(--muted)}}.reading-group h2{{margin-bottom:8px}}.group-count{{font-size:13px;font-weight:400;color:var(--muted);margin-left:15px}}.reading-table{{table-layout:fixed;min-width:700px}}.reading-table th:nth-child(1){{width:24%}}.reading-table th:nth-child(2){{width:35%}}.reading-table th:nth-child(3){{width:31%}}.reading-table th:nth-child(4){{width:10%}}.reading-table tbody th{{background:transparent;font-weight:650}}.reading-table small{{display:block;font-size:11px;font-weight:400;color:var(--muted);margin-top:7px}}.reading-table td:last-child{{white-space:nowrap}}.back-top{{font-size:12px}}.reading-footer{{margin-top:48px;border-top:1px solid var(--line);padding-top:20px;font-size:14px}}@media print{{.direction-nav,.back-top{{display:none}}.reading-table{{min-width:0}}}}</style><div class="eyebrow">NOTES ON EMBODIED INTELLIGENCE / CoRL 2026</div><h1>CoRL 阅读室</h1><p class="lede">按研究方向找论文。每个板块先看简介，再进入全文精读。</p><p class="muted">5 个方向 · 17 篇精读（含既有 AW-0） · 按主要研究问题归类，跨方向论文不重复列出。</p><nav id="directions" class="direction-nav" aria-label="研究方向">{nav}</nav>{sections}<footer class="reading-footer"><p><strong>更多论文与阅读进度</strong></p><p><a href="{catalog}">主会 687 篇可检索目录 →</a>　<a href="corl2026-workshops.html">Workshop 选题与进度 →</a></p><p class="muted">主会目录尚未逐篇精读。VETO、UMI 控制器选择与 Beyond Fixed Delays 待获取全文；Workshop 归属及主题关联阅读已在表内注明。</p><p><a href="../index.html#all-readings">返回全站论文目录</a></p></footer>'''
+    return shell('CoRL 2026 · 分类论文阅读表', content, portable=portable)
 
 def build_workshops():
     items=json.loads((ROOT/'scripts/corl2026/workshops.json').read_text())
