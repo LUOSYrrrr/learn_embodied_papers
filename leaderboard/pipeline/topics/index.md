@@ -2,59 +2,59 @@
 
 Personal paper leaderboard covering robot world models (WAM), humanoid loco-manipulation, dexterous manipulation, and vision-language-action models. Built from arXiv metadata and Google Scholar citations.
 
-- Last updated: 2026-11-26 02:20 UTC
-- Total indexed papers: 5967
+- Last updated: 2026-11-27 02:20 UTC
+- Total indexed papers: 6005
 - Data sources: arXiv for discovery, citation cache for enrichment.
 
 ## Total Ranking
 
 | Rank | Title | Published | Citations | Score |
 | --- | --- | --- | --- | --- |
-| 1 | [WhatIf: Counterfactual World Models over Action-Grounded Causal Graphs for Robotic Manipulation](https://arxiv.org/abs/2611.33745) | 2026-11-25 | missing | 1.000 |
-| 2 | [RegHarness: Regulating What Code-as-Policy Agents Keep from Steps to Skills](https://arxiv.org/abs/2611.33739) | 2026-11-25 | missing | 1.000 |
-| 3 | [$\mathrm{M}^{2}$-WAM: Efficient Hierarchical Memory Across Modalities and Timescales for World-Action Models](https://arxiv.org/abs/2611.33710) | 2026-11-25 | missing | 1.000 |
-| 4 | [FreshVLA: Frequency-Regularized Time Scale Hierarchical Latent Actions for Vision-Language-Action Models](https://arxiv.org/abs/2611.33635) | 2026-11-25 | missing | 1.000 |
-| 5 | [VivaWorld: Long-Horizon Video World Model With Compositional 3D Priors](https://arxiv.org/abs/2611.33591) | 2026-11-25 | missing | 1.000 |
-| 6 | [DexEngine: Scaling Human Demonstrations into Physically Executable Whole-Robot Data](https://arxiv.org/abs/2611.33579) | 2026-11-25 | missing | 1.000 |
-| 7 | [SplatWAM: Splatting World Action Models for Real-Time 3D Imagination](https://arxiv.org/abs/2611.33467) | 2026-11-24 | missing | 1.000 |
-| 8 | [Best-of-$N$ Test-Time Steering Can Lead to Reward Hacking in Vision-Language-Action Models](https://arxiv.org/abs/2611.33398) | 2026-11-24 | missing | 1.000 |
-| 9 | [Why Does Sensor Depth Fail Learned Manipulation Policies? Finding the Failure Mode with ACT](https://arxiv.org/abs/2611.33352) | 2026-11-24 | missing | 1.000 |
-| 10 | [PyRUA-Dex: Learning Programmatic Policies for Dexterous Bimanual Manipulation with Coding Agents](https://arxiv.org/abs/2611.33144) | 2026-11-24 | missing | 1.000 |
-| 11 | [iWAM: Efficient Action Prediction from World Models without Explicit Future Prediction](https://arxiv.org/abs/2611.33141) | 2026-11-24 | missing | 1.000 |
-| 12 | [Physicl Scenes: An Artist-created 3D Dataset for Learning Perception and Action](https://arxiv.org/abs/2611.33137) | 2026-11-24 | missing | 1.000 |
-| 13 | [Embodied AI Fails the Mirror Test: How a Simple Mirror Breaks Robot Policies](https://arxiv.org/abs/2611.33010) | 2026-11-24 | missing | 1.000 |
-| 14 | [DynaMimic: A Physics-Informed World Model for Humanoid Motion Tracking](https://arxiv.org/abs/2611.32944) | 2026-11-24 | missing | 1.000 |
-| 15 | [Motion Conditioned World Modeling for Embodied Visual Tracking](https://arxiv.org/abs/2611.32900) | 2026-11-24 | missing | 1.000 |
-| 16 | [What Does a Skill Vocabulary Cost? A Closed-Loop Decomposition over Demonstrated Motions](https://arxiv.org/abs/2611.32858) | 2026-11-24 | missing | 1.000 |
-| 17 | [Simulator-as-Proxy World Model for Robot Manipulation](https://arxiv.org/abs/2611.32786) | 2026-11-24 | missing | 1.000 |
-| 18 | [AG-WAM: Attention-Guided World Action Model for Accurate and Efficient Robot Manipulation](https://arxiv.org/abs/2611.32722) | 2026-11-24 | missing | 1.000 |
-| 19 | [Knocked Off Course: Tracing Uncommanded Motion from Perception to Action in Embodied VLAs](https://arxiv.org/abs/2611.32705) | 2026-11-24 | missing | 1.000 |
-| 20 | [DiffGR00T: Execution-Aware Differentiable Training for Humanoid Whole-Body Vision-Language-Action Models](https://arxiv.org/abs/2611.32665) | 2026-11-24 | missing | 1.000 |
+| 1 | [DexLink: Synthesizing Dexterous Behaviors from Chained Hand-object Poses](https://arxiv.org/abs/2611.34936) | 2026-11-25 | missing | 1.000 |
+| 2 | [Cairn: Object-Centric 3D Trajectory Priors for Steering Frozen VLAs](https://arxiv.org/abs/2611.34914) | 2026-11-25 | missing | 1.000 |
+| 3 | [FineDex: Bridging Fine-Grained Human-Object Interaction Generation to Dexterous Humanoid Manipulation](https://arxiv.org/abs/2611.34884) | 2026-11-25 | missing | 1.000 |
+| 4 | [RePace: Reasoning about Demonstration Speedup for Faster Vision-Language-Action Policies](https://arxiv.org/abs/2611.34864) | 2026-11-25 | missing | 1.000 |
+| 5 | [HOG-WAM: Improving Visual Robustness through Future Gradient Prediction](https://arxiv.org/abs/2611.34811) | 2026-11-25 | missing | 1.000 |
+| 6 | [Toward Agentic Robotics: A Large-Scale Study of Harness Design for Robot-Use Agents](https://arxiv.org/abs/2611.34778) | 2026-11-25 | missing | 1.000 |
+| 7 | [A Failure-Driven Data Flywheel for Post-Training Vision-Language-Action Models](https://arxiv.org/abs/2611.34698) | 2026-11-25 | missing | 1.000 |
+| 8 | [RoboEvo$^2$: Recursive Robot Self-Improvement via Harness-Policy Co-Evolution](https://arxiv.org/abs/2611.34675) | 2026-11-25 | missing | 1.000 |
+| 9 | [Nav4Manip: From Navigation to Dexterous Mobile Manipulation through Co-Evolution](https://arxiv.org/abs/2611.34655) | 2026-11-25 | missing | 1.000 |
+| 10 | [Motion Beyond Pixels: Learning Future Visual Representations for Object-Centric Dynamics](https://arxiv.org/abs/2611.34644) | 2026-11-25 | missing | 1.000 |
+| 11 | [Commit2Drive: Perception-Grounded Language Decisions as Commitments for Trajectory Planning in Vision-Language-Action Driving Models](https://arxiv.org/abs/2611.34614) | 2026-11-25 | missing | 1.000 |
+| 12 | [M$^{2}$AdaptVLA: Multimodal Memory-Augmented Vision-Language-Action Model with Predictive Test-Time Adaptation](https://arxiv.org/abs/2611.34560) | 2026-11-25 | missing | 1.000 |
+| 13 | [Dynamic Task Update Benchmark (DTU-Bench): Evaluating Runtime Task Adaptation in Robotic Manipulation](https://arxiv.org/abs/2611.34538) | 2026-11-25 | missing | 1.000 |
+| 14 | [Long-Horizon Planning with Latent World Models via Graph Anchors](https://arxiv.org/abs/2611.34509) | 2026-11-25 | missing | 1.000 |
+| 15 | [HoloBrain-0.5 Technical Report](https://arxiv.org/abs/2611.34449) | 2026-11-25 | missing | 1.000 |
+| 16 | [Most of the Way There: Turning a Strong Video Prior into an Action-Conditioned World Model](https://arxiv.org/abs/2611.34435) | 2026-11-25 | missing | 1.000 |
+| 17 | [Can Visual World Models See Force?](https://arxiv.org/abs/2611.34422) | 2026-11-25 | missing | 1.000 |
+| 18 | [One Patch, Many Policies: Object-Associated Physical Patch Attacks on Robotic Manipulation](https://arxiv.org/abs/2611.34360) | 2026-11-25 | missing | 1.000 |
+| 19 | [Beyond Natural-Language Instructions: Temporal Logic as a Task Language for VLA Models with Visual-Logical Fusion](https://arxiv.org/abs/2611.34352) | 2026-11-25 | missing | 1.000 |
+| 20 | [Co-World Model for Human-Video-to-Robot Transfer via Co-Constructed Shared Latent Dynamics](https://arxiv.org/abs/2611.34302) | 2026-11-25 | missing | 1.000 |
 
 ## Hot Ranking
 
 | Rank | Title | Published | Citations | Score |
 | --- | --- | --- | --- | --- |
-| 1 | [WhatIf: Counterfactual World Models over Action-Grounded Causal Graphs for Robotic Manipulation](https://arxiv.org/abs/2611.33745) | 2026-11-25 | missing | 1.000 |
-| 2 | [RegHarness: Regulating What Code-as-Policy Agents Keep from Steps to Skills](https://arxiv.org/abs/2611.33739) | 2026-11-25 | missing | 1.000 |
-| 3 | [$\mathrm{M}^{2}$-WAM: Efficient Hierarchical Memory Across Modalities and Timescales for World-Action Models](https://arxiv.org/abs/2611.33710) | 2026-11-25 | missing | 1.000 |
-| 4 | [FreshVLA: Frequency-Regularized Time Scale Hierarchical Latent Actions for Vision-Language-Action Models](https://arxiv.org/abs/2611.33635) | 2026-11-25 | missing | 0.999 |
-| 5 | [VivaWorld: Long-Horizon Video World Model With Compositional 3D Priors](https://arxiv.org/abs/2611.33591) | 2026-11-25 | missing | 0.999 |
-| 6 | [DexEngine: Scaling Human Demonstrations into Physically Executable Whole-Robot Data](https://arxiv.org/abs/2611.33579) | 2026-11-25 | missing | 0.999 |
-| 7 | [SplatWAM: Splatting World Action Models for Real-Time 3D Imagination](https://arxiv.org/abs/2611.33467) | 2026-11-24 | missing | 0.999 |
-| 8 | [Best-of-$N$ Test-Time Steering Can Lead to Reward Hacking in Vision-Language-Action Models](https://arxiv.org/abs/2611.33398) | 2026-11-24 | missing | 0.999 |
-| 9 | [Why Does Sensor Depth Fail Learned Manipulation Policies? Finding the Failure Mode with ACT](https://arxiv.org/abs/2611.33352) | 2026-11-24 | missing | 0.999 |
-| 10 | [PyRUA-Dex: Learning Programmatic Policies for Dexterous Bimanual Manipulation with Coding Agents](https://arxiv.org/abs/2611.33144) | 2026-11-24 | missing | 0.999 |
-| 11 | [iWAM: Efficient Action Prediction from World Models without Explicit Future Prediction](https://arxiv.org/abs/2611.33141) | 2026-11-24 | missing | 0.999 |
-| 12 | [Physicl Scenes: An Artist-created 3D Dataset for Learning Perception and Action](https://arxiv.org/abs/2611.33137) | 2026-11-24 | missing | 0.999 |
-| 13 | [Embodied AI Fails the Mirror Test: How a Simple Mirror Breaks Robot Policies](https://arxiv.org/abs/2611.33010) | 2026-11-24 | missing | 0.999 |
-| 14 | [DynaMimic: A Physics-Informed World Model for Humanoid Motion Tracking](https://arxiv.org/abs/2611.32944) | 2026-11-24 | missing | 0.999 |
-| 15 | [Motion Conditioned World Modeling for Embodied Visual Tracking](https://arxiv.org/abs/2611.32900) | 2026-11-24 | missing | 0.999 |
-| 16 | [What Does a Skill Vocabulary Cost? A Closed-Loop Decomposition over Demonstrated Motions](https://arxiv.org/abs/2611.32858) | 2026-11-24 | missing | 0.999 |
-| 17 | [Simulator-as-Proxy World Model for Robot Manipulation](https://arxiv.org/abs/2611.32786) | 2026-11-24 | missing | 0.999 |
-| 18 | [AG-WAM: Attention-Guided World Action Model for Accurate and Efficient Robot Manipulation](https://arxiv.org/abs/2611.32722) | 2026-11-24 | missing | 0.999 |
-| 19 | [Knocked Off Course: Tracing Uncommanded Motion from Perception to Action in Embodied VLAs](https://arxiv.org/abs/2611.32705) | 2026-11-24 | missing | 0.999 |
-| 20 | [DiffGR00T: Execution-Aware Differentiable Training for Humanoid Whole-Body Vision-Language-Action Models](https://arxiv.org/abs/2611.32665) | 2026-11-24 | missing | 0.999 |
+| 1 | [DexLink: Synthesizing Dexterous Behaviors from Chained Hand-object Poses](https://arxiv.org/abs/2611.34936) | 2026-11-25 | missing | 0.999 |
+| 2 | [Cairn: Object-Centric 3D Trajectory Priors for Steering Frozen VLAs](https://arxiv.org/abs/2611.34914) | 2026-11-25 | missing | 0.999 |
+| 3 | [FineDex: Bridging Fine-Grained Human-Object Interaction Generation to Dexterous Humanoid Manipulation](https://arxiv.org/abs/2611.34884) | 2026-11-25 | missing | 0.999 |
+| 4 | [RePace: Reasoning about Demonstration Speedup for Faster Vision-Language-Action Policies](https://arxiv.org/abs/2611.34864) | 2026-11-25 | missing | 0.999 |
+| 5 | [HOG-WAM: Improving Visual Robustness through Future Gradient Prediction](https://arxiv.org/abs/2611.34811) | 2026-11-25 | missing | 0.999 |
+| 6 | [Toward Agentic Robotics: A Large-Scale Study of Harness Design for Robot-Use Agents](https://arxiv.org/abs/2611.34778) | 2026-11-25 | missing | 0.999 |
+| 7 | [A Failure-Driven Data Flywheel for Post-Training Vision-Language-Action Models](https://arxiv.org/abs/2611.34698) | 2026-11-25 | missing | 0.999 |
+| 8 | [RoboEvo$^2$: Recursive Robot Self-Improvement via Harness-Policy Co-Evolution](https://arxiv.org/abs/2611.34675) | 2026-11-25 | missing | 0.999 |
+| 9 | [Nav4Manip: From Navigation to Dexterous Mobile Manipulation through Co-Evolution](https://arxiv.org/abs/2611.34655) | 2026-11-25 | missing | 0.999 |
+| 10 | [Motion Beyond Pixels: Learning Future Visual Representations for Object-Centric Dynamics](https://arxiv.org/abs/2611.34644) | 2026-11-25 | missing | 0.999 |
+| 11 | [Commit2Drive: Perception-Grounded Language Decisions as Commitments for Trajectory Planning in Vision-Language-Action Driving Models](https://arxiv.org/abs/2611.34614) | 2026-11-25 | missing | 0.999 |
+| 12 | [M$^{2}$AdaptVLA: Multimodal Memory-Augmented Vision-Language-Action Model with Predictive Test-Time Adaptation](https://arxiv.org/abs/2611.34560) | 2026-11-25 | missing | 0.999 |
+| 13 | [Dynamic Task Update Benchmark (DTU-Bench): Evaluating Runtime Task Adaptation in Robotic Manipulation](https://arxiv.org/abs/2611.34538) | 2026-11-25 | missing | 0.999 |
+| 14 | [Long-Horizon Planning with Latent World Models via Graph Anchors](https://arxiv.org/abs/2611.34509) | 2026-11-25 | missing | 0.999 |
+| 15 | [HoloBrain-0.5 Technical Report](https://arxiv.org/abs/2611.34449) | 2026-11-25 | missing | 0.999 |
+| 16 | [Most of the Way There: Turning a Strong Video Prior into an Action-Conditioned World Model](https://arxiv.org/abs/2611.34435) | 2026-11-25 | missing | 0.999 |
+| 17 | [Can Visual World Models See Force?](https://arxiv.org/abs/2611.34422) | 2026-11-25 | missing | 0.999 |
+| 18 | [One Patch, Many Policies: Object-Associated Physical Patch Attacks on Robotic Manipulation](https://arxiv.org/abs/2611.34360) | 2026-11-25 | missing | 0.999 |
+| 19 | [Beyond Natural-Language Instructions: Temporal Logic as a Task Language for VLA Models with Visual-Logical Fusion](https://arxiv.org/abs/2611.34352) | 2026-11-25 | missing | 0.999 |
+| 20 | [Co-World Model for Human-Video-to-Robot Transfer via Co-Constructed Shared Latent Dynamics](https://arxiv.org/abs/2611.34302) | 2026-11-25 | missing | 0.999 |
 
 ## Rebuild
 
